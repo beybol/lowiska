@@ -10,6 +10,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Filament\Models\Contracts\HasName;
 use App\Notifications\VerifyEmailNotification;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class User extends Authenticatable implements
     FilamentUser,
@@ -29,6 +30,8 @@ class User extends Authenticatable implements
         'surname',
         'email',
         'password',
+        'country_prefix_id',
+        'phone',
     ];
 
     /**
@@ -62,5 +65,10 @@ class User extends Authenticatable implements
     public function getFilamentName(): string
     {
         return "{$this->name} {$this->surname}";
+    }
+
+    public function countryPrefix(): BelongsTo
+    {
+        return $this->belongsTo(CountryPrefix::class);
     }
 }
