@@ -6,6 +6,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\TextInput;
 use Filament\Pages\Auth\Register as BaseRegister;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Database\Eloquent\Model;
 
 class Register extends BaseRegister
 {
@@ -24,6 +26,13 @@ class Register extends BaseRegister
                     ->statePath('data'),
             ),
         ];
+    }
+
+    protected function getNameFormComponent(): Component
+    {
+        return TextInput::make('name')
+            ->label(__('Name'))
+            ->required();
     }
 
     protected function getSurnameFormComponent(): Component

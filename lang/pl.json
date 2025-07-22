@@ -1,3 +1,9 @@
 {
-    "Surname": "Nazwisko"
+    "Name": "Imię",
+    "Surname": "Nazwisko",
+    "Verify e-mail address": "Zweryfikuj adres e-mail",
+    "Thank you for registering! Click the button below to verify your email address.":
+        "Dziękujemy za rejestrację! Kliknij przycisk poniżej, aby potwierdzić swój adres e-mail.",
+    "If you did not create an account, no further action is required.":
+        "Jeśli nie zakładałeś konta, zignoruj tę wiadomość."
 }
