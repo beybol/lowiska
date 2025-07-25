@@ -18,11 +18,23 @@ class SocialAuthController extends Controller
     public function callback($provider)
     {
         $socialUser = Socialite::driver($provider)->user()->user;
+        $name = '';
+        $surname = '';
+
+        if ($provider === 'google') {
+            $name = $socialUser['given_name'];
+            $surname = $socialUser['family_name'];
+        } elseif ($provider === 'facebook') {
+            $fullName = $socialUser['name'];
+            $name = explode(' ', $fullName)[0];
+            $surname = explode(' ', $fullName)[1];
+        }
+
         $user = User::firstOrCreate(
             ['email' => $socialUser['email']],
             [
-                'name' => $socialUser['given_name'],
-                'surname' => $socialUser['family_name'],
+                'name' => $name,
+                'surname' => $surname,
                 'password' => bcrypt(str()->random(16)),
             ]
         );

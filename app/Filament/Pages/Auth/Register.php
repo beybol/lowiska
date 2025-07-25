@@ -85,7 +85,14 @@ class Register extends BaseRegister
                 ->label(__('Register with Google'))
                 ->color('gray')
                 ->icon(fn () => view('components.icons.google'))
-                ->url(route('social.redirect', 'google')),
+                ->url(route('social.redirect', 'google'))
+                 ->extraAttributes(['class' => 'w-full']),
+            Action::make('register_facebook')
+                ->label(__('Register with Facebook'))
+                ->color('gray')
+                ->icon(fn () => view('components.icons.facebook'))
+                ->url(route('social.redirect', 'facebook'))
+                ->extraAttributes(['class' => 'w-full']),
         ];
     }
 }

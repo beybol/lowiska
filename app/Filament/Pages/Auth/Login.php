@@ -16,6 +16,11 @@ class Login extends BaseLogin
                 ->color('gray')
                 ->icon(fn () => view('components.icons.google'))
                 ->url(route('social.redirect', 'google')),
+            Action::make('login_facebook')
+                ->label(__('Login with Facebook'))
+                ->color('gray')
+                ->icon(fn () => view('components.icons.facebook'))
+                ->url(route('social.redirect', 'facebook')),
         ];
     }
 }
