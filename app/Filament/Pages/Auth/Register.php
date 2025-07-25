@@ -10,7 +10,7 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
 use App\Models\CountryPrefix;
-
+use Filament\Actions\Action;
 
 class Register extends BaseRegister
 {
@@ -75,5 +75,17 @@ class Register extends BaseRegister
     {
         return TextInput::make('phone')
             ->label(__('Phone (without prefix)'));
+    }
+
+    protected function getFormActions(): array
+    {
+        return [
+            ...parent::getFormActions(),
+            Action::make('register_google')
+                ->label(__('Register with Google'))
+                ->color('gray')
+                ->icon(fn () => view('components.icons.google'))
+                ->url(route('social.redirect', 'google')),
+        ];
     }
 }
