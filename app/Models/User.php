@@ -2,12 +2,20 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+use Filament\Models\Contracts\HasName;
+use App\Notifications\VerifyEmailNotification;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class User extends Authenticatable
+class User extends Authenticatable implements
+    FilamentUser,
+    HasName,
+    MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
@@ -19,8 +27,11 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'surname',
         'email',
         'password',
+        'country_prefix_id',
+        'phone',
     ];
 
     /**
@@ -44,5 +55,20 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
+
+    public function getFilamentName(): string
+    {
+        return "{$this->name} {$this->surname}";
+    }
+
+    public function countryPrefix(): BelongsTo
+    {
+        return $this->belongsTo(CountryPrefix::class);
     }
 }

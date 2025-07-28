@@ -1,0 +1,9 @@
+.fi-ac.grid {
+    display: grid;
+    grid-template-columns: 1fr !important;
+}
+
+.fi-btn-icon svg {
+    width: 100%;
+    height: 100%;
+}
