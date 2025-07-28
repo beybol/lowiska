@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\TwoFactorMiddleware;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SocialAuthController;
 
@@ -14,3 +15,7 @@ Route::get('auth/{provider}/callback', [
     'callback'
 ])
     ->name('social.callback');
+
+Route::get('2fa-test', function () {
+    return 'ok';
+})->middleware(['auth', TwoFactorMiddleware::class]);
