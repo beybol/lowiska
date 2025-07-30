@@ -17,6 +17,25 @@
     "Login with Google": "Zaloguj się przez Google",
     "Register with Facebook": "Zarejestruj się przez Facebooka",
     "Login with Facebook": "Zaloguj się przez Facebooka",
+    "Enter verification code": "Wprowadź kod weryfikacyjny",
+    "We have sent a verification code to your email address": 
+        "Wysłaliśmy kod weryfikacyjny na Twój adres e-mail",
+    "Verification code": "Kod weryfikacyjny",
+    "Verify": "Zatwierdź",
+    "Resend verification code": "Wyślij kod weryfikacyjny ponownie",
+    "The two factor code has been sent again.":
+        "Kod weryfikacyjny został wysłany ponownie.",
+    "Your two factor code has expired. Please log in again.": 
+        "Twój kod autoryzacyjny wygasł. Zaloguj się ponownie.",
+    "Hello!": "Cześć!",
+    "Regards": "Pozdrawiamy",
+    "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:": 
+        "Jeśli masz problem z kliknięciem przycisku „:actionText”, skopiuj i wklej poniższy adres URL do przeglądarki:",
+    "Login authorization code": "Kod autoryzacyjny logowania",
+    "Your authorization code: :code.": "Twój kod autoryzacyjny: :code.",
+    "Enter code": "Wprowadź kod",
+    "This code will expire in 10 minutes.": "Ten kod wygasa po 10 minutach.",
+    "Invalid or expired verification code.": "Nieprawidłowy lub wygasły kod weryfikacyjny.",
 
     "Afghanistan": "Afganistan",
     "American Samoa": "Samoa Amerykańskie",
