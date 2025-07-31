@@ -4,9 +4,6 @@ use App\Http\Middleware\TwoFactorMiddleware;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\TwoFactorController;
-use Illuminate\Auth\Events\Registered;
-use App\Models\User;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
 Route::get('/', function () {
     return view('welcome');
