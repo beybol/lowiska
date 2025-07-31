@@ -33,7 +33,7 @@
             <div 
                 class="bg-red-100 border border-red-200 text-red-800 text-sm p-4 rounded-lg"
             >
-                <ul class="list-disc pl-5 space-y-1">
+                <ul class="list-disc pl-5 space-y-1 list-none">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach
@@ -50,6 +50,10 @@
                     class="block text-sm font-medium text-gray-700 mb-2"
                 >
                     {{ __('Verification code') }}
+                    
+                    <span class="text-red-500">
+                        *
+                    </span>
                 </label>
                 <input
                     id="two_factor_code"
