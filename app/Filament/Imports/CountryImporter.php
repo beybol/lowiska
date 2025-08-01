@@ -2,14 +2,14 @@
 
 namespace App\Filament\Imports;
 
-use App\Models\CountryPrefix;
+use App\Models\Country;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
 
-class CountryPrefixImporter extends Importer
+class CountryImporter extends Importer
 {
-    protected static ?string $model = CountryPrefix::class;
+    protected static ?string $model = Country::class;
 
     public static function getColumns(): array
     {
@@ -23,9 +23,9 @@ class CountryPrefixImporter extends Importer
         ];
     }
 
-    public function resolveRecord(): ?CountryPrefix
+    public function resolveRecord(): ?Country
     {
-        return new CountryPrefix();
+        return new Country();
     }
 
     public static function getCompletedNotificationBody(Import $import): string

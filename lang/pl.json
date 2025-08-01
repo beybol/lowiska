@@ -6,8 +6,8 @@
         "Dziękujemy za rejestrację! Kliknij przycisk poniżej, aby potwierdzić swój adres e-mail.",
     "If you did not create an account, no further action is required.":
         "Jeśli nie zakładałeś konta, zignoruj tę wiadomość.",
-    "Country prefixes": "Prefiksy krajów",
-    "country prefix": "prefiks kraju",
+    "Countries": "Kraje",
+    "country": "kraj",
     "Country prefix": "Prefiks kraju",
     "Country name": "Nazwa kraju",
     "Phone (without prefix)": "Telefon (bez prefiksu)",
@@ -36,6 +36,7 @@
     "Enter code": "Wprowadź kod",
     "This code will expire in 10 minutes.": "Ten kod wygasa po 10 minutach.",
     "Invalid or expired verification code.": "Nieprawidłowy lub wygasły kod weryfikacyjny.",
+    "Active": "Aktywny",
 
     "Afghanistan": "Afganistan",
     "American Samoa": "Samoa Amerykańskie",
