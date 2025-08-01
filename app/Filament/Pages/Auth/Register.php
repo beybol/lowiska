@@ -9,7 +9,7 @@ use Filament\Pages\Auth\Register as BaseRegister;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
-use App\Models\CountryPrefix;
+use App\Models\Country;
 use Filament\Actions\Action;
 
 class Register extends BaseRegister
@@ -54,16 +54,16 @@ class Register extends BaseRegister
             ->label(__('Country prefix'))
             ->options(function () {
                 $collator = new \Collator(app()->getLocale());
-                $countryPrefixes = CountryPrefix::all()->map(function ($cp) {
+                $countries = Country::active()->get()->map(function ($c) {
                     return [
-                        'id' => $cp->id,
-                        'label' => __($cp->country_name) . ", {$cp->prefix}",
+                        'id' => $c->id,
+                        'label' => __($c->country_name) . ", {$c->prefix}",
                     ];
                 });
-                $sorted = $countryPrefixes->sort(
-                    function ($cp1, $cp2) use ($collator) {
+                $sorted = $countries->sort(
+                    function ($c1, $c2) use ($collator) {
                         return $collator
-                            ->compare($cp1['label'], $cp2['label']);
+                            ->compare($c1['label'], $c2['label']);
                     }
                 );
 
