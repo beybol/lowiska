@@ -50,7 +50,7 @@ class Register extends BaseRegister
 
     protected function getCountryPrefixesFormComponent(): Component
     {
-        return Select::make('country_prefix_id')
+        return Select::make('country_id')
             ->label(__('Country prefix'))
             ->options(function () {
                 $collator = new \Collator(app()->getLocale());

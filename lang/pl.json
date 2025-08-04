@@ -37,6 +37,9 @@
     "This code will expire in 10 minutes.": "Ten kod wygasa po 10 minutach.",
     "Invalid or expired verification code.": "Nieprawidłowy lub wygasły kod weryfikacyjny.",
     "Active": "Aktywny",
+    "States": "Województwa",
+    "state": "województwo",
+    "State name": "Nazwa województwa",
 
     "Afghanistan": "Afganistan",
     "American Samoa": "Samoa Amerykańskie",
