@@ -13,6 +13,7 @@ use App\Notifications\VerifyEmailNotification;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements
     FilamentUser,
@@ -20,7 +21,11 @@ class User extends Authenticatable implements
     MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, LogsActivity;
+    use 
+        HasFactory, 
+        Notifiable, 
+        LogsActivity,
+        HasRoles;
 
     /**
      * The attributes that are mass assignable.
