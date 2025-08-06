@@ -23,8 +23,9 @@ class TwoFactorMiddleware
                 $user->resetTwoFactorCode();
                 auth()->logout();
 
-                return redirect()->route('login')
-                    ->withStatus('Twój kod autoryzacyjny wygasł. Zaloguj się ponownie.');
+                return redirect()
+                    ->route('login')
+                    ->withStatus(__('Your two factor code has expired. Please log in again.'));
             }
 
             if (! $request->is('verify*')) {

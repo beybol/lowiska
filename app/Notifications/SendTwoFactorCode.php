@@ -41,11 +41,10 @@ class SendTwoFactorCode extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('Kod autoryzacyjny logowania')
-            ->line("Twój kod autoryzacyjny: {$notifiable->two_factor_code}")
-            //   ->action('Autoryzuj się', route('verify.index'))
-            ->line('Kod wygasa po 10 minutach')
-            ->line('Jeśli nie próbowałaś/eś się logować zgłoś Krzysztofowi próbę logowania na Twoje konto.');
+            ->subject(__('Login authorization code'))
+            ->line(__('Your authorization code: :code.', ['code' => $notifiable->two_factor_code]))
+            ->action(__('Enter code'), route('verify.index'))
+            ->line(__('This code will expire in 10 minutes.'));
     }
 
     /**

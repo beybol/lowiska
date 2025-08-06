@@ -7,6 +7,8 @@ use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
+use Filament\Facades\Filament;
 
 class TwoFactorController extends Controller
 {
@@ -23,15 +25,22 @@ class TwoFactorController extends Controller
 
         $user = auth()->user();
 
-        if ($request->input('two_factor_code') !== $user->two_factor_code) {
-            throw ValidationException::withMessages([
-                'two_factor_code' => 'Wprowadzony kod jest niepoprawny',
+        if (
+            !$user->two_factor_code ||
+            !$user->two_factor_expires_at ||
+            $user->two_factor_code !== $request->two_factor_code ||
+            Carbon::parse($user->two_factor_expires_at)->isPast()
+        ) {
+            return back()->withErrors([
+                'two_factor_code' 
+                    => __('Invalid or expired verification code.'),
             ]);
         }
 
         $user->resetTwoFactorCode();
 
-        return redirect()->to(RouteServiceProvider::HOME);
+        return redirect()
+            ->intended(Filament::getCurrentPanel()?->getUrl() ?? '/');
     }
 
     public function resend(): RedirectResponse
@@ -40,6 +49,8 @@ class TwoFactorController extends Controller
         $user->generateTwoFactorCode();
         $user->notify(new SendTwoFactorCode());
 
-        return redirect()->back()->withStatus(__('The two factor code has been sent again'));
+        return redirect()
+            ->back()
+            ->withStatus(__('The two factor code has been sent again.'));
     }
 }

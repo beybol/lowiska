@@ -11,6 +11,9 @@ use Filament\Panel;
 use Filament\Models\Contracts\HasName;
 use App\Notifications\VerifyEmailNotification;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements
     FilamentUser,
@@ -18,7 +21,11 @@ class User extends Authenticatable implements
     MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use 
+        HasFactory, 
+        Notifiable, 
+        LogsActivity,
+        HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -75,21 +82,23 @@ class User extends Authenticatable implements
 
     public function generateTwoFactorCode(): void
     {
-//        activity()->disableLogging();
         $this->timestamps = false;
         $this->two_factor_code = rand(100000, 999999);
         $this->two_factor_expires_at = now()->addMinutes(10);
         $this->save();
-//        activity()->enableLogging();
     }
 
     public function resetTwoFactorCode(): void
     {
-//        activity()->disableLogging();
         $this->timestamps = false;
         $this->two_factor_code = null;
         $this->two_factor_expires_at = null;
         $this->save();
-//        activity()->enableLogging();
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly($this->fillable);
     }
 }
