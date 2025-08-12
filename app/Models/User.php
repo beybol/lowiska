@@ -37,7 +37,7 @@ class User extends Authenticatable implements
         'surname',
         'email',
         'password',
-        'country_prefix_id',
+        'country_id',
         'phone',
         'two_factor_code', 'two_factor_expires_at',
     ];
@@ -75,9 +75,9 @@ class User extends Authenticatable implements
         return "{$this->name} {$this->surname}";
     }
 
-    public function countryPrefix(): BelongsTo
+    public function country(): BelongsTo
     {
-        return $this->belongsTo(CountryPrefix::class);
+        return $this->belongsTo(Country::class);
     }
 
     public function generateTwoFactorCode(): void

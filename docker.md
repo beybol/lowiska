@@ -151,18 +151,23 @@ FLUSH PRIVILEGES;
    ```
    This may be needed if the queue container started before database tables were created.
 
-7. **Clear cache (recommended):**
+7. **Build front**
+   ```bash
+   docker compose exec app npm run build
+   ```
+
+8. **Clear cache (recommended):**
    ```bash
    docker compose exec app php artisan config:clear
    docker compose exec app php artisan cache:clear
    ```
 
-8. **Optional - Run seeders (if they exist):**
+9. **Optional - Run seeders (if they exist):**
    ```bash
    docker compose exec app php artisan db:seed
    ```
 
-9. **Access the application:**
+10. **Access the application:**
    - Open http://localhost:8000 in your browser
    - You should see the Laravel welcome page
 
