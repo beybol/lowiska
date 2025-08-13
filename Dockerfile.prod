@@ -8,11 +8,13 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
+    libicu-dev \
     zip \
     unzip \
     nodejs \
     npm \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip \
+    && docker-php-ext-configure intl \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl soap \
     && a2enmod rewrite headers expires deflate \
     && rm -rf /var/lib/apt/lists/*
 
@@ -25,24 +27,28 @@ WORKDIR /var/www/html
 # Copy composer files first for better layer caching
 COPY composer.json composer.lock ./
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-scripts
+# Install PHP dependencies (with dev dependencies for development)
+RUN php -m | grep -i intl && echo "intl extension is loaded" || echo "intl extension is NOT loaded"
+RUN composer install --optimize-autoloader --no-interaction --no-scripts
 
 # Copy package files for Node.js dependencies
 COPY package*.json vite.config.js ./
 
 # Install Node.js dependencies
-RUN npm ci --only=production
+RUN npm install
 
 # Copy application code
 COPY . .
 
-# Run post-install scripts and build assets
-RUN composer dump-autoload --optimize \
-    && npm run build \
-    && php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache
+# Copy .env.example to .env if .env doesn't exist
+RUN if [ ! -f .env ]; then cp .env.example .env; fi
+
+# Run post-install scripts (without key generation - done by user after container starts)
+RUN composer dump-autoload \
+    && php artisan package:discover --ansi || true
+
+# Build assets (can be overridden by volume mount in development)
+RUN npm run build || true
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \

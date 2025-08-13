@@ -26,14 +26,14 @@ class DatabaseSeeder extends Seeder
 
         State::factory()->create(['name' => 'Greater Poland']);
         State::factory()->create(['name' => 'Holy Cross']);
-        State::factory()->create(['name' => 'Kuyavian-Pomeranian']);
         State::factory()->create(['name' => 'Lesser Poland']);
-        State::factory()->create(['name' => 'Lodz Province']);
         State::factory()->create(['name' => 'Lower Silesian']);
-        State::factory()->create(['name' => 'Lublin Province']);
+        State::factory()->create(['name' => 'Kuyavian-Pomeranian']);
+        State::factory()->create(['name' => 'Lodz']);
+        State::factory()->create(['name' => 'Lublin']);
         State::factory()->create(['name' => 'Lubusz']);
         State::factory()->create(['name' => 'Masovian']);
-        State::factory()->create(['name' => 'Opole Province']);
+        State::factory()->create(['name' => 'Opole']);
         State::factory()->create(['name' => 'Podlaskie']);
         State::factory()->create(['name' => 'Pomeranian']);
         State::factory()->create(['name' => 'Silesian']);
