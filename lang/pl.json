@@ -42,6 +42,8 @@
     "State name": "Nazwa województwa",
     "Companies": "Firmy",
     "company": "firma",
+    "Fishery Types": "Typy łowisk",
+    "fishery type": "typ łowiska",
     "Verified": "Zweryfikowana",
     "Company entered by": "Firma wprowadzona przez",
     "Company name": "Nazwa firmy",
@@ -63,6 +65,7 @@
     "Service key is invalid.": "Klucz usługi jest nieprawidłowy.",
     "Company not found.": "Firma nie została znaleziona.",
     "Please enter TIN.": "Proszę wprowadzić NIP.",
+    "Fishery type name": "Nazwa typu łowiska",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",
