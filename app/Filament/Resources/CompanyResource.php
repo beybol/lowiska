@@ -26,6 +26,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Illuminate\Support\HtmlString;
 use App\Services\CSOService;
+use App\Helpers\Helper;
 
 class CompanyResource extends Resource
 {
@@ -56,46 +57,23 @@ class CompanyResource extends Resource
                     ->schema([
                         TextInput::make('tin')
                             ->label(__('TIN')),
+                        TextInput::make('renae')
+                            ->label(__('RENAE')),
                         Actions::make([
                             Action::make('fetch_cso_data')
-                                ->label(__('Fetch'))
+                                ->label(__('Use TIN'))
                                 ->action(function (Get $get, Set $set) {
                                     $address = CSOService
-                                        ::fetchAddress($get('tin'));
-                                    if (isset($address['error'])) {
-                                        $set('error', $address['error']);
-                                    } else {
-                                        $set(
-                                            'cso_response', 
-                                            $address['cso_response']
-                                        );
-                                        $name = $address['name'] ?? null;
-                                        $set('name', $name);
-                                        $renae = $address['renae'] ?? null;
-                                        $set('renae', $renae);
-                                        $street = $address['street'] ?? null;
-                                        $set('street', $street);
-                                        $hN = $address['house_number'] 
-                                            ?? null;
-                                        $set('house_number', $hN);
-                                        $isFlatNumber = array_key_exists(
-                                            'flat_number',
-                                            $address
-                                        );
-                                        $fN = $address['flat_number'] 
-                                            ?? null;
-                                        $set('flat_number', $fN);
-                                        $postalCode = $address['postal_code']
-                                            ?? null;
-                                        $set('postal_code', $postalCode);
-                                        $city = $address['city'] ?? null;
-                                        $set('city', $city);
-                                        $stateId = $address['state_id'] 
-                                            ?? null;
-                                        $set('state_id', $stateId);
-                                        $set('error', null);
-                                    }
-                                })
+                                        ::fetchAddress($get('tin'), true);
+                                    Helper::setAddress($set, $address);
+                                }),
+                            Action::make('fetch_renae_data')
+                                ->label(__('Use RENAE'))
+                                ->action(function (Get $get, Set $set) {
+                                    $address = CSOService
+                                        ::fetchAddress($get('renae'));
+                                    Helper::setAddress($set, $address);
+                                }),
                         ]),
                         Placeholder::make('error')
                             ->content(function (Get $get) {
@@ -113,8 +91,6 @@ class CompanyResource extends Resource
                 TextInput::make('name')
                     ->label(__('Company name'))
                     ->required(),
-                TextInput::make('renae')
-                    ->label(__('RENAE')),
                 TextInput::make('street')
                     ->label(__('Street'))
                     ->required(),

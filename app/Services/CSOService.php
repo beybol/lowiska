@@ -11,23 +11,34 @@ use App\Models\State;
 
 class CSOService
 {
-    public static function fetchAddress(?string $tin): array
+    public static function fetchAddress(
+        ?string $search,
+         bool $isTin = false
+    ): array
     {
-        if (empty(trim($tin))) {
-            return ['error' => __('Please enter TIN.')];
+        if (empty(trim($search))) {
+            $kind  = $isTin ? 'TIN' : 'RENAE';
+
+            return ['error' => __("Please enter $kind.")];
         }
 
         $cso = new GusApi(env('CSO_Key'));
-        $pureTin = str_replace('-', '', $tin);
+        $pureSearch = str_replace('-', '', $search);
 
         try {
             $cso->login();
-            $gusReport = $cso->getByNip($pureTin)[0];
+
+            if ($isTin) {
+                $gusReport = $cso->getByNip($pureSearch)[0];
+            } else {
+                $gusReport = $cso->getByRegon($pureSearch)[0];
+            }
+
             $address = [];
 
             if (!empty($gusReport)) {
                 $address = [
-                    'tin' => $tin,
+                    'tin' => $gusReport->getNip(),
                     'renae' => $gusReport->getRegon(),
                     'name' => $gusReport->getName(),
                     'state' => $gusReport->getProvince(),
