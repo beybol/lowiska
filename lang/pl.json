@@ -67,6 +67,8 @@
     "Company not found.": "Firma nie została znaleziona.",
     "Please enter TIN.": "Proszę wprowadzić NIP.",
     "Please enter RENAE.": "Proszę wprowadzić REGON.",
+    "Invalid TIN format.": "Nieprawidłowy format NIP.",
+    "Invalid RENAE format.": "Nieprawidłowy format REGON.",
     "Fishery type name": "Nazwa typu łowiska",
     "Fishing Methods": "Metody łowienia",
     "fishing method": "metoda łowienia",

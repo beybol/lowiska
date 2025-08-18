@@ -11,15 +11,54 @@ use App\Models\State;
 
 class CSOService
 {
+    public static function isValidTIN(string $tin): bool
+    {
+        $tin = preg_replace('/[^0-9]/', '', $tin);
+
+        if (strlen($tin) !== 10) {
+            return false;
+        }
+        
+        $weights = [6, 5, 7, 2, 3, 4, 5, 6, 7];
+        $sum = 0;
+        
+        for ($i = 0; $i < 9; $i++) {
+            $sum += $tin[$i] * $weights[$i];
+        }
+        
+        $checksum = $sum % 11;
+
+        if ($checksum === 10) {
+            return false;
+        }
+
+        return $checksum == $tin[9];
+    }
+
+    public static function isValidRENAE(string $renae): bool
+    {
+        $renae = preg_replace('/[^0-9]/', '', $renae);
+        return in_array(strlen($renae), [9, 14]);
+    }
+
     public static function fetchAddress(
         ?string $search,
          bool $isTin = false
     ): array
     {
         if (empty(trim($search))) {
-            $kind  = $isTin ? 'TIN' : 'RENAE';
-
+            $kind = $isTin ? 'TIN' : 'RENAE';
             return ['error' => __("Please enter $kind.")];
+        }
+
+        if ($isTin) {
+            if (!self::isValidTIN($search)) {
+                return ['error' => __('Invalid TIN format.')];
+            }
+        } else {
+            if (!self::isValidRENAE($search)) {
+                return ['error' => __('Invalid RENAE format.')];
+            }
         }
 
         $cso = new GusApi(env('CSO_Key'));
