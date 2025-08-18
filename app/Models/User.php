@@ -67,7 +67,7 @@ class User extends Authenticatable implements
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return true;
+        return $this->is_admin == 1;
     }
 
     public function getFilamentName(): string

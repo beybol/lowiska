@@ -24,6 +24,14 @@ class DatabaseSeeder extends Seeder
         //     'is_admin' => true,
         // ]);
 
+        User::factory()->create([
+            'name' => 'Test',
+            'surname' => 'Admin',
+            'email' => 'test.admin@example.com',
+            'password' => 'admin',
+            'is_admin' => true,
+        ]);
+
         State::factory()->create(['name' => 'Greater Poland']);
         State::factory()->create(['name' => 'Holy Cross']);
         State::factory()->create(['name' => 'Lesser Poland']);

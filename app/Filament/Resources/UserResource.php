@@ -13,9 +13,11 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Toggle;
 
 class UserResource extends Resource
 {
@@ -53,6 +55,7 @@ class UserResource extends Resource
                 Select::make('country_id')
                     ->label(__('Country prefix'))
                     ->relationship('country', 'country_name'),
+                Toggle::make('is_admin')->label(__('Is admin')),
                 CheckboxList::make('roles')
                     ->relationship('roles', 'name')
                     ->label(__('Roles'))
@@ -73,6 +76,7 @@ class UserResource extends Resource
                 TextColumn::make('email')
                     ->label(__('E-mail'))
                     ->searchable(),
+                ToggleColumn::make('is_admin')->label(__('Is admin')),
                 TextColumn::make('roles.name')
                     ->badge()
                     ->label(__('Roles'))
