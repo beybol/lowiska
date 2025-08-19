@@ -166,30 +166,12 @@
                 </x-primary-button>
             </div>
             <!-- Social Registration Buttons -->
-            <div class="mt-4 space-y-3">
-                <a 
-                    href="{{ route('social.redirect', 'google') }}" 
-                    class="w-full gap-2 flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                    <div class="w-5 h-5 mr-2 flex items-center justify-center">
-                        @include('components.icons.google')
-                    </div>
-                    {{ __('Register with Google') }}
-                </a>
-
-                <a 
-                    href="{{ route('social.redirect', 'facebook') }}" 
-                    class="mt-4 gap-2 w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                    <div class="w-5 h-5 mr-2 flex items-center justify-center">
-                        @include('components.icons.facebook')
-                    </div>
-                    {{ __('Register with Facebook') }}
-                </a>
+            <div class="mt-6 w-full">
+                <x-social-auth-buttons type="register" />
             </div>
 
             <a 
-                class="mt-4 underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" 
+                class="mt-4 block text-center underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" 
                 href="{{ route('owner') }}"
             >
                 {{ __('Register fishery') }}

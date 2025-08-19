@@ -32,7 +32,7 @@
             </label>
         </div>
 
-        <div class="flex items-center justify-end mt-4">
+        <div class="flex items-center justify-center mt-4">
             @if (Route::has('password.request'))
                 <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
                     {{ __('Forgot your password?') }}
@@ -44,4 +44,16 @@
             </x-primary-button>
         </div>
     </form>
+
+    <!-- Social Login Buttons -->
+    <div class="mt-6">
+        <x-social-auth-buttons type="login" />
+    </div>
+
+    <a 
+        class="mt-4 block text-center underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" 
+        href="{{ route('owner') }}"
+    >
+        {{ __('Register fishery') }}
+    </a>
 </x-guest-layout>

@@ -28,6 +28,7 @@ class Login extends BaseLogin
         if ($user && !$user->two_factor_code) {
             $user->generateTwoFactorCode();
             $user->notify(new SendTwoFactorCode());
+            session()->put('two_factor_source', 'filament');
             $redirectResponse = new RedirectResponse(route('verify.index'));
             
             throw new HttpResponseException($redirectResponse);

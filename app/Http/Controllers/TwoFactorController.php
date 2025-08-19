@@ -38,9 +38,16 @@ class TwoFactorController extends Controller
         }
 
         $user->resetTwoFactorCode();
+        $source = session('two_factor_source', 'breeze');
+        session()->forget('two_factor_source');
+        
+        if ($source === 'filament') {
+            $currentPanel = Filament::getCurrentPanel();
+            
+            return redirect()->intended($currentPanel?->getUrl() ?? '/admin');
+        }
 
-        return redirect()
-            ->intended(Filament::getCurrentPanel()?->getUrl() ?? '/');
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 
     public function resend(): RedirectResponse
