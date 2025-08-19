@@ -2,7 +2,9 @@
 
 namespace App\Helpers;
 
+use App\Models\Country;
 use Filament\Forms\Set;
+use Illuminate\Support\Collection;
 
 class Helper
 {
@@ -32,5 +34,30 @@ class Helper
             $set('state_id', $stateId);
             $set('error', null);
         }
+    }
+
+    public static function getSortedCountries(): Collection
+    {
+        $collator = new \Collator(app()->getLocale());
+        
+        return Country::active()
+            ->get()
+            ->sort(function ($country1, $country2) use ($collator) {
+                return $collator->compare(
+                    __($country1->country_name),
+                    __($country2->country_name)
+                );
+            });
+    }
+
+    public static function getCountryPrefixes(): array
+    {
+        return self::getSortedCountries()
+            ->mapWithKeys(function ($country) {
+                $label = __($country->country_name) . ", {$country->prefix}";
+
+                return [$country->id => $label];
+            })
+            ->toArray();
     }
 }

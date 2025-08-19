@@ -1,12 +1,21 @@
 <?php
 
-use App\Http\Middleware\TwoFactorMiddleware;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SocialAuthController;
-use App\Http\Controllers\TwoFactorController;
 
 Route::get('/', function () {
     return view('welcome');
+});
+
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 Route::get('auth/{provider}', [SocialAuthController::class, 'redirect'])
@@ -14,11 +23,9 @@ Route::get('auth/{provider}', [SocialAuthController::class, 'redirect'])
 Route::get('auth/{provider}/callback', [
     SocialAuthController::class,
     'callback'
-])
-    ->name('social.callback');
+])->name('social.callback');
+Route::get('owner', function () {
+    return 'owner';
+})->name('owner');
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/verify', [TwoFactorController::class, 'index'])->name('verify.index');
-    Route::post('/verify', [TwoFactorController::class, 'store'])->name('verify.store');
-    Route::post('/verify/resend', [TwoFactorController::class, 'resend'])->name('verify.resend');
-});
+require __DIR__.'/auth.php';

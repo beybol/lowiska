@@ -8,8 +8,9 @@ use Filament\Forms\Components\TextInput;
 use Filament\Pages\Auth\Register as BaseRegister;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
+use App\Helpers\Helper;
 use App\Models\Country;
+use App\Models\User;
 use Filament\Actions\Action;
 
 class Register extends BaseRegister
@@ -52,23 +53,7 @@ class Register extends BaseRegister
     {
         return Select::make('country_id')
             ->label(__('Country prefix'))
-            ->options(function () {
-                $collator = new \Collator(app()->getLocale());
-                $countries = Country::active()->get()->map(function ($c) {
-                    return [
-                        'id' => $c->id,
-                        'label' => __($c->country_name) . ", {$c->prefix}",
-                    ];
-                });
-                $sorted = $countries->sort(
-                    function ($c1, $c2) use ($collator) {
-                        return $collator
-                            ->compare($c1['label'], $c2['label']);
-                    }
-                );
-
-                return $sorted->pluck('label', 'id');
-            });
+            ->options(Helper::getCountryPrefixes());
     }
 
     protected function getPhoneFormComponent(): Component
