@@ -3,11 +3,10 @@
 namespace App\Filament\Pages\Auth;
 
 use Filament\Pages\Auth\Login as BaseLogin;
-use Filament\Actions\Action;
 use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse;
+use App\Helpers\Helper;
 use App\Notifications\SendTwoFactorCode;
 
 class Login extends BaseLogin
@@ -16,16 +15,7 @@ class Login extends BaseLogin
     {
         return [
             ...parent::getFormActions(),
-            Action::make('login_google')
-                ->label(__('Login with Google'))
-                ->color('gray')
-                ->icon(fn () => view('components.icons.google'))
-                ->url(route('social.redirect', 'google')),
-            Action::make('login_facebook')
-                ->label(__('Login with Facebook'))
-                ->color('gray')
-                ->icon(fn () => view('components.icons.facebook'))
-                ->url(route('social.redirect', 'facebook')),
+            ...Helper::getSocialAuthActions('login'),
         ];
     }
 

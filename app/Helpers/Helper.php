@@ -4,6 +4,8 @@ namespace App\Helpers;
 
 use App\Models\Country;
 use Filament\Forms\Set;
+use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Illuminate\Support\Collection;
 
 class Helper
@@ -59,5 +61,40 @@ class Helper
                 return [$country->id => $label];
             })
             ->toArray();
+    }
+
+    public static function getSocialAuthActions(
+        string $actionType = 'login'
+    ): array
+    {
+        $currentPanel = Filament::getCurrentPanel();
+        $panelId = $currentPanel ? $currentPanel->getId() : 'admin';
+        
+        return [
+            Action::make($actionType . '_google')
+                ->label(__(
+                    $actionType === 'login' 
+                        ? 'Login with Google' 
+                        : 'Register with Google'
+                    ))
+                ->color('gray')
+                ->icon(fn () => view('components.icons.google'))
+                ->url(route('social.redirect', [
+                    'provider' => 'google', 
+                    'source' => $panelId
+                ])),
+            Action::make($actionType . '_facebook')
+                ->label(__(
+                    $actionType === 'login' 
+                        ? 'Login with Facebook' 
+                        : 'Register with Facebook'
+                ))
+                ->color('gray')
+                ->icon(fn () => view('components.icons.facebook'))
+                ->url(route('social.redirect', [
+                    'provider' => 'facebook', 
+                    'source' => $panelId
+                ])),
+        ];
     }
 }

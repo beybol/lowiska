@@ -24,6 +24,7 @@
     "Verification code": "Kod weryfikacyjny",
     "Verify": "Zatwierdź",
     "Resend verification code": "Wyślij kod weryfikacyjny ponownie",
+    "Resend verification e-mail": "Wyślij e-mail weryfikacyjny ponownie",
     "The two factor code has been sent again.":
         "Kod weryfikacyjny został wysłany ponownie.",
     "Your two factor code has expired. Please log in again.": 
@@ -81,6 +82,9 @@
     "Log in": "Zaloguj się",
     "Already registered?": "Już zarejestrowany?",
     "Register fishery": "Zarejestruj łowisko",
+    "Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you did not receive the email, we will gladly send you another.": "Dziękujemy za rejestrację! Zanim zaczniesz, czy mógłbyś zweryfikować swój adres e-mail, klikając w link, który właśnie wysłaliśmy na Twój adres e-mail? Jeśli nie otrzymałeś wiadomości e-mail, z przyjemnością wyślemy Ci kolejną.",
+    "Log out": "Wyloguj się",
+    "A new verification link has been sent to the email address you provided during registration.": "Nowy link weryfikacyjny został wysłany na adres e-mail podany podczas rejestracji.",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",

@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Model;
 use App\Helpers\Helper;
 use App\Models\Country;
 use App\Models\User;
-use Filament\Actions\Action;
 
 class Register extends BaseRegister
 {
@@ -66,18 +65,7 @@ class Register extends BaseRegister
     {
         return [
             ...parent::getFormActions(),
-            Action::make('register_google')
-                ->label(__('Register with Google'))
-                ->color('gray')
-                ->icon(fn () => view('components.icons.google'))
-                ->url(route('social.redirect', 'google'))
-                 ->extraAttributes(['class' => 'w-full']),
-            Action::make('register_facebook')
-                ->label(__('Register with Facebook'))
-                ->color('gray')
-                ->icon(fn () => view('components.icons.facebook'))
-                ->url(route('social.redirect', 'facebook'))
-                ->extraAttributes(['class' => 'w-full']),
+            ...Helper::getSocialAuthActions('register'),
         ];
     }
 }
