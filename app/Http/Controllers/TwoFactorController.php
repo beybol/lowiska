@@ -46,6 +46,10 @@ class TwoFactorController extends Controller
             
             return redirect()->intended($currentPanel?->getUrl() ?? '/admin');
         }
+        
+        if ($source === 'filament_owner') {
+            return redirect()->intended('/owner');
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

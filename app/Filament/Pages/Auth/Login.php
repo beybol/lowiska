@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use App\Helpers\Helper;
 use App\Notifications\SendTwoFactorCode;
+use Filament\Facades\Filament;
 
 class Login extends BaseLogin
 {
@@ -25,10 +26,16 @@ class Login extends BaseLogin
         
         $user = auth()->user();
 
-        if ($user && !$user->two_factor_code) {
+        if ($user) {
+            $currentPanel = Filament::getCurrentPanel();
+            $panelId = $currentPanel ? $currentPanel->getId() : 'admin';
+            
             $user->generateTwoFactorCode();
             $user->notify(new SendTwoFactorCode());
-            session()->put('two_factor_source', 'filament');
+            
+            $source = $panelId === 'owner' ? 'filament_owner' : 'filament';
+            session()->put('two_factor_source', $source);
+            
             $redirectResponse = new RedirectResponse(route('verify.index'));
             
             throw new HttpResponseException($redirectResponse);

@@ -24,8 +24,5 @@ Route::get('auth/{provider}/callback', [
     SocialAuthController::class,
     'callback'
 ])->name('social.callback');
-Route::get('owner', function () {
-    return 'owner';
-})->name('owner');
 
 require __DIR__.'/auth.php';
