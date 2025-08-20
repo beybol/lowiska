@@ -4,9 +4,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
 test('registration screen can be rendered', function () {
-    $response = $this->get('/register');
-
-    $response->assertStatus(200);
+    $this->get('/register')
+        ->assertStatus(200)
+        ->assertSee(__('Register fishery'));
 });
 
 test('new users can register', function () {
