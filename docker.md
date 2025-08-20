@@ -171,6 +171,14 @@ FLUSH PRIVILEGES;
    - Open http://localhost:8000 in your browser
    - You should see the Laravel welcome page
 
+## Testing
+
+To run tests with proper database isolation, create database test and use the included test script:
+
+```bash
+# Run all tests with forced test database
+docker compose exec app ./test.sh
+
 ### Verification
 
 Check if everything is running correctly:
@@ -315,11 +323,7 @@ docker compose logs -f scheduler
    # 2. Check if MySQL accepts external connections
    # 3. Create database user with external access:
    
-   mysql -u root -p -e "
-   CREATE USER 'docker'@'%' IDENTIFIED BY 'your_chosen_password';
-   GRANT ALL PRIVILEGES ON łowiska.* TO 'docker'@'%';
-   FLUSH PRIVILEGES;
-   "
+   mysql -u root -p -e "CREATE USER 'docker'@'%' IDENTIFIED BY 'your_chosen_password';GRANT ALL PRIVILEGES ON lowiska.* TO 'docker'@'%';FLUSH PRIVILEGES;"
    ```
 
 6. **Docker containers can't reach host database**

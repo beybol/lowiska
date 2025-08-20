@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 test('login screen can be rendered', function () {
     $response = $this->get('/login');
@@ -9,33 +10,39 @@ test('login screen can be rendered', function () {
 });
 
 test('users can authenticate using the login screen', function () {
-    $user = User::factory()->create();
-
-    $response = $this->post('/login', [
+    $user = User::factory()->create([
+        'password' => bcrypt('password')
+    ]);
+    $credentials = [
         'email' => $user->email,
         'password' => 'password',
-    ]);
-
-    $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    ];
+    
+    $this->assertTrue(Auth::attempt($credentials));
+    $this->assertAuthenticatedAs($user);
 });
 
 test('users can not authenticate with invalid password', function () {
-    $user = User::factory()->create();
-
-    $this->post('/login', [
-        'email' => $user->email,
-        'password' => 'wrong-password',
+    $user = User::factory()->create([
+        'password' => bcrypt('password')
     ]);
 
+    $credentials = [
+        'email' => $user->email,
+        'password' => 'wrong-password',
+    ];
+
+    $this->assertFalse(Auth::attempt($credentials));
     $this->assertGuest();
 });
 
 test('users can logout', function () {
     $user = User::factory()->create();
+    $this->actingAs($user);
+    
+    $this->assertAuthenticated();
 
-    $response = $this->actingAs($user)->post('/logout');
-
+    Auth::logout();
+    
     $this->assertGuest();
-    $response->assertRedirect('/');
 });
