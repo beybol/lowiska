@@ -40,6 +40,8 @@ class User extends Authenticatable implements
         'country_id',
         'phone',
         'two_factor_code', 'two_factor_expires_at',
+        'is_admin',
+        'is_owner',
     ];
 
     /**
@@ -67,7 +69,11 @@ class User extends Authenticatable implements
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->is_admin == 1;
+        return match($panel->getId()) {
+            'admin' => $this->is_admin == 1,
+            'owner' => $this->is_owner == 1,
+            default => false,
+        };
     }
 
     public function getFilamentName(): string

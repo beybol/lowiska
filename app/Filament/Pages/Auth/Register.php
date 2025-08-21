@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Helpers\Helper;
 use App\Models\Country;
 use App\Models\User;
+use Filament\Facades\Filament;
 
 class Register extends BaseRegister
 {
@@ -67,5 +68,14 @@ class Register extends BaseRegister
             ...parent::getFormActions(),
             ...Helper::getSocialAuthActions('register'),
         ];
+    }
+
+    protected function handleRegistration(array $user): Model
+    {
+        if (Filament::getCurrentPanel()->getId() === 'owner') {
+            $user['is_owner'] = 1;
+        }
+
+        return parent::handleRegistration($user);
     }
 }
