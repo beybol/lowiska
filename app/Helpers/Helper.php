@@ -97,4 +97,11 @@ class Helper
                 ])),
         ];
     }
+
+    public static function isOwnerPanel(): bool
+    {
+        $panel = Filament::getCurrentPanel();
+        
+        return $panel?->getId() === 'owner';
+    }
 }

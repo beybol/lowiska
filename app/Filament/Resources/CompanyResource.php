@@ -27,6 +27,7 @@ use Filament\Forms\Set;
 use Illuminate\Support\HtmlString;
 use App\Services\CSOService;
 use App\Helpers\Helper;
+use Filament\Facades\Filament;
 
 class CompanyResource extends Resource
 {
@@ -39,9 +40,11 @@ class CompanyResource extends Resource
         return $form
             ->schema([
                 Toggle::make('is_verified')
+                    ->hidden(fn() => Helper::isOwnerPanel())
                     ->label(__('Verified')),
                 Select::make('user_id')
                     ->required()
+                    ->hidden(fn() => Helper::isOwnerPanel())
                     ->label(__('Company entered by'))
                     ->disabled()
                     ->relationship('user', 'name')
@@ -117,7 +120,8 @@ class CompanyResource extends Resource
         return $table
             ->columns([
                 ToggleColumn::make('is_verified')
-                    ->label(__('Verified')),
+                    ->label(__('Verified'))
+                    ->hidden(fn() => Helper::isOwnerPanel()),
                 TextColumn::make('name')
                     ->label(__('Company name'))
                     ->sortable()
@@ -168,5 +172,16 @@ class CompanyResource extends Resource
 
     public static function getModelLabel(): string {
         return __('company');
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (Helper::isOwnerPanel()) {
+            $query->forCurrentUser();
+        }
+        
+        return $query->with('user', 'state');
     }
 }

@@ -20,6 +20,8 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Http\Middleware\TwoFactorMiddleware;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\Register;
+use App\Filament\Resources\CompanyResource;
+use App\Filament\Resources\CountryResource;
 
 class OwnerPanelProvider extends PanelProvider
 {
@@ -36,6 +38,7 @@ class OwnerPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Green,
             ])
+            ->resources([CompanyResource::class, CountryResource::class])
             ->discoverResources(in: app_path('Filament/Owner/Resources'), for: 'App\\Filament\\Owner\\Resources')
             ->discoverPages(in: app_path('Filament/Owner/Pages'), for: 'App\\Filament\\Owner\\Pages')
             ->pages([
