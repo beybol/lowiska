@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use App\Models\User;
 use App\Models\State;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Company extends Model
 {
-    use LogsActivity;
+    use LogsActivity, HasFactory;
 
     protected $fillable = [
         'user_id',

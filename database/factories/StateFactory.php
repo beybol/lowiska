@@ -18,8 +18,26 @@ class StateFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->lastName(),
-            'country_id' => Country::poland()->value('id'),
+            'name' => $this->faker->randomElement([
+                'Dolnośląskie', 
+                'Kujawsko-pomorskie', 
+                'Lubelskie', 
+                'Lubuskie',
+                'Łódzkie', 
+                'Małopolskie', 
+                'Mazowieckie', 
+                'Opolskie',
+                'Podkarpackie', 
+                'Podlaskie', 
+                'Pomorskie', 
+                'Śląskie',
+                'Świętokrzyskie', 
+                'Warmińsko-mazurskie', 
+                'Wielkopolskie', 
+                'Zachodniopomorskie'
+            ]),
+            'country_id' => Country::poland()->value('id') 
+                ?? Country::factory()->create(['country_name' => 'Poland'])->id,
         ];
     }
 }
