@@ -7,6 +7,7 @@ use App\Filament\Resources\CountryResource;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Actions\Action;
+use App\Helpers\Helper;
 
 class CreateCompany extends CreateRecord
 {
@@ -24,6 +25,7 @@ class CreateCompany extends CreateRecord
         return [
             Action::make('createAndAddFishery')
                 ->label(__('Create and add fishery'))
+                ->hidden(!Helper::isOwnerPanel())
                 ->color('success')
                 ->action(function () {
                     $this->create();

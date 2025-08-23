@@ -91,6 +91,12 @@ class CompanyResource extends Resource
                             ->label(__('CSO response'))
                             ->readonly(),
                     ]),
+                Section::make(__('Verification transfer'))
+                    ->schema([
+                        Placeholder::make('')
+                            ->content(__('Transfer for 1 złoty is required to verify company.')),
+                    ])
+                    ->hidden(fn() => !Helper::isOwnerPanel()),
                 TextInput::make('name')
                     ->label(__('Company name'))
                     ->required(),
