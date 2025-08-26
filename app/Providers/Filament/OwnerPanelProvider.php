@@ -21,7 +21,7 @@ use App\Http\Middleware\TwoFactorMiddleware;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\Register;
 use App\Filament\Resources\CompanyResource;
-use App\Filament\Resources\CountryResource;
+use App\Filament\Resources\FisheryResource;
 
 class OwnerPanelProvider extends PanelProvider
 {
@@ -38,7 +38,7 @@ class OwnerPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Green,
             ])
-            ->resources([CompanyResource::class, CountryResource::class])
+            ->resources([CompanyResource::class, FisheryResource::class])
             ->discoverResources(in: app_path('Filament/Owner/Resources'), for: 'App\\Filament\\Owner\\Resources')
             ->discoverPages(in: app_path('Filament/Owner/Pages'), for: 'App\\Filament\\Owner\\Pages')
             ->pages([

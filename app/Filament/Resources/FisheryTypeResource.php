@@ -63,12 +63,12 @@ class FisheryTypeResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('Fishery Types');
+        return __('Fishery types');
     }
 
     public static function getPluralLabel(): ?string
     {
-        return __('Fishery Types');
+        return __('Fishery types');
     }
 
     public static function getModelLabel(): string 

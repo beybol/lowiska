@@ -62,6 +62,7 @@ class StateResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->label(__('State name'))
+                    ->formatStateUsing(fn ($state) => __($state))
                     ->sortable()
                     ->searchable(),
                 TextColumn::make('country.country_name')

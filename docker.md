@@ -101,6 +101,8 @@ FLUSH PRIVILEGES;
    ```bash
    cp .env.example .env
    ```
+
+   **Important**: If your application runs in specific port, you should add it to `APP_URL`. It is important to see images in fishery Filament panel.
    
    **Important**: Update the `.env` file with your database configuration:
    
@@ -167,7 +169,24 @@ FLUSH PRIVILEGES;
    docker compose exec app php artisan db:seed
    ```
 
-10. **Access the application:**
+10. **Create super admin:**
+   ```bash
+   docker compose exec app php artisan shield:super-admin
+   ```
+
+11. **Generate roles (choose admin panel):**
+   ```bash
+   docker compose exec app php artisan shield:generate --all
+   ```
+
+12. **Generate symbolic link (to work wih images):**
+   Remove-Item path_to_\public\storage
+   ```bash
+   Remove-Item path_to_\public\storage
+   cmd /c mklink /D storage ..\storage\app\public
+   ```   
+
+13. **Access the application:**
    - Open http://localhost:8000 in your browser
    - You should see the Laravel welcome page
 

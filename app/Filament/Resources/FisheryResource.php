@@ -1,0 +1,272 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\FisheryResource\Pages;
+use App\Filament\Resources\FisheryResource\RelationManagers;
+use App\Models\Fishery;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use App\Models\User;
+use App\Helpers\Helper;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\CheckboxList;
+use App\Models\FisheryType;
+use App\Models\FishingMethod;
+use Filament\Tables\Actions\Action;
+use Filament\Support\Enums\MaxWidth;
+use Filament\Forms\Components\ViewField;
+use App\Models\State;
+use App\Models\Convenience;
+use Filament\Forms\Components\FileUpload;
+use App\Models\Fish;
+use Filament\Tables\Columns\TextColumn;
+
+class FisheryResource extends Resource
+{
+    protected static ?string $model = Fishery::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-sun';
+
+    public static function form(Form $form): Form
+    {
+        $richEditorOptions = [
+            'bold',
+            'bulletList',
+            'italic',
+            'orderedList',
+            'underline',
+        ];
+
+        return $form
+            ->schema([
+                TextInput::make('name')
+                    ->label(__('Fishery name'))
+                    ->required()
+                    ->maxLength(255),
+                Select::make('user_id')
+                    ->required()
+                    ->hidden(fn() => Helper::isOwnerPanel())
+                    ->label(__('Fishery entered by'))
+                    ->disabled()
+                    ->relationship('user', 'name')
+                    ->getOptionLabelFromRecordUsing(function (User $user) {
+                        return $user->getFilamentName();
+                    })
+                    ->default(function (?Fishery $record) {
+                        return $record === null
+                            ? auth()->id()
+                            : $record->user_id;
+                    }),
+                Select::make('company_id')
+                    ->required()
+                    ->label(__('Company'))
+                    ->relationship('company', 'name'),
+                Section::make(__('Fishery address'))
+                    ->schema([
+                        Select::make('state_id')
+                            ->label(__('State'))
+                            ->options(Helper::sortStates())
+                            ->searchable()
+                            ->required(),
+                        TextInput::make('town')
+                            ->label(__('Town'))
+                            ->required()
+                            ->maxLength(255),
+                         TextInput::make('street')
+                            ->label(__('Street'))
+                            ->required()
+                            ->maxLength(255),
+                        TextInput::make('building_number')
+                            ->label(__('Building number'))
+                            ->required()
+                            ->maxLength(255),
+                        TextInput::make('zip_code')
+                            ->label(__('Postal code'))
+                            ->required()
+                            ->maxLength(255),
+                        RichEditor::make('directions')
+                            ->label(__('Directions'))
+                            ->toolbarButtons($richEditorOptions)
+                            ->maxLength(255),
+                        ViewField::make('map_preview')
+                            ->label(__('Map Preview'))
+                            ->view('filament.forms.map-preview')
+                            ->viewData(function ($record, $get) {
+                                $street = $get('street') 
+                                    ?? $record?->street 
+                                    ?? '';
+                                $buildingNumber = $get('building_number') 
+                                    ?? $record?->building_number 
+                                    ?? '';
+                                $zipCode = $get('zip_code') 
+                                    ?? $record?->zip_code 
+                                    ?? '';
+                                $town = $get('town') 
+                                    ?? $record?->town 
+                                    ?? '';
+                                $stateId = $get('state_id') 
+                                    ?? $record?->state_id;
+                                $stateName = '';
+
+                                if ($stateId) {
+                                    $state = State::find($stateId);
+                                    $stateName = $state 
+                                        ? __($state->name) 
+                                        : '';
+                                }
+                                
+                                $address = implode(', ', array_filter([
+                                    trim($street . ' ' . $buildingNumber),
+                                    trim($zipCode . ' ' . $town),
+                                    $stateName
+                                ]));
+                                
+                                return [
+                                    'address' => $address,
+                                    'fishery' => $record,
+                                    'street' => $street,
+                                    'building_number' => $buildingNumber,
+                                    'zip_code' => $zipCode,
+                                    'town' => $town,
+                                    'state_name' => $stateName
+                                ];
+                            })
+                            ->columnSpanFull(),
+                    ]),
+                RichEditor::make('description')
+                    ->label(__('Description'))
+                    ->toolbarButtons($richEditorOptions)
+                    ->columnSpanFull(),
+                Section::make(__('Fishery data'))
+                    ->schema([
+                        CheckboxList::make('fishery_types')
+                            ->relationship('fisheryTypes', 'name')
+                            ->label(__('Fishery types'))
+                            ->hidden(FisheryType::count() === 0),
+                        TextInput::make('area')
+                            ->label(__('Area (in hectares)'))
+                            ->required()
+                            ->numeric(),
+                        TextInput::make('avg_depth')
+                            ->label(__('Average depth (in meters)'))
+                            ->numeric(),
+                        TextInput::make('max_depth')
+                            ->label(__('Maximum depth (in meters)'))
+                            ->numeric(),
+                        CheckboxList::make('fishing_methods')
+                            ->options(function () {
+                                $collator = new \Collator('pl_PL');
+                                $methods = FishingMethod::all()
+                                    ->mapWithKeys(function ($method) {
+                                        return [
+                                            $method->id => __($method->name),
+                                        ];
+                                    });
+                                $sorted = $methods->toArray();
+                                $collator->asort($sorted);
+
+                                return $sorted;
+                            })
+                            ->label(__('Fishing methods'))
+                            ->hidden(FishingMethod::count() === 0),
+                        TextInput::make('positions_count')
+                            ->label(__('Positions count'))
+                            ->required()
+                            ->numeric(),
+                        Select::make('dominant_fish_id')
+                            ->label(__('Dominant fish'))
+                            ->relationship('dominantFish', 'name'),
+                        RichEditor::make('records')
+                            ->label(__('Fishery records'))
+                            ->toolbarButtons($richEditorOptions),
+                    ]),
+                CheckboxList::make('conveniences')
+                    ->relationship('conveniences', 'name')
+                    ->label(__('Conveniences'))
+                    ->hidden(Convenience::count() === 0),
+                CheckboxList::make('fish')
+                    ->relationship('fish', 'name')
+                    ->label(__('Available fish'))
+                    ->hidden(Fish::count() === 0),
+                FileUpload::make('map_image_path')
+                    ->image()
+                    ->directory('maps')
+                    ->disk('public')
+                    ->visibility('public')
+                    ->label(__('Fishery map')),
+                FileUpload::make('gallery_images')
+                    ->multiple()
+                    ->image()
+                    ->directory('galleries')
+                    ->disk('public')
+                    ->visibility('public')
+                    ->label(__('Gallery images')),
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('name')
+                    ->searchable(),
+                TextColumn::make('company.name')
+                    ->label(__('Company'))
+                    ->sortable(),
+                TextColumn::make('town')
+                    ->label(__('Town'))
+                    ->searchable(),
+            ])
+            ->filters([
+                //
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListFisheries::route('/'),
+            'create' => Pages\CreateFishery::route('/create'),
+            'edit' => Pages\EditFishery::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Fisheries');
+    }
+
+    public static function getPluralLabel(): ?string
+    {
+        return __('Fisheries');
+    }
+
+    public static function getModelLabel(): string 
+    {
+        return __('fishery');
+    }
+}

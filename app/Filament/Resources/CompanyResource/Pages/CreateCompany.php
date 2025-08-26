@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\CompanyResource\Pages;
 
 use App\Filament\Resources\CompanyResource;
-use App\Filament\Resources\CountryResource;
+use App\Filament\Resources\FisheryResource;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Actions\Action;
@@ -30,7 +30,7 @@ class CreateCompany extends CreateRecord
                 ->action(function () {
                     $this->create();
                     
-                    return redirect()->to(CountryResource::getUrl('create'));
+                    return redirect()->to(FisheryResource::getUrl('create'));
                 }),
             $this->getCreateFormAction(),
             $this->getCancelFormAction(),

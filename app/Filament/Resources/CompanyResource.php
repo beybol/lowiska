@@ -33,7 +33,7 @@ class CompanyResource extends Resource
 {
     protected static ?string $model = Company::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-building-office';
 
     public static function form(Form $form): Form
     {
@@ -116,7 +116,8 @@ class CompanyResource extends Resource
                     ->required(),
                 Select::make('state_id')
                     ->label(__('State'))
-                    ->relationship('state', 'name')
+                    ->options(Helper::sortStates())
+                    ->searchable()
                     ->required(),
             ]);
     }

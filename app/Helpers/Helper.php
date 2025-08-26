@@ -7,6 +7,7 @@ use Filament\Forms\Set;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Illuminate\Support\Collection;
+use App\Models\State;
 
 class Helper
 {
@@ -103,5 +104,20 @@ class Helper
         $panel = Filament::getCurrentPanel();
         
         return $panel?->getId() === 'owner';
+    }
+
+    public static function sortStates() 
+    {
+        $collator = new \Collator(app()->getLocale());
+        
+        return State::all()
+            ->sort(function ($state1, $state2) use ($collator) {
+                return $collator->compare(
+                    __($state1->name),
+                    __($state2->name)
+                );
+            })
+            ->pluck('name', 'id')
+            ->map(fn($name) => __($name));
     }
 }

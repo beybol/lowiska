@@ -13,7 +13,10 @@ return new class extends Migration
     {
         Schema::create('companies', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')
+                ->nullable()
+                ->constrained()
+                ->onDelete('set null');
             $table->boolean('is_verified')->default(false);
             $table->string('name');
             $table->string('tin')->nullable();
@@ -23,7 +26,10 @@ return new class extends Migration
             $table->string('flat_number')->nullable();
             $table->string('postal_code');
             $table->string('city');
-            $table->foreignId('state_id')->constrained()->onDelete('cascade');
+            $table->foreignId('state_id')
+                ->nullable()
+                ->constrained()
+                ->onDelete('set null');
             $table->string('cso_response')->nullable();
             $table->timestamps();
         });

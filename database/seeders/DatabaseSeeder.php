@@ -6,6 +6,7 @@ use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\State;
+use App\Models\FishingMethod;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,14 +16,6 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // User::factory(10)->create();
-
-        // User::factory()->create([
-        //     'name' => 'Test',
-        //     'surname' => 'Admin',
-        //     'email' => 'test.admin@example.com',
-        //     'password' => 'admin',
-        //     'is_admin' => true,
-        // ]);
 
         User::factory()->create([
             'name' => 'Test',
@@ -49,5 +42,9 @@ class DatabaseSeeder extends Seeder
         State::factory()->create(['name' => 'Subcarpathian']);
         State::factory()->create(['name' => 'Warmian-Masurian']);
         State::factory()->create(['name' => 'West Pomeranian']);
+
+        FishingMethod::factory()->create(['name' => 'Ground']);
+        FishingMethod::factory()->create(['name' => 'Float']);
+        FishingMethod::factory()->create(['name' => 'Boat']);
     }
 }

@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Filament\Resources\FisheryResource\Pages;
+
+use App\Filament\Resources\FisheryResource;
+use Filament\Actions;
+use Filament\Resources\Pages\EditRecord;
+
+class EditFishery extends EditRecord
+{
+    protected static string $resource = FisheryResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\DeleteAction::make(),
+        ];
+    }
+}

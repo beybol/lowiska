@@ -63,12 +63,12 @@ class FishingMethodResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('Fishing Methods');
+        return __('Fishing methods');
     }
 
     public static function getPluralLabel(): ?string
     {
-        return __('Fishing Methods');
+        return __('Fishing methods');
     }
 
     public static function getModelLabel(): string 
