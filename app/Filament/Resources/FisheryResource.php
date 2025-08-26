@@ -29,6 +29,7 @@ use App\Models\Convenience;
 use Filament\Forms\Components\FileUpload;
 use App\Models\Fish;
 use Filament\Tables\Columns\TextColumn;
+use App\Models\Company;
 
 class FisheryResource extends Resource
 {
@@ -69,7 +70,10 @@ class FisheryResource extends Resource
                 Select::make('company_id')
                     ->required()
                     ->label(__('Company'))
-                    ->relationship('company', 'name'),
+                    ->options(
+                        Company::where('user_id', auth()->id())
+                            ->pluck('name', 'id')
+                    ),
                 Section::make(__('Fishery address'))
                     ->schema([
                         Select::make('state_id')

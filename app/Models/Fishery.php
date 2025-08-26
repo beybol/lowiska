@@ -19,6 +19,7 @@ class Fishery extends Model
         'name',
         'user_id',
         'state_id',
+        'company_id',
         'town',
         'street',
         'building_number',
