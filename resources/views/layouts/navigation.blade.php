@@ -73,7 +73,7 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('filament.owner.pages.dashboard')">
+            <x-responsive-nav-link :href="route('filament.owner.resources.companies.create')">
                 {{ __('Register fishery') }}
             </x-responsive-nav-link>
         </div>

@@ -101,7 +101,7 @@
     "Verification transfer": "Przelew weryfikacyjny",
     "Transfer for 1 złoty is required to verify company.": "Przelew na złotówkę jest wymagany do weryfikacji firmy.",
     "Fish": "Ryby",
-    "fish": "rybę",
+    "fish": "ryba",
     "Fish name": "Nazwa ryby",
     "Conveniences": "Udogodnienia",
     "convenience": "udogodnienie",
@@ -138,6 +138,8 @@
     "Ground": "Gunt",
     "Float": "Spławik",
     "Boat": "Łódka",
+    "Create fish": "Utwórz rybę",
+    "Edit fish": "Edytuj rybę",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",

@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\TextColumn;
+use App\Filament\Resources\FishResource\Pages\CreateFish;
+use App\Filament\Resources\FishResource\Pages\EditFish;
+use App\Filament\Resources\FishResource\Pages\ListFish;
 
 class FishResource extends Resource
 {
@@ -58,6 +61,8 @@ class FishResource extends Resource
     {
         return [
             'index' => Pages\ManageFish::route('/'),
+            'create' => CreateFish::route('/create'),
+            'edit' => EditFish::route('/{record}/edit'),
         ];
     }
 
