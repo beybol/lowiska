@@ -269,4 +269,15 @@ class FisheryResource extends Resource
     {
         return __('fishery');
     }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (Helper::isOwnerPanel()) {
+            $query->forCurrentUser();
+        }
+        
+        return $query->with('user', 'company', 'state');
+    }
 }

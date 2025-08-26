@@ -8,6 +8,8 @@ use Spatie\Activitylog\LogOptions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 
 class Fishery extends Model
 {
@@ -82,5 +84,13 @@ class Fishery extends Model
     public function dominantFish(): BelongsTo
     {
         return $this->belongsTo(Fish::class);
+    }
+
+    #[Scope]
+    public function forCurrentUser(Builder $query): void
+    {
+        if (auth()->check()) {
+            $query->where('user_id', auth()->id());
+        }
     }
 }

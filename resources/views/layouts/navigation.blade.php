@@ -15,7 +15,7 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('filament.owner.pages.dashboard')">
+                    <x-nav-link :href="route('filament.owner.resources.companies.create')">
                         {{ __('Register fishery') }}
                     </x-nav-link>
                 </div>
