@@ -72,10 +72,14 @@ class Register extends BaseRegister
 
     protected function handleRegistration(array $user): Model
     {
+        $createdUser = parent::handleRegistration($user);
+
         if (Filament::getCurrentPanel()->getId() === 'owner') {
-            $user['is_owner'] = 1;
+            $createdUser->is_owner = 1;
+            $createdUser->assignRole('Owner');
+            $createdUser->save();
         }
 
-        return parent::handleRegistration($user);
+        return $createdUser;
     }
 }

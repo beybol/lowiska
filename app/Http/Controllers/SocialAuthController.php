@@ -58,6 +58,12 @@ class SocialAuthController extends Controller
             $panel = Filament::getPanel($source);
 
             if ($panel) {
+                if ($panel->getId() === 'owner' && !$user->is_owner) {
+                    $user->is_owner = 1;
+                    $user->assignRole('Owner');
+                    $user->save();
+                }
+                
                 return redirect()->to($panel->getUrl());
             }
 
