@@ -65,6 +65,13 @@ abstract class TestCase extends BaseTestCase
         'update_state',
         'delete_state',
     ];
+    private array $userPermissions = [
+        'view_any_user',
+        'view_user',
+        'create_user',
+        'update_user',
+        'delete_user',
+    ];
 
     protected function createOwner(array $attributes = []): User
     {
@@ -100,13 +107,13 @@ abstract class TestCase extends BaseTestCase
             $this->fisheryTypePermissions,
             $this->fishingMethodPermissions,
             $this->statePermissions,
+            $this->userPermissions,
         );
 
         foreach ($requiredPermissions as $permission) {
             Permission::firstOrCreate(['name' => $permission]);
         }
 
-        // Przypisz wszystkie uprawnienia do roli
         $allPermissions = Permission::all();
         $superAdminRole->syncPermissions($allPermissions);
         $defaultAttributes = ['is_admin' => 1];

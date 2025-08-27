@@ -18,7 +18,8 @@ test('Admin panel is accessible.', function () {
         ->assertSee(__('Fishery types'))
         ->assertSee(__('Fishing methods'))
         ->assertSee(__('States'))
-        ->assertSee(__('Fisheries'));
+        ->assertSee(__('Fisheries'))
+        ->assertSee(__('Users'));
 });
 
 test('Other user can not have access to admin panel.', function () {

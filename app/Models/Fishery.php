@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Fishery extends Model
 {
-    use LogsActivity, SoftDeletes;
+    use LogsActivity, SoftDeletes, HasFactory;
 
     protected $fillable = [
         'name',
@@ -31,10 +32,6 @@ class Fishery extends Model
         'max_depth',
         'positions_count',
         'dominant_fish_id',
-        'fish_id',
-        'fishery_type_id',
-        'fishing_method_id',
-        'convenience_id',
         'records',
         'map_image_path',
         'gallery_images'
