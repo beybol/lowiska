@@ -5,18 +5,35 @@ namespace Tests\Feature;
 use App\Models\User;
 
 test('Admin panel is accessible.', function () {
-    $admin = User::factory()->create(['is_admin' => 1]);
+    $superAdmin = $this->createSuperAdmin();
 
-    $this->actingAs($admin)
+    $this->actingAs($superAdmin)
         ->get('/admin')
         ->assertStatus(200)
-        ->assertSee(__('Panel'));
+        ->assertSee(__('Panel'))
+        ->assertSee(__('Companies'))
+        ->assertSee(__('Fish'))
+        ->assertSee(__('Conveniences'))
+        ->assertSee(__('Countries'))
+        ->assertSee(__('Fishery types'))
+        ->assertSee(__('Fishing methods'))
+        ->assertSee(__('States'))
+        ->assertSee(__('Fisheries'));
 });
 
 test('Other user can not have access to admin panel.', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
+        ->get('/admin')
+        ->assertStatus(403)
+        ->assertDontSee(__('Panel'));
+});
+
+test('Owner can not have access to admin panel.', function () {
+    $owner = $this->createOwner();
+
+    $this->actingAs($owner)
         ->get('/admin')
         ->assertStatus(403)
         ->assertDontSee(__('Panel'));
