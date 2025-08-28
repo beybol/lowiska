@@ -26,8 +26,6 @@ class DatabaseSeeder extends Seeder
             'is_owner' => true,
         ]);
 
-        $this->call(OwnerRoleSeeder::class);
-
         State::factory()->create(['name' => 'Greater Poland']);
         State::factory()->create(['name' => 'Holy Cross']);
         State::factory()->create(['name' => 'Lesser Poland']);

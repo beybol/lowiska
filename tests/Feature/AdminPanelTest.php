@@ -30,12 +30,3 @@ test('Other user can not have access to admin panel.', function () {
         ->assertStatus(403)
         ->assertDontSee(__('Panel'));
 });
-
-test('Owner can not have access to admin panel.', function () {
-    $owner = $this->createOwner();
-
-    $this->actingAs($owner)
-        ->get('/admin')
-        ->assertStatus(403)
-        ->assertDontSee(__('Panel'));
-});

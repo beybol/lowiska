@@ -7,9 +7,9 @@ use App\Models\Company;
 use App\Models\Fishery;
 
 test('Owner panel is accessible.', function () {
-    $owner = $this->createOwner();
+    $user = User::factory()->create();
 
-    $this->actingAs($owner)
+    $this->actingAs($user)
         ->get('/owner')
         ->assertStatus(200)
         ->assertSee(__('Panel'))
@@ -24,31 +24,22 @@ test('Owner panel is accessible.', function () {
         ->assertDontSee(__('Users'));
 });
 
-test('Other user can not have access to owner panel.', function () {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->get('/owner')
-        ->assertStatus(403)
-        ->assertDontSee(__('Panel'));
-});
-
-test('Admin can not have access to owner panel.', function () {
+test('Admin has access to owner panel.', function () {
     $admin = $this->createSuperAdmin();
 
     $this->actingAs($admin)
         ->get('/owner')
-        ->assertStatus(403)
-        ->assertDontSee(__('Panel'));
+        ->assertStatus(200)
+        ->assertSee(__('Panel'));
 });
 
 test('Owner can view only his company.', function () {
-    $owner = $this->createOwner();
-    $company = Company::factory()->forUser($owner)->create();
+    $user = User::factory()->create();
+    $company = Company::factory()->forUser($user)->create();
     $otherUser = User::factory()->create();
     $otherCompany = Company::factory()->forUser($otherUser)->create();
 
-    $this->actingAs($owner)
+    $this->actingAs($user)
         ->get('/owner/companies')
         ->assertStatus(200)
         ->assertSee($company->name)
@@ -56,12 +47,12 @@ test('Owner can view only his company.', function () {
 });
 
 test('Owner can view only his fishery.', function () {
-    $owner = $this->createOwner();
-    $fishery = Fishery::factory()->forUser($owner)->create();
+    $user = User::factory()->create();
+    $fishery = Fishery::factory()->forUser($user)->create();
     $otherUser = User::factory()->create();
     $otherFishery = Fishery::factory()->forUser($otherUser)->create();
 
-    $this->actingAs($owner)
+    $this->actingAs($user)
         ->get('/owner/fisheries')
         ->assertStatus(200)
         ->assertSee($fishery->name)

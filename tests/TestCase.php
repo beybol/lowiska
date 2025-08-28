@@ -73,28 +73,6 @@ abstract class TestCase extends BaseTestCase
         'delete_user',
     ];
 
-    protected function createOwner(array $attributes = []): User
-    {
-        $ownerRole = Role::firstOrCreate(['name' => 'Owner']);
-        $permissions = array_merge(
-            $this->companyPermissions,
-            $this->fisheryPermissions,
-        );
-
-        foreach ($permissions as $permission) {
-            $perm = Permission::firstOrCreate(['name' => $permission]);
-            $ownerRole->givePermissionTo($perm);
-        }
-
-        $defaultAttributes = ['is_owner' => 1];
-        $owner = User::factory()->create(
-            array_merge($defaultAttributes, $attributes),
-        );
-        $owner->assignRole($ownerRole);
-
-        return $owner;
-    }
-
     protected function createSuperAdmin(array $attributes = []): User
     {
         $superAdminRole = Role::firstOrCreate(['name' => 'Super Admin']);

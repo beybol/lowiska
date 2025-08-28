@@ -41,7 +41,6 @@ class User extends Authenticatable implements
         'phone',
         'two_factor_code', 'two_factor_expires_at',
         'is_admin',
-        'is_owner',
     ];
 
     /**
@@ -71,8 +70,7 @@ class User extends Authenticatable implements
     {
         return match($panel->getId()) {
             'admin' => $this->is_admin == 1,
-            'owner' => $this->is_owner == 1,
-            default => false,
+            default => true,
         };
     }
 
