@@ -23,7 +23,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'test.admin@example.com',
             'password' => 'adminadmin',
             'is_admin' => true,
-            'is_owner' => true,
         ]);
 
         State::factory()->create(['name' => 'Greater Poland']);

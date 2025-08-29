@@ -50,10 +50,5 @@
         <x-social-auth-buttons type="login" />
     </div>
 
-    <a 
-        class="mt-4 block text-center underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" 
-        href="{{ route('filament.owner.pages.dashboard') }}"
-    >
-        {{ __('Register fishery') }}
-    </a>
+    <x-create-fishery-link />
 </x-guest-layout>

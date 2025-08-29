@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable implements
     FilamentUser,
@@ -104,5 +105,10 @@ class User extends Authenticatable implements
     {
         return LogOptions::defaults()
             ->logOnly($this->fillable);
+    }
+
+    public function companies(): HasMany
+    {
+        return $this->hasMany(Company::class);
     }
 }

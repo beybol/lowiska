@@ -69,17 +69,4 @@ class Register extends BaseRegister
             ...Helper::getSocialAuthActions('register'),
         ];
     }
-
-    protected function handleRegistration(array $user): Model
-    {
-        $createdUser = parent::handleRegistration($user);
-
-        if (Filament::getCurrentPanel()->getId() === 'owner') {
-            $createdUser->is_owner = 1;
-            $createdUser->assignRole('Owner');
-            $createdUser->save();
-        }
-
-        return $createdUser;
-    }
 }

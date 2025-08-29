@@ -15,13 +15,7 @@ class CompanyPolicy
      */
     public function viewAny(User $user): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('view_any_company');
-        }
-
-        return true;
+        return $user->can('view_any_company');
     }
 
     /**
@@ -29,13 +23,7 @@ class CompanyPolicy
      */
     public function view(User $user, Company $company): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('view_company');
-        }
-
-        return true;
+        return $user->can('view_company');
     }
 
     /**
@@ -43,13 +31,7 @@ class CompanyPolicy
      */
     public function create(User $user): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('create_company');
-        }
-
-        return true;
+        return $user->can('create_company');
     }
 
     /**
@@ -57,13 +39,7 @@ class CompanyPolicy
      */
     public function update(User $user, Company $company): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('update_company');
-        }
-
-        return true;
+        return $user->can('update_company');
     }
 
     /**
@@ -71,13 +47,7 @@ class CompanyPolicy
      */
     public function delete(User $user, Company $company): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('delete_company');
-        }
-
-        return true;
+        return $user->can('delete_company');
     }
 
     /**
@@ -85,13 +55,7 @@ class CompanyPolicy
      */
     public function deleteAny(User $user): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('delete_any_company');
-        }
-
-        return true;
+        return $user->can('delete_any_company');
     }
 
     /**
@@ -99,13 +63,7 @@ class CompanyPolicy
      */
     public function forceDelete(User $user, Company $company): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('force_delete_company');
-        }
-
-        return true;
+        return $user->can('force_delete_company');
     }
 
     /**
@@ -113,13 +71,7 @@ class CompanyPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('force_delete_any_company');
-        }
-
-        return true;
+        return $user->can('force_delete_any_company');
     }
 
     /**
@@ -127,13 +79,7 @@ class CompanyPolicy
      */
     public function restore(User $user, Company $company): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('restore_company');
-        }
-
-        return true;
+        return $user->can('restore_company');
     }
 
     /**
@@ -141,13 +87,7 @@ class CompanyPolicy
      */
     public function restoreAny(User $user): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('restore_any_company');
-        }
-
-        return true;
+        return $user->can('restore_any_company');
     }
 
     /**
@@ -155,13 +95,7 @@ class CompanyPolicy
      */
     public function replicate(User $user, Company $company): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('replicate_company');
-        }
-
-        return true;
+        return $user->can('replicate_company');
     }
 
     /**
@@ -169,12 +103,6 @@ class CompanyPolicy
      */
     public function reorder(User $user): bool
     {
-        $panel = filament()->getCurrentPanel();
-
-        if ($panel && $panel->getId() === 'admin') {
-            return $user->can('reorder_company');
-        }
-
-        return true;
+        return $user->can('reorder_company');
     }
 }
