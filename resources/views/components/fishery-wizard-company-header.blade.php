@@ -11,16 +11,16 @@
         <form wire:submit.prevent="selectCompany">
             <x-input-label 
                 required
-                for="company_id"
+                for="companyId"
                 class="block mb-4 font-semibold"
             >
                 {{ __('Choose a company:') }}
             </x-input-label>
 
-            <select 
-                name="company_id" 
-                id="company_id" 
-                wire:model="company_id"
+            <select
+                name="companyId"
+                id="companyId"
+                wire:model="companyId"
                 required
                 class="mb-5"
             >

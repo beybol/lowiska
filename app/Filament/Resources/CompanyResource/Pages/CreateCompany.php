@@ -9,13 +9,14 @@ use Filament\Resources\Pages\CreateRecord;
 use Filament\Actions\Action;
 use App\Helpers\Helper;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Model;
 
 class CreateCompany extends CreateRecord
 {
     protected static string $resource = CompanyResource::class;
 
     public bool $wizard = false;
-    public int $companyId;
+    public ?int $companyId = null;
 
     public function mount(): void
     {
@@ -41,7 +42,9 @@ class CreateCompany extends CreateRecord
                         $this->create();
 
                         return redirect()->to(
-                            route('filament.owner.pages.verify-company'),
+                            route('filament.owner.pages.verify-company', [
+                                'company' => $this->companyId,
+                            ]),
                         );
                     }),
                 Action::make('cancel')
@@ -52,15 +55,6 @@ class CreateCompany extends CreateRecord
         }
 
         return [
-            Action::make('createAndAddFishery')
-                ->label(__('Create and add fishery'))
-                ->hidden(!Helper::isOwnerPanel())
-                ->color('success')
-                ->action(function () {
-                    $this->create();
-                    
-                    return redirect()->to(FisheryResource::getUrl('create'));
-                }),
             $this->getCreateFormAction(),
             $this->getCancelFormAction(),
         ];
@@ -85,5 +79,22 @@ class CreateCompany extends CreateRecord
         return [
             'wizard' => $this->wizard,
         ];
+    }
+
+    protected function handleRecordCreation(array $data): Model
+    {
+        $company = static::getModel()::create($data);
+        $this->companyId = $company->id;
+        
+        return $company;
+    }
+
+    public function selectCompany(): void
+    {
+        $this->redirect(
+            route('filament.owner.pages.verify-company', [
+                'company' => $this->companyId,
+            ]),
+        );
     }
 }
