@@ -95,10 +95,11 @@ test('Owner without company can not view top choose company form.', function () 
         ->assertSee(__('Next'))
         ->assertSee(__('Cancel'))
         ->assertDontSee(__('Or create a new company below.'))
-        ->assertSee(__('Get data from CSO'));
+        ->assertSee(__('Get data from CSO'))
+        ->assertDontSee(__('Create & create another'));
 });
 
-test('Owner can see company verification screen', function () {
+test('Owner can see company verification screen.', function () {
     $owner = User::factory()->create();
     Helper::addOwnerRole($owner);
     $company = Company::factory()->forUser($owner)->create();
@@ -112,4 +113,41 @@ test('Owner can see company verification screen', function () {
         ->assertSee(__('Transfer for 1 złoty is required to verify company.'))
         ->assertSee(__('Next'))
         ->assertSee(__('Previous'));
+});
+
+test('Owner can see last fishery verification step.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $company = Company::factory()->forUser($owner)->create();
+
+    $this->actingAs($owner)
+        ->get('/owner/fisheries/create?company=' . $company->id . '&wizard=1')
+        ->assertStatus(200)
+        ->assertSee(__('Create fishery wizard'))
+        ->assertSeeText(__('Step') . ' 3 / 3')
+        ->assertSee(__('Final step - provide fishery details below.'))
+        ->assertSee(__('Fishery address'))
+        ->assertSee(__('Create fishery'))
+        ->assertSee(__('Previous'))
+        ->assertDontSee(__('Create & create another'));
+});
+
+test('Not see wizard buttons on normal create company form', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+
+    $this->actingAs($owner)
+        ->get('/owner/companies/create')
+        ->assertStatus(200)
+        ->assertDontSee(__('Next'));
+});
+
+test('Not see wizard buttons on normal create fishery form', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+
+    $this->actingAs($owner)
+        ->get('/owner/fisheries/create')
+        ->assertStatus(200)
+        ->assertDontSee(__('Previous'));
 });

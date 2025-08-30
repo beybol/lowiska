@@ -54,10 +54,7 @@ class CreateCompany extends CreateRecord
             ];
         }
 
-        return [
-            $this->getCreateFormAction(),
-            $this->getCancelFormAction(),
-        ];
+        return parent::getFormActions();
     }
 
     public function getHeader(): ?View

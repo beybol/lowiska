@@ -7,6 +7,7 @@ use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use App\Helpers\Helper;
 use Illuminate\Contracts\View\View;
+use Filament\Actions\Action;
 
 class CreateFishery extends CreateRecord
 {
@@ -47,5 +48,25 @@ class CreateFishery extends CreateRecord
         }
 
         return parent::getHeader();
+    }
+
+    protected function getFormActions(): array
+    {
+        if ($this->wizard) {
+            return [
+                Action::make('createFishery')
+                    ->label(__('Create fishery'))
+                    ->color('success')
+                    ->action(function () {
+                        $this->create();
+                    }),
+                Action::make('cancel')
+                    ->label(__('Previous'))
+                    ->color('danger')
+                    ->url(url()->previous()),
+            ];
+        }
+
+        return parent::getFormActions();
     }
 }
