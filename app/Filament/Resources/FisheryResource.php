@@ -70,11 +70,15 @@ class FisheryResource extends Resource
                 Select::make('company_id')
                     ->required()
                     ->label(__('Company'))
-                    ->options(
-                        Company::where('user_id', auth()->id())
-                            ->pluck('name', 'id')
-                    )
-                    ->hidden(fn($livewire) => Helper::isWizard($livewire)),
+                    ->options(function () {
+                        if (Helper::isOwnerPanel()) {
+                            return Company::where('user_id', auth()->id())
+                                ->pluck('name', 'id');
+                        }
+
+                        return Company::pluck('name', 'id');
+                    })
+                    ->hidden(fn($livewire) => Helper::isOwnerPanel() && Helper::isWizard($livewire)),
                 Section::make(__('Fishery address'))
                     ->schema([
                         Select::make('state_id')
