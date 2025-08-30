@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Company;
 use App\Models\Fishery;
+use App\Helpers\Helper;
 
 test('Owner panel is accessible.', function () {
     $user = User::factory()->create();
+    Helper::addOwnerRole($user);
 
     $this->actingAs($user)
         ->get('/owner')
@@ -35,6 +37,7 @@ test('Admin has access to owner panel.', function () {
 
 test('Owner can view only his company.', function () {
     $user = User::factory()->create();
+    Helper::addOwnerRole($user);
     $company = Company::factory()->forUser($user)->create();
     $otherUser = User::factory()->create();
     $otherCompany = Company::factory()->forUser($otherUser)->create();
@@ -48,6 +51,7 @@ test('Owner can view only his company.', function () {
 
 test('Owner can view only his fishery.', function () {
     $user = User::factory()->create();
+    Helper::addOwnerRole($user);
     $fishery = Fishery::factory()->forUser($user)->create();
     $otherUser = User::factory()->create();
     $otherFishery = Fishery::factory()->forUser($otherUser)->create();
