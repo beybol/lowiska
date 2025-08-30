@@ -42,6 +42,23 @@ class Helper
         }
     }
 
+    public static function isWizard($livewire = null): bool
+    {
+        if (request()->query('wizard', false)) {
+            return true;
+        }
+
+        if (
+            $livewire
+            && property_exists($livewire, 'wizard')
+            && $livewire->wizard
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
     public static function getSortedCountries(): Collection
     {
         $collator = new \Collator(app()->getLocale());

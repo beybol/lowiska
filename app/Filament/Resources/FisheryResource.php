@@ -73,7 +73,8 @@ class FisheryResource extends Resource
                     ->options(
                         Company::where('user_id', auth()->id())
                             ->pluck('name', 'id')
-                    ),
+                    )
+                    ->hidden(fn($livewire) => Helper::isWizard($livewire)),
                 Section::make(__('Fishery address'))
                     ->schema([
                         Select::make('state_id')
