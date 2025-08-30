@@ -147,8 +147,9 @@
     "Previous": "Wstecz",
     "Cancel": "Anuluj",
     "You have no added companies. Please create one to continue.": "Nie masz żadnych dodanych firm. Proszę utworzyć jedną, aby kontynuować.",
-    "Before creating a fishery, you should choose or create a company.": "Przed utworzeniem łowiska, powinieneś wybrać lub utworzyć firmę.",
-    "Or create a new company below.": "Lub utwórz nową firmę poniżej.",
+    "Before creating a fishery, you should choose or create a company.": "Przed utworzeniem łowiska, powinieneś wybrać albo utworzyć firmę.",
+    "Before creating a fishery, you should create a company.": "Przed utworzeniem łowiska, powinieneś utworzyć firmę.",
+    "Or create a new company below.": "Albo utwórz nową firmę poniżej.",
     "Choose a company:": "Wybierz firmę:",
     "None selected": "Brak wybranej opcji",
 

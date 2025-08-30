@@ -15,6 +15,14 @@ use Filament\Facades\Filament;
 
 class Register extends BaseRegister
 {
+    protected function handleRegistration(array $data): Model
+    {
+        $user = parent::handleRegistration($data);
+        Helper::addOwnerRole($user);
+
+        return $user;
+    }
+
     protected function getForms(): array
     {
         return [

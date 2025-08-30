@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Filament\Facades\Filament;
+use App\Helpers\Helper;
 
 class SocialAuthController extends Controller
 {
@@ -42,6 +43,7 @@ class SocialAuthController extends Controller
                 'password' => bcrypt(str()->random(16)),
             ]
         );
+        Helper::addOwnerRole($user);
 
         if ($user->wasRecentlyCreated) {
             $user->forceFill(['email_verified_at' => now()])->save();

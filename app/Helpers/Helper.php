@@ -8,6 +8,9 @@ use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Illuminate\Support\Collection;
 use App\Models\State;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class Helper
 {
@@ -119,5 +122,50 @@ class Helper
             })
             ->pluck('name', 'id')
             ->map(fn($name) => __($name));
+    }
+
+    public static function addOwnerRole(User $user)
+    {
+        $companyPermissions = [
+            'view_any_company',
+            'view_company',
+            'create_company',
+            'update_company',
+            'delete_company',
+            'delete_any_company',
+            'force_delete_company',
+            'force_delete_any_company',
+            'restore_company',
+            'restore_any_company',
+            'replicate_company',
+            'reorder_company',
+        ];
+        
+        foreach ($companyPermissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
+
+        $fisheryPermissions = [
+            'view_any_fishery',
+            'view_fishery',
+            'create_fishery',
+            'update_fishery',
+            'delete_fishery',
+            'delete_any_fishery',
+            'force_delete_fishery',
+            'force_delete_any_fishery',
+            'restore_fishery',
+            'restore_any_fishery',
+            'replicate_fishery',
+            'reorder_fishery',
+        ];
+
+        foreach ($fisheryPermissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
+
+        $role = Role::firstOrCreate(['name' => 'owner']);
+        $role->syncPermissions(array_merge($companyPermissions, $fisheryPermissions));
+        $user->assignRole($role);
     }
 }

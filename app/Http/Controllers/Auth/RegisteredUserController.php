@@ -48,6 +48,7 @@ class RegisteredUserController extends Controller
             'country_id' => $request->country_id,
         ]);
 
+        Helper::addOwnerRole($user);
         event(new Registered($user));
 
         Auth::login($user);

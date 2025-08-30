@@ -3,12 +3,12 @@
 
     <div class="mb-2"><strong>{{ __('Step') . ' 1 / 3' }}</strong></div>
 
-    <p class="mb-5">
-        {{ __('Before creating a fishery, you should choose or create a company.') }}
-    </p>
-
     @if(count($companies))
-        <form wire:submit.prevent="selectCompany" style="margin-bottom: 2rem;">
+        <p class="mb-5">
+            {{ __('Before creating a fishery, you should choose or create a company.') }}
+        </p>
+
+        <form wire:submit.prevent="selectCompany">
             <x-input-label 
                 required
                 for="company_id"
@@ -39,7 +39,13 @@
                 </x-filament::button>
             </div>
         </form>
-    
-        <p class="mb-4">{{ __('Or create a new company below.') }}</p>
+
+        <p style="margin-block: 4rem;">
+            {{ __('Or create a new company below.') }}
+        </p>
+    @else
+        <p class="mb-5">
+            {{ __('Before creating a fishery, you should create a company.') }}
+        </p>
     @endif
 </div>
