@@ -63,7 +63,9 @@ class CreateFishery extends CreateRecord
                 Action::make('cancel')
                     ->label(__('Previous'))
                     ->color('danger')
-                    ->url(url()->previous()),
+                    ->url(route('filament.owner.pages.verify-company', [
+                        'company' => $this->companyId,
+                    ])),
             ];
         }
 

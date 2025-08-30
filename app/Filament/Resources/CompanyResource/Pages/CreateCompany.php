@@ -50,7 +50,7 @@ class CreateCompany extends CreateRecord
                 Action::make('cancel')
                     ->label(__('Cancel'))
                     ->color('danger')
-                    ->url(url()->previous()),
+                    ->url('/'),
             ];
         }
 
