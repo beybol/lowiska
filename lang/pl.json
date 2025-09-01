@@ -173,6 +173,8 @@
         "NIP i REGON nie pasują do siebie. Proszę sprawdzić numery i spróbować ponownie.",
     "Please provide TIN or RENAE number to fetch data from CSO.": 
         "Proszę podać numer NIP lub REGON, aby pobrać dane z GUS.",
+    "Create and create another company": "Utwórz i utwórz kolejną firmę",
+    "Edit company": "Edytuj firmę",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",
