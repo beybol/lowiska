@@ -56,11 +56,8 @@ class CreateCompany extends CreateRecord
 
         return [
             parent::getCreateFormAction(),
-            Action::make('createAnother')
-                ->label(__('Create and create another company'))
-                ->action('createAnother')
-                ->keyBindings(['mod+shift+s'])
-                ->color('gray'),
+            $this->getCreateAnotherFormAction()
+                ->label(__('Create and create another company')),
             parent::getCancelFormAction(),
         ];
     }

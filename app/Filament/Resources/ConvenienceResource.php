@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\TextColumn;
+use App\Filament\Resources\ConvenienceResource\Pages\CreateConvenience;
 
 class ConvenienceResource extends Resource
 {
@@ -58,6 +59,7 @@ class ConvenienceResource extends Resource
     {
         return [
             'index' => Pages\ManageConveniences::route('/'),
+            'create' => CreateConvenience::route('/create'),
         ];
     }
 
