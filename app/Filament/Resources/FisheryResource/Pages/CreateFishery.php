@@ -69,6 +69,16 @@ class CreateFishery extends CreateRecord
             ];
         }
 
-        return parent::getFormActions();
+        return [
+            $this->getCreateFormAction(),
+            $this->getCreateAnotherFormAction()
+                ->label(__('Create and create another fishery')),
+            $this->getCancelFormAction(),
+        ];
+    }
+
+    public function getTitle(): string
+    {
+        return __('Create fishery');
     }
 }
