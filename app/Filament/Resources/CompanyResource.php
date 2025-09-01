@@ -58,25 +58,46 @@ class CompanyResource extends Resource
                     }),
                 Section::make(__('Get data from CSO'))
                     ->schema([
+                        Placeholder::make('Enter CSO/RENAE number below.')
+                            ->content(__('Enter CSO/RENAE number below.')),
                         TextInput::make('tin')
                             ->label(__('TIN')),
                         TextInput::make('renae')
                             ->label(__('RENAE')),
                         Actions::make([
                             Action::make('fetch_cso_data')
-                                ->label(__('Use TIN'))
+                                ->label(__('Get data from CSO'))
                                 ->action(function (Get $get, Set $set) {
-                                    $address = CSOService
-                                        ::fetchAddress($get('tin'), true);
-                                    Helper::setAddress($set, $address);
-                                }),
-                            Action::make('fetch_renae_data')
-                                ->label(__('Use RENAE'))
-                                ->action(function (Get $get, Set $set) {
-                                    $address = CSOService
-                                        ::fetchAddress($get('renae'));
-                                    Helper::setAddress($set, $address);
-                                }),
+                                    $tin = trim($get('tin'));
+                                    $renae = trim($get('renae'));
+
+                                    if ($tin && $renae) {
+                                        if (CSOService::checkAreMatched($tin, $renae)) {
+                                            $address = CSOService::fetchAddress($tin, true);
+                                            Helper::setAddress($set, $address);
+                                        } else {
+                                            $set(
+                                                'error', 
+                                                __('TIN and RENAE do not match. Please check numbers and try again.'),
+                                            );
+                                        }
+                                    } else {
+                                        if ($tin) {
+                                            $address = CSOService
+                                                ::fetchAddress($tin, true);
+                                            Helper::setAddress($set, $address);
+                                        } elseif ($renae) {
+                                            $address = CSOService::
+                                                fetchAddress($renae);
+                                            Helper::setAddress($set, $address);
+                                        } else {
+                                            $set(
+                                                'error', 
+                                                __('Please provide TIN or RENAE number to fetch data from CSO.'),
+                                            );
+                                        }
+                                    }
+                                    }),
                         ]),
                         Placeholder::make('error')
                             ->content(function (Get $get) {
@@ -91,12 +112,6 @@ class CompanyResource extends Resource
                             ->label(__('CSO response'))
                             ->readonly(),
                     ]),
-                Section::make(__('Verification transfer'))
-                    ->schema([
-                        Placeholder::make('')
-                            ->content(__('Transfer for 1 złoty is required to verify company.')),
-                    ])
-                    ->hidden(fn() => !Helper::isOwnerPanel()),
                 TextInput::make('name')
                     ->label(__('Company name'))
                     ->required(),

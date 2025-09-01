@@ -94,4 +94,9 @@ class CreateCompany extends CreateRecord
             ]),
         );
     }
+
+    public function getTitle(): string
+    {
+        return __('Create company');
+    }
 }

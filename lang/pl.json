@@ -63,8 +63,6 @@
     "Roles": "Role",
     "Select roles for the user": "Wybierz role dla użytkownika",
     "Get data from CSO": "Pobierz dane z GUS",
-    "Use TIN": "Użyj NIP",
-    "Use RENAE": "Użyj REGON",
     "Service key is invalid.": "Klucz usługi jest nieprawidłowy.",
     "Company not found.": "Firma nie została znaleziona.",
     "Please enter TIN.": "Proszę wprowadzić NIP.",
@@ -82,24 +80,31 @@
     "Log in": "Zaloguj się",
     "Already registered?": "Już zarejestrowany?",
     "Register fishery": "Zarejestruj łowisko",
-    "Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you did not receive the email, we will gladly send you another.": "Dziękujemy za rejestrację! Zanim zaczniesz, czy mógłbyś zweryfikować swój adres e-mail, klikając w link, który właśnie wysłaliśmy na Twój adres e-mail? Jeśli nie otrzymałeś wiadomości e-mail, z przyjemnością wyślemy Ci kolejną.",
+    "Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you did not receive the email, we will gladly send you another.": 
+        "Dziękujemy za rejestrację! Zanim zaczniesz, czy mógłbyś zweryfikować swój adres e-mail, klikając w link, który właśnie wysłaliśmy na Twój adres e-mail? Jeśli nie otrzymałeś wiadomości e-mail, z przyjemnością wyślemy Ci kolejną.",
     "Log out": "Wyloguj się",
-    "A new verification link has been sent to the email address you provided during registration.": "Nowy link weryfikacyjny został wysłany na adres e-mail podany podczas rejestracji.",
+    "A new verification link has been sent to the email address you provided during registration.": 
+        "Nowy link weryfikacyjny został wysłany na adres e-mail podany podczas rejestracji.",
     "Remember me": "Zapamiętaj mnie",
     "Forgot your password?": "Nie pamiętasz hasła?",
-    "Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.": "Nie pamiętasz hasła? Żaden problem. Po prostu podaj nam swój adres e-mail, a my wyślemy Ci link do resetowania hasła, który pozwoli Ci wybrać nowe.",
+    "Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.": 
+        "Nie pamiętasz hasła? Żaden problem. Po prostu podaj nam swój adres e-mail, a my wyślemy Ci link do resetowania hasła, który pozwoli Ci wybrać nowe.",
     "Send Link": "Wyślij link",
-    "You are receiving this email because we received a password reset request for your account.": "Dostajesz ten e-mail, ponieważ otrzymaliśmy prośbę o zresetowanie hasła dla Twojego konta.",
+    "You are receiving this email because we received a password reset request for your account.": 
+        "Dostajesz ten e-mail, ponieważ otrzymaliśmy prośbę o zresetowanie hasła dla Twojego konta.",
     "Reset Password": "Zresetuj hasło",
-    "This password reset link will expire in :count minutes.": "Ten link do resetowania hasła wygaśnie za :count minut.",
-    "If you did not request a password reset, no further action is required.": "Jeśli nie złożyłeś prośby o zresetowanie hasła, nie są wymagane żadne dalsze działania.",
+    "This password reset link will expire in :count minutes.": 
+        "Ten link do resetowania hasła wygaśnie za :count minut.",
+    "If you did not request a password reset, no further action is required.": 
+        "Jeśli nie złożyłeś prośby o zresetowanie hasła, nie są wymagane żadne dalsze działania.",
     "Reset Password Notification": "Powiadomienie o zresetowaniu hasła",
     "Confirm Password": "Potwierdź hasło",
     "Fisherings owner panel": "Panel właściciela łowisk",
     "Is fishery owner": "Czy jest właścicielem łowiska",
     "Create and add fishery": "Utwórz i dodaj łowisko",
     "Verification transfer": "Przelew weryfikacyjny",
-    "Transfer for 1 złoty is required to verify company.": "Przelew na złotówkę jest wymagany do weryfikacji firmy.",
+    "Transfer for 1 złoty is required to verify company.": 
+        "Przelew na złotówkę jest wymagany do weryfikacji firmy.",
     "Fish": "Ryby",
     "fish": "ryba",
     "Fish name": "Nazwa ryby",
@@ -121,13 +126,17 @@
     "Maximum depth (in meters)": "Maksymalna głębokość (w metrach)",
     "Company": "Firma",
     "Map Preview": "Podgląd mapy",
-    "Map will appear after saving the fishery with address": "Mapa pojawi się po zapisaniu łowiska z adresem",
+    "Map will appear after saving the fishery with address": 
+        "Mapa pojawi się po zapisaniu łowiska z adresem",
     "Show Map": "Pokaż mapę",
-    "Click to refresh map with current address": "Kliknij aby odświeżyć mapę z aktualnym adresem",
-    "Fill address fields and click to show map.": "Wypełnij pola adresu i kliknij, aby pokazać mapę.",
+    "Click to refresh map with current address": 
+        "Kliknij, aby odświeżyć mapę z aktualnym adresem",
+    "Fill address fields and click to show map.": 
+        "Wypełnij pola adresu i kliknij, aby pokazać mapę.",
     "Please fill in address fields first": "Najpierw wypełnij pola adresu",
     "Form not found": "Nie znaleziono formularza",
-    "Please fill in all address fields first.": "Proszę wypełnić wszystkie pola adresowe.",
+    "Please fill in all address fields first.": 
+        "Proszę wypełnić wszystkie pola adresowe.",
     "View map in new tab": "Zobacz mapę w nowej karcie",
     "Available fish": "Dostępne ryby",
     "Fishery map": "Mapa łowiska",
@@ -146,14 +155,24 @@
     "Next": "Dalej",
     "Previous": "Wstecz",
     "Cancel": "Anuluj",
-    "You have no added companies. Please create one to continue.": "Nie masz żadnych dodanych firm. Proszę utworzyć jedną, aby kontynuować.",
-    "Before creating a fishery, you should choose or create a company.": "Przed utworzeniem łowiska, powinieneś wybrać albo utworzyć firmę.",
-    "Before creating a fishery, you should create a company.": "Przed utworzeniem łowiska, powinieneś utworzyć firmę.",
+    "You have no added companies. Please create one to continue.": 
+        "Nie masz żadnych dodanych firm. Proszę utworzyć jedną, aby kontynuować.",
+    "Before creating a fishery, you should choose or create a company.": 
+        "Przed utworzeniem łowiska, powinieneś wybrać albo utworzyć firmę.",
+    "Before creating a fishery, you should create a company.": 
+        "Przed utworzeniem łowiska, powinieneś utworzyć firmę.",
     "Or create a new company below.": "Albo utwórz nową firmę poniżej.",
     "Choose a company:": "Wybierz firmę:",
     "None selected": "Brak wybranej opcji",
-    "Final step - provide fishery details below.": "Ostatni krok - podaj szczegóły łowiska poniżej.",
+    "Final step - provide fishery details below.": 
+        "Ostatni krok - podaj szczegóły łowiska poniżej.",
     "Create fishery": "Utwórz łowisko",
+    "Create company": "Utwórz firmę",
+    "Enter CSO/RENAE number below.": "Wprowadź numer NIP/REGON poniżej.",
+    "TIN and RENAE do not match. Please check numbers and try again.":
+        "NIP i REGON nie pasują do siebie. Proszę sprawdzić numery i spróbować ponownie.",
+    "Please provide TIN or RENAE number to fetch data from CSO.": 
+        "Proszę podać numer NIP lub REGON, aby pobrać dane z GUS.",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",

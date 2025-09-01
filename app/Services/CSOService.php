@@ -43,14 +43,9 @@ class CSOService
 
     public static function fetchAddress(
         ?string $search,
-         bool $isTin = false
+        bool $isTin = false
     ): array
     {
-        if (empty(trim($search))) {
-            $kind = $isTin ? 'TIN' : 'RENAE';
-            return ['error' => __("Please enter $kind.")];
-        }
-
         if ($isTin) {
             if (!self::isValidTIN($search)) {
                 return ['error' => __('Invalid TIN format.')];
@@ -125,6 +120,14 @@ class CSOService
         } catch (NotFoundException $e) {
             return ['error' => __('Company not found.')];
         }
+    }
+
+    public static function checkAreMatched($tin, $renae): bool
+    {
+        $tinAddress = self::fetchAddress($tin, true);
+        $downloadedRenae = $tinAddress['renae'];
+
+        return $downloadedRenae === $renae;
     }
 }
 
