@@ -37,12 +37,10 @@ class CountryResource extends Resource
                 TextInput::make('prefix')
                     ->label(__('Country prefix'))
                     ->maxLength(10)
-                    ->unique(ignoreRecord: true)
-                    ->placeholder(__('Enter country prefix')),
+                    ->unique(ignoreRecord: true),
                 TextInput::make('country_name')
                     ->label(__('Country name'))
-                    ->maxLength(100)
-                    ->placeholder(__('Enter country name'))
+                    ->maxLength(100),
             ]);
     }
 
