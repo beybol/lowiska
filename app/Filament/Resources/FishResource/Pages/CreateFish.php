@@ -12,4 +12,14 @@ class CreateFish extends CreateRecord
     {
         return __('Create fish');
     }
+
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getCreateFormAction(),
+            $this->getCreateAnotherFormAction()
+                ->label(__('Create and create another fish')),
+            $this->getCancelFormAction(),
+        ];
+    }
 }
