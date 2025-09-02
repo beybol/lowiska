@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\TextColumn;
+use App\Filament\Resources\FisheryTypeResource\Pages\CreateFisheryType;
 
 class FisheryTypeResource extends Resource
 {
@@ -58,6 +59,7 @@ class FisheryTypeResource extends Resource
     {
         return [
             'index' => Pages\ManageFisheryTypes::route('/'),
+            'create' => CreateFisheryType::route('/create'),
         ];
     }
 

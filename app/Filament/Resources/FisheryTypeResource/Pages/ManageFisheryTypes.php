@@ -16,4 +16,9 @@ class ManageFisheryTypes extends ManageRecords
             Actions\CreateAction::make(),
         ];
     }
+
+    public function getTitle(): string
+    {
+        return __('Fishery types');
+    }
 }
