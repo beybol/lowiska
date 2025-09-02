@@ -49,9 +49,8 @@ class UserResource extends Resource
                     ->default(null),
                 Select::make('country_id')
                     ->label(__('Country prefix'))
-                    ->relationship('country', 'country_name'),
+                    ->relationship('country', 'prefix'),
                 Toggle::make('is_admin')->label(__('Is admin')),
-                Toggle::make('is_owner')->label(__('Is fishery owner')),
                 CheckboxList::make('roles')
                     ->relationship('roles', 'name')
                     ->label(__('Roles'))
@@ -74,8 +73,6 @@ class UserResource extends Resource
                     ->searchable(),
                 ToggleColumn::make('is_admin')
                     ->label(__('Is admin')),
-                ToggleColumn::make('is_owner')
-                    ->label(__('Is fishery owner')),
                 TextColumn::make('roles.name')
                     ->badge()
                     ->label(__('Roles'))
