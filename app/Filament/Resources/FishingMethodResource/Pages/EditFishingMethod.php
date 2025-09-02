@@ -4,21 +4,21 @@ namespace App\Filament\Resources\FishingMethodResource\Pages;
 
 use App\Filament\Resources\FishingMethodResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ManageRecords;
+use Filament\Resources\Pages\EditRecord;
 
-class ManageFishingMethods extends ManageRecords
+class EditFishingMethod extends EditRecord
 {
     protected static string $resource = FishingMethodResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\DeleteAction::make(),
         ];
     }
 
     public function getTitle(): string
     {
-        return __('Fishing methods');
+        return __('Edit fishing method');
     }
 }

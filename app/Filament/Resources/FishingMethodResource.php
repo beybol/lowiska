@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\TextColumn;
+use App\Filament\Resources\FishingMethodResource\Pages\CreateFishingMethod;
+use App\Filament\Resources\FishingMethodResource\Pages\EditFishingMethod;
 
 class FishingMethodResource extends Resource
 {
@@ -58,6 +60,8 @@ class FishingMethodResource extends Resource
     {
         return [
             'index' => Pages\ManageFishingMethods::route('/'),
+            'create' => CreateFishingMethod::route('/create'),
+            'edit' => EditFishingMethod::route('/{record}/edit'),
         ];
     }
 
