@@ -162,7 +162,7 @@
     "Before creating a fishery, you should create a company.": 
         "Przed utworzeniem łowiska, powinieneś utworzyć firmę.",
     "Or create a new company below.": "Albo utwórz nową firmę poniżej.",
-    "Choose a company:": "Wybierz firmę:",
+    "Choose a company": "Wybierz firmę",
     "None selected": "Brak wybranej opcji",
     "Final step - provide fishery details below.": 
         "Ostatni krok - podaj szczegóły łowiska poniżej.",
@@ -195,6 +195,8 @@
     "Create user": "Utwórz użytkownika",
     "Edit user": "Edytuj użytkownika",
     "Create and create another user": "Utwórz i utwórz kolejnego użytkownika",
+    "The selected company was verified earlier, so we skipped step 2.":
+        "Wybrana firma została zweryfikowana wcześniej, więc pominęliśmy krok 2.",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",

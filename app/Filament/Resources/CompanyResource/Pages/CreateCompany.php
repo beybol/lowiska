@@ -10,6 +10,7 @@ use Filament\Actions\Action;
 use App\Helpers\Helper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Company;
 
 class CreateCompany extends CreateRecord
 {
@@ -67,7 +68,7 @@ class CreateCompany extends CreateRecord
         if ($this->wizard) {
             $companies = auth()->user()->companies()->get();
 
-            return view('components.fishery-wizard-company-header', [
+            return view('components.fishery-wizard-headers.company', [
                 'wizard' => $this->wizard,
                 'companies' => $companies,
             ]);
@@ -93,11 +94,18 @@ class CreateCompany extends CreateRecord
 
     public function selectCompany(): void
     {
-        $this->redirect(
-            route('filament.owner.pages.verify-company', [
-                'company' => $this->companyId,
-            ]),
-        );
+        $isCompanyVerified = Company::find($this->companyId)->is_verified;
+        $route = $isCompanyVerified
+            ? 'filament.owner.resources.fisheries.create'
+            : 'filament.owner.pages.verify-company';
+        $urlParameters = ['company' => $this->companyId];
+
+        if ($isCompanyVerified) {
+            $urlParameters['wizard'] = 1;
+            $urlParameters['verified_earlier'] = 1;
+        }
+
+        $this->redirect(route($route, $urlParameters));
     }
 
     public function getTitle(): string

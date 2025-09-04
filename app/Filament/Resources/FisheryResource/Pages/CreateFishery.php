@@ -41,7 +41,7 @@ class CreateFishery extends CreateRecord
         if ($this->wizard) {
             $companies = auth()->user()->companies()->get();
 
-            return view('components.fishery-wizard-fishery-header', [
+            return view('components.fishery-wizard-headers.fishery', [
                 'wizard' => $this->wizard,
                 'companies' => $companies,
             ]);
@@ -53,6 +53,14 @@ class CreateFishery extends CreateRecord
     protected function getFormActions(): array
     {
         if ($this->wizard) {
+            if (request()->query('verified_earlier', false)) {
+                $url = 'filament.owner.resources.companies.create';
+                $urlParameters = ['wizard' => 1];
+            } else {
+                $url = 'filament.owner.pages.verify-company';
+                $urlParameters = ['company' => $this->companyId];
+            }
+            
             return [
                 Action::make('createFishery')
                     ->label(__('Create fishery'))
@@ -63,9 +71,7 @@ class CreateFishery extends CreateRecord
                 Action::make('cancel')
                     ->label(__('Previous'))
                     ->color('danger')
-                    ->url(route('filament.owner.pages.verify-company', [
-                        'company' => $this->companyId,
-                    ])),
+                    ->url(route($url, $urlParameters)),
             ];
         }
 

@@ -151,3 +151,27 @@ test('Not see wizard buttons on normal create fishery form', function () {
         ->assertStatus(200)
         ->assertDontSee(__('Previous'));
 });
+
+test('See information about skipping step 2 if company was verified earlier.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $company = Company::factory()->forUser($owner)->create([
+        'is_verified' => true,
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/owner/fisheries/create?company=' . $company->id . '&wizard=1&verified_earlier=1')
+        ->assertStatus(200)
+        ->assertSee(__('The selected company was verified earlier, so we skipped step 2.'));
+});
+
+test('Not see information about skipping step 2 if company was not verified earlier.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $company = Company::factory()->forUser($owner)->create();
+
+    $this->actingAs($owner)
+        ->get('/owner/fisheries/create?company=' . $company->id . '&wizard=1')
+        ->assertStatus(200)
+        ->assertDontSee(__('The selected company was verified earlier, so we skipped step 2.'));
+});

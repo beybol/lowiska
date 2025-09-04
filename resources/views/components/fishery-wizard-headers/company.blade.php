@@ -14,7 +14,7 @@
                 for="companyId"
                 class="block mb-4 font-semibold"
             >
-                {{ __('Choose a company:') }}
+                {{ __('Choose a company') }}
             </x-input-label>
 
             <select
