@@ -66,11 +66,11 @@ class CreateCompany extends CreateRecord
     public function getHeader(): ?View
     {
         if ($this->wizard) {
-            $companies = auth()->user()->companies()->get();
+            $query = Company::query()->forCurrentUser();
 
             return view('components.fishery-wizard-headers.company', [
                 'wizard' => $this->wizard,
-                'companies' => $companies,
+                'companies' => Helper::sortedCompanies($query, true),
             ]);
         }
 

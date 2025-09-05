@@ -54,4 +54,11 @@ class Company extends Model
             $query->where('user_id', auth()->id());
         }
     }
+
+    #[Scope]
+    public function findByNumber(Builder $query, string $tin, string $renae): void
+    {
+        $query->where('tin', $tin)
+            ->orWhere('renae', $renae);
+    }
 }

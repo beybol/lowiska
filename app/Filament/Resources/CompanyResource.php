@@ -23,9 +23,7 @@ use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Illuminate\Support\HtmlString;
-use App\Services\CSOService;
 use App\Helpers\Helper;
 use Filament\Facades\Filament;
 
@@ -61,43 +59,17 @@ class CompanyResource extends Resource
                         Placeholder::make('Enter CSO/RENAE number below.')
                             ->content(__('Enter CSO/RENAE number below.')),
                         TextInput::make('tin')
-                            ->label(__('TIN')),
+                            ->label(__('TIN'))
+                            ->validationAttribute(__('TIN'))
+                            ->unique(ignoreRecord: true),
                         TextInput::make('renae')
-                            ->label(__('RENAE')),
+                            ->label(__('RENAE'))
+                            ->validationAttribute(__('REGON'))
+                            ->unique(ignoreRecord: true),
                         Actions::make([
                             Action::make('fetch_cso_data')
                                 ->label(__('Get data from CSO'))
-                                ->action(function (Get $get, Set $set) {
-                                    $tin = trim($get('tin'));
-                                    $renae = trim($get('renae'));
-
-                                    if ($tin && $renae) {
-                                        if (CSOService::checkAreMatched($tin, $renae)) {
-                                            $address = CSOService::fetchAddress($tin, true);
-                                            Helper::setAddress($set, $address);
-                                        } else {
-                                            $set(
-                                                'error', 
-                                                __('TIN and RENAE do not match. Please check numbers and try again.'),
-                                            );
-                                        }
-                                    } else {
-                                        if ($tin) {
-                                            $address = CSOService
-                                                ::fetchAddress($tin, true);
-                                            Helper::setAddress($set, $address);
-                                        } elseif ($renae) {
-                                            $address = CSOService::
-                                                fetchAddress($renae);
-                                            Helper::setAddress($set, $address);
-                                        } else {
-                                            $set(
-                                                'error', 
-                                                __('Please provide TIN or RENAE number to fetch data from CSO.'),
-                                            );
-                                        }
-                                    }
-                                    }),
+                                ->action(Helper::fetchDataFromCSO(...)),
                         ]),
                         Placeholder::make('error')
                             ->content(function (Get $get) {

@@ -72,13 +72,17 @@ class FisheryResource extends Resource
                     ->label(__('Company'))
                     ->options(function () {
                         if (Helper::isOwnerPanel()) {
-                            return Company::where('user_id', auth()->id())
-                                ->pluck('name', 'id');
+                            $query = Company::query()->forCurrentUser();
+                            
+                            return Helper::sortedCompanies($query);
                         }
 
-                        return Company::pluck('name', 'id');
+                        return Helper::sortedCompanies();
                     })
-                    ->hidden(fn($livewire) => Helper::isOwnerPanel() && Helper::isWizard($livewire)),
+                    ->hidden(function ($livewire) {
+                        return Helper::isOwnerPanel() 
+                            && Helper::isWizard($livewire);
+                    }),
                 Section::make(__('Fishery address'))
                     ->schema([
                         Select::make('state_id')

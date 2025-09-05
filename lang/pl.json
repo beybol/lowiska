@@ -197,6 +197,10 @@
     "Create and create another user": "Utwórz i utwórz kolejnego użytkownika",
     "The selected company was verified earlier, so we skipped step 2.":
         "Wybrana firma została zweryfikowana wcześniej, więc pominęliśmy krok 2.",
+    "You have already entered the company.": "Firma została przez ciebie już wcześniej wprowadzona.",
+    "The company provided has already been entered by another person. Please contact the administrator to clarify the situation":
+        "Ta firma została już wprowadzona przez kogoś innego. Prosimy o kontakt z administratorem w celu wyjaśnienia sytuacji",
+    "Invalid TIN and RENAE format.": "Nieprawidłowy format NIP i REGON.",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",

@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Models\Company;
 use App\Models\Country;
 use Filament\Forms\Set;
 use Filament\Actions\Action;
@@ -11,6 +12,8 @@ use App\Models\State;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Filament\Forms\Get;
+use App\Services\CSOService;
 
 class Helper
 {
@@ -141,6 +144,21 @@ class Helper
             ->map(fn($name) => __($name));
     }
 
+    public static function sortedCompanies($query = null, $modelsOnly = false)
+    {
+        $collator = new \Collator(app()->getLocale());
+        $companies = $query ?? Company::query();
+        
+        $sortedCompanies = $companies->get()
+            ->sort(function ($company1, $company2) use ($collator) {
+                return $collator->compare($company1->name, $company2->name);
+            });
+
+        return $modelsOnly 
+            ? $sortedCompanies 
+            : $sortedCompanies->pluck('name', 'id');
+    }
+
     public static function addOwnerRole(User $user)
     {
         $companyPermissions = [
@@ -184,5 +202,87 @@ class Helper
         $role = Role::firstOrCreate(['name' => 'owner']);
         $role->syncPermissions(array_merge($companyPermissions, $fisheryPermissions));
         $user->assignRole($role);
+    }
+
+    public static function fetchDataFromCSO(
+        Get $get, 
+        Set $set, 
+        ?Company $record
+    ): void {
+        $tin = trim($get('tin'));
+        $renae = trim($get('renae'));
+
+        if (!$tin && !$renae) {
+            $set(
+                'error', 
+                __('Please provide TIN or RENAE number to fetch data from CSO.'),
+            );
+
+            return;
+        }
+
+        if ($tin && !CSOService::isValidTIN($tin)) {
+            if ($renae && !CSOService::isValidRENAE($renae)) {
+                $set('error', __('Invalid TIN and RENAE format.'));
+
+                return;
+            }
+
+            $set('error', __('Invalid TIN format.'));
+
+            return;
+        }
+
+        if ($renae && !CSOService::isValidRENAE($renae)) {
+            $set('error', __('Invalid RENAE format.'));
+
+            return;
+        }
+
+        $company = Company::query()->findByNumber($tin, $renae)->first();
+
+        if ($company) {
+            if (!$record || $company->id !== $record->id) {
+                $currentUser = Filament::auth()->user();
+                $companyUser = $company->user;
+                
+                if ($companyUser->is($currentUser)) {
+                    $set(
+                        'error',
+                        __('You have already entered the company.'),
+                    );
+                } else {
+                    $adminEmail = env('ADMIN_EMAIL');
+                    $errorMessage = __('The company provided has already been entered by another person. Please contact the administrator to clarify the situation');
+                    $set('error', "$errorMessage - $adminEmail.");
+                }
+
+                return;
+            }
+        }
+
+        $set('error', null);
+
+        if ($tin && $renae) {
+            if (CSOService::checkAreMatched($tin, $renae)) {
+                $address = CSOService::fetchAddress($tin, true);
+                Helper::setAddress($set, $address);
+            } else {
+                $set(
+                    'error', 
+                    __('TIN and RENAE do not match. Please check numbers and try again.'),
+                );
+            }
+        } else {
+            if ($tin) {
+                $address = CSOService
+                    ::fetchAddress($tin, true);
+                Helper::setAddress($set, $address);
+            } elseif ($renae) {
+                $address = CSOService::
+                    fetchAddress($renae);
+                Helper::setAddress($set, $address);
+            }
+        }
     }
 }

@@ -38,6 +38,7 @@ class CSOService
     public static function isValidRENAE(string $renae): bool
     {
         $renae = preg_replace('/[^0-9]/', '', $renae);
+
         return in_array(strlen($renae), [9, 14]);
     }
 
@@ -46,16 +47,6 @@ class CSOService
         bool $isTin = false
     ): array
     {
-        if ($isTin) {
-            if (!self::isValidTIN($search)) {
-                return ['error' => __('Invalid TIN format.')];
-            }
-        } else {
-            if (!self::isValidRENAE($search)) {
-                return ['error' => __('Invalid RENAE format.')];
-            }
-        }
-
         $cso = new GusApi(env('CSO_Key'));
         $pureSearch = str_replace('-', '', $search);
 
@@ -125,6 +116,11 @@ class CSOService
     public static function checkAreMatched($tin, $renae): bool
     {
         $tinAddress = self::fetchAddress($tin, true);
+        
+        if ($tinAddress['error']) {
+            return false;
+        }
+
         $downloadedRenae = $tinAddress['renae'];
 
         return $downloadedRenae === $renae;
