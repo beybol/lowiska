@@ -31,6 +31,7 @@ use App\Models\Fish;
 use Filament\Tables\Columns\TextColumn;
 use App\Models\Company;
 use App\Rules\IbanValidation;
+use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
 
 class FisheryResource extends Resource
 {
@@ -254,6 +255,14 @@ class FisheryResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Action::make('manage')
+                    ->label(__('Manage'))
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->url(function (Fishery $record): string  {
+                        return FisheryResource::getUrl('manage', [
+                            'record' => $record
+                        ]);
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -275,6 +284,7 @@ class FisheryResource extends Resource
             'index' => Pages\ListFisheries::route('/'),
             'create' => Pages\CreateFishery::route('/create'),
             'edit' => Pages\EditFishery::route('/{record}/edit'),
+            'manage' => ManageFishery::route('/{record}/manage'),
         ];
     }
 

@@ -175,3 +175,13 @@ test('Not see information about skipping step 2 if company was not verified earl
         ->assertStatus(200)
         ->assertDontSee(__('The selected company was verified earlier, so we skipped step 2.'));
 });
+
+test('Owner can view manage fishery page.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+
+    $this->actingAs($owner)
+        ->get("/owner/fisheries/{$fishery->id}/manage")
+        ->assertStatus(200);
+});

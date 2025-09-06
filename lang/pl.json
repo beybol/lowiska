@@ -211,6 +211,8 @@
     "Bank account number (IBAN)": "Numer konta bankowego (IBAN)",
     "Enter valid international IBAN.": "Wprowadź poprawny międzynarodowy numer IBAN.",
     "The :attribute must be a valid IBAN number.": "Pole :attribute musi zawierać poprawny numer IBAN.",
+    "Manage fishery": "Zarządzaj łowiskiem",
+    "Manage": "Zarządzaj",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",
