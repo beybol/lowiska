@@ -30,6 +30,7 @@ use Filament\Forms\Components\FileUpload;
 use App\Models\Fish;
 use Filament\Tables\Columns\TextColumn;
 use App\Models\Company;
+use App\Rules\IbanValidation;
 
 class FisheryResource extends Resource
 {
@@ -201,6 +202,15 @@ class FisheryResource extends Resource
                         RichEditor::make('records')
                             ->label(__('Fishery records'))
                             ->toolbarButtons($richEditorOptions),
+                        Select::make('currency_id')
+                            ->label(__('Currency for settlement'))
+                            ->relationship('currency', 'name'),
+                        TextInput::make('bank_account_number')
+                            ->label(__('Bank account number (IBAN)'))
+                            ->rules([new IbanValidation()])
+                            ->placeholder('PL 26 2030 0003 0002 0001 1111 1001')
+                            ->helperText(__('Enter valid international IBAN.'))
+                            ->maxLength(35),
                     ]),
                 CheckboxList::make('conveniences')
                     ->relationship('conveniences', 'name')

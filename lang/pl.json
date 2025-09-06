@@ -201,6 +201,16 @@
     "The company provided has already been entered by another person. Please contact the administrator to clarify the situation":
         "Ta firma została już wprowadzona przez kogoś innego. Prosimy o kontakt z administratorem w celu wyjaśnienia sytuacji",
     "Invalid TIN and RENAE format.": "Nieprawidłowy format NIP i REGON.",
+    "Currencies": "Waluty",
+    "currency": "waluta",
+    "Create currency": "Utwórz walutę",
+    "Create and create another currency": "Utwórz i utwórz kolejną walutę",
+    "Edit currency": "Edytuj walutę",
+    "Currency name": "Nazwa waluty",
+    "Currency for settlement": "Waluta do rozliczeń",
+    "Bank account number (IBAN)": "Numer konta bankowego (IBAN)",
+    "Enter valid international IBAN.": "Wprowadź poprawny międzynarodowy numer IBAN.",
+    "The :attribute must be a valid IBAN number.": "Pole :attribute musi zawierać poprawny numer IBAN.",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",

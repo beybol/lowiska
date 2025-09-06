@@ -34,7 +34,9 @@ class Fishery extends Model
         'dominant_fish_id',
         'records',
         'map_image_path',
-        'gallery_images'
+        'gallery_images',
+        'currency_id',
+        'bank_account_number',
     ];
 
     protected $casts = ['gallery_images' => 'array'];
@@ -90,5 +92,10 @@ class Fishery extends Model
         if (auth()->check()) {
             $query->where('user_id', auth()->id());
         }
+    }
+
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
     }
 }

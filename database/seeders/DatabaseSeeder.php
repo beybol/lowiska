@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use App\Models\State;
 use App\Models\FishingMethod;
+use App\Models\Currency;
 
 class DatabaseSeeder extends Seeder
 {
@@ -45,5 +46,10 @@ class DatabaseSeeder extends Seeder
         FishingMethod::factory()->create(['name' => 'Ground']);
         FishingMethod::factory()->create(['name' => 'Float']);
         FishingMethod::factory()->create(['name' => 'Boat']);
+
+        Currency::factory()->create(['name' => 'PLN']);
+        Currency::factory()->create(['name' => 'EUR']);
+        Currency::factory()->create(['name' => 'USD']);
+        Currency::factory()->create(['name' => 'GBP']);
     }
 }
