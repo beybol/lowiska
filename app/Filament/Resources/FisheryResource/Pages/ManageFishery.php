@@ -12,6 +12,11 @@ class ManageFishery extends ViewRecord
     
     public function getTitle(): string
     {
-        return __('Manage') . ': ' . $this->getRecord()->name;
+        return __('Manage fishery') . ' ' . $this->getRecord()->name;
+    }
+    
+    public function getBreadcrumb(): string
+    {
+        return __('Manage');
     }
 }
