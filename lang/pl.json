@@ -209,10 +209,23 @@
     "Currency name": "Nazwa waluty",
     "Currency for settlement": "Waluta do rozliczeń",
     "Bank account number (IBAN)": "Numer konta bankowego (IBAN)",
-    "Enter valid international IBAN.": "Wprowadź poprawny międzynarodowy numer IBAN.",
-    "The :attribute must be a valid IBAN number.": "Pole :attribute musi zawierać poprawny numer IBAN.",
+    "Enter valid international IBAN.": 
+        "Wprowadź poprawny międzynarodowy numer IBAN.",
+    "The :attribute must be a valid IBAN number.": 
+        "Pole :attribute musi zawierać poprawny numer IBAN.",
     "Manage fishery": "Zarządzaj łowiskiem",
     "Manage": "Zarządzaj",
+    "Long term permits": "Pozwolenia długoterminowe",
+    "long term permit": "pozwolenie długoterminowe",
+    "Create long term permit": "Utwórz pozwolenie długoterminowe",
+    "Is active": "Czy jest aktywne",
+    "Valid from": "Obowiązuje od",
+    "Valid to": "Obowiązuje do",
+    "Fishery": "Łowisko",
+    "Price": "Cena",
+    "Sales limit": "Limit sprzedaży",
+    "Enter 0 for unlimited sales.": 
+        "Wprowadź 0 dla nieograniczonej sprzedaży.",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",

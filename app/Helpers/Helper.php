@@ -14,9 +14,20 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Filament\Forms\Get;
 use App\Services\CSOService;
+use Filament\Forms\Components\TextInput;
 
 class Helper
 {
+    public static function getRichEditorOptions() {
+        return [
+            'bold',
+            'bulletList',
+            'italic',
+            'orderedList',
+            'underline',
+        ];
+    }
+
     public static function setAddress(Set $set, array $address): void
     {
         if (isset($address['error'])) {
@@ -284,5 +295,36 @@ class Helper
                 Helper::setAddress($set, $address);
             }
         }
+    }
+
+    public static function getPriceInput()
+    {
+        $language = app()->getLocale();
+
+        return TextInput::make('price')
+            ->label(__('Price'))
+            ->when($language === 'pl', function ($component) {
+                return $component
+                    ->rules([
+                        'nullable',
+                        'regex:/^(?!0,00$)\d+,\d{2}$/',
+                        'min:0.01'
+                    ])
+                    ->placeholder('100,00')
+                    ->helperText(__('Format: 100,00 (używaj przecinka).'));
+            })
+            ->when($language !== 'pl', function ($component) {
+                return $component
+                    ->rules([
+                        'nullable', 
+                        'regex:/^(?!0\.00$)\d+\.\d{2}$/',
+                        'min:0.01'
+                    ])
+                    ->step(0.01)
+                    ->inputMode('decimal')
+                    ->placeholder('100.00')
+                    ->helperText(__('Format: 100.00 (use dot).'));
+            })
+            ->default(null);
     }
 }

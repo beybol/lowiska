@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateLongTermPermit extends CreateRecord
 {
     protected static string $resource = LongTermPermitResource::class;
+
+    public function getTitle(): string
+    {
+        return __('Create long term permit');
+    }
 }

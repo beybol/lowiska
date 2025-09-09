@@ -12,34 +12,49 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\RichEditor;
+use App\Helpers\Helper;
+use Filament\Forms\Components\Select;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 
 class LongTermPermitResource extends Resource
 {
     protected static ?string $model = LongTermPermit::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-check';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Toggle::make('is_active')
-                    ->required(),
-                Forms\Components\TextInput::make('description')
+                Toggle::make('is_active')
+                    ->label(__('Is active')),
+                RichEditor::make('description')
+                    ->label(__('Description'))
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\DatePicker::make('valid_from'),
-                Forms\Components\DatePicker::make('valid_to'),
-                Forms\Components\TextInput::make('fishery_id')
+                    ->toolbarButtons(Helper::getRichEditorOptions()),
+                DatePicker::make('valid_from')
+                    ->label(__('Valid from'))
+                    ->reactive(),
+                DatePicker::make('valid_to')
+                    ->label(__('Valid to'))
+                    ->reactive()
+                    ->minDate(fn (callable $get) => $get('valid_from')),
+                Select::make('fishery_id')
+                    ->label(__('Fishery'))
+                    ->required()
+                    ->relationship('fishery', 'name')
+                    ->disabled(fn ($context) => $context === 'edit'),
+                Helper::getPriceInput(),
+                TextInput::make('sales_limit')
+                    ->label(__('Sales limit'))
                     ->numeric()
-                    ->default(null),
-                Forms\Components\TextInput::make('price')
-                    ->numeric()
-                    ->default(null)
-                    ->prefix('$'),
-                Forms\Components\TextInput::make('sales_limit')
-                    ->numeric()
-                    ->default(null),
+                    ->rules(['nullable', 'integer', 'min:0'])
+                    ->helperText(__('Enter 0 for unlimited sales.')),
             ]);
     }
 
@@ -47,37 +62,24 @@ class LongTermPermitResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\IconColumn::make('is_active')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('description')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('valid_from')
+                ToggleColumn::make('is_active')
+                    ->label(__('Is active')),
+                TextColumn::make('description')
+                    ->label(__('Description'))
+                    ->searchable()
+                    ->formatStateUsing(fn (string $state): string => strip_tags($state))
+                    ->limit(20),
+                TextColumn::make('valid_from')
+                    ->label(__('Valid from'))
                     ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('valid_to')
+                TextColumn::make('valid_to')
+                    ->label(__('Valid to'))
                     ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('fishery_id')
-                    ->numeric()
+                TextColumn::make('fishery.name')
+                    ->label(__('Fishery'))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('price')
-                    ->money()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('sales_limit')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
@@ -106,5 +108,20 @@ class LongTermPermitResource extends Resource
             'create' => Pages\CreateLongTermPermit::route('/create'),
             'edit' => Pages\EditLongTermPermit::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Long term permits');
+    }
+
+    public static function getPluralLabel(): ?string
+    {
+        return __('Long term permits');
+    }
+
+    public static function getModelLabel(): string 
+    {
+        return __('long term permit');
     }
 }

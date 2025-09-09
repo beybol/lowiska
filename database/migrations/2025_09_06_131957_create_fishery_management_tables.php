@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('long_term_permits', function (Blueprint $table) {
             $table->id();
             $table->boolean('is_active')->default(false);
-            $table->string('description');
+            $table->text('description');
             $table->date('valid_from')->nullable();
             $table->date('valid_to')->nullable();
             $table->foreignId('fishery_id')

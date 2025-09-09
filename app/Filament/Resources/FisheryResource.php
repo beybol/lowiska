@@ -41,14 +41,6 @@ class FisheryResource extends Resource
 
     public static function form(Form $form): Form
     {
-        $richEditorOptions = [
-            'bold',
-            'bulletList',
-            'italic',
-            'orderedList',
-            'underline',
-        ];
-
         return $form
             ->schema([
                 TextInput::make('name')
@@ -110,7 +102,7 @@ class FisheryResource extends Resource
                             ->maxLength(255),
                         RichEditor::make('directions')
                             ->label(__('Directions'))
-                            ->toolbarButtons($richEditorOptions)
+                            ->toolbarButtons(Helper::getRichEditorOptions())
                             ->maxLength(255),
                         ViewField::make('map_preview')
                             ->label(__('Map Preview'))
@@ -159,7 +151,7 @@ class FisheryResource extends Resource
                     ]),
                 RichEditor::make('description')
                     ->label(__('Description'))
-                    ->toolbarButtons($richEditorOptions)
+                    ->toolbarButtons(Helper::getRichEditorOptions())
                     ->columnSpanFull(),
                 Section::make(__('Fishery data'))
                     ->schema([
@@ -202,7 +194,7 @@ class FisheryResource extends Resource
                             ->relationship('dominantFish', 'name'),
                         RichEditor::make('records')
                             ->label(__('Fishery records'))
-                            ->toolbarButtons($richEditorOptions),
+                            ->toolbarButtons(Helper::getRichEditorOptions()),
                         Select::make('currency_id')
                             ->label(__('Currency for settlement'))
                             ->relationship('currency', 'name'),
