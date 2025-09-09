@@ -12,35 +12,44 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\RichEditor;
+use App\Helpers\Helper;
+use Filament\Forms\Components\Select;
+use Filament\Tables\Columns\ToggleColumn;
 
 class AdditionalServiceResource extends Resource
 {
     protected static ?string $model = AdditionalService::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-plus';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Toggle::make('is_active')
-                    ->required(),
-                Forms\Components\TextInput::make('description')
-                    ->maxLength(255)
-                    ->default(null),
-                Forms\Components\TextInput::make('price')
-                    ->numeric()
-                    ->default(null)
-                    ->prefix('$'),
-                Forms\Components\TextInput::make('fishery_id')
-                    ->numeric()
-                    ->default(null),
-                Forms\Components\TextInput::make('name')
+                Toggle::make('is_active')
+                    ->label(__('Is additional service active')),
+                RichEditor::make('description')
+                    ->label(__('Description'))
+                    ->toolbarButtons(Helper::getRichEditorOptions()),
+                Helper::getPriceInput(),
+                Select::make('fishery_id')
+                    ->label(__('Fishery'))
+                    ->required()
+                    ->relationship('fishery', 'name')
+                    ->disabled(fn ($context) => $context === 'edit'),
+                TextInput::make('name')
+                    ->label(__('Additional service name'))
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('available_count')
+                TextInput::make('available_count')
+                    ->label(__('Available count'))
                     ->numeric()
-                    ->default(null),
+                    ->rules(['nullable', 'integer', 'min:0'])
+                    ->helperText(__('Enter 0 for unlimited sales.')),
             ]);
     }
 
@@ -48,33 +57,25 @@ class AdditionalServiceResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\IconColumn::make('is_active')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('description')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('price')
+                ToggleColumn::make('is_active')
+                    ->label(__('Is additional service active')),
+                TextColumn::make('description')
+                    ->label(__('Description'))
+                    ->searchable()
+                    ->formatStateUsing(function (string $state) {
+                        return strip_tags($state);
+                    })
+                    ->limit(20),
+                TextColumn::make('price')
+                    ->label(__('Price'))
                     ->money()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('fishery_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('fishery.name')
+                    ->label(__('Fishery'))
                     ->searchable(),
-                Tables\Columns\TextColumn::make('available_count')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('name')
+                    ->label(__('Additional service name'))
+                    ->searchable(),
             ])
             ->filters([
                 //

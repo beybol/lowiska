@@ -226,6 +226,17 @@
     "Sales limit": "Limit sprzedaży",
     "Enter 0 for unlimited sales.": 
         "Wprowadź 0 dla nieograniczonej sprzedaży.",
+    "Additional services": "Usługi dodatkowe",
+    "additional service": "usługa dodatkowa",
+    "Create additional service": "Utwórz usługę dodatkową",
+    "Edit additional service": "Edytuj usługę dodatkową",
+    "Create and create another additional service": 
+        "Utwórz i utwórz kolejną usługę dodatkową",
+    "Additional service name": "Nazwa usługi dodatkowej",
+    "Is additional service active": "Czy usługa dodatkowa jest aktywna",
+    "Available count": "Liczba dostępnych",
+    "Create and create another long term permit": 
+        "Utwórz i utwórz kolejne pozwolenie długoterminowe",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",

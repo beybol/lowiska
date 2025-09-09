@@ -30,7 +30,7 @@ return new class extends Migration
         Schema::create('additional_services', function (Blueprint $table) {
             $table->id();
             $table->boolean('is_active')->default(false);
-            $table->string('description')->nullable();
+            $table->text('description')->nullable();
             $table->decimal('price', 8, 2)->nullable();
             $table->foreignId('fishery_id')
                 ->nullable()
@@ -72,7 +72,7 @@ return new class extends Migration
             $table->id();
             $table->boolean('is_active')->default(false);
             $table->string('name');
-            $table->string('description')->nullable();
+            $table->text('description')->nullable();
             $table->foreignId('fishery_id')
                 ->nullable()
                 ->constrained()

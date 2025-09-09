@@ -16,4 +16,9 @@ class ListAdditionalServices extends ListRecords
             Actions\CreateAction::make(),
         ];
     }
+
+    public function getTitle(): string
+    {
+        return __('Additional services');
+    }
 }

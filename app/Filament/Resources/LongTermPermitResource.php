@@ -67,7 +67,9 @@ class LongTermPermitResource extends Resource
                 TextColumn::make('description')
                     ->label(__('Description'))
                     ->searchable()
-                    ->formatStateUsing(fn (string $state): string => strip_tags($state))
+                    ->formatStateUsing(function (string $state) {
+                        return strip_tags($state);
+                    })
                     ->limit(20),
                 TextColumn::make('valid_from')
                     ->label(__('Valid from'))

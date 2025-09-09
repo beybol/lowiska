@@ -14,4 +14,14 @@ class CreateLongTermPermit extends CreateRecord
     {
         return __('Create long term permit');
     }
+
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getCreateFormAction(),
+            $this->getCreateAnotherFormAction()
+                ->label(__('Create and create another long term permit')),
+            $this->getCancelFormAction(),
+        ];
+    }
 }
