@@ -106,17 +106,8 @@ class AdditionalServiceResource extends Resource
         ];
     }
 
-    public static function getNavigationLabel(): string
+    public static function shouldRegisterNavigation(): bool
     {
-        return __('Additional services');
-    }
-
-    public static function getPluralLabel(): ?string
-    {
-        return __('Additional services');
-    }
-
-    public static function getModelLabel(): string {
-        return __('additional service');
+        return false;
     }
 }

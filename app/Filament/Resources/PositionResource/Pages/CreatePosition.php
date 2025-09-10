@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreatePosition extends CreateRecord
 {
     protected static string $resource = PositionResource::class;
+
+    public function getTitle(): string
+    {
+        return __('Create position');
+    }
 }

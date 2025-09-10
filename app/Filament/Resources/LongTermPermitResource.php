@@ -27,6 +27,11 @@ class LongTermPermitResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-check';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -110,20 +115,5 @@ class LongTermPermitResource extends Resource
             'create' => Pages\CreateLongTermPermit::route('/create'),
             'edit' => Pages\EditLongTermPermit::route('/{record}/edit'),
         ];
-    }
-
-    public static function getNavigationLabel(): string
-    {
-        return __('Long term permits');
-    }
-
-    public static function getPluralLabel(): ?string
-    {
-        return __('Long term permits');
-    }
-
-    public static function getModelLabel(): string 
-    {
-        return __('long term permit');
     }
 }

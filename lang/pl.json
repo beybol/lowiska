@@ -237,6 +237,23 @@
     "Available count": "Liczba dostępnych",
     "Create and create another long term permit": 
         "Utwórz i utwórz kolejne pozwolenie długoterminowe",
+    "Positions": "Stanowiska",
+    "position": "stanowisko",
+    "Create position": "Utwórz stanowisko",
+    "Edit position": "Edytuj stanowisko",
+    "Position name": "Nazwa stanowiska",
+    "Long term permits management": 
+        "Zarządzanie pozwoleniami długoterminowymi",
+    "Manage long-term fishing permits for this fishery.": 
+        "Zarządzaj pozwoleniami długoterminowymi dla tego łowiska.",
+    "List": "Lista",
+    "Create": "Utwórz",
+    "Additional services management": "Zarządzanie usługami dodatkowymi",
+    "Manage additional services for this fishery.": 
+        "Zarządzaj usługami dodatkowymi dla tego łowiska.",
+    "Positions management": "Zarządzanie stanowiskami",
+    "Manage positions for this fishery.": 
+        "Zarządzaj stanowiskami dla tego łowiska.",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",

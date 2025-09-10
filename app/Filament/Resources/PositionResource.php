@@ -12,28 +12,61 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
+use Filament\Forms\Components\RichEditor;
+use App\Helpers\Helper;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\CheckboxList;
 
 class PositionResource extends Resource
 {
     protected static ?string $model = Position::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+     protected static ?string $navigationIcon = 'heroicon-o-rectangle-group';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Toggle::make('is_active')
-                    ->required(),
-                Forms\Components\TextInput::make('name')
+                Toggle::make('is_active')
+                    ->label(__('Is active')),
+                TextInput::make('name')
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('description')
                     ->maxLength(255)
-                    ->default(null),
-                Forms\Components\TextInput::make('fishery_id')
-                    ->numeric()
-                    ->default(null),
+                    ->label(__('Position name')),
+                RichEditor::make('description')
+                    ->label(__('Description'))
+                    ->toolbarButtons(Helper::getRichEditorOptions()),
+                Select::make('fishery_id')
+                    ->label(__('Fishery'))
+                    ->required()
+                    ->relationship('fishery', 'name')
+                    ->reactive()
+                    ->afterStateUpdated(fn (callable $set) => $set('long_term_permit_id', []))
+                    ->disabled(fn ($context) => $context === 'edit'),
+                CheckboxList::make('long_term_permit_id')
+                    ->relationship('longTermPermits', 'description')
+                    ->label(__('Long term permits'))
+                    ->options(function (callable $get) {
+                        $fisheryId = $get('fishery_id');
+                        if (!$fisheryId) {
+                            return [];
+                        }
+                        
+                        return \App\Models\LongTermPermit::where('fishery_id', $fisheryId)
+                            ->where('is_active', true)
+                            ->pluck('description', 'id')
+                            ->toArray();
+                    })
+                    ->reactive(),
             ]);
     }
 

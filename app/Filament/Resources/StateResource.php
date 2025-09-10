@@ -120,7 +120,8 @@ class StateResource extends Resource
         return __('States');
     }
 
-    public static function getModelLabel(): string {
+    public static function getModelLabel(): string 
+    {
         return __('state');
     }
 }

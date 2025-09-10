@@ -19,4 +19,16 @@ class ManageFishery extends ViewRecord
     {
         return __('Manage');
     }
+
+    public function getViewData(): array
+    {
+        $fishery = $this->getRecord();
+        
+        return [
+            'longTermPermitsCount' => $fishery->longTermPermits()->count(),
+            'additionalServicesCount' => $fishery->additionalServices()->count(),
+            'positionsCount' => $fishery->positions()->count(),
+            'fisheryId' => $fishery->id,
+        ];
+    }
 }

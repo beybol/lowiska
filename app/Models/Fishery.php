@@ -8,6 +8,7 @@ use Spatie\Activitylog\LogOptions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -97,5 +98,20 @@ class Fishery extends Model
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);
+    }
+
+    public function longTermPermits(): HasMany
+    {
+        return $this->hasMany(LongTermPermit::class);
+    }
+
+    public function additionalServices(): HasMany
+    {
+        return $this->hasMany(AdditionalService::class);
+    }
+
+    public function positions(): HasMany
+    {
+        return $this->hasMany(Position::class);
     }
 }
