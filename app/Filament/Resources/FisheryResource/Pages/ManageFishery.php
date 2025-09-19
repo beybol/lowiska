@@ -4,6 +4,7 @@ namespace App\Filament\Resources\FisheryResource\Pages;
 
 use Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\FisheryResource;
+use App\Filament\Resources\LongTermPermitResource;
 
 class ManageFishery extends ViewRecord
 {
@@ -26,9 +27,12 @@ class ManageFishery extends ViewRecord
         
         return [
             'longTermPermitsCount' => $fishery->longTermPermits()->count(),
-            'additionalServicesCount' => $fishery->additionalServices()->count(),
+            'additionalServicesCount' => 
+                $fishery->additionalServices()->count(),
             'positionsCount' => $fishery->positions()->count(),
             'fisheryId' => $fishery->id,
+            'longTermPermitsListUrl' => LongTermPermitResource::getUrl('index', ['fishery' => $fishery->id]),
+            'longTermPermitsCreateUrl' => LongTermPermitResource::getUrl('create', ['fishery' => $fishery->id]),
         ];
     }
 }

@@ -17,7 +17,6 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\RichEditor;
 use App\Helpers\Helper;
-use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 
@@ -36,6 +35,7 @@ class LongTermPermitResource extends Resource
     {
         return $form
             ->schema([
+                ...Helper::getFisheryFields(),
                 Toggle::make('is_active')
                     ->label(__('Is active')),
                 RichEditor::make('description')
@@ -49,11 +49,6 @@ class LongTermPermitResource extends Resource
                     ->label(__('Valid to'))
                     ->reactive()
                     ->minDate(fn (callable $get) => $get('valid_from')),
-                Select::make('fishery_id')
-                    ->label(__('Fishery'))
-                    ->required()
-                    ->relationship('fishery', 'name')
-                    ->disabled(fn ($context) => $context === 'edit'),
                 Helper::getPriceInput(),
                 TextInput::make('sales_limit')
                     ->label(__('Sales limit'))
@@ -86,7 +81,8 @@ class LongTermPermitResource extends Resource
                     ->sortable(),
                 TextColumn::make('fishery.name')
                     ->label(__('Fishery'))
-                    ->sortable(),
+                    ->sortable()
+                    ->visible(fn () => !request()->has('fishery')),
             ])
             ->filters([
                 //
@@ -110,10 +106,17 @@ class LongTermPermitResource extends Resource
 
     public static function getPages(): array
     {
+        $fisheryId = request()->get('fishery');
+        
         return [
             'index' => Pages\ListLongTermPermits::route('/'),
             'create' => Pages\CreateLongTermPermit::route('/create'),
-            'edit' => Pages\EditLongTermPermit::route('/{record}/edit'),
+            'edit' => Pages\EditLongTermPermit::route('/{record}/edit?fishery=' . $fisheryId),
         ];
+    }
+
+    public static function getPluralLabel(): ?string
+    {
+        return __('Long term permits');
     }
 }

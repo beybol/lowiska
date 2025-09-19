@@ -18,6 +18,27 @@ use Filament\Forms\Components\TextInput;
 
 class Helper
 {
+    public static function assertFisheryAccessOrAbort(?int $fisheryId = null): void
+    {
+        $fisheryId = $fisheryId ?? request()->get('fishery');
+        if (!$fisheryId) {
+            abort(404, __('Fishery parameter is required.'));
+        }
+
+        $currentPanel = \Filament\Facades\Filament::getCurrentPanel()?->getId();
+
+        if ($currentPanel === 'admin') {
+            $fishery = \App\Models\Fishery::find($fisheryId);
+            if (!$fishery) {
+                abort(404, __('Fishery not found.'));
+            }
+        } else {
+            $fishery = \App\Models\Fishery::forCurrentUser()->find($fisheryId);
+            if (!$fishery) {
+                abort(404, __('Fishery not found or access denied.'));
+            }
+        }
+    }
     public static function getRichEditorOptions() {
         return [
             'bold',
@@ -326,5 +347,65 @@ class Helper
                     ->helperText(__('Format: 100.00 (use dot).'));
             })
             ->default(null);
+    }
+
+    public static function getFisheryFields()
+    {
+        return [
+            \Filament\Forms\Components\TextInput::make('fishery_name')
+                ->label(__('Fishery'))
+                ->afterStateHydrated(function ($component, $state, $record) {
+                    if ($record && $record->fishery) {
+                        $component->state($record->fishery->name);
+                    } elseif ($fisheryId = request()->get('fishery')) {
+                        $fishery = \App\Models\Fishery::find($fisheryId);
+                        $component->state($fishery?->name);
+                    }
+                })
+                ->readonly()
+                ->dehydrated(false),
+            \Filament\Forms\Components\Hidden::make('fishery_id')
+                ->default(function ($record) {
+                    if ($record && $record->fishery_id) {
+                        return $record->fishery_id;
+                    }
+            
+                    return request()->get('fishery');
+                })
+        ];
+    }
+
+    public static function getBackToFisheryManagementAction($fisheryId = null, $actionType = 'cancel')
+    {
+        $url = function () use ($fisheryId) {
+            $id = $fisheryId;
+            
+            if (!$id) {
+                $id = request()->get('fishery');
+            }
+            
+            if (!$id && isset($this->record)) {
+                $id = $this->record->fishery_id;
+            }
+            
+            if ($id) {
+                return \App\Filament\Resources\FisheryResource::getUrl('manage', ['record' => $id]);
+            }
+
+            return back();
+        };
+
+        if ($actionType === 'cancel') {
+            return function($cancelAction) use ($url) {
+                return $cancelAction
+                    ->label(__('Back to fishery management'))
+                    ->url($url);
+            };
+        } else {
+            return \Filament\Actions\Action::make('back_to_fishery')
+                ->label(__('Back to fishery management'))
+                ->url($url)
+                ->color('gray');
+        }
     }
 }

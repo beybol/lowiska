@@ -222,6 +222,13 @@
     "Valid from": "Obowiązuje od",
     "Valid to": "Obowiązuje do",
     "Fishery": "Łowisko",
+    "Unknown fishery": "Nieznane łowisko",
+    "Unauthorized access to fishery.": "Nieautoryzowany dostęp do łowiska.",
+    "Fishery parameter is required.": "Parametr łowiska jest wymagany.",
+    "Fishery not found.": "Łowisko nie zostało znalezione.",
+    "Fishery not found or access denied.": "Łowisko nie zostało znalezione lub brak dostępu.",
+    "Create long term permit for :fishery": "Utwórz pozwolenie długoterminowe dla :fishery",
+    "Fishery automatically selected": "Łowisko wybrane automatycznie",
     "Price": "Cena",
     "Sales limit": "Limit sprzedaży",
     "Enter 0 for unlimited sales.": 
@@ -254,6 +261,9 @@
     "Positions management": "Zarządzanie stanowiskami",
     "Manage positions for this fishery.": 
         "Zarządzaj stanowiskami dla tego łowiska.",
+    "Edit long term permit": "Edytuj pozwolenie długoterminowe",
+    "Long term permits for fishery": "Pozwolenia długoterminowe dla łowiska",
+    "Back to fishery management": "Wróć do zarządzania łowiskiem",
 
     "Greater Poland": "wielkopolskie",
     "Holy Cross": "świętokrzyskie",

@@ -32,7 +32,7 @@
                 <div x-show="activeTab === 'permits'">
                     <x-management-tab 
                         :description="__('Manage long-term fishing permits for this fishery.')"
-                        :create-url="LongTermPermitResource::getUrl('create', ['fishery' => $fisheryId])"
+                        :create-url="$longTermPermitsCreateUrl"
                         :create-label="__('Create')"
                         :list-url="$longTermPermitsCount > 0 ? LongTermPermitResource::getUrl('index') . '?fishery=' . $fisheryId : null"
                         :list-label="__('List')"
