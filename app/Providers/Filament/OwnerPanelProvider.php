@@ -23,6 +23,8 @@ use App\Filament\Pages\Auth\Register;
 use App\Filament\Resources\CompanyResource;
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\LongTermPermitResource;
+use App\Filament\Resources\AdditionalServiceResource;
+use App\Filament\Resources\PositionResource;
 
 class OwnerPanelProvider extends PanelProvider
 {
@@ -39,7 +41,13 @@ class OwnerPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Green,
             ])
-            ->resources([CompanyResource::class, FisheryResource::class, LongTermPermitResource::class])
+            ->resources([
+                CompanyResource::class, 
+                FisheryResource::class, 
+                LongTermPermitResource::class,
+                AdditionalServiceResource ::class,
+                PositionResource::class,
+            ])
             ->discoverResources(in: app_path('Filament/Owner/Resources'), for: 'App\\Filament\\Owner\\Resources')
             ->discoverPages(in: app_path('Filament/Owner/Pages'), for: 'App\\Filament\\Owner\\Pages')
             ->pages([

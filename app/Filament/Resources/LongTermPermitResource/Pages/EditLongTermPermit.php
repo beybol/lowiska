@@ -45,7 +45,7 @@ class EditLongTermPermit extends EditRecord
 
     public function getBreadcrumbs(): array
     {
-        $fisheryId = request()->get('fishery') ?? $this->record->fishery_id ?? null;
+        $fisheryId = $this->record->fishery_id ?? null;
 
         return [
             LongTermPermitResource::getUrl('index', ['fishery' => $fisheryId]) 

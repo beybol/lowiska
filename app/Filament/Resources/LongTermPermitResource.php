@@ -111,7 +111,7 @@ class LongTermPermitResource extends Resource
         return [
             'index' => Pages\ListLongTermPermits::route('/'),
             'create' => Pages\CreateLongTermPermit::route('/create'),
-            'edit' => Pages\EditLongTermPermit::route('/{record}/edit?fishery=' . $fisheryId),
+            'edit' => Pages\EditLongTermPermit::route('/{record}/edit'),
         ];
     }
 

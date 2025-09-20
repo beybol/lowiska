@@ -15,28 +15,29 @@ use Spatie\Permission\Models\Permission;
 use Filament\Forms\Get;
 use App\Services\CSOService;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Hidden;
+use App\Models\Fishery;
 
 class Helper
 {
     public static function assertFisheryAccessOrAbort(?int $fisheryId = null): void
     {
         $fisheryId = $fisheryId ?? request()->get('fishery');
+
         if (!$fisheryId) {
-            abort(404, __('Fishery parameter is required.'));
+            abort(404);
         }
 
-        $currentPanel = \Filament\Facades\Filament::getCurrentPanel()?->getId();
+        $currentPanel = Filament::getCurrentPanel()?->getId();
 
         if ($currentPanel === 'admin') {
-            $fishery = \App\Models\Fishery::find($fisheryId);
-            if (!$fishery) {
-                abort(404, __('Fishery not found.'));
-            }
+            $fishery = Fishery::find($fisheryId);
         } else {
-            $fishery = \App\Models\Fishery::forCurrentUser()->find($fisheryId);
-            if (!$fishery) {
-                abort(404, __('Fishery not found or access denied.'));
-            }
+            $fishery = Fishery::query()->forCurrentUser()->find($fisheryId);
+        }
+
+        if (!$fishery) {
+            abort(404);
         }
     }
     public static function getRichEditorOptions() {
@@ -352,7 +353,7 @@ class Helper
     public static function getFisheryFields()
     {
         return [
-            \Filament\Forms\Components\TextInput::make('fishery_name')
+            TextInput::make('fishery_name')
                 ->label(__('Fishery'))
                 ->afterStateHydrated(function ($component, $state, $record) {
                     if ($record && $record->fishery) {
@@ -364,7 +365,7 @@ class Helper
                 })
                 ->readonly()
                 ->dehydrated(false),
-            \Filament\Forms\Components\Hidden::make('fishery_id')
+            Hidden::make('fishery_id')
                 ->default(function ($record) {
                     if ($record && $record->fishery_id) {
                         return $record->fishery_id;
