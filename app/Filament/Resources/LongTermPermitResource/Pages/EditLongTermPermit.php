@@ -32,15 +32,11 @@ class EditLongTermPermit extends EditRecord
 
     protected function getFormActions(): array
     {
-        $cancelActionModifier = Helper::getBackToFisheryManagementAction(
-            $this->record->fishery_id, 
-            'cancel',
-        );
-        
-        return [
+        return Helper::getEditFormActionsForFishery(
+            $this->record,
             $this->getSaveFormAction(),
-            $cancelActionModifier($this->getCancelFormAction()),
-        ];
+            $this->getCancelFormAction(),
+        );
     }
 
     public function getBreadcrumbs(): array

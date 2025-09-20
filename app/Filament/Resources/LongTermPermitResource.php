@@ -79,10 +79,6 @@ class LongTermPermitResource extends Resource
                     ->label(__('Valid to'))
                     ->date()
                     ->sortable(),
-                TextColumn::make('fishery.name')
-                    ->label(__('Fishery'))
-                    ->sortable()
-                    ->visible(fn () => !request()->has('fishery')),
             ])
             ->filters([
                 //

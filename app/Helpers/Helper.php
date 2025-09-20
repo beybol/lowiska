@@ -17,10 +17,40 @@ use App\Services\CSOService;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Hidden;
 use App\Models\Fishery;
+use Filament\Actions\CreateAction;
 
 class Helper
 {
-    public static function assertFisheryAccessOrAbort(?int $fisheryId = null): void
+    public static function getListHeaderActionsForFishery($resourceClass, $fisheryId)
+    {
+        $actions = [];
+
+        if ($fisheryId) {
+            $actions[] = CreateAction::make()
+                ->url(fn () => $resourceClass::getUrl('create', ['fishery' => $fisheryId]));
+            $actions[] = self::getBackToFisheryManagementAction($fisheryId, 'action');
+        } else {
+            $actions[] = CreateAction::make();
+        }
+        
+        return $actions;
+    }
+
+    public static function getEditFormActionsForFishery($record, $saveAction, $cancelAction)
+    {
+        $cancelActionModifier = self::getBackToFisheryManagementAction(
+            $record->fishery_id ?? null,
+            'cancel',
+        );
+        return [
+            $saveAction,
+            $cancelActionModifier($cancelAction),
+        ];
+    }
+
+    public static function assertFisheryAccessOrAbort(
+        ?int $fisheryId = null,
+    ): void
     {
         $fisheryId = $fisheryId ?? request()->get('fishery');
 
@@ -40,6 +70,7 @@ class Helper
             abort(404);
         }
     }
+
     public static function getRichEditorOptions() {
         return [
             'bold',
@@ -408,5 +439,18 @@ class Helper
                 ->url($url)
                 ->color('gray');
         }
+    }
+
+    public static function getFisheryManagementEditFormActions(): array
+    {
+        $cancelActionModifier = Helper::getBackToFisheryManagementAction(
+            $this->record->fishery_id, 
+            'cancel',
+        );
+        
+        return [
+            $this->getSaveFormAction(),
+            $cancelActionModifier($this->getCancelFormAction()),
+        ];
     }
 }

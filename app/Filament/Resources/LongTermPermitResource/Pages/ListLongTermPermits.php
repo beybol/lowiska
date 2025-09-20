@@ -7,51 +7,47 @@ use App\Helpers\Helper;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use App\Models\Fishery;
+use Illuminate\Database\Eloquent\Builder;
 
 class ListLongTermPermits extends ListRecords
 {
     protected static string $resource = LongTermPermitResource::class;
+    protected $queryString = [
+        'fisheryId' => ['as' => 'fishery'],
+    ];
+    public ?int $fisheryId = null;
 
     public function mount(): void
     {
-        Helper::assertFisheryAccessOrAbort();
+        $this->fisheryId = request()->get('fishery');
+        Helper::assertFisheryAccessOrAbort($this->fisheryId);
         parent::mount();
     }
 
     protected function getHeaderActions(): array
     {
-        $actions = [];
-        
-        if ($fisheryId = request()->get('fishery')) {
-            $actions[] = Actions\CreateAction::make()
-                ->url(fn () => static::$resource::getUrl('create', ['fishery' => $fisheryId]));
-            $actions[] = Helper::getBackToFisheryManagementAction($fisheryId, 'action');
-        } else {
-            $actions[] = Actions\CreateAction::make();
-        }
-        
-        return $actions;
+        return Helper::getListHeaderActionsForFishery(static::$resource, $this->fisheryId);
     }
 
     public function getTitle(): string
     {
-        if ($fisheryId = request()->get('fishery')) {
-            $fishery = Fishery::find($fisheryId);
-            
+        if ($this->fisheryId) {
+            $fishery = Fishery::find($this->fisheryId);
+
             if ($fishery) {
                 return __('Long term permits for fishery') . ' ' . $fishery->name;
             }
         }
-        
+
         return __('Long term permits');
     }
 
-    protected function getTableQuery(): ?\Illuminate\Database\Eloquent\Builder
+    protected function getTableQuery(): ?Builder
     {
         $query = parent::getTableQuery();
-        
-        if ($fisheryId = request()->get('fishery')) {
-            $query->where('fishery_id', $fisheryId);
+
+        if ($this->fisheryId) {
+            $query->where('fishery_id', $this->fisheryId);
         }
         
         return $query;

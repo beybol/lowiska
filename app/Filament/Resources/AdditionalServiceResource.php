@@ -30,21 +30,17 @@ class AdditionalServiceResource extends Resource
     {
         return $form
             ->schema([
+                ...Helper::getFisheryFields(),
+                TextInput::make('name')
+                    ->label(__('Additional service name'))
+                    ->required()
+                    ->maxLength(255),
                 Toggle::make('is_active')
                     ->label(__('Is additional service active')),
                 RichEditor::make('description')
                     ->label(__('Description'))
                     ->toolbarButtons(Helper::getRichEditorOptions()),
                 Helper::getPriceInput(),
-                Select::make('fishery_id')
-                    ->label(__('Fishery'))
-                    ->required()
-                    ->relationship('fishery', 'name')
-                    ->disabled(fn ($context) => $context === 'edit'),
-                TextInput::make('name')
-                    ->label(__('Additional service name'))
-                    ->required()
-                    ->maxLength(255),
                 TextInput::make('available_count')
                     ->label(__('Available count'))
                     ->numeric()
