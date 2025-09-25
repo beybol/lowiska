@@ -20,12 +20,16 @@ use Filament\Forms\Components\RichEditor;
 use App\Helpers\Helper;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\CheckboxList;
+use App\Models\LongTermPermit;
+use App\Models\AdditionalService;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Get;
 
 class PositionResource extends Resource
 {
     protected static ?string $model = Position::class;
-
-     protected static ?string $navigationIcon = 'heroicon-o-rectangle-group';
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-group';
 
     public static function shouldRegisterNavigation(): bool
     {
@@ -36,6 +40,7 @@ class PositionResource extends Resource
     {
         return $form
             ->schema([
+                ...Helper::getFisheryFields(),
                 Toggle::make('is_active')
                     ->label(__('Is active')),
                 TextInput::make('name')
@@ -45,28 +50,64 @@ class PositionResource extends Resource
                 RichEditor::make('description')
                     ->label(__('Description'))
                     ->toolbarButtons(Helper::getRichEditorOptions()),
-                Select::make('fishery_id')
-                    ->label(__('Fishery'))
-                    ->required()
-                    ->relationship('fishery', 'name')
-                    ->reactive()
-                    ->afterStateUpdated(fn (callable $set) => $set('long_term_permit_id', []))
-                    ->disabled(fn ($context) => $context === 'edit'),
                 CheckboxList::make('long_term_permit_id')
                     ->relationship('longTermPermits', 'description')
                     ->label(__('Long term permits'))
                     ->options(function (callable $get) {
                         $fisheryId = $get('fishery_id');
+
                         if (!$fisheryId) {
                             return [];
                         }
-                        
-                        return \App\Models\LongTermPermit::where('fishery_id', $fisheryId)
-                            ->where('is_active', true)
-                            ->pluck('description', 'id')
+
+                        return LongTermPermit::query()
+                            ->forFishery($fisheryId)
+                            ->isActive()
+                            ->get()
+                            ->mapWithKeys(function($item) {
+                                return [$item->id 
+                                    => strip_tags($item->description)];
+                            })
                             ->toArray();
                     })
-                    ->reactive(),
+                    ->reactive()
+                    ->columnSpan('full')
+                    ->visible(function (callable $get) {
+                        $fisheryId = $get('fishery_id');
+
+                        if (!$fisheryId) {
+                            return false;
+                        }
+                        
+                        return LongTermPermit::query()
+                            ->forFishery($fisheryId)
+                            ->isActive()
+                            ->exists();
+                    }),
+                Repeater::make('additionalServices')
+                    ->statePath('additionalServices')
+                    ->schema([
+                        Select::make('additional_service_id')
+                            ->label(__('Additional service'))
+                            ->options(function (Get $get) {
+                                $fisheryId = $get('../../fishery_id') ?? request()->get('fishery');
+
+                                if (!$fisheryId) {
+                                    return [];
+                                }
+
+                                return AdditionalService::forFishery($fisheryId)
+                                    ->isActive()
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            })
+                            ->disableOptionsWhenSelectedInSiblingRepeaterItems(true)
+                            ->required(),
+                        Checkbox::make('is_required')
+                            ->label(__('Is required')),
+                    ])
+                    ->label(__('Additional services'))
+                    ->addActionLabel(__('Add additional service')),
             ]);
     }
 
@@ -74,27 +115,18 @@ class PositionResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\IconColumn::make('is_active')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('name')
+                ToggleColumn::make('is_active')
+                    ->label(__('Is active')),
+                TextColumn::make('name')
+                    ->label(__('Position name'))
                     ->searchable(),
-                Tables\Columns\TextColumn::make('description')
+                TextColumn::make('description')
+                    ->label(__('Description'))
+                    ->formatStateUsing(function (string $state) {
+                        return strip_tags($state);
+                    })
+                    ->limit(20)
                     ->searchable(),
-                Tables\Columns\TextColumn::make('fishery_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
@@ -123,5 +155,20 @@ class PositionResource extends Resource
             'create' => Pages\CreatePosition::route('/create'),
             'edit' => Pages\EditPosition::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentFormData($record): array
+    {
+        $data = $record->toArray();
+        unset($data['additional_services']);
+        $data['additionalServices'] = $record->additionalServices
+            ->map(fn($service) => [
+                'additional_service_id' => $service->id,
+                'is_required' => $service->pivot->is_required,
+            ])
+            ->toArray();
+        $data['additionalServices'] = array_values($data['additionalServices'] ?? []);
+
+        return $data;
     }
 }

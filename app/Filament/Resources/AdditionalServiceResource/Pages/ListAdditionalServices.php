@@ -7,6 +7,7 @@ use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use App\Helpers\Helper;
 use Illuminate\Database\Eloquent\Builder;
+use App\Models\Fishery;
 
 class ListAdditionalServices extends ListRecords
 {
@@ -28,7 +29,7 @@ class ListAdditionalServices extends ListRecords
 
     public function getTitle(): string
     {
-        return __('Additional services');
+        return Helper::getFisheryTitle($this->fisheryId, 'Additional services');
     }
 
     public function getBreadcrumbs(): array

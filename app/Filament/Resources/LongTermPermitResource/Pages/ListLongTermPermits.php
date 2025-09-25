@@ -31,15 +31,7 @@ class ListLongTermPermits extends ListRecords
 
     public function getTitle(): string
     {
-        if ($this->fisheryId) {
-            $fishery = Fishery::find($this->fisheryId);
-
-            if ($fishery) {
-                return __('Long term permits for fishery') . ' ' . $fishery->name;
-            }
-        }
-
-        return __('Long term permits');
+        return Helper::getFisheryTitle($this->fisheryId, 'Long term permits');
     }
 
     protected function getTableQuery(): ?Builder

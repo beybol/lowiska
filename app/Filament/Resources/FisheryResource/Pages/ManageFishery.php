@@ -26,10 +26,18 @@ class ManageFishery extends ViewRecord
         $fishery = $this->getRecord();
         
         return [
-            'longTermPermitsCount' => $fishery->longTermPermits()->count(),
-            'additionalServicesCount' => 
-                $fishery->additionalServices()->count(),
-            'positionsCount' => $fishery->positions()->count(),
+            'longTermPermitsCount' => $fishery
+                ->longTermPermits()
+                ->isActive()
+                ->count(),
+            'additionalServicesCount' => $fishery
+                ->additionalServices()
+                ->isActive()
+                ->count(),
+            'positionsCount' => $fishery
+                ->positions()
+                ->isActive()
+                ->count(),
             'fisheryId' => $fishery->id,
             'longTermPermitsListUrl' => LongTermPermitResource::getUrl('index', ['fishery' => $fishery->id]),
             'longTermPermitsCreateUrl' => LongTermPermitResource::getUrl('create', ['fishery' => $fishery->id]),

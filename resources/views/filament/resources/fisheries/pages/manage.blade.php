@@ -33,9 +33,7 @@
                     <x-management-tab 
                         :description="__('Manage long-term fishing permits for this fishery.')"
                         :create-url="$longTermPermitsCreateUrl"
-                        :create-label="__('Create')"
-                        :list-url="$longTermPermitsCount > 0 ? LongTermPermitResource::getUrl('index') . '?fishery=' . $fisheryId : null"
-                        :list-label="__('List')"
+                        :list-url="LongTermPermitResource::getUrl('index') . '?fishery=' . $fisheryId"
                         :count="$longTermPermitsCount"
                     />
                 </div>
@@ -43,9 +41,7 @@
                     <x-management-tab 
                         :description="__('Manage additional services for this fishery.')"
                         :create-url="AdditionalServiceResource::getUrl('create', ['fishery' => $fisheryId])"
-                        :create-label="__('Create')"
-                        :list-url="$additionalServicesCount > 0 ? AdditionalServiceResource::getUrl('index') . '?fishery=' . $fisheryId : null"
-                        :list-label="__('List')"
+                        :list-url="AdditionalServiceResource::getUrl('index') . '?fishery=' . $fisheryId"
                         :count="$additionalServicesCount"
                     />
                 </div>
@@ -53,9 +49,7 @@
                     <x-management-tab 
                         :description="__('Manage positions for this fishery.')"
                         :create-url="PositionResource::getUrl('create', ['fishery' => $fisheryId])"
-                        :create-label="__('Create')"
-                        :list-url="$positionsCount > 0 ? PositionResource::getUrl('index') . '?fishery=' . $fisheryId : null"
-                        :list-label="__('List')"
+                        :list-url="PositionResource::getUrl('index') . '?fishery=' . $fisheryId"
                         :count="$positionsCount"
                     />
                 </div>

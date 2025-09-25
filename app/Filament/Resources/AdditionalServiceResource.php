@@ -66,9 +66,6 @@ class AdditionalServiceResource extends Resource
                     ->label(__('Price'))
                     ->money()
                     ->sortable(),
-                TextColumn::make('fishery.name')
-                    ->label(__('Fishery'))
-                    ->searchable(),
                 TextColumn::make('name')
                     ->label(__('Additional service name'))
                     ->searchable(),

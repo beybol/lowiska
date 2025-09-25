@@ -8,6 +8,8 @@ use Spatie\Activitylog\LogOptions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 
 class Position extends Model
 {
@@ -37,6 +39,13 @@ class Position extends Model
 
     public function additionalServices(): BelongsToMany
     {
-        return $this->belongsToMany(AdditionalService::class);
+        return $this->belongsToMany(AdditionalService::class)
+            ->withPivot('is_required');
+    }
+
+    #[Scope]
+    protected function isActive(Builder $query): void
+    {
+        $query->where('is_active', 1);
     }
 }

@@ -7,6 +7,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 
 class LongTermPermit extends Model
 {
@@ -60,5 +62,17 @@ class LongTermPermit extends Model
     public function fishery(): BelongsTo
     {
         return $this->belongsTo(Fishery::class);
+    }
+
+    #[Scope]
+    protected function forFishery(Builder $query, int $fisheryId): void
+    {
+        $query->where('fishery_id', $fisheryId);
+    }
+
+    #[Scope]
+    protected function isActive(Builder $query): void
+    {
+        $query->where('is_active', true);
     }
 }

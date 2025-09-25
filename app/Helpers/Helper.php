@@ -18,9 +18,43 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Hidden;
 use App\Models\Fishery;
 use Filament\Actions\CreateAction;
+use App\Filament\Resources\FisheryResource;
 
 class Helper
 {
+    public static function syncAdditionalServices($record, array $services): void
+    {
+        $record->additionalServices()->sync(
+            collect($services)
+                ->mapWithKeys(function ($item) {
+                    return [
+                        $item['additional_service_id'] => [
+                            'is_required' => $item['is_required'] ?? false
+                        ]
+                    ];
+                })
+                ->toArray()
+        );
+    }
+
+    public static function extractAdditionalServices(array &$data): array
+    {
+        $services = $data['additionalServices'] ?? [];
+        unset($data['additionalServices']);
+        return $services;
+    }
+
+    public static function getFisheryTitle(?int $fisheryId, string $baseLabel): string
+    {
+        if ($fisheryId) {
+            $fishery = \App\Models\Fishery::find($fisheryId);
+            if ($fishery) {
+                return __($baseLabel . ' for fishery') . ' ' . $fishery->name;
+            }
+        }
+        return __($baseLabel);
+    }
+
     public static function getListHeaderActionsForFishery($resourceClass, $fisheryId)
     {
         $actions = [];
@@ -394,16 +428,21 @@ class Helper
                         $component->state($fishery?->name);
                     }
                 })
-                ->readonly()
-                ->dehydrated(false),
+                ->readonly(),
             Hidden::make('fishery_id')
-                ->default(function ($record) {
+                ->default(function ($record, $livewire = null) {
                     if ($record && $record->fishery_id) {
                         return $record->fishery_id;
                     }
-            
-                    return request()->get('fishery');
+
+                    $fisheryId = request()->get('fishery');
+                    if (!$fisheryId && $livewire && property_exists($livewire, 'record') && $livewire->record && $livewire->record->fishery_id) {
+                        $fisheryId = $livewire->record->fishery_id;
+                    }
+
+                    return $fisheryId;
                 })
+                ->required(),
         ];
     }
 
@@ -421,7 +460,7 @@ class Helper
             }
             
             if ($id) {
-                return \App\Filament\Resources\FisheryResource::getUrl('manage', ['record' => $id]);
+                return FisheryResource::getUrl('manage', ['record' => $id]);
             }
 
             return back();
@@ -434,7 +473,7 @@ class Helper
                     ->url($url);
             };
         } else {
-            return \Filament\Actions\Action::make('back_to_fishery')
+            return Action::make('back_to_fishery')
                 ->label(__('Back to fishery management'))
                 ->url($url)
                 ->color('gray');
