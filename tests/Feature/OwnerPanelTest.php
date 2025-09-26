@@ -6,6 +6,9 @@ use App\Models\User;
 use App\Models\Company;
 use App\Models\Fishery;
 use App\Helpers\Helper;
+use App\Models\Position;
+use App\Models\AdditionalService;
+use App\Models\LongTermPermit;
 
 test('Owner panel is accessible.', function () {
     $owner = User::factory()->create();
@@ -176,6 +179,17 @@ test('Not see information about skipping step 2 if company was not verified earl
         ->assertDontSee(__('The selected company was verified earlier, so we skipped step 2.'));
 });
 
+test('Owner see management fishery button on fisheries list.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+
+    $this->actingAs($owner)
+        ->get('/owner/fisheries')
+        ->assertStatus(200)
+        ->assertSee(__('Manage'));
+});
+
 test('Owner can view manage fishery page.', function () {
     $owner = User::factory()->create();
     Helper::addOwnerRole($owner);
@@ -183,5 +197,83 @@ test('Owner can view manage fishery page.', function () {
 
     $this->actingAs($owner)
         ->get("/owner/fisheries/{$fishery->id}/manage")
+        ->assertSee(__('Manage fishery') . ' ' . $fishery->name)
+        ->assertSee(__('Long term permits'))
+        ->assertSee(__('Additional services'))
+        ->assertSee(__('Positions'))
+        ->assertSee(__('Manage long-term fishing permits for this fishery.'))
+        ->assertSee(__('Create'))
+        ->assertSee(__('List'))
         ->assertStatus(200);
+});
+
+test('Owner can see only active long term permits count on manage fishery page.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+    LongTermPermit::factory()
+        ->create([
+            'is_active' => true,
+            'fishery_id' => $fishery->id,
+        ]);
+    LongTermPermit::factory()
+        ->create([
+            'is_active' => false,
+            'fishery_id' => $fishery->id,
+        ]);
+
+    $this->actingAs($owner)
+        ->get("/owner/fisheries/{$fishery->id}/manage")
+        ->assertSee('1');
+});
+
+test('Owner can see only active additional services count on manage fishery page.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+    AdditionalService::factory()
+        ->create([
+            'is_active' => true,
+            'fishery_id' => $fishery->id,
+        ]);
+    AdditionalService::factory()
+        ->create([
+            'is_active' => false,
+            'fishery_id' => $fishery->id,
+        ]);
+
+    $this->actingAs($owner)
+        ->get("/owner/fisheries/{$fishery->id}/manage")
+        ->assertSee('1');
+});
+
+test('Owner can see only active positions count on manage fishery page.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+    Position::factory()
+        ->create([
+            'is_active' => true,
+            'fishery_id' => $fishery->id,
+        ]);
+    Position::factory()
+        ->create([
+            'is_active' => false,
+            'fishery_id' => $fishery->id,
+        ]);
+
+    $this->actingAs($owner)
+        ->get("/owner/fisheries/{$fishery->id}/manage")
+        ->assertSee('1');
+});
+
+test('Owner can not view position create page for fishery he does not own.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $otherUser = User::factory()->create();
+    $fishery = Fishery::factory()->forUser($otherUser)->create();
+
+    $this->actingAs($owner)
+        ->get("/owner/fisheries/{$fishery->id}/positions/create")
+        ->assertStatus(404);
 });

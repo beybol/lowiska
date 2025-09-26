@@ -66,6 +66,7 @@ class LongTermPermitResource extends Resource
                     ->label(__('Is active')),
                 TextColumn::make('description')
                     ->label(__('Description'))
+                    ->sortable()
                     ->searchable()
                     ->formatStateUsing(function (string $state) {
                         return strip_tags($state);
@@ -73,12 +74,14 @@ class LongTermPermitResource extends Resource
                     ->limit(20),
                 TextColumn::make('valid_from')
                     ->label(__('Valid from'))
-                    ->date()
-                    ->sortable(),
+                    ->date('d.m.Y')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('valid_to')
                     ->label(__('Valid to'))
-                    ->date()
-                    ->sortable(),
+                    ->date('d.m.Y')
+                    ->sortable()
+                    ->searchable(),
             ])
             ->filters([
                 //

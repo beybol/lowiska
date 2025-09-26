@@ -55,6 +55,10 @@ class AdditionalServiceResource extends Resource
             ->columns([
                 ToggleColumn::make('is_active')
                     ->label(__('Is additional service active')),
+                TextColumn::make('name')
+                    ->label(__('Additional service name'))
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('description')
                     ->label(__('Description'))
                     ->searchable()
@@ -66,9 +70,6 @@ class AdditionalServiceResource extends Resource
                     ->label(__('Price'))
                     ->money()
                     ->sortable(),
-                TextColumn::make('name')
-                    ->label(__('Additional service name'))
-                    ->searchable(),
             ])
             ->filters([
                 //
