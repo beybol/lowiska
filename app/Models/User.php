@@ -67,6 +67,15 @@ class User extends Authenticatable implements
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if ($user->is_admin && !$user->email_verified_at) {
+                $user->email_verified_at = now();
+            }
+        });
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         if ($panel->getId() === 'admin') {
