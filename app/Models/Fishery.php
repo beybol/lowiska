@@ -1,0 +1,117 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class Fishery extends Model
+{
+    use LogsActivity, SoftDeletes, HasFactory;
+
+    protected $fillable = [
+        'name',
+        'user_id',
+        'state_id',
+        'company_id',
+        'town',
+        'street',
+        'building_number',
+        'directions',
+        'description',
+        'zip_code',
+        'area',
+        'avg_depth',
+        'max_depth',
+        'positions_count',
+        'dominant_fish_id',
+        'records',
+        'map_image_path',
+        'gallery_images',
+        'currency_id',
+        'bank_account_number',
+    ];
+
+    protected $casts = ['gallery_images' => 'array'];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logOnly($this->fillable);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function state(): BelongsTo
+    {
+        return $this->belongsTo(State::class);
+    }
+
+    public function conveniences(): BelongsToMany
+    {
+        return $this->belongsToMany(Convenience::class);
+    }
+
+    public function fisheryTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(FisheryType::class);
+    }
+
+    public function fishingMethods(): BelongsToMany
+    {
+        return $this->belongsToMany(FishingMethod::class);
+    }
+
+    public function fish(): BelongsToMany
+    {
+        return $this->belongsToMany(Fish::class);
+    }
+
+    public function dominantFish(): BelongsTo
+    {
+        return $this->belongsTo(Fish::class);
+    }
+
+    #[Scope]
+    public function forCurrentUser(Builder $query): void
+    {
+        if (auth()->check()) {
+            $query->where('user_id', auth()->id());
+        }
+    }
+
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
+    }
+
+    public function longTermPermits(): HasMany
+    {
+        return $this->hasMany(LongTermPermit::class);
+    }
+
+    public function additionalServices(): HasMany
+    {
+        return $this->hasMany(AdditionalService::class);
+    }
+
+    public function positions(): HasMany
+    {
+        return $this->hasMany(Position::class);
+    }
+}

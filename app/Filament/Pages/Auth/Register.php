@@ -8,12 +8,21 @@ use Filament\Forms\Components\TextInput;
 use Filament\Pages\Auth\Register as BaseRegister;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Database\Eloquent\Model;
+use App\Helpers\Helper;
+use App\Models\Country;
 use App\Models\User;
-use App\Models\CountryPrefix;
-use Filament\Actions\Action;
+use Filament\Facades\Filament;
 
 class Register extends BaseRegister
 {
+    protected function handleRegistration(array $data): Model
+    {
+        $user = parent::handleRegistration($data);
+        Helper::addOwnerRole($user);
+
+        return $user;
+    }
+
     protected function getForms(): array
     {
         return [
@@ -50,25 +59,9 @@ class Register extends BaseRegister
 
     protected function getCountryPrefixesFormComponent(): Component
     {
-        return Select::make('country_prefix_id')
+        return Select::make('country_id')
             ->label(__('Country prefix'))
-            ->options(function () {
-                $collator = new \Collator(app()->getLocale());
-                $countryPrefixes = CountryPrefix::all()->map(function ($cp) {
-                    return [
-                        'id' => $cp->id,
-                        'label' => __($cp->country_name) . ", {$cp->prefix}",
-                    ];
-                });
-                $sorted = $countryPrefixes->sort(
-                    function ($cp1, $cp2) use ($collator) {
-                        return $collator
-                            ->compare($cp1['label'], $cp2['label']);
-                    }
-                );
-
-                return $sorted->pluck('label', 'id');
-            });
+            ->options(Helper::getCountryPrefixes());
     }
 
     protected function getPhoneFormComponent(): Component
@@ -81,18 +74,7 @@ class Register extends BaseRegister
     {
         return [
             ...parent::getFormActions(),
-            Action::make('register_google')
-                ->label(__('Register with Google'))
-                ->color('gray')
-                ->icon(fn () => view('components.icons.google'))
-                ->url(route('social.redirect', 'google'))
-                 ->extraAttributes(['class' => 'w-full']),
-            Action::make('register_facebook')
-                ->label(__('Register with Facebook'))
-                ->color('gray')
-                ->icon(fn () => view('components.icons.facebook'))
-                ->url(route('social.redirect', 'facebook'))
-                ->extraAttributes(['class' => 'w-full']),
+            ...Helper::getSocialAuthActions('register'),
         ];
     }
 }

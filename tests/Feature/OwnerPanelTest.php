@@ -1,0 +1,279 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use App\Models\Company;
+use App\Models\Fishery;
+use App\Helpers\Helper;
+use App\Models\Position;
+use App\Models\AdditionalService;
+use App\Models\LongTermPermit;
+
+test('Owner panel is accessible.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+
+    $this->actingAs($owner)
+        ->get('/owner')
+        ->assertStatus(200)
+        ->assertSee(__('Panel'))
+        ->assertSee(__('Companies'))
+        ->assertDontSee(__('Fish'))
+        ->assertDontSee(__('Conveniences'))
+        ->assertDontSee(__('Countries'))
+        ->assertDontSee(__('Fishery types'))
+        ->assertDontSee(__('Fishing methods'))
+        ->assertDontSee(__('States'))
+        ->assertSee(__('Fisheries'))
+        ->assertDontSee(__('Users'));
+});
+
+test('Admin has access to owner panel.', function () {
+    $admin = $this->createSuperAdmin();
+
+    $this->actingAs($admin)
+        ->get('/owner')
+        ->assertStatus(200)
+        ->assertSee(__('Panel'));
+});
+
+test('Owner can view only his company.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $company = Company::factory()->forUser($owner)->create();
+    $otherUser = User::factory()->create();
+    $otherCompany = Company::factory()->forUser($otherUser)->create();
+
+    $this->actingAs($owner)
+        ->get('/owner/companies')
+        ->assertStatus(200)
+        ->assertSee($company->name)
+        ->assertDontSee($otherCompany->name);
+});
+
+test('Owner can view only his fishery.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+    $otherUser = User::factory()->create();
+    $otherFishery = Fishery::factory()->forUser($otherUser)->create();
+
+    $this->actingAs($owner)
+        ->get('/owner/fisheries')
+        ->assertStatus(200)
+        ->assertSee($fishery->name)
+        ->assertDontSee($otherFishery->name);
+});
+
+test('Owner with company can view first wizard fishery step.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $company = Company::factory()->forUser($owner)->create();
+
+    $this->actingAs($owner)
+        ->get('/owner/companies/create?wizard=1')
+        ->assertStatus(200)
+        ->assertSee(__('Create fishery wizard'))
+        ->assertSeeText(__('Step') . ' 1 / 3')
+        ->assertSee(__('Before creating a fishery, you should choose or create a company.'))
+        ->assertDontSee(__('Before creating a fishery, you should create a company.'))
+        ->assertSee(__('Next'))
+        ->assertSee(__('Cancel'))
+        ->assertSee(__('Or create a new company below.'))
+        ->assertSee(__('Get data from CSO'));
+});
+
+test('Owner without company can not view top choose company form.', function () {
+    $user = User::factory()->create();
+    Helper::addOwnerRole($user);
+
+    $this->actingAs($user)
+        ->get('/owner/companies/create?wizard=1')
+        ->assertStatus(200)
+        ->assertSee(__('Create fishery wizard'))
+        ->assertSeeText(__('Step') . ' 1 / 3')
+        ->assertDontSee(__('Before creating a fishery, you should choose or create a company.'))
+        ->assertSee(__('Before creating a fishery, you should create a company.'))
+        ->assertSee(__('Next'))
+        ->assertSee(__('Cancel'))
+        ->assertDontSee(__('Or create a new company below.'))
+        ->assertSee(__('Get data from CSO'))
+        ->assertDontSee(__('Create & create another'));
+});
+
+test('Owner can see company verification screen.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $company = Company::factory()->forUser($owner)->create();
+
+    $this->actingAs($owner)
+        ->get('/owner/verify-company?company=' . $company->id)
+        ->assertStatus(200)
+        ->assertSee(__('Create fishery wizard'))
+        ->assertSeeText(__('Step') . ' 2 / 3')
+        ->assertSee(__('Verification transfer'))
+        ->assertSee(__('Transfer for 1 złoty is required to verify company.'))
+        ->assertSee(__('Next'))
+        ->assertSee(__('Previous'));
+});
+
+test('Owner can see last fishery verification step.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $company = Company::factory()->forUser($owner)->create();
+
+    $this->actingAs($owner)
+        ->get('/owner/fisheries/create?company=' . $company->id . '&wizard=1')
+        ->assertStatus(200)
+        ->assertSee(__('Create fishery wizard'))
+        ->assertSeeText(__('Step') . ' 3 / 3')
+        ->assertSee(__('Final step - provide fishery details below.'))
+        ->assertSee(__('Fishery address'))
+        ->assertSee(__('Create fishery'))
+        ->assertSee(__('Previous'))
+        ->assertDontSee(__('Create & create another'));
+});
+
+test('Not see wizard buttons on normal create company form', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+
+    $this->actingAs($owner)
+        ->get('/owner/companies/create')
+        ->assertStatus(200)
+        ->assertDontSee(__('Next'));
+});
+
+test('Not see wizard buttons on normal create fishery form', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+
+    $this->actingAs($owner)
+        ->get('/owner/fisheries/create')
+        ->assertStatus(200)
+        ->assertDontSee(__('Previous'));
+});
+
+test('See information about skipping step 2 if company was verified earlier.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $company = Company::factory()->forUser($owner)->create([
+        'is_verified' => true,
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/owner/fisheries/create?company=' . $company->id . '&wizard=1&verified_earlier=1')
+        ->assertStatus(200)
+        ->assertSee(__('The selected company was verified earlier, so we skipped step 2.'));
+});
+
+test('Not see information about skipping step 2 if company was not verified earlier.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $company = Company::factory()->forUser($owner)->create();
+
+    $this->actingAs($owner)
+        ->get('/owner/fisheries/create?company=' . $company->id . '&wizard=1')
+        ->assertStatus(200)
+        ->assertDontSee(__('The selected company was verified earlier, so we skipped step 2.'));
+});
+
+test('Owner see management fishery button on fisheries list.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+
+    $this->actingAs($owner)
+        ->get('/owner/fisheries')
+        ->assertStatus(200)
+        ->assertSee(__('Manage'));
+});
+
+test('Owner can view manage fishery page.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+
+    $this->actingAs($owner)
+        ->get("/owner/fisheries/{$fishery->id}/manage")
+        ->assertSee(__('Manage fishery') . ' ' . $fishery->name)
+        ->assertSee(__('Long term permits'))
+        ->assertSee(__('Additional services'))
+        ->assertSee(__('Positions'))
+        ->assertSee(__('Manage long-term fishing permits for this fishery.'))
+        ->assertSee(__('Create'))
+        ->assertSee(__('List'))
+        ->assertStatus(200);
+});
+
+test('Owner can see only active long term permits count on manage fishery page.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+    LongTermPermit::factory()
+        ->create([
+            'is_active' => true,
+            'fishery_id' => $fishery->id,
+        ]);
+    LongTermPermit::factory()
+        ->create([
+            'is_active' => false,
+            'fishery_id' => $fishery->id,
+        ]);
+
+    $this->actingAs($owner)
+        ->get("/owner/fisheries/{$fishery->id}/manage")
+        ->assertSee('1');
+});
+
+test('Owner can see only active additional services count on manage fishery page.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+    AdditionalService::factory()
+        ->create([
+            'is_active' => true,
+            'fishery_id' => $fishery->id,
+        ]);
+    AdditionalService::factory()
+        ->create([
+            'is_active' => false,
+            'fishery_id' => $fishery->id,
+        ]);
+
+    $this->actingAs($owner)
+        ->get("/owner/fisheries/{$fishery->id}/manage")
+        ->assertSee('1');
+});
+
+test('Owner can see only active positions count on manage fishery page.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+    Position::factory()
+        ->create([
+            'is_active' => true,
+            'fishery_id' => $fishery->id,
+        ]);
+    Position::factory()
+        ->create([
+            'is_active' => false,
+            'fishery_id' => $fishery->id,
+        ]);
+
+    $this->actingAs($owner)
+        ->get("/owner/fisheries/{$fishery->id}/manage")
+        ->assertSee('1');
+});
+
+test('Owner can not view position create page for fishery he does not own.', function () {
+    $owner = User::factory()->create();
+    Helper::addOwnerRole($owner);
+    $otherUser = User::factory()->create();
+    $fishery = Fishery::factory()->forUser($otherUser)->create();
+
+    $this->actingAs($owner)
+        ->get("/owner/fisheries/{$fishery->id}/positions/create")
+        ->assertStatus(404);
+});

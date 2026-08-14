@@ -1,0 +1,42 @@
+# Development overrides for docker-compose.yml
+# This file is automatically loaded by docker-compose in development
+
+services:
+  app:
+    build:
+      dockerfile: Dockerfile.dev
+    volumes:
+      # Mount source code for development
+      - .:/var/www/html
+      # Exclude node_modules and vendor to avoid conflicts
+      - /var/www/html/node_modules
+      - /var/www/html/vendor
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+
+  queue:
+    build:
+      dockerfile: Dockerfile.dev
+    volumes:
+      # Mount source code for development
+      - .:/var/www/html
+      # Exclude node_modules and vendor to avoid conflicts
+      - /var/www/html/node_modules
+      - /var/www/html/vendor
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+
+  scheduler:
+    build:
+      dockerfile: Dockerfile.dev
+    volumes:
+      # Mount source code for development
+      - .:/var/www/html
+      # Exclude node_modules and vendor to avoid conflicts
+      - /var/www/html/node_modules
+      - /var/www/html/vendor
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
