@@ -30,5 +30,9 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="FLARE_KEY" value="" force="true"/>
+        <env name="FLARE_REPORT" value="false" force="true"/>
+        <env name="FLARE_TRACE" value="false" force="true"/>
+        <env name="FLARE_LOG" value="false" force="true"/>
     </php>
 </phpunit>

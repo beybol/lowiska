@@ -15,7 +15,7 @@
         "laravel/socialite": "^5.22",
         "laravel/tinker": "^2.10.1",
         "spatie/laravel-activitylog": "^4.10",
-        "spatie/laravel-flare": "^2.0"
+        "spatie/laravel-flare": "^3.0"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.15",
@@ -83,6 +83,9 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "platform": {
+            "php": "8.3.0"
         }
     },
     "minimum-stability": "stable",

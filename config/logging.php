@@ -118,6 +118,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Ships log entries to Flare as standalone entities. Opt in per
+        // environment by adding "flare" to LOG_STACK, e.g. LOG_STACK=single,flare.
+        // Requires FLARE_KEY and FLARE_LOG=true; the minimum level is set
+        // through "minimal_log_level" in config/flare.php.
+        'flare' => [
+            'driver' => 'flare',
+        ],
+
         'null' => [
             'driver' => 'monolog',
             'handler' => NullHandler::class,
