@@ -134,7 +134,7 @@ COPY --from=assets /var/www/html/public/build ./public/build
 
 COPY docker/prod-entrypoint.sh /usr/local/bin/prod-entrypoint
 RUN chmod +x /usr/local/bin/prod-entrypoint \
-    && composer dump-autoload --no-dev --optimize --no-interaction \
+    && composer dump-autoload --no-dev --optimize --no-interaction --no-scripts \
     && chown -R www-data:www-data storage bootstrap/cache
 
 ENV SERVER_NAME=":8080"
