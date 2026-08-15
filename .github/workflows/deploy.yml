@@ -1,0 +1,159 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [dev]
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: esurf-foundation
+  REGION: europe-west1
+  ARTIFACT_REGISTRY: europe-west1-docker.pkg.dev/esurf-foundation/apps
+  WIF_PROVIDER: projects/456395695251/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # A `v*` tag is a prod release. This repo's default branch is `master`,
+      # not `main` (unlike WorkSnap/PunktySzczepien) — only allow the tag if
+      # the tagged commit is actually reachable from `master`, otherwise
+      # someone could tag a commit on a feature branch (or `dev`) and ship it
+      # straight to prod.
+      - name: Ensure release tag is on master
+        if: github.ref_type == 'tag'
+        run: |
+          git fetch origin master
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::Tag ${GITHUB_REF_NAME} nie wskazuje commita na master — prod deploy zablokowany."
+            exit 1
+          fi
+
+      - name: Resolve environment
+        id: env
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            ENV=prod
+            APP_URL=https://fisherya.com
+            APP_ENV=production
+            MIN_INSTANCES_FLAG="--min-instances 1"
+          else
+            ENV=staging
+            APP_URL=https://staging.fisherya.com
+            APP_ENV=staging
+            MIN_INSTANCES_FLAG=""
+          fi
+          echo "env=$ENV"                                                        >> "$GITHUB_OUTPUT"
+          echo "app_env=$APP_ENV"                                                >> "$GITHUB_OUTPUT"
+          echo "app_url=$APP_URL"                                                >> "$GITHUB_OUTPUT"
+          echo "min_instances_flag=$MIN_INSTANCES_FLAG"                          >> "$GITHUB_OUTPUT"
+          echo "service=lowiska-$ENV"                                            >> "$GITHUB_OUTPUT"
+          echo "runtime_sa=lowiska-$ENV@${PROJECT_ID}.iam.gserviceaccount.com"          >> "$GITHUB_OUTPUT"
+          echo "deploy_sa=lowiska-deploy-$ENV@${PROJECT_ID}.iam.gserviceaccount.com"    >> "$GITHUB_OUTPUT"
+          echo "sql_conn=${PROJECT_ID}:${REGION}:db-$ENV"                        >> "$GITHUB_OUTPUT"
+          echo "storage_bucket=esurf-foundation-lowiska-$ENV-storage"            >> "$GITHUB_OUTPUT"
+          echo "image=${ARTIFACT_REGISTRY}/lowiska:${GITHUB_SHA}"                 >> "$GITHUB_OUTPUT"
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ steps.env.outputs.deploy_sa }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build & push image (skip if already in registry)
+        run: |
+          IMAGE="${{ steps.env.outputs.image }}"
+          if gcloud artifacts docker images describe "$IMAGE" >/dev/null 2>&1; then
+            echo "Image $IMAGE already in registry — skipping build."
+          else
+            gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+            docker build --target prod -t "$IMAGE" .
+            docker push "$IMAGE"
+          fi
+
+      - name: Compose deploy args
+        id: args
+        run: |
+          ENV="${{ steps.env.outputs.env }}"
+          SECRETS="APP_KEY=lowiska-$ENV-app-key:latest"
+          SECRETS="$SECRETS,DB_PASSWORD=lowiska-$ENV-db-password:latest"
+          SECRETS="$SECRETS,FLARE_KEY=lowiska-$ENV-flare-key:latest"
+          SECRETS="$SECRETS,CSO_KEY=lowiska-$ENV-cso-key:latest"
+          SECRETS="$SECRETS,GOOGLE_CLIENT_ID=lowiska-$ENV-google-client-id:latest"
+          SECRETS="$SECRETS,GOOGLE_CLIENT_SECRET=lowiska-$ENV-google-client-secret:latest"
+          SECRETS="$SECRETS,FACEBOOK_CLIENT_ID=lowiska-$ENV-facebook-client-id:latest"
+          SECRETS="$SECRETS,FACEBOOK_CLIENT_SECRET=lowiska-$ENV-facebook-client-secret:latest"
+          SECRETS="$SECRETS,GOOGLE_MAPS_API_KEY=lowiska-$ENV-google-maps-api-key:latest"
+          SECRETS="$SECRETS,MAIL_PASSWORD=lowiska-$ENV-mail-password:latest"
+
+          APP_URL="${{ steps.env.outputs.app_url }}"
+          ENVVARS="APP_ENV=${{ steps.env.outputs.app_env }},APP_DEBUG=false,APP_URL=${APP_URL}"
+          ENVVARS="$ENVVARS,DB_CONNECTION=mysql,DB_SOCKET=/cloudsql/${{ steps.env.outputs.sql_conn }}"
+          ENVVARS="$ENVVARS,DB_DATABASE=lowiska,DB_USERNAME=lowiska"
+          ENVVARS="$ENVVARS,SESSION_DRIVER=database,CACHE_STORE=database,QUEUE_CONNECTION=sync"
+          # dhosting SMTP: scheme left null (not "tls") — config/mail.php has no
+          # `encryption` key, only `scheme`; null on port 587 gets opportunistic
+          # STARTTLS from Symfony Mailer automatically.
+          ENVVARS="$ENVVARS,MAIL_MAILER=smtp,MAIL_SCHEME=null,MAIL_HOST=smtp.dpoczta.pl,MAIL_PORT=587,MAIL_USERNAME=system@fisherya.com"
+          ENVVARS="$ENVVARS,MAIL_FROM_ADDRESS=system@fisherya.com,MAIL_FROM_NAME=Łowiska"
+          # Uploady Filament (mapa/galeria) na trwały storage GCS zamiast
+          # efemerycznego dysku kontenera (ADR 0013/0014 w gcp-foundation).
+          ENVVARS="$ENVVARS,FILESYSTEM_DISK=gcs,FILAMENT_FILESYSTEM_DISK=gcs"
+          ENVVARS="$ENVVARS,GOOGLE_CLOUD_STORAGE_BUCKET=${{ steps.env.outputs.storage_bucket }}"
+          ENVVARS="$ENVVARS,GOOGLE_REDIRECT_URI=${APP_URL}/auth/google/callback"
+          ENVVARS="$ENVVARS,FACEBOOK_REDIRECT_URI=${APP_URL}/auth/facebook/callback"
+          # TODO(operator): confirm this is the right admin contact address for
+          # Lowiska before the first real deploy (copied from PunktySzczepien's
+          # workflow as a starting point, not verified for this product).
+          ENVVARS="$ENVVARS,ADMIN_EMAIL=tomasz.stryczynski@e-surf.pl"
+          if [ "$ENV" = "staging" ]; then
+            # Gate staging behind Caddy basic auth (see docker/caddy/); prod
+            # never sets this var, so prod stays public.
+            ENVVARS="$ENVVARS,BASIC_AUTH_SNIPPET=/etc/caddy/snippets/basic-auth.caddy"
+          fi
+          echo "secrets=$SECRETS" >> "$GITHUB_OUTPUT"
+          echo "envvars=$ENVVARS" >> "$GITHUB_OUTPUT"
+
+      - name: Migrate database
+        run: |
+          gcloud run jobs deploy "${{ steps.env.outputs.service }}-migrate" \
+            --image "${{ steps.env.outputs.image }}" \
+            --region "${REGION}" \
+            --service-account "${{ steps.env.outputs.runtime_sa }}" \
+            --set-cloudsql-instances "${{ steps.env.outputs.sql_conn }}" \
+            --set-secrets "${{ steps.args.outputs.secrets }}" \
+            --set-env-vars "${{ steps.args.outputs.envvars }}" \
+            --command php \
+            --args artisan,migrate,--force \
+            --max-retries 1 --task-timeout 600
+          gcloud run jobs execute "${{ steps.env.outputs.service }}-migrate" --region "${REGION}" --wait
+
+      # No queue-worker service deploy step: this environment runs
+      # QUEUE_CONNECTION=sync (Filament's CountryImporter runs inline), so
+      # there is nothing to consume a queue. No cron/scheduler either —
+      # Lowiska has no artisan command needing a cadence (see
+      # gcp-foundation/docs/operations/lowiska-onboarding.md).
+      - name: Deploy service
+        run: |
+          gcloud run deploy "${{ steps.env.outputs.service }}" \
+            --image "${{ steps.env.outputs.image }}" \
+            --region "${REGION}" \
+            --service-account "${{ steps.env.outputs.runtime_sa }}" \
+            --add-cloudsql-instances "${{ steps.env.outputs.sql_conn }}" \
+            --set-secrets "${{ steps.args.outputs.secrets }}" \
+            --set-env-vars "${{ steps.args.outputs.envvars }}" \
+            --allow-unauthenticated \
+            --max-instances 2 \
+            --cpu-boost \
+            ${{ steps.env.outputs.min_instances_flag }} \
+            --port 8080

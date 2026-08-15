@@ -16,6 +16,12 @@
 	# Kontrola stanu obsługiwana przez trasę /up Laravela
 	# (bootstrap/app.php → health: '/up').
 
+	# Basic auth bramkujący staging. BASIC_AUTH_SNIPPET jest ustawiany TYLKO w
+	# deployu staging (deploy.yml); bez env (prod, dev/native) importuje pusty
+	# noop.caddy — brak auth, zero zmiany zachowania. /up wyłączone spod bramki
+	# wewnątrz basic-auth.caddy (health check Cloud Run).
+	import {$BASIC_AUTH_SNIPPET:/etc/caddy/snippets/noop.caddy}
+
 	header {
 		X-Content-Type-Options nosniff
 		X-Frame-Options DENY

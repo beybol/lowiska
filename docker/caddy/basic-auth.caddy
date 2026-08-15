@@ -1,0 +1,19 @@
+# Basic auth bramkujący dostęp do staging.
+# Importowany WYŁĄCZNIE gdy env BASIC_AUTH_SNIPPET wskazuje ten plik (deploy.yml
+# ustawia to tylko dla środowiska staging) — na prod ten plik nigdy nie jest
+# importowany, więc prod zostaje publiczny bez żadnej zmiany.
+#
+# Hash i hasło skopiowane z PunktySzczepien (.docker/caddy/basic-auth.caddy) —
+# ten sam operator, ten sam cel (zagrodzić staging przed publicznym crawlem),
+# osobna rotacja nie jest tu potrzebna. Rotacja: wygeneruj nowy hash lokalnie
+# (`docker run --rm caddy:2-alpine caddy hash-password --plaintext '<hasło>'`),
+# podmień poniżej, commit + push na `dev`. Samo hasło żyje WYŁĄCZNIE w
+# menedżerze haseł zespołu — nigdy w repo.
+
+@protected {
+	not path /up
+}
+
+basic_auth @protected {
+	staging $2a$14$6HYNCD9N9zw2wo7cebd2Bu59pVOHjbfSbN9UKRabHECP2IZ1fcd1i
+}

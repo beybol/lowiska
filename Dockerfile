@@ -126,6 +126,7 @@ WORKDIR /app
 
 COPY docker/php/prod.ini /usr/local/etc/php/conf.d/zz-lowiska.ini
 COPY docker/Caddyfile /etc/caddy/Caddyfile
+COPY docker/caddy/ /etc/caddy/snippets/
 
 COPY . .
 COPY --from=vendor /var/www/html/vendor ./vendor

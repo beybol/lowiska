@@ -1,0 +1,2 @@
+# Domyślny import, gdy env BASIC_AUTH_SNIPPET nie jest ustawiony (prod, dev/native):
+# celowo pusty, więc `import` nic nie dokłada.
