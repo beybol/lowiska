@@ -40,4 +40,11 @@ class CreateAdditionalService extends CreateRecord
             __('Create'),
         ];
     }
+
+    public function getRedirectUrl(): string
+    {
+        $fisheryId = request()->get('fishery') ?? $this->record->fishery_id ?? null;
+
+        return AdditionalServiceResource::getUrl('index', ['fishery' => $fisheryId]);
+    }
 }

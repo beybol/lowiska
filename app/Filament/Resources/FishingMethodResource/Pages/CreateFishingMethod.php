@@ -23,4 +23,9 @@ class CreateFishingMethod extends CreateRecord
     {
         return __('Create fishing method');
     }
+
+    public function getRedirectUrl(): string
+    {
+        return FishingMethodResource::getUrl('index');
+    }
 }

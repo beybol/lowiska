@@ -17,6 +17,9 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Zmienione
 
+- Dodanie nowego rekordu w panelu administratora (m.in. udogodnienia, kraje, waluty, rodzaje
+  i metody łowienia, ryby, stany, użytkownicy, usługi dodatkowe, stanowiska) wraca teraz od razu
+  na listę zamiast przechodzić do widoku edycji dopiero co utworzonego rekordu.
 - Aplikacja działa teraz na nowszym wydaniu frameworka, panelu administracyjnego oraz języka PHP.
   Dla korzystających z aplikacji nic nie zmienia się w wyglądzie ani w sposobie pracy — panele
   administratora i właściciela pokazują te same dane i te same możliwości co wcześniej.

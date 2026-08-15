@@ -285,6 +285,12 @@ docker run --rm dunglas/frankenphp:1-php8.4 php -r 'echo PHP_VERSION;' # obraz p
   `app/Services/`, a nie do zasobu Filamenta czy kontrolera. Drugi literał tej samej stałej to defekt.
 - ⚠️ **Eager-load wszędzie, gdzie renderujesz relacje po wielu wierszach** — tabele Filamenta nad
   zasobami z relacjami to najczęstsze źródło N+1 w projektach o tym kształcie.
+- **Standardowy CRUD Filamenta przekierowuje po utworzeniu rekordu na listę zasobu, nie na widok
+  edycji** — nadpisaniem `getRedirectUrl()` na stronie `Create*`, wzorem
+  `LongTermPermitResource\Pages\CreateLongTermPermit` (zadanie 011). Domyślne zachowanie Filamenta
+  (przejście do edycji) jest zbędnym krokiem pośrednim dla typowego CRUD-u w tym projekcie.
+  Odstępstwo od tej reguły wymaga świadomej decyzji zapisanej w treści zadania — patrz
+  `docs/conventions/panel-admina.md` po listę dzisiejszych wyjątków.
 - Nowa decyzja architektoniczna (wybór biblioteki/wzorca) → ADR wg kryterium wyżej, nie milcząco w kodzie.
 
 ⛏️ **Do uzupełnienia:** konwencje wynikające z realnych decyzji tego projektu — nazewnictwo, granica

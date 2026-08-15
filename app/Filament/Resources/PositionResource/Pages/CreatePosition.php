@@ -45,6 +45,13 @@ class CreatePosition extends CreateRecord
         ];
     }
 
+    public function getRedirectUrl(): string
+    {
+        $fisheryId = request()->get('fishery') ?? $this->record->fishery_id ?? null;
+
+        return PositionResource::getUrl('index', ['fishery' => $fisheryId]);
+    }
+
     protected function getFormActions(): array
     {
         return [

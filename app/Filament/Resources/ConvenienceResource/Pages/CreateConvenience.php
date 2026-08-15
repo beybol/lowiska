@@ -23,4 +23,9 @@ class CreateConvenience extends CreateRecord
     {
         return __('Create convenience');
     }
+
+    public function getRedirectUrl(): string
+    {
+        return ConvenienceResource::getUrl('index');
+    }
 }

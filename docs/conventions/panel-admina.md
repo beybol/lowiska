@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w `app/Filament/Resources/**`,
 `app/Providers/Filament/AdminPanelProvider.php`.
 
-Zadania źródłowe: 005, 009. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
+Zadania źródłowe: 005, 009, 011. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
 
 ---
 
@@ -62,3 +62,49 @@ niezmiennik go obejmuje — dopisz odsyłacz do tego pliku w `docs/conventions/p
   wyłącznie domyślne pola rodzica. Własne pola rejestracji pilnuje
   [`tests/Feature/PanelRegistrationFormTest.php`](../../tests/Feature/PanelRegistrationFormTest.php),
   bo test samego kodu odpowiedzi tej awarii nie widzi.
+
+---
+
+## 3. Redirect po utworzeniu rekordu — lista, nie edycja
+
+- **Standardowy CRUD nadpisuje `getRedirectUrl(): string` na stronie `Create*`, żeby po
+  zapisaniu wrócić na listę zasobu**, nie na domyślny widok edycji Filamenta (zadanie 011).
+  Wzorzec — dla zasobów bez podziału po łowisku:
+  ```php
+  public function getRedirectUrl(): string
+  {
+      return XResource::getUrl('index');
+  }
+  ```
+  a dla zasobów zagnieżdżonych pod łowiskiem (query string `fishery`), wzorem
+  `LongTermPermitResource\Pages\CreateLongTermPermit`:
+  ```php
+  public function getRedirectUrl(): string
+  {
+      $fisheryId = request()->get('fishery') ?? $this->record->fishery_id ?? null;
+
+      return XResource::getUrl('index', ['fishery' => $fisheryId]);
+  }
+  ```
+- **Dzisiejsze wyjątki od tej reguły:**
+  - **`CompanyResource` i `FisheryResource` — świadomie wyłączone.** To jedna klasa
+    współdzielona między panelem admina a panelem właściciela (patrz niżej); wizard zakładania
+    łowiska (`wizard=true`: Company → verify-company → Fishery) ma już własną, celową nawigację
+    poza tą regułą, a panel właściciela ma pozostać bez zmian dla obu zasobów. Wprowadzenie
+    rozgałęzienia `Helper::isOwnerPanel()` tylko po to, żeby admin zachowywał się inaczej niż
+    owner, uznano za nieproporcjonalny koszt (zadanie 011, „Rozstrzygnięcia").
+  - `LongTermPermitResource` — już zgodny z regułą od zanim reguła powstała; to on jest wzorcem
+    powyżej, nie odstępstwem.
+- ⚠️ **`AdditionalServiceResource` i `PositionResource` nie mają osobnych klas per panel** —
+  `OwnerPanelProvider` rejestruje wprost te same klasy z `app/Filament/Resources/`, które widzi
+  panel admina. Zmiana `getRedirectUrl()` dla tych dwóch zasobów obejmuje **automatycznie oba
+  panele** — nie da się tu ustawić „inny redirect w adminie, inny w ownerze" bez jawnego
+  rozgałęzienia analogicznego do `CompanyResource`/`FisheryResource`.
+- ⚠️ **Test tych dwóch zasobów nie idzie przez pełny cykl Livewire** (`fillForm()->call('create')`)
+  — `mount()` czyta `request()->get('fishery')` wprost z frameworkowego żądania, a testowy
+  harness Livewire (`Livewire::test()`, także `withQueryParams()`, który obsługuje wyłącznie
+  właściwości `#[Url]`) nie przenosi query stringa do tego wywołania. Testy
+  ([`PositionResourceTest`](../../tests/Feature/PositionResourceTest.php),
+  [`AdditionalServiceResourceTest`](../../tests/Feature/AdditionalServiceResourceTest.php))
+  wołają `getRedirectUrl()` bezpośrednio na instancji strony z ręcznie ustawionym `$record` —
+  testuje to samą logikę (gałąź fallbacku `$this->record->fishery_id`) bez symulowania żądania.

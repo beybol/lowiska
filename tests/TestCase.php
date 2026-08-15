@@ -108,6 +108,20 @@ abstract class TestCase extends BaseTestCase
         'delete:country',
     ];
 
+    /**
+     * Zadanie 011: brakowało w tej klasie od zawsze — `CurrencyResource` istniało,
+     * ale nikt nigdy nie dopisał jego uprawnień tutaj, więc `createSuperAdmin()`
+     * nie dawał dostępu do tworzenia walut. Ujawniło się dopiero przy pisaniu
+     * testu na redirect dla tego zasobu (403 zamiast oczekiwanego przekierowania).
+     */
+    private array $currencyPermissions = [
+        'view_any:currency',
+        'view:currency',
+        'create:currency',
+        'update:currency',
+        'delete:currency',
+    ];
+
     private array $fishPermissions = [
         'view_any:fish',
         'view:fish',
@@ -156,6 +170,7 @@ abstract class TestCase extends BaseTestCase
             $this->fisheryPermissions,
             $this->conveniencePermissions,
             $this->countryPermissions,
+            $this->currencyPermissions,
             $this->fishPermissions,
             $this->fisheryTypePermissions,
             $this->fishingMethodPermissions,

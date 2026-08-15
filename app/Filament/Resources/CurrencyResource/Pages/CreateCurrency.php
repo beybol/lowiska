@@ -14,6 +14,11 @@ class CreateCurrency extends CreateRecord
         return __('Create currency');
     }
 
+    public function getRedirectUrl(): string
+    {
+        return CurrencyResource::getUrl('index');
+    }
+
     protected function getFormActions(): array
     {
         return [

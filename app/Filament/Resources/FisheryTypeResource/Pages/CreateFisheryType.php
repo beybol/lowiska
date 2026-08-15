@@ -23,4 +23,9 @@ class CreateFisheryType extends CreateRecord
     {
         return __('Create fishery type');
     }
+
+    public function getRedirectUrl(): string
+    {
+        return FisheryTypeResource::getUrl('index');
+    }
 }

@@ -14,6 +14,11 @@ class CreateFish extends CreateRecord
         return __('Create fish');
     }
 
+    public function getRedirectUrl(): string
+    {
+        return FishResource::getUrl('index');
+    }
+
     protected function getFormActions(): array
     {
         return [

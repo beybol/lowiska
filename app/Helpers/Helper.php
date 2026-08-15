@@ -205,8 +205,8 @@ class Helper
                 ->color('gray')
                 ->icon(fn () => view('components.icons.google'))
                 ->url(route('social.redirect', [
-                'provider' => 'google',
-                'source' => $panelId,
+                    'provider' => 'google',
+                    'source' => $panelId,
                 ])),
             Action::make($actionType.'_facebook')
                 ->label(__(
@@ -387,32 +387,26 @@ class Helper
 
     public static function getPriceInput()
     {
-        $language = app()->getLocale();
-
         return TextInput::make('price')
             ->label(__('Price'))
-            ->when($language === 'pl', function ($component) {
-                return $component
-                    ->rules([
-                        'nullable',
-                        'regex:/^(?!0,00$)\d+,\d{2}$/',
-                        'min:0.01',
-                    ])
-                    ->placeholder('100,00')
-                    ->helperText(__('Format: 100,00 (używaj przecinka).'));
-            })
-            ->when($language !== 'pl', function ($component) {
-                return $component
-                    ->rules([
-                        'nullable',
-                        'regex:/^(?!0\.00$)\d+\.\d{2}$/',
-                        'min:0.01',
-                    ])
-                    ->step(0.01)
-                    ->inputMode('decimal')
-                    ->placeholder('100.00')
-                    ->helperText(__('Format: 100.00 (use dot).'));
-            })
+            ->inputMode('decimal')
+            ->placeholder('100.00')
+            ->rules([
+                'nullable',
+                'regex:/^\d+([.,]\d{1,2})?$/',
+                function (string $attribute, $value, \Closure $fail) {
+                    if (blank($value)) {
+                        return;
+                    }
+
+                    if ((float) str_replace(',', '.', $value) < 0.01) {
+                        $fail(__('The price must be at least 0.01.'));
+                    }
+                },
+            ])
+            ->dehydrateStateUsing(fn (?string $state) => filled($state)
+                ? (float) str_replace(',', '.', $state)
+                : null)
             ->default(null);
     }
 

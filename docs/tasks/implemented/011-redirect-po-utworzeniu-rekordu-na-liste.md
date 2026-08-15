@@ -65,19 +65,22 @@ nietrafne dla któregoś z nich, zatrzymać się i zapytać, zgodnie z polecenie
 
 ## Kryteria akceptacji
 
-- [ ] Dla ośmiu prostych zasobów panelu admina (Convenience, Country, Currency, FisheryType,
+- [x] Dla ośmiu prostych zasobów panelu admina (Convenience, Country, Currency, FisheryType,
       FishingMethod, Fish, State, User) — utworzenie rekordu przenosi na listę zasobu.
-- [ ] Dla `AdditionalServiceResource` i `PositionResource` — utworzenie rekordu przenosi na
-      listę zasobu, **w obu panelach** (admin i owner), z zachowaniem query stringa `fishery`
-      analogicznie do istniejącego wzorca w `LongTermPermitResource` (breadcrumbs/filtr listy
-      po łowisku).
-- [ ] `CompanyResource` i `FisheryResource` — brak zmian zachowania (wyłączone z zadania).
-- [ ] `LongTermPermitResource` — brak zmian (już zgodny).
-- [ ] `CLAUDE.md`, sekcja „Konwencje kodu", zawiera nową regułę: standardowy CRUD Filamenta
-      przekierowuje po utworzeniu rekordu na listę, nie na edycję; odstępstwo wymaga świadomej
-      decyzji zapisanej w treści zadania.
-- [ ] T1 uruchomiony i zielony (patrz „Zakres testów"); pełny pakiet **odroczony** na koniec
-      sesji (`/review-implementation`, Krok 1).
+      Potwierdzone testem per zasób (8 nowych plików), w tym pełnym cyklem Livewire
+      (`fillForm()->call('create')->assertRedirect(...)`) dla siedmiu z nich —
+      `UserResourceTest` weryfikuje `getRedirectUrl()` bezpośrednio, patrz „Wyniki weryfikacji".
+- [x] Dla `AdditionalServiceResource` i `PositionResource` — utworzenie rekordu przenosi na
+      listę zasobu, **w obu panelach** (admin i owner — ta sama klasa), z zachowaniem query
+      stringa `fishery` analogicznie do `LongTermPermitResource`. Potwierdzone testem
+      wołającym `getRedirectUrl()` na instancji z ustawionym rekordem — nie pełnym cyklem
+      Livewire, patrz „Wyniki weryfikacji".
+- [x] `CompanyResource` i `FisheryResource` — brak zmian zachowania (zweryfikowane: `git diff`
+      tych katalogów jest pusty).
+- [x] `LongTermPermitResource` — brak zmian (zweryfikowane: `git diff` pusty).
+- [x] `CLAUDE.md`, sekcja „Konwencje kodu", zawiera nową regułę.
+- [x] Zakres testów **eskalowany z T1 do T3 w trakcie implementacji** — uruchomiony i zielony
+      w całości, nie odroczony. Patrz „Wyniki weryfikacji" po uzasadnienie.
 
 ## Zakres testów
 
@@ -107,13 +110,14 @@ nietrafne dla któregoś z nich, zatrzymać się i zapytać, zgodnie z polecenie
 
 ## Zmiany dokumentacji
 
-- [ ] `docs/conventions/panel-admina.md` — dopisać sekcję o konwencji redirectu po utworzeniu
-      (odsyłacz do reguły w `CLAUDE.md` + lista wyjątków: Company/Fishery wyłączone, LongTermPermit
-      już zgodny) i notatkę o współdzielonych klasach zasobów między panelami.
-- [ ] `README.md` — bez zmian (nie dotyczy).
-- [ ] `CLAUDE.md` — nowa reguła w sekcji „Konwencje kodu": standardowy CRUD przekierowuje po
-      utworzeniu na listę, nie na edycję.
-- [ ] `CHANGELOG.md` — wpis w changelogu.
+- [x] `docs/conventions/panel-admina.md` — nowa sekcja „3. Redirect po utworzeniu rekordu —
+      lista, nie edycja": oba wzorce (`Xresource::getUrl('index')` i wariant z `fishery`),
+      wyjątki (Company/Fishery wyłączone, LongTermPermit jako wzorzec, nie odstępstwo), notatka
+      o współdzielonych klasach `AdditionalServiceResource`/`PositionResource` między panelami
+      oraz o tym, dlaczego ich testy nie idą przez pełny cykl Livewire.
+- [x] `README.md` — bez zmian (nie dotyczy).
+- [x] `CLAUDE.md` — nowa reguła w sekcji „Konwencje kodu".
+- [x] `CHANGELOG.md` — wpis w „Zmienione".
 
 ## Ograniczenia techniczne
 
@@ -123,6 +127,68 @@ nietrafne dla któregoś z nich, zatrzymać się i zapytać, zgodnie z polecenie
   udostępnia takiego przełącznika na poziomie `Panel`).
 - Zachować istniejący wzorzec przekazywania `fishery` w query string dla zasobów zagnieżdżonych
   pod łowiskiem (`AdditionalServiceResource`, `PositionResource`, `LongTermPermitResource`).
+
+## Wyniki weryfikacji (implementacja, 2026-08-15)
+
+Stan końcowy: **86 testów, 301 asercji** (baza przed zadaniem: 76/256), `pint` czysto
+(211 plików), PHPStan `[OK] No errors`.
+
+### 1. Tier eskalowany z T1 do T3 w trakcie implementacji
+
+Uzasadnienie T1 w treści zadania było poprawne w momencie pisania — zmiana rzeczywiście dotyka
+wyłącznie stron `Create*`. Ale żeby **w ogóle napisać** test dla `CurrencyResource` (jedno
+z ośmiu wymaganych kryterium akceptacji), trzeba było naprawić
+[`tests/TestCase.php`](../../../tests/TestCase.php) — patrz punkt 2 niżej. `tests/TestCase.php`
+jest wprost na liście obowiązkowych wyzwalaczy T3 w `CLAUDE.md`. Zgodnie z zasadą „trafienie
+w wyzwalacz przesądza tier, nie jest propozycją" — zakres podniesiony **w trakcie**
+implementacji, zgłoszone wprost, nie po cichu. Pełny pakiet uruchomiony i zielony (nie
+odroczony).
+
+### 2. `tests/TestCase.php::createSuperAdmin()` nie miał uprawnień do `Currency` — od zawsze
+
+Próba napisania testu dla `CurrencyResource` kończyła się **HTTP 403** zamiast oczekiwanego
+przekierowania. Przyczyna: `createSuperAdmin()` ręcznie wylicza uprawnienia per zasób
+(9 tablic: `company`, `fishery`, `convenience`, `country`, `fish`, `fisheryType`,
+`fishingMethod`, `state`, `user`) i syncuje z rolą tylko to, co realnie istnieje w bazie —
+`CurrencyResource` nigdy nie miał swojej tablicy, mimo że zasób istnieje w projekcie od dawna.
+To nie jest regres tego zadania — to luka odziedziczona, ujawniona dopiero przez pierwszy test
+dotykający tego zasobu (żaden nie istniał). Naprawione dopisaniem `$currencyPermissions`
+w tym samym wzorcu co pozostałe dziewięć.
+
+⚠️ **Nie sprawdzałem systematycznie pozostałych zasobów spoza tego zadania** (`Role` — brak
+własnej tablicy, ale i brak testu, który by to ujawnił) — to może być ten sam wzorzec gdzie
+indziej. Poza zakresem tego zadania, warto odnotować jako kandydata do przeglądu.
+
+### 3. Pre-existing bug w `UserResource`: brak pola `password` w formularzu
+
+Próba przetestowania pełnego cyklu `fillForm()->call('create')` dla `UserResource` kończyła się
+**błędem SQL** (`Field 'password' doesn't have a default value`) — formularz zasobu
+(`app/Filament/Resources/UserResource.php::form()`) nie ma pola `password`, a kolumna
+`users.password` w bazie nie ma wartości domyślnej. Utworzenie użytkownika przez panel
+administratora **nie działa dziś w ogóle** — niezależnie od tego zadania.
+
+**Świadomie nie naprawione** — to defekt spoza zakresu (dotyczy tworzenia użytkowników, nie
+przekierowań), a naprawa wymaga decyzji produktowej (czy dodać pole `password`, czy generować
+hasło losowo i wysyłać e-mailem, czy coś innego) — materiał na osobne zadanie. `UserResourceTest`
+weryfikuje `getRedirectUrl()` bezpośrednio na zamontowanym komponencie
+(`Livewire::test(CreateUser::class)->instance()->getRedirectUrl()`), omijając wywołanie
+`create()`, żeby przetestować wyłącznie zmianę z tego zadania.
+
+### 4. `Livewire::test()` nie przenosi query stringa do `mount()` — zweryfikowane empirycznie
+
+Dla `AdditionalServiceResource`/`PositionResource`, których `mount()` czyta
+`request()->get('fishery')` wprost (nie przez właściwość Livewire `#[Url]`), ani zwykłe
+`Livewire::test()`, ani `Livewire::withQueryParams([...])->test()` (który obsługuje wyłącznie
+synchronizację `#[Url]`) nie przekazują query stringa do wnętrza komponentu — obie próby kończyły
+się `Call to a member function getDefaultTestingSchemaName() on null` (strona `abort(404)`-owała
+w `mount()` przez `Helper::assertFisheryAccessOrAbort()`, zanim formularz zdążył się zmontować).
+
+Zamiast symulować pełne żądanie HTTP, testy tworzą stronę bezpośrednio
+(`new CreatePosition()`, `new CreateAdditionalService()`) i ustawiają publiczną właściwość
+`$record` przed wywołaniem `getRedirectUrl()` — metoda ma fallback
+`$this->record->fishery_id`, więc to legalna, węższa weryfikacja tej samej logiki (gałąź
+fallbacku), nie obejście. Diagnoza i wzorzec zapisane w
+`docs/conventions/panel-admina.md`, sekcja 3.
 
 ## Rozstrzygnięcia
 
@@ -134,4 +200,9 @@ nietrafne dla któregoś z nich, zatrzymać się i zapytać, zgodnie z polecenie
 
 ## Powiązane ADR-y
 
--
+- **Brak.** Rozważone przy `/review-task` i odrzucone: nowa reguła w `CLAUDE.md` („standardowy
+  CRUD przekierowuje po utworzeniu na listę") ma zasięg poza to zadanie (wiąże przyszłe zasoby),
+  ale nie spełnia kryterium (2) „wysoki koszt odwrócenia" — to pojedyncze nadpisanie
+  `getRedirectUrl()` per strona, odwracalne linijkowo i bez żadnego niezmiennika danych ani
+  schematu w tle. Wyłączenie `CompanyResource`/`FisheryResource` jest już rozstrzygnięciem
+  punktowym wyżej — z tego samego powodu (odwracalne, wąski zasięg).

@@ -13,4 +13,9 @@ class CreateCountry extends CreateRecord
     {
         return __('Create country');
     }
+
+    public function getRedirectUrl(): string
+    {
+        return CountryResource::getUrl('index');
+    }
 }

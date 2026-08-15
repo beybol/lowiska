@@ -14,6 +14,11 @@ class CreateUser extends CreateRecord
         return __('Create user');
     }
 
+    public function getRedirectUrl(): string
+    {
+        return UserResource::getUrl('index');
+    }
+
     protected function getFormActions(): array
     {
         return [

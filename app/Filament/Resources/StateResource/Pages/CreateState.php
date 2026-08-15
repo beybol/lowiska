@@ -18,4 +18,9 @@ class CreateState extends CreateRecord
             parent::getCancelFormAction(),
         ];
     }
+
+    public function getRedirectUrl(): string
+    {
+        return StateResource::getUrl('index');
+    }
 }
