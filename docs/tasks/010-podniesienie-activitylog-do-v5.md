@@ -70,9 +70,17 @@ testu**, więc dziś nic by tego nie wykryło.
   `logOnly($this->fillable)`. **Nie kasować** tej metody „bo w v5 jest opcjonalna" — domyślne
   zachowanie v5 nie śledzi zmian atrybutów i cicho wydrążyłoby dziennik.
 - **Migracja schematu**: dodać `attribute_changes`, usunąć `batch_uuid`.
+  ⚠️ **Nie publikować migracji z pakietu** (`vendor:publish`). v5 dostarcza jedną skonsolidowaną
+  migrację tworzącą tabelę od zera — w tym projekcie tabela `activity_log` już istnieje wraz
+  z trzema własnymi migracjami, więc obowiązuje **własna migracja różnicowa**.
 - **Migracja danych historycznych**: przenieść `properties.attributes` i `properties.old`
-  do `attribute_changes` wg SQL z oficjalnego przewodnika (patrz „Rozstrzygnięcia"). W bazie
-  roboczej jest dziś **48 wpisów** — migracja ma je zachować czytelnymi, nie wyzerować.
+  do `attribute_changes` wg SQL z oficjalnego przewodnika. W bazie roboczej jest dziś
+  **48 wpisów** — migracja ma je zachować czytelnymi, nie wyzerować.
+- **Samo przekształcenie danych ma mieszkać w klasie w `app/`, nie w ciele migracji** — migracja
+  ją tylko woła. Powód jest podwójny: (1) `RefreshDatabase` uruchamia migracje w `setUp()`, więc
+  logiki zaszytej w migracji **nie da się przetestować** na zasianych wierszach; (2) `CLAUDE.md`
+  („Konwencje kodu") wymaga, żeby logika obliczeniowa miała jeden dom poza kontrolerem/migracją.
+  Patrz „Rozstrzygnięcia".
 - **`config/activitylog.php` przepisany na schemat v5** — klucze przemianowane, usunięte usunięte,
   nowe dodane ze świadomie wybranymi wartościami (nie ślepa kopia stuba, jeśli projekt ma inne
   potrzeby niż domyślne).
@@ -88,10 +96,13 @@ testu**, więc dziś nic by tego nie wykryło.
 - [ ] **Zapis modelu tworzy wpis z niepustymi zmianami atrybutów** — zweryfikowane testem
       automatycznym, nie oglądaniem tabeli. To jedyne kryterium odróżniające „logowanie działa"
       od „tabela zapisuje puste wpisy, bo `getActivitylogOptions()` zniknęło".
-- [ ] Migracja przechodzi na bazie **z danymi**: po migracji wpisy historyczne mają wypełnione
-      `attribute_changes`, a `batch_uuid` nie istnieje.
-      ⚠️ Dowodem ma być test albo migracja uruchomiona na kopii — **nie** `migrate:fresh` na bazie
-      roboczej (twarda zasada z `CLAUDE.md`, wymaga osobnej zgody).
+- [ ] **Przekształcenie danych ma test jednostkowy**: zasiane wiersze w formacie v4
+      (`properties.attributes`/`old`) po przepuszczeniu przez klasę transformującą mają wypełnione
+      `attribute_changes`, a wiersz bez tych kluczy przechodzi bez uszkodzenia.
+      ⚠️ Testujemy **klasę**, nie migrację — patrz „Rozstrzygnięcia".
+- [ ] Schemat po migracji: kolumna `attribute_changes` istnieje, `batch_uuid` nie istnieje.
+      ⚠️ **Nie** przez `migrate:fresh` na bazie roboczej (twarda zasada z `CLAUDE.md`, wymaga
+      osobnej zgody) — pakiet testowy odtwarza schemat od zera sam z siebie.
 - [ ] `config/activitylog.php` nie zawiera kluczy usuniętych w v5 (`table_name`,
       `database_connection`, `delete_records_older_than_days`, `subject_returns_soft_deleted_models`).
 - [ ] `composer audit --locked` — brak podatności.
@@ -134,13 +145,14 @@ testu**, więc dziś nic by tego nie wykryło.
 
 ## Zmiany dokumentacji
 
-- [ ] `docs/conventions/` — **powierzchnia bez pliku**: dziennik zmian nie należy ani do panelu
-      admina, ani do właściciela, ani do autoryzacji. Jeśli zadanie ustali niezmiennik wiążący
-      przyszły kod (a zapowiada się na to co najmniej jeden: „`getActivitylogOptions()` zostaje,
-      bo domyślne v5 nie śledzi zmian"), założyć plik dla tej powierzchni i dopisać wiersz
-      do tabeli routingu w `CLAUDE.md`. Nazwę pliku ustalić przy `/review-task`.
-- [ ] `CLAUDE.md` — wiersz w tabeli „Konwencje powierzchni", jeśli powstanie nowy plik konwencji.
-      Poza tym bez zmian (to nie jest reguła workflow).
+- [ ] **`docs/conventions/dziennik-zmian.md` — nowy plik** (ustalone przy `/review-task`).
+      Niezmienniki do zapisania, co najmniej: **`getActivitylogOptions()` zostaje w modelach
+      z traitem**, bo domyślne v5 loguje zdarzenie bez śledzenia zmian atrybutów — a ta awaria
+      jest cicha (dziennik zapisuje puste wpisy, nic nie pęka); zakaz publikowania migracji
+      pakietu na istniejącą tabelę; wskazanie testu pilnującego niepustych zmian.
+- [ ] `CLAUDE.md` — **wiersz w tabeli „Konwencje powierzchni"** kierujący z modeli z traitem
+      `LogsActivity` (i `config/activitylog.php`) do nowego pliku konwencji. Poza tym bez zmian —
+      to nie jest reguła workflow.
 - [ ] `CHANGELOG.md` — wpis z perspektywy użytkownika. ⚠️ Uwaga: jeśli historia sprzed migracji
       pozostanie częściowo nieczytelna, to jest **zmiana widoczna** i musi tam trafić.
 - [ ] `README.md` — bez zmian (activitylog nie jest wspomniany).
@@ -157,8 +169,11 @@ testu**, więc dziś nic by tego nie wykryło.
 - Testy uruchamiane **wyłącznie** przez `docker compose exec app php artisan test` — pakiet biegnie
   na MySQL-u w schemacie `lowiska_test`, chronionym pięcioma warstwami izolacji (ADR-001).
 - ⚠️ Weryfikacja migracji danych **nie może** iść przez `migrate:fresh` na bazie roboczej —
-  twarda zasada z `CLAUDE.md`. `RefreshDatabase` w pakiecie testowym odtwarza schemat od zera,
-  więc test migracji danych musi sam zasiać wiersze „w formacie v4" przed jej uruchomieniem.
+  twarda zasada z `CLAUDE.md`.
+- ⚠️ **`RefreshDatabase` uruchamia migracje w `setUp()`, czyli PRZED ciałem testu** — nie da się
+  więc zasiać wierszy „w formacie v4" tak, żeby zobaczyła je migracja. To jest powód, dla którego
+  transformacja danych ma być osobną klasą wołaną z migracji: test sprawdza klasę wprost, na
+  własnych danych, bez udawania przebiegu migracji.
 
 ## Rozstrzygnięcia
 
@@ -170,21 +185,39 @@ testu**, więc dziś nic by tego nie wykryło.
   `/create-task`. Powód: v5 domyślnie **nie** śledzi zmian atrybutów, więc błąd w migracji jest
   cichy — dziennik zapisuje puste wpisy zamiast przestać działać głośno. Bez testu kryterium
   akceptacji „logowanie działa" byłoby niesprawdzalne inaczej niż ręcznym oglądaniem tabeli.
+- **Przekształcenie danych trafia do klasy w `app/`; migracja tylko ją woła.** Ustalone przy
+  `/review-task` (`AskUserQuestion`) po wykryciu, że pierwotny zapis zadania („test zasieje
+  wiersze przed migracją") jest **niewykonalny** — `RefreshDatabase` uruchamia migracje
+  w `setUp()`, więc ciało testu zawsze zaczyna się po nich. Wydzielenie klasy daje test wołający
+  transformację wprost, jest odporne na kolejność migracji i pokrywa się z regułą z `CLAUDE.md`,
+  że logika ma jeden dom poza migracją. Odrzucono wariant „test cofa i ponawia migrację" jako
+  kruchy (łatwo o test zielony bez sprawdzania czegokolwiek) oraz wariant bez testu — jedyny krok
+  dotykający danych zostałby wtedy bez automatycznego dowodu.
+- **Niezmienniki dziennika zmian idą do nowego `docs/conventions/dziennik-zmian.md`.** Ustalone
+  przy `/review-task`. Powierzchnia jest realna i będzie wracać (zakres logowania, dane wrażliwe,
+  czyszczenie starych wpisów), a doklejenie jej do `autoryzacja.md` mieszałoby dwie różne
+  powierzchnie w jednym dokumencie. Plik wymaga wiersza w tabeli routingu w `CLAUDE.md`.
 
 ## Powiązane ADR-y
 
-<!-- Numery ADR-ów podjętych dla tego zadania (uzupełnia /review-task).
-     Tylko decyzje spełniające trzyskładnikowe kryterium z CLAUDE.md —
-     reszta idzie do „Rozstrzygnięcia" powyżej. -->
+- **Brak.** Obie kwestie otwarte przy `/create-task` zamknięto rozstrzygnięciami w treści; żadna
+  nie spełnia kompletu trzyskładnikowego kryterium z `CLAUDE.md`:
+  - **Sposób weryfikacji migracji danych** (klasa transformująca kontra logika w migracji) —
+    ma zasięg wykraczający poza zadanie i sensowne uzasadnienie, ale **koszt odwrócenia jest
+    niski**: to przeniesienie jednej metody, bez migracji danych i bez łamania niezmiennika.
+    Dodatkowo nie ustanawia nic nowego — powtarza regułę „logika ma jeden dom", którą `CLAUDE.md`
+    już niesie.
+  - **Nazwa i umiejscowienie pliku konwencji** — wprost wymienione w `CLAUDE.md` wśród
+    anty-sygnałów („nazwa pola/trasy/kolumny", rzeczy odwracalne jedną linijką).
 
 ## Otwarte pytania
 
-- **Gdzie w `docs/conventions/` mieszka dziennik zmian?** Powierzchnia nie ma dziś pliku i nie
-  pasuje do żadnego istniejącego (`panel-admina`, `panel-wlasciciela`, `autoryzacja`,
-  `integracje`, `strona-publiczna`). Zadanie prawdopodobnie ustali co najmniej jeden niezmiennik
-  wiążący przyszły kod, więc plik powinien powstać — do ustalenia przy `/review-task`, razem
-  z nazwą i wierszem w tabeli routingu `CLAUDE.md`.
+- ~~**Gdzie w `docs/conventions/` mieszka dziennik zmian?**~~ → **Nowy `dziennik-zmian.md`**
+  plus wiersz w tabeli routingu `CLAUDE.md`. Zamknięte przy `/review-task`, patrz
+  „Rozstrzygnięcia".
 - **Czy `logOnly($this->fillable)` w trzynastu modelach to nadal właściwy zakres logowania?**
-  Wykracza poza to zadanie (patrz „Zakres wyłączeń"), ale v5 wprowadza
-  `default_except_attributes`, więc to naturalny moment, żeby pytanie postawić — zwłaszcza dla
-  modeli z danymi osobowymi (`User.phone`, dane firmy). Odpowiedź nie blokuje implementacji.
+  **Celowo pozostawione otwarte** — wykracza poza to zadanie (patrz „Zakres wyłączeń"), ale v5
+  wprowadza `default_except_attributes`, więc to naturalny moment, żeby pytanie postawić,
+  zwłaszcza dla modeli z danymi osobowymi (`User.phone`, dane firmy). **Nie blokuje
+  implementacji** i nie powinno być rozstrzygane na zgadywanie przy `/implement-task` —
+  to materiał na osobne zadanie o zakresie audytu.

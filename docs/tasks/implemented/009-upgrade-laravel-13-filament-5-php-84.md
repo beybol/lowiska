@@ -364,7 +364,41 @@ w kontenerze. Niezmiennik i komendy weryfikujące dopisane do `CLAUDE.md`.
 - **`laravel/breeze` zostaje na 2.4.2** — najnowsze wydanie; pakiet jest w trybie utrzymaniowym,
   co odnotowano już w „Analizie ryzyka".
 
-### 9. Zmiany w testach — zgłaszane wprost
+### 9. Wdrożenie padło po zadaniu — osierocony widok wywracał `view:cache`
+
+Pierwsze wdrożenie po tym zadaniu **nie wstało** na Cloud Run: `container failed to start and
+listen on the port defined by PORT=8080`. Odtworzone lokalnie na obrazie `lowiska:prod` (logi
+z GCP nie były potrzebne) — prawdziwy błąd padał w `prod-entrypoint`, na kroku `view:cache`:
+
+```
+Unable to locate a class or view for component [filament-panels::form.actions]
+```
+
+Winny: `resources/views/filament/pages/auth/login.blade.php` — własna kopia strony logowania
+z czasów Filamenta 3, używająca komponentów `<x-filament-panels::form>` i `form.actions`,
+których v5 **nie ma** (zostały `page` i `page.simple`; formularz stron auth buduje się teraz
+przez `content(Schema $schema)`).
+
+⚠️ **Widok był osierocony i nigdy nie działał** — zweryfikowane: zero odwołań do
+`filament.pages.auth.login` w całym repozytorium, a `App\Filament\Pages\Auth\Login` nigdy nie
+deklarowało `$view` (ani przed migracją, ani po). Jedyną jego treścią poza szkieletem był nasłuch
+`Livewire.on('redirect-to-2fa')`, którego **nikt nie wysyła**: 2FA działa po stronie serwera
+(`Login::authenticate()` wysyła `SendTwoFactorCode` i rzuca przekierowanie na `verify.index`) —
+potwierdzone kodem w Mailpicie przy logowaniu. Plik usunięty.
+
+⚠️ **Dlaczego pakiet testów tego nie widział, mimo że był zielony.** Blade kompiluje widoki
+**leniwie**, przy renderowaniu. Testy nigdy nie renderują panelowej strony logowania (używają
+`actingAs()`), a ten widok był dodatkowo osierocony — więc nie przechodził przez kompilator
+**nigdy**. `view:cache`, kompilujący wszystko naraz, uruchamia **wyłącznie** `prod-entrypoint`.
+Luka zamknięta testem `tests/Feature/ViewCompilationTest.php`, który robi dokładnie to, co
+wdrożenie. Zweryfikowany negatywnie: po przywróceniu usuniętego widoku czerwienieje z tym samym
+komunikatem, który wywrócił Cloud Run.
+
+⚠️ Osierocony został jeszcze `resources/views/filament/pages/auth/register.blade.php` (też zero
+odwołań, też bez `$view`). **Nie usunięto go** — używa `<x-filament-panels::page>`, który w v5
+istnieje, więc się kompiluje i niczego nie blokuje. Kandydat na sprzątanie przy okazji.
+
+### 10. Zmiany w testach — zgłaszane wprost
 
 Podczas upgrade'u zmiana testu jest podejrzana z definicji, więc obie odnotowuję:
 

@@ -50,6 +50,12 @@ niezmiennik go obejmuje — dopisz odsyłacz do tego pliku w `docs/conventions/p
   kilka gigabajtów i ginie (w testach jako `Segmentation fault`, bo pcov maskuje wyczerpanie
   pamięci), zamiast rzucić czytelnym błędem. Stąd `Placeholder::make('cso_error_message')`
   czytający stan `error` w `CompanyResource`. Diagnoza w zadaniu 009.
+- ⚠️ **Nie kopiuj widoków Blade Filamenta, żeby dołożyć własny kawałek strony.** Filament 5 nie
+  ma już komponentów `<x-filament-panels::form>` ani `form.actions` — strony auth budują treść
+  przez `content(Schema $schema)`. Własna kopia widoku przeżywa aktualizacje pakietu jako
+  **martwy, niekompilowalny plik** i wywraca `view:cache`, czyli **start obrazu produkcyjnego** —
+  a lokalnie nie widać tego wcale, bo Blade kompiluje leniwie (diagnoza w zadaniu 009).
+  Pilnuje tego [`tests/Feature/ViewCompilationTest.php`](../../tests/Feature/ViewCompilationTest.php).
 - ⚠️ **Strony autoryzacji Filamenta konfiguruje się przez nadpisanie `form(Schema $schema)`**,
   nie przez `getForms()` + `makeForm()` (metoda nie istnieje od wersji 5). Pozostawiony
   `getForms()` **nie jest wołany i nie zgłasza błędu** — strona zwraca 200 i po cichu renderuje
