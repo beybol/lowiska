@@ -133,3 +133,49 @@ które czyta ten sam podrobiony nagłówek. Pełne uzasadnienie i alternatywy w
 tego wzorca — [`docs/security/2026-08-15-trustproxies-bez-maski-naglowkow.md`](../security/2026-08-15-trustproxies-bez-maski-naglowkow.md).
 
 Regresja pilnowana testem: `tests/Feature/TrustedProxyHeadersTest.php`.
+
+---
+
+## 8. Wykonywanie zadań kolejkowanych — brak workera na Cloud Run
+
+**Lokalnie** kolejkę (`QUEUE_CONNECTION=database`) konsumuje osobny kontener `queue`
+z `docker-compose.yml`. **Na Cloud Run nie ma procesu, który mógłby ją konsumować** — instancja
+obsługuje wyłącznie żądania HTTP i jest usypiana między nimi (środowisko `staging` schodzi do zera
+instancji). Bez workera zadanie trafia do tabeli `jobs` i nikt go nigdy nie wykonuje — cicha awaria,
+bez błędu przy przyjęciu żądania.
+
+Jedyny dziś realny konsument kolejki to import CSV w `CountryResource`
+(`ImportAction::make()->importer(CountryImporter::class)`) — mechanizm importu Filamenta z
+definicji dzieli plik na porcje i wysyła je jako zadania (`Filament\Actions\Imports\Jobs\ImportCsv`),
+nigdy nie wykonuje importu w żądaniu.
+
+**Rozstrzygnięcie: `QUEUE_CONNECTION=sync` w środowiskach Cloud Run** (`staging`, `prod`) —
+[ADR-004](../adr/ADR-004-wykonywanie-kolejki-na-cloud-run.md). Import wykonuje się wtedy w tym
+samym żądaniu HTTP, które go zleciło; Filament wspiera ten sterownik jako pełnoprawny przypadek
+(inny sposób wysyłki powiadomienia o zakończeniu, gdy `config('queue.default') === 'sync'`), nie
+jako obejście.
+
+⚠️ **Ta zmienna żyje w konfiguracji wdrożenia (Cloud Run/Secret Manager), nie w tym repozytorium.**
+`.env`/`.env.example` opisują wyłącznie środowisko lokalne, gdzie zostaje `QUEUE_CONNECTION=database`
+z kontenerem `queue` — dokładnie zgodnie z „Zakresem wyłączeń" zadania 003 („nie usuwamy kontenerów
+`queue`/`scheduler` z konfiguracji lokalnej"). Rozjazd między środowiskami jest tu **świadomy i
+udokumentowany**, nie przeoczeniem.
+
+### Znany limit — teoretyczny, nie praktyczny
+
+Import w żądaniu HTTP ma twardą granicę: limit czasu żądania Cloud Run. Dla importu krajów ryzyko
+jest **teoretyczne**: świat ma naturalny sufit ~195–250 uznawanych państw/terytoriów, więc plik
+nigdy nie urośnie do rozmiaru zagrażającego temu limitowi.
+
+⚠️ **Ten limit dotyczy każdego przyszłego importu, nie tylko krajów.** Jeśli powstanie funkcja
+z importem bez małego, naturalnego sufitu rozmiaru (albo z zadaniem kolejkowym trwającym dłużej niż
+rozsądny czas odpowiedzi HTTP) — `sync` przestaje być bezpiecznym wyborem dla **tej** funkcji.
+Wzorzec na taki przypadek już istnieje w warstwie infrastruktury: Cloud Scheduler → Cloud Run Job
+(`gcp-foundation`, ADR-0012), sprawdzony w działaniu w WorkSnapie. Nie trzeba go wymyślać od nowa —
+tylko zastosować w momencie, gdy koszt uzasadnienia faktycznie się pojawi. Pełna analiza obu
+wariantów: [ADR-004](../adr/ADR-004-wykonywanie-kolejki-na-cloud-run.md).
+
+Regresja pilnowana testem: `tests/Feature/CountryImporterTest.php` — weryfikuje, że import
+domyka się (`Import::completed_at` ustawione) i że błędne wiersze lądują w `failed_import_rows`,
+pod tym samym sterownikiem kolejki (`sync`), którego pakiet testów używa dla całego przebiegu
+(`phpunit.xml`).

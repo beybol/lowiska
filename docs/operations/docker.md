@@ -40,6 +40,9 @@ równocześnie z bliźniaczymi projektami (WorkSnap +1000, PunktySzczepień +200
 Usługi `queue` i `scheduler` nie wystawiają portów. Wszystkie usługi widzą się **po nazwach**
 w domyślnej sieci Compose'a — stąd `DB_HOST=mysql` i `MAIL_HOST=mailpit` w `.env`.
 
+⚠️ Kontener `queue` konsumuje kolejkę **wyłącznie lokalnie** — na Cloud Run go nie ma; opis różnicy
+i wybranego tam rozwiązania: [`obraz-produkcyjny.md`, sekcja 8](obraz-produkcyjny.md#8-wykonywanie-zadań-kolejkowanych--brak-workera-na-cloud-run).
+
 ### Usługi na profilach — nie startują domyślnie
 
 `docker compose up` stawia **cztery** usługi: `app`, `queue`, `mysql`, `mailpit`. `vite`

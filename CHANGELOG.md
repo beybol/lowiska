@@ -27,6 +27,9 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - Naprawiono odczyt klucza do rejestru GUS oraz adresu administratora, które po zbudowaniu
   pamięci podręcznej konfiguracji na produkcji przestawałyby działać, uniemożliwiając wyszukiwanie
   firmy po NIP-ie oraz wyświetlanie danych kontaktowych w komunikacie o zajętej firmie.
+- Naprawiono import listy krajów w panelu administratora, który po wdrożeniu docelowym
+  przyjmowałby plik bez błędu, ale nigdy by go nie przetworzył — import wykonuje się teraz
+  do końca w tym samym żądaniu.
 
 ### Bezpieczeństwo
 
