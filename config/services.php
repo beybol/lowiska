@@ -50,4 +50,8 @@ return [
     'google_maps' => [
         'api_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
+
+    'cso' => [
+        'key' => env('CSO_Key'),
+    ],
 ];

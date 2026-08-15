@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Administrator Contact Address
+    |--------------------------------------------------------------------------
+    |
+    | Shown to users who need to contact an administrator (e.g. when a company
+    | has already been claimed by another account).
+    |
+    */
+
+    'admin_email' => env('ADMIN_EMAIL'),
+
 ];

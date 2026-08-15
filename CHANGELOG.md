@@ -14,3 +14,9 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 <!-- Kolejne wpisy trafiają tutaj, pogrupowane w sekcje:
      ### Dodane / ### Zmienione / ### Poprawione / ### Usunięte / ### Wycofane / ### Bezpieczeństwo
      Przy wydaniu sekcja `[unreleased]` zamienia się w `## [X.Y.Z] - RRRR-MM-DD`. -->
+
+### Poprawione
+
+- Naprawiono odczyt klucza do rejestru GUS oraz adresu administratora, które po zbudowaniu
+  pamięci podręcznej konfiguracji na produkcji przestawałyby działać, uniemożliwiając wyszukiwanie
+  firmy po NIP-ie oraz wyświetlanie danych kontaktowych w komunikacie o zajętej firmie.

@@ -47,7 +47,7 @@ class CSOService
         bool $isTin = false
     ): array
     {
-        $cso = new GusApi(env('CSO_Key'));
+        $cso = new GusApi(config('services.cso.key'));
         $pureSearch = str_replace('-', '', $search);
 
         try {

@@ -350,7 +350,7 @@ class Helper
                         __('You have already entered the company.'),
                     );
                 } else {
-                    $adminEmail = env('ADMIN_EMAIL');
+                    $adminEmail = config('app.admin_email');
                     $errorMessage = __('The company provided has already been entered by another person. Please contact the administrator to clarify the situation');
                     $set('error', "$errorMessage - $adminEmail.");
                 }
