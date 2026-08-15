@@ -30,6 +30,10 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - Naprawiono import listy krajów w panelu administratora, który po wdrożeniu docelowym
   przyjmowałby plik bez błędu, ale nigdy by go nie przetworzył — import wykonuje się teraz
   do końca w tym samym żądaniu.
+- Naprawiono zapis mapy i galerii zdjęć łowiska w panelu administratora, który po wdrożeniu
+  docelowym przyjmowałby plik bez błędu, ale obrazek przestawałby się otwierać po najbliższym
+  restarcie — uploady trafiają teraz na trwały storage, a aplikacja odmawia startu, gdyby to
+  ustawienie zostało przez pomyłkę pominięte.
 
 ### Bezpieczeństwo
 

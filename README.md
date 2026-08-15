@@ -58,6 +58,19 @@ już nie ma, i strona ładuje się bez stylów.
 Porty hosta są przesunięte o +3000 względem portów kontenerów, żeby środowisko mogło chodzić
 równocześnie z bliźniaczymi projektami.
 
+## Uploady
+
+Mapy i galerie łowisk lokalnie zapisują się na dysku `public` (`FILESYSTEM_DISK=public`) —
+zero dodatkowej konfiguracji. Na Cloud Run przełącza się na bucket GCS:
+
+```bash
+FILESYSTEM_DISK=gcs
+FILAMENT_FILESYSTEM_DISK=gcs
+GOOGLE_CLOUD_STORAGE_BUCKET=<terraform -chdir=environments/{staging,prod} output lowiska → storage_bucket>
+```
+
+Szczegóły: [`docs/operations/obraz-produkcyjny.md`](docs/operations/obraz-produkcyjny.md), sekcja 9.
+
 ## Testy
 
 ```bash

@@ -87,6 +87,10 @@ katalogu klasy paginacji wypadłyby z gotowego arkusza stylów.
 `composer install` w usłudze `app`, a usługa `vite` ma w poleceniu `npm install && npm run dev`.
 Kolejne starty korzystają z zawartości wolumenów.
 
+Uploady (mapy i galerie łowisk) lądują lokalnie na dysku `public` (`storage/app/public`) —
+bez bucketa GCS, potrzebnego dopiero na Cloud Run. Pełny opis granicy lokalne/Cloud Run:
+[`obraz-produkcyjny.md`, sekcja 9](obraz-produkcyjny.md#9-trwały-storage-uploadów--dysk-lokalny-lokalnie-gcs-na-cloud-run).
+
 ---
 
 ## 3. Baza danych

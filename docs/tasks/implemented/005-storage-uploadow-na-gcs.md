@@ -97,22 +97,28 @@ wzorcem co bliźniaczy PunktySzczepień (zadanie 00055 tamże).
 
 ## Kryteria akceptacji
 
-- [ ] `spatie/laravel-google-cloud-storage` w `composer.json`, `composer install` schodzi czysto.
-- [ ] Dysk `gcs` w `config/filesystems.php` — bez konfiguracji poświadczeń, z `visibility_handler`
-      ustawionym na `UniformBucketLevelAccessVisibility`.
-- [ ] Oba pola `FileUpload` w `FisheryResource` nie mają twardego `->disk('public')` i podążają
-      za konfiguracją — przestawienie `FILAMENT_FILESYSTEM_DISK` realnie zmienia cel uploadu.
-- [ ] Lokalne środowisko Docker Compose zapisuje uploady jak dotychczas, bez potrzeby posiadania
-      bucketa i bez zmian w deweloperskim przepływie.
-- [ ] Strażnik startowy: aplikacja poza środowiskiem lokalnym nie startuje z dyskiem uploadów
-      opartym o sterownik `local`, a komunikat wskazuje, której zmiennej brakuje. Pokryte testem.
-- [ ] `.env.example` niesie wartość deweloperską i zakomentowane wpisy dla Cloud Run wraz ze
-      źródłem nazwy bucketa.
-- [ ] Testy uploadu dla `map_image_path` i `gallery_images` istnieją i przechodzą.
-- [ ] Zakres testów zadeklarowany niżej (T3, pełny pakiet) jest zielony.
+- [x] `spatie/laravel-google-cloud-storage:^2.4` w `composer.json`, `composer install` (`composer
+      require`) przeszedł czysto.
+- [x] Dysk `gcs` w `config/filesystems.php` — bez konfiguracji poświadczeń, z `visibility_handler`
+      ustawionym na `UniformBucketLevelAccessVisibility`, `throw` => `true` (patrz
+      „Rozstrzygnięcia").
+- [x] Oba pola `FileUpload` w `FisheryResource` nie mają twardego `->disk('public')` i podążają
+      za konfiguracją — dowód: `tests/Feature/FisheryFileUploadTest.php` przełącza dysk na `gcs`
+      w trakcie testu i weryfikuje, że plik faktycznie tam ląduje.
+- [x] Lokalne środowisko Docker Compose zapisuje uploady jak dotychczas (dysk `public`), bez
+      potrzeby posiadania bucketa i bez zmian w deweloperskim przepływie — potwierdzone pełnym
+      zielonym przebiegiem pakietu (64/64), w tym `OwnerPanelTest`, który korzysta z zasobów
+      łowisk.
+- [x] Strażnik startowy: `AppServiceProvider::assertUploadDiskIsSafe()` odmawia startu poza
+      `local`/`testing`, gdy dysk uploadów rozwiązuje się do sterownika `local`; komunikat wskazuje
+      brakujące zmienne. Pokryte testem (`tests/Unit/UploadDiskGuardTest.php`, 5 przypadków).
+- [x] `.env.example` niesie wartość deweloperską (`public`) i zakomentowane wpisy dla Cloud Run
+      wraz ze źródłem nazwy bucketa.
+- [x] Testy uploadu dla `map_image_path` i `gallery_images` istnieją i przechodzą.
+- [x] Zakres testów zadeklarowany niżej (T3, pełny pakiet) jest zielony — 64/64, 221 asercji.
 - [ ] Upload i odczyt zweryfikowane end-to-end na staging po wdrożeniu (ręczny upload w panelu,
-      potwierdzony bezpośrednim otwarciem publicznego URL-a obrazka) — to kryterium domyka się
-      po pierwszym wdrożeniu, nie w tej sesji.
+      potwierdzony bezpośrednim otwarciem publicznego URL-a obrazka) — **to kryterium świadomie
+      pozostaje otwarte**, domyka się po pierwszym wdrożeniu, nie w tej sesji.
 
 ## Zakres testów
 
@@ -144,16 +150,17 @@ wzorcem co bliźniaczy PunktySzczepień (zadanie 00055 tamże).
 
 ## Zmiany dokumentacji
 
-- [ ] `docs/conventions/panel-admina.md` — nowy plik konwencji powierzchni (zadanie dotyka
-      `app/Filament/Resources/**`): niezmiennik „`FileUpload` nie przybija dysku na sztywno, dysk
-      pochodzi z konfiguracji" + ⚠️ pułapka `UniformBucketLevelAccessVisibility` (nie wracać do
-      domyślnego handlera), z odsyłaczem do ADR-0013/0014 fundamentu.
-- [ ] `docs/operations/docker.md` — granica „tak jest lokalnie (dysk `public`), tak jest na Cloud Run
-      (bucket `gcs`)" oraz opis strażnika startowego i jego komunikatu.
-- [ ] `README.md` — nowe zmienne `FILESYSTEM_DISK` / `FILAMENT_FILESYSTEM_DISK` / 
+- [x] `docs/conventions/panel-admina.md` — nowy plik konwencji powierzchni: niezmiennik
+      „`FileUpload` nie przybija dysku na sztywno" + ⚠️ pułapka `UniformBucketLevelAccessVisibility`
+      + strażnik startowy, z odsyłaczem do ADR-0013/0014 fundamentu.
+- [x] `docs/operations/obraz-produkcyjny.md` — nowa sekcja 9: granica „tak jest lokalnie (dysk
+      `public`), tak jest na Cloud Run (bucket `gcs`)" oraz opis strażnika startowego.
+- [x] `docs/operations/docker.md` — jedno zdanie przy opisie uploadów lokalnych z odsyłaczem do
+      sekcji 9 w `obraz-produkcyjny.md`.
+- [x] `README.md` — nowa sekcja „Uploady": zmienne `FILESYSTEM_DISK` / `FILAMENT_FILESYSTEM_DISK` /
       `GOOGLE_CLOUD_STORAGE_BUCKET` i skąd brać wartość bucketa.
-- [ ] `CLAUDE.md` — bez zmian (to niezmiennik powierzchni, nie reguła workflow).
-- [ ] `CHANGELOG.md` — wpis w changelogu
+- [x] `CLAUDE.md` — bez zmian (to niezmiennik powierzchni, nie reguła workflow).
+- [x] `CHANGELOG.md` — wpis w sekcji „Poprawione".
 
 ## Ograniczenia techniczne
 
@@ -172,9 +179,10 @@ wzorcem co bliźniaczy PunktySzczepień (zadanie 00055 tamże).
   bucketa nie da się jedynie domknąć kryterium weryfikacji end-to-end.
 - Strażnik startowy nie może wywracać lokalnego środowiska ani pakietu testów — warunek musi być
   związany ze środowiskiem, nie z samą wartością dysku.
-- ⚠️ **Kolizja z zadaniem 004** (przebudowa lokalnego środowiska w kontenerach): 004 przepisuje
-  `.env.example` i `docker-compose*.yml`, a to zadanie dokłada tam wpisy dysku. Kolejność realizacji
-  wymaga uzgodnienia, inaczej jedna zmiana nadpisze drugą.
+- ~~Kolizja z zadaniem 004~~ **Rozwiązana: zadanie 004 jest zaimplementowane**
+  (`docs/tasks/implemented/004-*.md`). `.env.example` i `docker-compose.yml` są dziś w stanie
+  docelowym zadania 004; to zadanie dokłada do nich wyłącznie własne, nowe wpisy (dysk, bucket),
+  bez ryzyka nadpisania.
 
 ## Rozstrzygnięcia
 
@@ -202,29 +210,55 @@ wzorcem co bliźniaczy PunktySzczepień (zadanie 00055 tamże).
 - **Pola `FileUpload` nie przybijają dysku na sztywno.** Inaczej zmienna środowiskowa niczego nie
   przełącza, a konfiguracja kłamie o tym, gdzie ląduje plik — to jest właśnie stan zastany
   w PunktachSzczepień i nie przenosimy go tutaj.
+- **`.env.example` dostaje `FILESYSTEM_DISK=public`, nie dzisiejsze `local`.** Zweryfikowane
+  w `config/filesystems.php`: dysk `local` ma korzeń `storage/app/private` i **nie ma klucza
+  `url`**, więc `Storage::disk('local')->url(...)` nie działa. Po zdjęciu twardego `->disk('public')`
+  z pól formularza domyślny dysk `local` zepsułby podgląd obrazków w środowisku deweloperskim —
+  to nie jest hipoteza, tylko konsekwencja obecnej konfiguracji.
+- **Strażnik startowy mieszka w `AppServiceProvider::boot()`**, nie w `bootstrap/app.php`. Ten
+  drugi ma dziś wyłącznie okablowanie frameworka (middleware, routing, wyjątki); dokładanie tam
+  logiki biznesowej zacierałoby tę granicę, mimo że tier T3 i tak by się nie zmienił.
+  **Warunek:** `! app()->environment(['local', 'testing'])` **oraz** rozwiązany sterownik dysku
+  (`config('filesystems.disks.' . config('filesystems.default') . '.driver')`) równy `local`.
+  Białą listę trzeba objąć oba środowiska: `phpunit.xml` wymusza `APP_ENV=testing`, a nie nadpisuje
+  `FILESYSTEM_DISK` — bez zwolnienia `testing` strażnik wywróciłby cały pakiet testów przy starcie
+  aplikacji. Sprawdzenie rozwiązanego sterownika (nie samej zmiennej środowiskowej) to ten sam
+  wzorzec co bramka w `tests/TestCase.php` (ADR-001).
+  ⚠️ Strażnik **nie wymaga** dodatkowo niepustego `GOOGLE_CLOUD_STORAGE_BUCKET` — pusty bucket przy
+  sterowniku `gcs` ujawni się głośno przy pierwszym uploadzie (błąd klienta GCS), co jest innym
+  rodzajem awarii niż cicha utrata danych na dysku `local`, którą ten strażnik ma wyłapać. Mieszanie
+  obu sprawdzeń w jednym warunku zaciera, co faktycznie się zepsuło.
+- **`'throw' => true` na dysku `gcs`**, mimo rozjazdu z resztą `config/filesystems.php`
+  (`false` wszędzie indziej) i z PunktamiSzczepień. Nieudany zapis do bucketa (sieć, uprawnienia)
+  zwracałby dziś po cichu `false` — to ta sama kategoria cichej awarii, którą całe to zadanie ma
+  usunąć. Zadanie już raz świadomie odeszło od wzorca PunktówSzczepień (przybite `disk('gcs')` na
+  polu formularza) z tego samego powodu — spójność z bliźniakiem nie jest tu wartością nadrzędną.
+- **Niezmiennik „`FileUpload` nie przybija dysku" trafia do `docs/conventions/panel-admina.md`**,
+  nie do nowego, wspólnego pliku o storage'u. Dziś dotyczy wyłącznie `app/Filament/Resources/**`
+  (panel administratora) — panel właściciela nie ma jeszcze żadnego pola uploadu. Zakładanie
+  wspólnego pliku pod hipotetyczną przyszłą potrzebę byłoby projektowaniem na zapas; gdy panel
+  właściciela dostanie własny `FileUpload`, to zadanie doda odsyłacz do `panel-admina.md` albo,
+  jeśli reguła urośnie, wydzieli wspólny plik wtedy — nie teraz.
 
 ## Powiązane ADR-y
 
 <!-- Numery ADR-ów podjętych dla tego zadania (uzupełnia /review-task).
      Tylko decyzje spełniające trzyskładnikowe kryterium z CLAUDE.md —
      reszta idzie do „Rozstrzygnięcia" powyżej. -->
-- 
+- **Brak.** Uzasadnienie architektoniczne (GCS, ADC, uniform bucket-level access, bucket per
+  środowisko) leży już w ADR-0013/ADR-0014 fundamentu (`gcp-foundation`, cross-repo) — to zadanie
+  je wyłącznie realizuje. Cztery pozostałe pytania (umiejscowienie i warunek strażnika, `throw`
+  na dysku `gcs`, wartość `.env.example`, plik konwencji) są każde odwracalne jedną linijką albo
+  jednym przeniesieniem pliku — żadne nie spełnia kompletu kryterium ADR z `CLAUDE.md`, wszystkie
+  rozstrzygnięte w treści zadania powyżej.
 
-## Otwarte pytania (dla `/review-task`)
+## Otwarte pytania — zamknięte przy `/review-task` (2026-08-15)
 
-- **Gdzie mieszka strażnik startowy i jak brzmi jego warunek?** `AppServiceProvider::boot()` jest
-  najprostszym miejscem; alternatywy to dedykowany provider albo `bootstrap/app.php` (ta ostatnia
-  i tak jest wyzwalaczem T3, więc nie zmienia tieru). Do ustalenia też sam warunek: czy zwalnia
-  `app()->environment('local')`, czy jawna lista środowisk, i czy strażnik ma dodatkowo wymagać
-  niepustego `GOOGLE_CLOUD_STORAGE_BUCKET`. Kandydat na rozstrzygnięcie w treści zadania.
-- **Czy dysk `gcs` ma mieć `'throw' => true`?** Pozostałe dyski w `config/filesystems.php` mają
-  `false` (konwencja szkieletu Laravela), przez co nieudany zapis do bucketa zwróci `false` zamiast
-  rzucić wyjątkiem — czyli awaria sieci lub uprawnień do GCS byłaby po cichu. `true` jest spójne
-  z duchem strażnika, ale rozjeżdża się z resztą pliku i z PunktamiSzczepień. Kandydat na
-  rozstrzygnięcie.
-- **Czy `.env.example` ma zmienić `FILESYSTEM_DISK=local` na `public`** jako wartość deweloperską —
-  dzisiejsze `local` przestanie mieć sens w momencie, gdy `FileUpload` przestanie przybijać dysk
-  na sztywno. Kandydat na rozstrzygnięcie, nie ADR.
-- **Czy niezmiennik „`FileUpload` nie przybija dysku" należy do `docs/conventions/panel-admina.md`,
-  czy do wspólnego pliku o storage'u?** Panel właściciela (`app/Filament/Owner/**`) nie ma dziś
-  uploadów, ale docelowo to on zarządza łowiskiem, więc reguła obejmie obie powierzchnie.
+- ~~**Gdzie mieszka strażnik startowy i jaki jest jego warunek?**~~ → `AppServiceProvider::boot()`,
+  warunek `! app()->environment(['local', 'testing'])` + rozwiązany sterownik — patrz
+  „Rozstrzygnięcia".
+- ~~**Czy dysk `gcs` ma mieć `'throw' => true`?**~~ → **Tak** — patrz „Rozstrzygnięcia".
+- ~~**Czy `.env.example` ma zmienić `FILESYSTEM_DISK=local` na `public`?**~~ → **Tak**, potwierdzone
+  weryfikacją `config/filesystems.php` (dysk `local` nie ma klucza `url`) — patrz „Rozstrzygnięcia".
+- ~~**Gdzie trafia niezmiennik „`FileUpload` nie przybija dysku"?**~~ → `docs/conventions/panel-admina.md`
+  — patrz „Rozstrzygnięcia".

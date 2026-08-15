@@ -60,6 +60,26 @@ return [
             'report' => false,
         ],
 
+        // Cloud Run: uploady trwałe na buckecie GCS fundamentu (zadanie 005, ADR-0013/0014
+        // w gcp-foundation). Bez konfiguracji poświadczeń — tożsamość runtime to Application
+        // Default Credentials z metadata servera Cloud Run, nie klucz JSON.
+        'gcs' => [
+            'driver' => 'gcs',
+            'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET'),
+            'visibility' => 'public',
+            // Bucket fundamentu ma uniform_bucket_level_access=true bezwarunkowo — dostęp
+            // wyłącznie przez IAM, zero ACL per-obiekt. Bez tego handlera domyślny
+            // PortableVisibilityHandler próbuje ustawić legacy ACL przy każdym uploadzie i pęka:
+            // "Cannot insert legacy ACL for an object when uniform bucket-level access is enabled".
+            // Nie usuwaj tego wpisu.
+            'visibility_handler' => \League\Flysystem\GoogleCloudStorage\UniformBucketLevelAccessVisibility::class,
+            // Świadomy rozjazd z resztą tego pliku (wszędzie indziej false): cichy `false` przy
+            // nieudanym zapisie do bucketa (sieć, uprawnienia) jest dokładnie tą kategorią cichej
+            // awarii, którą zadanie 005 ma usunąć.
+            'throw' => true,
+            'report' => false,
+        ],
+
     ],
 
     /*

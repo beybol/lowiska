@@ -15,7 +15,8 @@
         "laravel/socialite": "^5.22",
         "laravel/tinker": "^2.10.1",
         "spatie/laravel-activitylog": "^4.10",
-        "spatie/laravel-flare": "^3.0"
+        "spatie/laravel-flare": "^3.0",
+        "spatie/laravel-google-cloud-storage": "^2.4"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.15",

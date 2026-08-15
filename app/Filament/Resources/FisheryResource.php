@@ -3,35 +3,31 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\FisheryResource\Pages;
-use App\Filament\Resources\FisheryResource\RelationManagers;
+use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
+use App\Helpers\Helper;
+use App\Models\Company;
+use App\Models\Convenience;
+use App\Models\Fish;
 use App\Models\Fishery;
-use Filament\Forms;
+use App\Models\FisheryType;
+use App\Models\FishingMethod;
+use App\Models\State;
+use App\Models\User;
+use App\Rules\IbanValidation;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use App\Models\User;
-use App\Helpers\Helper;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\CheckboxList;
-use App\Models\FisheryType;
-use App\Models\FishingMethod;
-use Filament\Tables\Actions\Action;
-use Filament\Support\Enums\MaxWidth;
-use Filament\Forms\Components\ViewField;
-use App\Models\State;
-use App\Models\Convenience;
-use Filament\Forms\Components\FileUpload;
-use App\Models\Fish;
-use Filament\Tables\Columns\TextColumn;
-use App\Models\Company;
-use App\Rules\IbanValidation;
-use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
 
 class FisheryResource extends Resource
 {
@@ -49,7 +45,7 @@ class FisheryResource extends Resource
                     ->maxLength(255),
                 Select::make('user_id')
                     ->required()
-                    ->hidden(fn() => Helper::isOwnerPanel())
+                    ->hidden(fn () => Helper::isOwnerPanel())
                     ->label(__('Fishery entered by'))
                     ->disabled()
                     ->relationship('user', 'name')
@@ -67,14 +63,14 @@ class FisheryResource extends Resource
                     ->options(function () {
                         if (Helper::isOwnerPanel()) {
                             $query = Company::query()->forCurrentUser();
-                            
+
                             return Helper::sortedCompanies($query);
                         }
 
                         return Helper::sortedCompanies();
                     })
                     ->hidden(function ($livewire) {
-                        return Helper::isOwnerPanel() 
+                        return Helper::isOwnerPanel()
                             && Helper::isWizard($livewire);
                     }),
                 Section::make(__('Fishery address'))
@@ -88,7 +84,7 @@ class FisheryResource extends Resource
                             ->label(__('Town'))
                             ->required()
                             ->maxLength(255),
-                         TextInput::make('street')
+                        TextInput::make('street')
                             ->label(__('Street'))
                             ->required()
                             ->maxLength(255),
@@ -108,35 +104,35 @@ class FisheryResource extends Resource
                             ->label(__('Map Preview'))
                             ->view('filament.forms.map-preview')
                             ->viewData(function ($record, $get) {
-                                $street = $get('street') 
-                                    ?? $record?->street 
+                                $street = $get('street')
+                                    ?? $record?->street
                                     ?? '';
-                                $buildingNumber = $get('building_number') 
-                                    ?? $record?->building_number 
+                                $buildingNumber = $get('building_number')
+                                    ?? $record?->building_number
                                     ?? '';
-                                $zipCode = $get('zip_code') 
-                                    ?? $record?->zip_code 
+                                $zipCode = $get('zip_code')
+                                    ?? $record?->zip_code
                                     ?? '';
-                                $town = $get('town') 
-                                    ?? $record?->town 
+                                $town = $get('town')
+                                    ?? $record?->town
                                     ?? '';
-                                $stateId = $get('state_id') 
+                                $stateId = $get('state_id')
                                     ?? $record?->state_id;
                                 $stateName = '';
 
                                 if ($stateId) {
                                     $state = State::find($stateId);
-                                    $stateName = $state 
-                                        ? __($state->name) 
+                                    $stateName = $state
+                                        ? __($state->name)
                                         : '';
                                 }
-                                
+
                                 $address = implode(', ', array_filter([
-                                    trim($street . ' ' . $buildingNumber),
-                                    trim($zipCode . ' ' . $town),
-                                    $stateName
+                                    trim($street.' '.$buildingNumber),
+                                    trim($zipCode.' '.$town),
+                                    $stateName,
                                 ]));
-                                
+
                                 return [
                                     'address' => $address,
                                     'fishery' => $record,
@@ -144,7 +140,7 @@ class FisheryResource extends Resource
                                     'building_number' => $buildingNumber,
                                     'zip_code' => $zipCode,
                                     'town' => $town,
-                                    'state_name' => $stateName
+                                    'state_name' => $stateName,
                                 ];
                             })
                             ->columnSpanFull(),
@@ -200,7 +196,7 @@ class FisheryResource extends Resource
                             ->relationship('currency', 'name'),
                         TextInput::make('bank_account_number')
                             ->label(__('Bank account number (IBAN)'))
-                            ->rules([new IbanValidation()])
+                            ->rules([new IbanValidation])
                             ->placeholder('PL 26 2030 0003 0002 0001 1111 1001')
                             ->helperText(__('Enter valid international IBAN.'))
                             ->maxLength(35),
@@ -216,14 +212,12 @@ class FisheryResource extends Resource
                 FileUpload::make('map_image_path')
                     ->image()
                     ->directory('maps')
-                    ->disk('public')
                     ->visibility('public')
                     ->label(__('Fishery map')),
                 FileUpload::make('gallery_images')
                     ->multiple()
                     ->image()
                     ->directory('galleries')
-                    ->disk('public')
                     ->visibility('public')
                     ->label(__('Gallery images')),
             ]);
@@ -250,9 +244,9 @@ class FisheryResource extends Resource
                 Action::make('manage')
                     ->label(__('Manage'))
                     ->icon('heroicon-o-cog-6-tooth')
-                    ->url(function (Fishery $record): string  {
+                    ->url(function (Fishery $record): string {
                         return FisheryResource::getUrl('manage', [
-                            'record' => $record
+                            'record' => $record,
                         ]);
                     }),
             ])
@@ -290,7 +284,7 @@ class FisheryResource extends Resource
         return __('Fisheries');
     }
 
-    public static function getModelLabel(): string 
+    public static function getModelLabel(): string
     {
         return __('fishery');
     }
@@ -302,7 +296,7 @@ class FisheryResource extends Resource
         if (Helper::isOwnerPanel()) {
             $query->forCurrentUser();
         }
-        
+
         return $query->with('user', 'company', 'state');
     }
 }

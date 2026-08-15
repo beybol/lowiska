@@ -179,3 +179,54 @@ Regresja pilnowana testem: `tests/Feature/CountryImporterTest.php` — weryfikuj
 domyka się (`Import::completed_at` ustawione) i że błędne wiersze lądują w `failed_import_rows`,
 pod tym samym sterownikiem kolejki (`sync`), którego pakiet testów używa dla całego przebiegu
 (`phpunit.xml`).
+
+---
+
+## 9. Trwały storage uploadów — dysk lokalny lokalnie, GCS na Cloud Run
+
+Dwa pola `FileUpload` w panelu administratora (`FisheryResource.map_image_path`,
+`FisheryResource.gallery_images`) zapisują pliki na dysku wskazanym konfiguracją, nie na sztywno.
+**Lokalnie** to dysk `public` (`storage/app/public`, symlink `public/storage`). **Na Cloud Run**
+system plików kontenera jest **efemeryczny per instancja** — znika przy każdym wdrożeniu, przy
+każdym scale-to-zero i zimnym starcie (`staging` chodzi z `min_instances 0`, więc dzieje się to
+tego samego dnia co upload), a przy więcej niż jednej instancji plik zapisany przez instancję A
+jest niewidoczny dla żądania obsłużonego przez instancję B. Awaria jest **cicha**: upload się
+udaje, panel pokazuje sukces, obrazek przestaje się otwierać dopiero po restarcie.
+
+**Rozwiązanie: bucket GCS fundamentu** (`gcp-foundation`, moduł `modules/app-storage`,
+ADR-0013/ADR-0014, cross-repo). Fundament dostarcza bucket, grant `roles/storage.objectAdmin` dla
+runtime SA **na tym jednym buckecie** (Application Default Credentials z metadata servera Cloud
+Run — **zero kluczy JSON**) i publiczny odczyt (`allUsers` → `roles/storage.objectViewer`).
+Repozytorium aplikacji dostarcza pakiet Composera (`spatie/laravel-google-cloud-storage`),
+konfigurację dysku `gcs` i to, żeby oba pola `FileUpload` faktycznie za nią podążały.
+
+Zmienne środowiskowe:
+
+| Zmienna | Lokalnie | Cloud Run |
+|---|---|---|
+| `FILESYSTEM_DISK` | `public` | `gcs` |
+| `FILAMENT_FILESYSTEM_DISK` | (nieustawiona, domyślnie `public`) | `gcs` |
+| `GOOGLE_CLOUD_STORAGE_BUCKET` | nieużywana | output `storage_bucket` z fundamentu |
+
+Nazwa bucketa **nie jest sekretem** — zwykła zmienna wdrożenia:
+`terraform -chdir=environments/{staging,prod} output lowiska` → `storage_bucket`.
+
+### Strażnik startowy — zamiast odwróconego fallbacku
+
+`'default' => env('FILESYSTEM_DISK', 'local')` zostaje bez zmian — dysk lokalny jest bezpieczną
+wartością domyślną dla środowiska najmniej kontrolowanego (maszyny deweloperskie, CI, pakiet
+testów). Realne ryzyko cichej utraty danych adresuje **strażnik startowy**
+(`AppServiceProvider::assertUploadDiskIsSafe()`), nie odwrócenie fallbacku: poza `local`/`testing`
+aplikacja **odmawia startu**, jeśli dysk uploadów rozwiązuje się do sterownika `local` — pęka przy
+starcie kontenera, w logach wdrożenia, zanim ktokolwiek zdąży wgrać plik.
+
+⚠️ **Sprawdzenie dotyczy rozwiązanego sterownika, nie samej wartości zmiennej** — ten sam wzorzec
+co bramka bazy danych w `tests/TestCase.php` (ADR-001). Strażnik **nie** wymaga dodatkowo
+niepustego `GOOGLE_CLOUD_STORAGE_BUCKET`: pusty bucket przy sterowniku `gcs` ujawni się głośno
+przy pierwszym uploadzie (błąd klienta GCS), co jest innym rodzajem awarii niż cicha utrata danych
+na dysku `local`.
+
+Regresja pilnowana testami: `tests/Unit/UploadDiskGuardTest.php` (sam warunek, bez rozruchu
+aplikacji) oraz `tests/Feature/FisheryFileUploadTest.php` (oba pola `FileUpload` realnie podążają
+za konfiguracją — dowód przez przełączenie dysku na `gcs` w trakcie testu, nie tylko sprawdzenie
+zachowania przy domyślnym dysku deweloperskim).
