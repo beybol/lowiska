@@ -15,6 +15,8 @@ docker compose up --build
 docker compose exec app php artisan migrate --seed   # schemat + dane startowe
 
 # Konto administratora — imię, nazwisko i adres e-mail są wymagane.
+# Komenda od razu generuje i nadaje komplet uprawnień Shielda, nie tylko flagę is_admin —
+# uruchomiona ponownie na tym samym e-mailu jest bezpieczna (dopisze tylko brakujące uprawnienia).
 # ⚠️ Nowemu użytkownikowi hasło jest ustawiane na jego adres e-mail.
 docker compose exec app php artisan MakeAdmin Jan Kowalski jan@example.com
 ```

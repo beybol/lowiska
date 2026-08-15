@@ -24,6 +24,10 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Poprawione
 
+- Naprawiono zakładanie konta administratora, które dawało dostęp do logowania, ale panel
+  administracyjny wyglądał na pusty — bez żadnej pozycji nawigacji ani zasobu. Komenda zakładająca
+  konto nadaje teraz od razu pełne uprawnienia; uruchomiona ponownie na istniejącym koncie
+  uzupełnia brakujące uprawnienia, nie tworząc duplikatów.
 - Naprawiono odczyt klucza do rejestru GUS oraz adresu administratora, które po zbudowaniu
   pamięci podręcznej konfiguracji na produkcji przestawałyby działać, uniemożliwiając wyszukiwanie
   firmy po NIP-ie oraz wyświetlanie danych kontaktowych w komunikacie o zajętej firmie.

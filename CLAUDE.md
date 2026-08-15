@@ -66,7 +66,7 @@ da się odtworzyć z samego kodu.
 |---|---|
 | `app/Filament/Resources/**`, `app/Providers/Filament/AdminPanelProvider.php` | `docs/conventions/panel-admina.md` ⛏️ |
 | `app/Filament/Owner/**`, `app/Providers/Filament/OwnerPanelProvider.php` | `docs/conventions/panel-wlasciciela.md` ⛏️ |
-| `app/Policies/**`, role i uprawnienia Shielda, `User` | `docs/conventions/autoryzacja.md` ⛏️ |
+| `app/Policies/**`, role i uprawnienia Shielda, `User` | `docs/conventions/autoryzacja.md` |
 | `app/Services/CSOService.php`, `app/Rules/IbanValidation.php`, `app/Helpers/**` | `docs/conventions/integracje.md` ⛏️ |
 | `routes/**`, widoki Breeze, `resources/views/**` | `docs/conventions/strona-publiczna.md` ⛏️ |
 

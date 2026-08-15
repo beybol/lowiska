@@ -128,7 +128,7 @@ abstract class TestCase extends BaseTestCase
 
     protected function createSuperAdmin(array $attributes = []): User
     {
-        $superAdminRole = Role::firstOrCreate(['name' => 'Super Admin']);
+        $superAdminRole = Role::firstOrCreate(['name' => config('filament-shield.super_admin.name')]);
         $requiredPermissions = array_merge(
             $this->companyPermissions,
             $this->fisheryPermissions,

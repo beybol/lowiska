@@ -263,6 +263,18 @@ który przez wpisy `conflict` **fizycznie uniemożliwia** `composer install`/`up
 zależnością — także lokalnie, bez CI. `composer audit --locked` w CI jest drugą, blokującą
 warstwą. Dependabot (natywny na GitHubie) alertuje, ale nie blokuje — uzupełnia, nie zastępuje.
 
+## 11. Pierwsze konto administratora na środowisku wdrożonym
+
+`php artisan MakeAdmin <imię> <nazwisko> <e-mail>` tworzy konto **i** generuje/nadaje mu komplet
+uprawnień Shielda (zadanie 008) — na świeżo wdrożonym środowisku (staging albo prod) trzeba je
+jednak uruchomić **ręcznie**, na przykład przez `gcloud run jobs execute` albo doraźny exec do
+kontenera. **`deploy.yml` tego nie robi automatycznie** — świadomie odłożone poza zakres zadania
+008, bo to decyzja operacyjna (kto i kiedy zakłada pierwsze konto), nie techniczna.
+
+⚠️ Bez tego kroku świeżo wdrożone środowisko ma dokładnie ten sam objaw, który zadanie 008
+naprawiło lokalnie: zero uprawnień w bazie, dopóki `MakeAdmin` (albo `shield:generate`) nie
+zostanie uruchomione choć raz.
+
 **SAST** stosuje strategię **„ratchet"**: `phpstan-baseline.neon` zamraża naruszenia istniejące
 w chwili włączenia bramki, więc CI czerwienieje **wyłącznie na nowe**. ⚠️ Baseline **zmniejsza
 się** w kolejnych zadaniach — nigdy nie regeneruj go hurtem, bo regeneracja ukrywa świeżo
