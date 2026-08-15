@@ -230,3 +230,67 @@ Regresja pilnowana testami: `tests/Unit/UploadDiskGuardTest.php` (sam warunek, b
 aplikacji) oraz `tests/Feature/FisheryFileUploadTest.php` (oba pola `FileUpload` realnie podążają
 za konfiguracją — dowód przez przełączenie dysku na `gcs` w trakcie testu, nie tylko sprawdzenie
 zachowania przy domyślnym dysku deweloperskim).
+
+---
+
+## 10. Bramka bezpieczeństwa w CI — SCA, SAST, skan sekretów
+
+`.github/workflows/deploy.yml` ma **dwa joby**:
+
+```
+security ──(needs)──> deploy
+```
+
+Kierunek zależności jest celowy: czerwony krok w `security` sprawia, że `deploy` **w ogóle nie
+startuje** — to jest mechanizm „zatrzymania wdrożenia", nie sama kolejność kroków. Job `security`
+**nie dostaje** `id-token: write` ani sekretów chmurowych (`permissions: contents: read`), bo nie
+rozmawia z GCP — uruchamia się przed uwierzytelnieniem.
+
+Ten sam komplet kontroli obowiązuje dla obu wyzwalaczy (`push` na `dev` → staging, tag `v*` →
+prod). SCA/SAST/sekrety dotyczą **kodu**, nie środowiska docelowego; podatność w zależności nie
+przestaje nią być na produkcji.
+
+### Trzy warstwy
+
+| Warstwa | Narzędzie | Co blokuje |
+|---|---|---|
+| SCA | `composer audit --locked` + `roave/security-advisories` | zależność o znanej podatności |
+| SAST | PHPStan + Larastan, poziom 5 | **nowe** błędy analizy statycznej |
+| Sekrety | gitleaks (pinowany + SHA-256) | poświadczenia w historii gita |
+
+**SCA** działa dwutorowo: `roave/security-advisories` (w `require-dev`) to metapakiet bez kodu,
+który przez wpisy `conflict` **fizycznie uniemożliwia** `composer install`/`update` z podatną
+zależnością — także lokalnie, bez CI. `composer audit --locked` w CI jest drugą, blokującą
+warstwą. Dependabot (natywny na GitHubie) alertuje, ale nie blokuje — uzupełnia, nie zastępuje.
+
+**SAST** stosuje strategię **„ratchet"**: `phpstan-baseline.neon` zamraża naruszenia istniejące
+w chwili włączenia bramki, więc CI czerwienieje **wyłącznie na nowe**. ⚠️ Baseline **zmniejsza
+się** w kolejnych zadaniach — nigdy nie regeneruj go hurtem, bo regeneracja ukrywa świeżo
+wprowadzony błąd razem ze starym długiem.
+
+**Sekrety** skanuje gitleaks po **pełnej historii** (`gitleaks git .`), nie po katalogu roboczym.
+To celowe: w repozytorium liczy się to, co jest w commitach. Skan katalogu łapałby dodatkowo pliki
+niewersjonowane (`.env` z prawdziwymi lokalnymi sekretami, `storage/**`), których i tak nie da się
+wypchnąć — stąd `.gitleaks.toml` wyłącza je z ręcznego `gitleaks dir`.
+
+⚠️ Wersja gitleaks jest **pinowana i weryfikowana sumą SHA-256**. `latest` byłoby niekontrolowaną
+zmianą w łańcuchu dostaw i źródłem nagłych, niezwiązanych ze zmianą czerwonych buildów.
+
+### Hook lokalny — miękka warstwa przed commitem
+
+```bash
+git config core.hooksPath .githooks   # jednorazowo, per klon
+```
+
+`.githooks/pre-commit` uruchamia `gitleaks protect --staged`. ⚠️ Hook **przepuszcza** commit, gdy
+gitleaks nie jest zainstalowany lokalnie — twardą bramką jest CI, nie hook; inaczej brak narzędzia
+na czyjejś maszynie blokowałby pracę. `.gitattributes` wymusza `eol=lf` dla `.githooks/**`, bo
+skrypt powłoki z CRLF kończy się błędem `bad interpreter: /bin/sh^M` (host deweloperski to Windows).
+
+### Czego bramka NIE łapie
+
+To jest **dolna, mechaniczna warstwa** siatki — łapie to, co masowe i tanie do przeoczenia.
+Nie zastępuje przeglądu merytorycznego (`/review-implementation`, skill `security-audit`):
+w audycie bliźniaczego projektu narzędzia nie wykryły **żadnego** z ustaleń wysokiej istotności,
+bo wszystkie były błędami logiki. Podatność z zadania 002 (zatrucie hosta przez `trustProxies`
+bez maski) też nie jest niczym, co złapałby PHPStan czy gitleaks.

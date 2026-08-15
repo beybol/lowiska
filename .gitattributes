@@ -1,5 +1,10 @@
 * text=auto eol=lf
 
+# Hooki gita są skryptami powłoki wykonywanymi przez /bin/sh — CRLF kończy się
+# błędem `bad interpreter: /bin/sh^M`. Reguła globalna wyżej już to pokrywa;
+# ten wpis jest jawny celowo, żeby przetrwał ewentualną zmianę tamtej (zadanie 007).
+/.githooks/** text eol=lf
+
 *.blade.php diff=html
 *.css diff=css
 *.html diff=html

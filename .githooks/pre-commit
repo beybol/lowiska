@@ -1,0 +1,26 @@
+#!/bin/sh
+# Hook pre-commit: skan zakolejkowanych zmian pod kątem sekretów (zadanie 007).
+#
+# Aktywacja (jednorazowo, per klon):
+#   git config core.hooksPath .githooks
+#
+# ⚠️ Hook PRZEPUSZCZA commit, gdy gitleaks nie jest zainstalowany lokalnie —
+# twardą bramką jest CI (.github/workflows/deploy.yml, job `security`), nie ten
+# hook. Inaczej brak narzędzia na czyjejś maszynie blokowałby pracę, a bramka
+# i tak zadziała przed wdrożeniem.
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo "pre-commit: gitleaks nie jest zainstalowany — pomijam skan sekretów."
+    echo "            Twardą bramką jest CI. Instalacja: https://github.com/gitleaks/gitleaks"
+    exit 0
+fi
+
+if ! gitleaks protect --staged --config .gitleaks.toml --no-banner; then
+    echo ""
+    echo "pre-commit: ZATRZYMANO — gitleaks wykrył potencjalny sekret w zakolejkowanych zmianach."
+    echo "            Jeśli to potwierdzony false-positive, dopisz wyjątek do .gitleaks.toml"
+    echo "            (z komentarzem dlaczego to nie jest sekret), nie omijaj hooka."
+    exit 1
+fi
+
+exit 0

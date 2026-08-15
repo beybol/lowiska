@@ -35,10 +35,11 @@ wszystkie były błędami logiki. Bramka ma łapać to, co masowe i tanie do prz
 
 1. **Struktura obrazu jest inna.** PunktySzczepień ma (najwyraźniej) osobne `Dockerfile.dev`/
    `Dockerfile.prod`; Łowiska mają od zadania 004 **jeden wieloetapowy `Dockerfile`**
-   (`base → vendor → assets → dev/prod`, ADR-002). To otwiera opcję, której projekt źródłowy nie
+   (`base → vendor → assets → dev/prod`, ADR-002). To otworzyło opcję, której projekt źródłowy nie
    miał: uruchomienie SCA/SAST jako **etapu budowania Dockera**, reużywającego `base`, zamiast
-   jako natywnych kroków na biegaczu GitHub Actions z `shivammathur/setup-php`. Obie drogi
-   działają — wybór jest otwartym pytaniem niżej, nie założeniem.
+   jako natywnych kroków na biegaczu GitHub Actions z `shivammathur/setup-php`. Rozstrzygnięte
+   w [ADR-005](../adr/ADR-005-mechanizm-uruchomienia-sast-sca-w-ci.md) — rekomendacja: natywny
+   biegacz.
 2. **`config.platform.php` jest już przypięty.** Projekt źródłowy odkrył w trakcie wdrożenia,
    że Composer rozwiązuje zależności wobec wersji PHP interpretera, nie wobec `require.php`, co
    zepsuło pierwsze wdrożenie bramki (lock zawierał pakiety niewdrażalne na PHP z kontenera).
@@ -85,9 +86,9 @@ wszystkie były błędami logiki. Bramka ma łapać to, co masowe i tanie do prz
   zmieniają się razem, nigdy pojedynczo (patrz różnica 2 wyżej).
 - Błędy oznaczone przez PHPStana jako `non-ignorable` **nie dają się zamrozić w baseline** i muszą
   zostać naprawione, żeby bramka mogła być zielona.
-- Jeśli krok działa na biegaczu GitHub Actions (nie jako etap Dockera — patrz otwarte pytania),
-  ma ustawiać `XDEBUG_MODE: off` — obraz `ubuntu-latest` ma domyślnie załadowany Xdebug, co
-  kilkukrotnie spowalnia analizę statyczną bez pożytku.
+- Krok działa na biegaczu GitHub Actions, nie jako etap Dockera (ADR-005) — ma ustawiać
+  `XDEBUG_MODE: off`, bo obraz `ubuntu-latest` ma domyślnie załadowany Xdebug, co kilkukrotnie
+  spowalnia analizę statyczną bez pożytku.
 
 ### 3. Skan sekretów — gitleaks
 
@@ -113,8 +114,9 @@ wszystkie były błędami logiki. Bramka ma łapać to, co masowe i tanie do prz
 - Każdy z trzech mechanizmów ma zostać **udowodniony celowym błędem**, nie odczytaniem
   konfiguracji.
 - Kryterium sukcesu to nie tylko czerwony krok, ale **zatrzymanie wdrożenia** — sprawdzone
-  strukturalnie (kolejność kroków w `deploy.yml`: bramka przed `docker build`/uwierzytelnieniem
-  do GCP) oraz, jeśli to możliwe w sesji, realnym przebiegiem CI po wypchnięciu (decyzja o pushu
+  strukturalnie (job `deploy` ma `needs: [security]`, więc awaria joba `security` uniemożliwia
+  start `deploy` niezależnie od kolejności kroków wewnątrz niego) oraz, jeśli to możliwe w sesji,
+  realnym przebiegiem CI po wypchnięciu (decyzja o pushu
   należy do użytkownika, nie do `/implement-task`).
 - Skanery sekretów dopasowują **strukturę i entropię**, nie „prawdziwość" wartości — test wartością
   w rodzaju `12345` przejdzie na zielono i będzie wyglądał na zepsutą bramkę. Do testu użyć
@@ -123,25 +125,29 @@ wszystkie były błędami logiki. Bramka ma łapać to, co masowe i tanie do prz
 
 ## Kryteria akceptacji
 
-- [ ] `roave/security-advisories` jest w `require-dev`, `composer install` schodzi czysto.
-- [ ] `composer audit --locked` jest **blokującym** krokiem w `deploy.yml` i przechodzi na zielono
-      (ewentualne istniejące advisory spłacone w obrębie constraintów).
-- [ ] `phpstan.neon` z poziomem 5, pinem `phpVersion: 80300` sprzężonym z `Dockerfile` i
-      `composer.json` → `config.platform.php`, z baseline'em; `phpstan analyse` przechodzi na
-      zielono lokalnie.
-- [ ] Krok PHPStan w CI czerwienieje **wyłącznie na nowe** błędy — udowodnione celowym
-      naruszeniem, nie samą konfiguracją.
-- [ ] Błędy `non-ignorable` (jeśli wystąpią) naprawione, nie obejściem.
-- [ ] `.gitleaks.toml` w repo; krok gitleaks w CI z pinowaną, zweryfikowaną wersją, skanujący
-      realną treść (log potwierdza liczbę przeskanowanych plików/bajtów, nie „0 plików").
-- [ ] **Test negatywny przeszedł**: podrzucony fikcyjny sekret o właściwym kształcie daje czerwony
-      krok **i pominięty deploy** — udokumentowane w zadaniu.
-- [ ] Hook `.githooks/pre-commit` w repo, z `eol=lf` w `.gitattributes` i instrukcją aktywacji.
-- [ ] Pełny pakiet testów (`docker compose exec app php artisan test`) jest zielony —
-      **w Łowiskach to twarde kryterium, nie odroczone** (patrz różnica 3 w „Opisie problemu"):
-      stan wyjściowy jest już w pełni zielony, więc bramka nie ma prawa wprowadzić regresji.
+- [x] `roave/security-advisories` jest w `require-dev` (`dev-latest`), `composer install` schodzi
+      czysto (`composer validate` → „valid"; lock weryfikuje się na platformie 8.3).
+- [x] `composer audit --locked` jest **blokującym** krokiem w jobie `security` i przechodzi na
+      zielono — **18 advisory w 9 pakietach spłacone** `composer update` w obrębie constraintów,
+      **bez zmiany `composer.json`** (patrz „Wyniki weryfikacji").
+- [x] `phpstan.neon` z poziomem 5, pinem `phpVersion: 80300` sprzężonym z `Dockerfile` i
+      `composer.json` → `config.platform.php`, z baseline'em; `phpstan analyse` → „No errors".
+- [x] Krok PHPStan czerwienieje **wyłącznie na nowe** błędy — udowodnione **dwoma** celowymi
+      naruszeniami (nowy plik + plik już obecny w baseline), patrz „Wyniki weryfikacji".
+- [x] Błędy `non-ignorable` — **nie wystąpiły** na wejściu; wszystkie 47 dało się zamrozić.
+- [x] `.gitleaks.toml` w repo; krok gitleaks w CI z wersją **8.30.1** pinowaną i zweryfikowaną
+      sumą SHA-256 względem oficjalnego `checksums.txt` wydania; skan czyta realną treść
+      (94 commity, 4,01 MB — nie „0 plików").
+- [x] **Test negatywny przeszedł, w obu trybach** (`dir` i `protect --staged`) — z istotnym
+      odkryciem po drodze, patrz „Wyniki weryfikacji". Zatrzymanie wdrożenia potwierdzone
+      **strukturalnie** (`deploy` ma `needs: [security]` — zweryfikowane parsowaniem YAML-a).
+- [x] Hook `.githooks/pre-commit` w repo (tryb `100755`), z jawnym `eol=lf` w `.gitattributes`
+      i instrukcją aktywacji w `README.md`.
+- [x] Pełny pakiet testów (`docker compose exec app php artisan test`) jest zielony — **64/64,
+      221 asercji**, mimo aktualizacji ponad stu pakietów.
 - [ ] Zielony przebieg CI po pierwszym wypchnięciu zmian **potwierdzony przez użytkownika** —
-      `/implement-task` nie pushuje ani nie commituje; to kryterium domyka się poza sesją.
+      `/implement-task` nie pushuje ani nie commituje; **to kryterium świadomie pozostaje otwarte**
+      i domyka się poza sesją.
 
 ## Zakres testów
 
@@ -199,13 +205,14 @@ wszystkie były błędami logiki. Bramka ma łapać to, co masowe i tanie do prz
   **wyłącznie** przez `docker compose exec app php artisan test` — `test.sh` **nie istnieje**
   w tym repozytorium (usunięty w zadaniu 004) i nie ma prawa pojawić się w konfiguracji CI ani
   w opisie tego zadania.
-- `deploy.yml` ma **jeden job** (`deploy`) i dwa niezależne wyzwalacze (`push` na `dev`, tagi
-  `v*`). Bramka ma rozróżniać te ścieżki tylko tam, gdzie to ma znaczenie (SCA/SAST/sekrety
-  dotyczą kodu, nie środowiska docelowego, więc prawdopodobnie **nie muszą** się różnić między
-  push i tagiem — do potwierdzenia w implementacji).
+- `deploy.yml` ma dziś **jeden job** (`deploy`) i dwa niezależne wyzwalacze (`push` na `dev`, tagi
+  `v*`). Po tym zadaniu ma mieć **dwa joby** (`security`, `deploy` z `needs: [security]`) — patrz
+  „Rozstrzygnięcia". Oba wyzwalacze dostają **ten sam** komplet kontroli bezpieczeństwa, bez
+  różnicowania (patrz „Rozstrzygnięcia").
 - Uwierzytelnianie do GCP idzie przez Workload Identity Federation (`id-token: write`, krok
-  `google-github-actions/auth@v2`). Krok bezpieczeństwa **nie potrzebuje sekretów chmurowych i nie
-  ma ich dostawać** — ma stać przed krokiem `auth`, nie po nim.
+  `google-github-actions/auth@v2`) — **wyłącznie w jobie `deploy`**. Job `security` **nie
+  potrzebuje sekretów chmurowych i nie ma ich dostawać** — uruchamia się przed uwierzytelnieniem,
+  nie po nim, i nie dziedziczy uprawnień `id-token: write`, jeśli nie zostaną mu jawnie nadane.
 - Obraz produkcyjny powstaje z celu `prod` jednego `Dockerfile`; dodanie zależności
   deweloperskich (`roave/*`, `larastan/*`) **nie może** sprawić, że trafią do obrazu
   produkcyjnego — cel `vendor` już dziś robi `composer install --no-dev`, więc ryzyko jest
@@ -213,39 +220,111 @@ wszystkie były błędami logiki. Bramka ma łapać to, co masowe i tanie do prz
 - `larastan/laravel` musi wspierać Laravel `^12.0` — do zweryfikowania w implementacji (numer
   wersji nie kopiowany z projektu źródłowego bez sprawdzenia, bo to inny moment w czasie).
 
+## Wyniki weryfikacji (wdrożenie, 2026-08-15)
+
+### SCA
+
+- Audyt przed zmianą: **18 advisory w 9 pakietach** (m.in. `symfony/yaml` — ReDoS i wyczerpanie
+  stosu przy parsowaniu zagnieżdżonych struktur).
+- Spłacone `composer update` w obrębie istniejących constraintów, **bez zmian w `composer.json`**
+  i bez podnoszenia majorów. Największy ruch: `filament/filament` v3.3.32 → v3.3.54
+  (wewnątrz `^3.3`); `laravel/framework` bez zmiany (v12.66.0). Żadna podatność nie wymagała
+  majora, więc **nie powstaje osobne zadanie** na spłatę resztek.
+- Audyt po zmianie: **brak advisory**. `roave/security-advisories` zainstalował się czysto, co
+  samo w sobie potwierdza brak podatnych wersji — jego wpisy `conflict` zablokowałyby instalację.
+- ⚠️ `composer update` pociągnął **zaktualizowane zasoby Filamenta** w `public/css/filament/**`
+  i `public/js/filament/**` (skrypt `post-autoload-dump` → `filament:upgrade`). To wersjonowane
+  pliki i konieczna konsekwencja aktualizacji pakietu — muszą wejść do commita razem z lockiem,
+  inaczej front-end panelu rozjedzie się z wersją PHP pakietu.
+
+### SAST
+
+- Pierwsze uruchomienie: **47 błędów** na poziomie 5, zamrożonych w `phpstan-baseline.neon`
+  (36 wpisów, bo część wpisów zbiera powtórzenia w tym samym pliku). **Żaden nie był
+  `non-ignorable`** — cała pula dała się zamrozić, nie było czego naprawiać na wejściu.
+  Redukcja baseline'u to osobne zadanie („Zakres wyłączeń").
+- Ścieżki w baseline zapisały się **względnie, z ukośnikami zwykłymi** (`app/Filament/...`),
+  więc plik wygenerowany na Windowsie dopasuje się na linuksowym biegaczu CI.
+- **Test negatywny (ratchet) przeszedł.** Wprowadzone celowo dwa nowe błędy: jeden w pliku
+  zupełnie nowym (`app/Services/RatchetProbe.php`), drugi w pliku, który **ma już wpisy
+  w baseline** (`app/Services/CSOService.php`). Oba wykryte, kod wyjścia 1, a 47 zamrożonych
+  błędów pozostało wyciszonych — to dowodzi, że baseline wycisza **pojedyncze błędy, nie całe
+  pliki**, czyli że ratchet działa. Obie sondy usunięto, `git diff` potwierdził powrót do stanu
+  wyjściowego.
+
+### Skan sekretów
+
+- ⚠️ **Pierwszy test negatywny dał wynik fałszywie negatywny — i to jest najważniejsze ustalenie
+  tej weryfikacji.** Sonda z parą `AKIAIOSFODNN7EXAMPLE` / `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`
+  **nie została wykryta**, bo to oficjalne wartości przykładowe z dokumentacji AWS, które gitleaks
+  ma we wbudowanej allowliście. Wymaganie „użyj wartości o kształcie prawdziwego poświadczenia"
+  jest więc **niewystarczające**: wartość musi być jednocześnie właściwego kształtu **i nie być
+  znanym przykładem z dokumentacji**. Powtórka z wartościami **losowymi** dała trafienie
+  (`generic-api-key`) i kod wyjścia 1.
+- **Test negatywny przeszedł w obu trybach**: skan katalogu (tryb CI) i skan zmian zakolejkowanych
+  (`protect --staged`, tryb hooka). Sonda została usunięta i **nigdy nie została zacommitowana**
+  (`git restore --staged` + `rm`, potwierdzone czystym `git status`).
+- **Skan pełnej historii jest czysty**: 94 commity, 4,01 MB, brak trafień. Nie ma czego rotować
+  i **nie powstaje zadanie incident response** przewidziane w „Zakresie wyłączeń".
+- Skan **katalogu roboczego** dawał 129 trafień — wszystkie w plikach **niewersjonowanych**:
+  4 w `.env` (prawdziwe lokalne sekrety, `.gitignore`) i 125 w `storage/` (skompilowane widoki,
+  cache). Stąd decyzja, żeby w CI skanować **historię gita** (`gitleaks git`), a nie katalog:
+  w repozytorium liczy się to, co jest w commitach. `.env` **nie został** dodany do allowlisty
+  świadomie — gdyby kiedyś trafił do repozytorium wbrew `.gitignore`, skan ma o tym krzyknąć.
+- Wersja gitleaks przypięta na **8.30.1**, suma SHA-256 pobranego archiwum zweryfikowana
+  względem oficjalnego `gitleaks_8.30.1_checksums.txt` z wydania (nie tylko policzona z tego,
+  co się pobrało).
+
+### Czego **nie** udało się potwierdzić empirycznie
+
+Kryterium „czerwony krok **i pominięty deploy**" potwierdzono **strukturalnie, nie przebiegiem
+CI**: `deploy` ma `needs: [security]` (zweryfikowane parsowaniem `deploy.yml` parserem YAML,
+nie odczytem wzrokowym), a GitHub Actions nie startuje joba, którego zależność zakończyła się
+niepowodzeniem. Prawdziwy przebieg CI wymaga wypchnięcia zmian, co jest decyzją użytkownika —
+`/implement-task` nie commituje ani nie pushuje. **Do potwierdzenia po pierwszym wypchnięciu.**
+
 ## Rozstrzygnięcia
 
 <!-- Punktowe decyzje ustalone przy /review-task: wygląd, copy, próg, nazwa, umiejscowienie.
      Wiążą implementację tak samo jak decyzje z ADR-ów, ale nie mają zasięgu poza zadaniem.
      Format: decyzja + jednozdaniowe uzasadnienie. -->
-- 
+- **Osobny job `security` w `deploy.yml`, od którego zależy `deploy` przez `needs: [security]`.**
+  Nie kroki wewnątrz istniejącego joba `deploy` (jak w projekcie źródłowym) — autor zadania
+  wskazał wprost osobny job. **Kierunek zależności jest kluczowy i celowo zapisany bez
+  dwuznaczności**: to `deploy` czeka na `security`, nie odwrotnie — inny kierunek sprawdzałby
+  kod **po** wdrożeniu, co nie spełniałoby kryterium „zatrzymanie wdrożenia". Job `security` nie
+  potrzebuje sekretów chmurowych ani `id-token: write` — stoi przed uwierzytelnieniem do GCP,
+  nie po nim.
+- **Ten sam komplet kontroli (SCA + SAST + skan sekretów) dla wyzwalacza `push` (staging) i dla
+  `tag v*` (prod), bez różnicowania.** SCA/SAST/sekrety dotyczą kodu, nie środowiska docelowego —
+  ten sam commit, ta sama analiza; różnicowanie zwiększyłoby złożoność bez korzyści, bo podatność
+  w zależności nie przestaje być podatnością na produkcji.
+- **Gitleaks jako natywny krok biegacza w jobie `security`**, niezależnie od mechanizmu SCA/SAST
+  (ADR-005) — nie potrzebuje PHP/Composera, więc nie ma powodu wiązać go z żadną z dwóch opcji
+  tamtej decyzji.
 
 ## Powiązane ADR-y
 
 <!-- Numery ADR-ów podjętych dla tego zadania (uzupełnia /review-task).
      Tylko decyzje spełniające trzyskładnikowe kryterium z CLAUDE.md —
      reszta idzie do „Rozstrzygnięcia" powyżej. -->
-- 
+- [**ADR-005 — SCA/SAST w CI: natywny biegacz GitHub Actions, nie etap Dockera**](../adr/ADR-005-mechanizm-uruchomienia-sast-sca-w-ci.md)
+  — **status: proposed, sekcja „Decyzja" do wypełnienia przez autora.** Rekomendacja: Opcja A
+  (`shivammathur/setup-php` + `composer install` natywnie na biegaczu, nie nowy cel `security`
+  w `Dockerfile`). Kwalifikuje się jako ADR, nie rozstrzygnięcie: zasięg wykracza poza to zadanie
+  (ustala wzorzec dla każdej przyszłej kontroli PHP w CI), koszt odwrócenia jest wysoki
+  (przeniesienie logiki między `Dockerfile` i `deploy.yml`), a uzasadnienie — dlaczego nie
+  poświęcać czystości `Dockerfile` na rzecz oszczędności, która w praktyce jest niewielka — nie
+  wynika z samego kodu. ⚠️ `/implement-task` zatrzyma się, dopóki sekcja Decyzja pozostaje pusta.
 
-## Otwarte pytania (dla `/review-task`)
+## Otwarte pytania — zamknięte przy `/review-task` (2026-08-15)
 
-- **SCA/SAST jako etap Dockera czy jako natywne kroki na biegaczu GitHub Actions?** Łowiska mają
-  (inaczej niż projekt źródłowy) jeden wieloetapowy `Dockerfile` z gotowym celem `base`
-  (PHP 8.3 + Composer) i `vendor` (zależności). Wariant A: nowy cel `security` w `Dockerfile`
-  (`FROM base AS security`, `composer install` **z** dev-zależnościami, `RUN composer audit
-  --locked && vendor/bin/phpstan analyse`), wywoływany w CI jako `docker build --target security .`
-  — zero duplikacji instalacji PHP/Composera na biegaczu, ale dokłada cel do pliku, który dziś
-  jest czysto `dev`/`prod`. Wariant B: `shivammathur/setup-php` + `composer install` bezpośrednio
-  w kroku `deploy.yml`, tak jak w projekcie źródłowym — sprawdzony wzorzec, ale duplikuje
-  instalację zależności PHP względem tego, co i tak dzieje się w `docker build`. Decyzja wiąże
-  kształt `Dockerfile` i `deploy.yml` na dłużej — zasięg poza to zadanie, koszt odwrócenia
-  (przeniesienie logiki między plikami) niebagatelny, uzasadnienie niebanalne. **Kandydat na
-  ADR**, nie rozstrzygnięcie w treści — do potwierdzenia przy `/review-task` względem
-  trzyskładnikowego kryterium z `CLAUDE.md`.
-- **Czy gitleaks skanuje też w ramach etapu Dockera, czy wyłącznie jako natywny krok?** Gitleaks
-  nie potrzebuje PHP/Composera — naturalnie pasuje jako krok niezależny od wyboru powyżej, ale
-  warto to potwierdzić razem z poprzednią decyzją, żeby bramka miała jeden spójny kształt.
-- **Czy krok bezpieczeństwa ma być osobnym jobem z `needs:` zamiast kroków w istniejącym jobie
-  `deploy`?** Projekt źródłowy zostawił to w jednym jobie (awaria kroku domyślnie przerywa cały
-  job — wystarcza do „zatrzymania wdrożenia"). Ten sam argument stosuje się tutaj identycznie;
-  wstępna rekomendacja to powtórzenie tego wzorca, ale to kwestia punktowa, nie ADR.
+- ~~**SCA/SAST jako etap Dockera czy jako natywne kroki na biegaczu GitHub Actions?**~~ →
+  **[ADR-005](../adr/ADR-005-mechanizm-uruchomienia-sast-sca-w-ci.md)**, rekomendacja: natywny
+  biegacz.
+- ~~**Czy gitleaks skanuje też w ramach etapu Dockera, czy wyłącznie jako natywny krok?**~~ →
+  **Natywny krok**, niezależnie od decyzji ADR-005 — patrz „Rozstrzygnięcia".
+- ~~**Czy krok bezpieczeństwa ma być osobnym jobem z `needs:` zamiast kroków w istniejącym jobie
+  `deploy`?**~~ → **Osobny job `security`**, `deploy` z `needs: [security]` — patrz
+  „Rozstrzygnięcia". Kierunek zależności doprecyzowany przy `/review-task` (pierwsza wersja
+  odpowiedzi była dwuznaczna co do kierunku `needs:`).

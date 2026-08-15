@@ -1,0 +1,36 @@
+# Konfiguracja gitleaks (zadanie 007).
+#
+# useDefault = true ładuje pełny zestaw reguł gitleaks. Bez tego skan przechodziłby
+# na zielono, nie mając czego szukać — w projekcie źródłowym (PunktySzczepień, 00054)
+# skan dwukrotnie „przeszedł", zanim ktokolwiek sprawdził, czy reguły są załadowane.
+title = "Lowiska"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ścieżki wyłączone ze skanu — wyłącznie katalogi NIEwersjonowane."
+
+# ⚠️ Ta allowlista ma znaczenie WYŁĄCZNIE dla skanu katalogu roboczego
+# (`gitleaks dir`). CI i hook pre-commit skanują to, co jest w repozytorium —
+# odpowiednio historię gita (`gitleaks git`) i zmiany zakolejkowane
+# (`gitleaks protect --staged`) — więc pliki spoza repozytorium i tak są tam
+# poza zasięgiem. Wpisy niżej istnieją po to, żeby ręczny `gitleaks dir .`
+# uruchomiony lokalnie nie tonął w trafieniach z katalogów generowanych.
+#
+# Zmierzone na tym projekcie (2026-08-15): `gitleaks dir .` daje 129 trafień,
+# wszystkie w plikach NIEwersjonowanych — 4 w `.env` (prawdziwe lokalne sekrety,
+# `.gitignore`) i 125 w `storage/` (skompilowane widoki, cache, logi). Żadne nie
+# mogło trafić do repozytorium: skan historii (94 commity, 4,01 MB) jest czysty.
+#
+# ⚠️ `.env` NIE jest tu wyłączony świadomie — gdyby ktoś kiedyś dodał go do
+# repozytorium wbrew `.gitignore`, skan historii ma o tym krzyknąć.
+#
+# ⚠️ Ścieżki WERSJONOWANE zostają w zakresie skanu — dotyczy to zwłaszcza
+# `public/build` (wersjonowany od zadania 004): to treść realnie obecna
+# w repozytorium, więc wyłączenie jej osłabiłoby pokrycie tam, gdzie ma sens.
+paths = [
+    '''^vendor/''',
+    '''^node_modules/''',
+    '''^storage/''',
+]

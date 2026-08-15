@@ -87,6 +87,26 @@ izolacji — szczegóły w [`docs/operations/docker.md`](docs/operations/docker.
 docker compose exec app vendor/bin/pint
 ```
 
+## Bezpieczeństwo
+
+Wdrożenie jest bramkowane w CI: job `security` (SCA + analiza statyczna + skan sekretów) musi
+przejść, zanim `deploy` w ogóle wystartuje. Lokalnie warto raz włączyć hook, który skanuje
+zakolejkowane zmiany przed commitem:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Hook wymaga [gitleaks](https://github.com/gitleaks/gitleaks) w `PATH`; bez niego **przepuszcza**
+commit (twardą bramką jest CI, nie hook). Analiza statyczna lokalnie:
+
+```bash
+docker compose exec app vendor/bin/phpstan analyse
+```
+
+Szczegóły trzech warstw bramki:
+[`docs/operations/obraz-produkcyjny.md`](docs/operations/obraz-produkcyjny.md), sekcja 10.
+
 ## Dokumentacja
 
 | Temat | Gdzie |

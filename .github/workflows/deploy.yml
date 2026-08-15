@@ -16,7 +16,76 @@ env:
   WIF_PROVIDER: projects/456395695251/locations/global/workloadIdentityPools/github-pool/providers/github-provider
 
 jobs:
+  # Bramka bezpieczeństwa (zadanie 007, ADR-005): SCA + SAST + skan sekretów.
+  # Blokuje wdrożenie — `deploy` ma `needs: [security]`, więc czerwony krok tutaj
+  # oznacza, że `deploy` w ogóle nie startuje. Kierunek zależności jest celowy:
+  # sprawdzamy PRZED wdrożeniem, nie po nim.
+  #
+  # Job świadomie NIE dostaje `id-token: write` ani żadnych sekretów chmurowych —
+  # nie rozmawia z GCP i nie ma powodu mieć do niego dostępu.
+  security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      # Analiza statyczna nie zbiera pokrycia, a ubuntu-latest ma Xdebug załadowany
+      # domyślnie — bez tego PHPStan jest kilkukrotnie wolniejszy bez pożytku.
+      XDEBUG_MODE: off
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Pełna historia: gitleaks skanuje wszystkie commity, nie tylko HEAD.
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          # ⚠️ PHP 8.3 jest przypięte w CZTERECH miejscach i zmienia się WYŁĄCZNIE razem:
+          # Dockerfile · composer.json (config.platform.php) · phpstan.neon (phpVersion)
+          # · ten krok. Patrz CLAUDE.md, sekcja „Bezpieczeństwo w CI".
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, exif, pcntl, bcmath, gd, zip, intl, soap
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # SCA — blokuje wdrożenie z zależnością o znanej podatności.
+      # Uzupełnia (nie zastępuje) roave/security-advisories, który blokuje już na
+      # etapie composer install/update, oraz Dependabota, który alertuje bez blokowania.
+      - name: SCA — composer audit
+        run: composer audit --locked
+
+      # SAST — strategia „ratchet": phpstan-baseline.neon zamraża istniejące
+      # naruszenia, więc krok czerwienieje WYŁĄCZNIE na nowe błędy.
+      # Baseline zmniejsza się w kolejnych zadaniach — nigdy nie regeneruj go hurtem,
+      # bo to ukrywa świeżo wprowadzony błąd.
+      - name: SAST — PHPStan
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+      # Skan sekretów — pinowana wersja + weryfikacja sumy kontrolnej.
+      # `latest` byłoby niekontrolowaną zmianą w łańcuchu dostaw i źródłem nagłych,
+      # niezwiązanych ze zmianą czerwonych buildów.
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -sL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/
+          gitleaks version
+
+      # Skan historii, nie katalogu roboczego: w repozytorium liczy się to, co jest
+      # w commitach. Skan katalogu łapałby dodatkowo pliki niewersjonowane
+      # (.env, storage/**), których i tak nie da się wypchnąć.
+      - name: Secrets — gitleaks (pełna historia)
+        run: gitleaks git . --config .gitleaks.toml --no-banner --redact
+
   deploy:
+    needs: [security]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

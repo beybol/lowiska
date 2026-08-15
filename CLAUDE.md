@@ -226,6 +226,40 @@ przez brak warstwy drugiej.
 ⚠️ **Nie wprowadzaj `.env.testing`** — `phpunit.xml` i bramka są jedynym źródłem prawdy o bazie
 testowej; kolejny plik z tą samą prawdą to kolejne miejsce cichego rozjazdu.
 
+## Bezpieczeństwo w CI — bramka przed wdrożeniem
+
+`.github/workflows/deploy.yml` ma **dwa joby**: `security` i `deploy` z `needs: [security]`.
+Kierunek zależności jest celowy — czerwony krok bezpieczeństwa sprawia, że `deploy` **w ogóle
+nie startuje**. Job `security` nie dostaje `id-token: write` ani sekretów chmurowych; nie rozmawia
+z GCP.
+
+Trzy warstwy, wszystkie blokujące, opisane w
+[`docs/operations/obraz-produkcyjny.md`](docs/operations/obraz-produkcyjny.md):
+
+1. **SCA** — `composer audit --locked` w CI plus `roave/security-advisories` w `require-dev`,
+   które blokuje podatną zależność już przy `composer install`/`update`, także lokalnie.
+2. **SAST** — PHPStan/Larastan, poziom 5, strategia **„ratchet"**: `phpstan-baseline.neon`
+   zamraża istniejące naruszenia, CI czerwienieje **wyłącznie na nowe**.
+3. **Sekrety** — gitleaks (pinowana wersja + suma SHA-256) po **pełnej historii** gita, plus
+   hook `.githooks/pre-commit` na `--staged`.
+
+⚠️ **Baseline PHPStana zmniejsza się, nigdy nie jest regenerowany hurtem** — regeneracja ukrywa
+świeżo wprowadzony błąd razem ze starym długiem.
+
+⚠️ **PHP 8.3 jest przypięte w CZTERECH miejscach i zmienia się wyłącznie razem** — podniesienie
+wersji wymaga zmiany wszystkich naraz **oraz przegenerowania baseline'u**:
+
+| # | Plik | Wpis |
+|---|---|---|
+| 1 | `Dockerfile` | `php:8.3-cli-bookworm`, `dunglas/frankenphp:1-php8.3` |
+| 2 | `composer.json` | `config.platform.php` |
+| 3 | `phpstan.neon` | `phpVersion` |
+| 4 | `.github/workflows/deploy.yml` | krok `shivammathur/setup-php` |
+
+Powód dla pozycji 2: Composer rozwiązuje zależności wobec wersji PHP **interpretera, na którym
+akurat działa**, nie wobec `require.php` — bez `config.platform` lock potrafi zawierać pakiety
+niewdrażalne w kontenerze (wywróciło to pierwsze wdrożenie bramki w bliźniaczym projekcie).
+
 ## Konwencje kodu
 
 - Kod i UI po angielsku; dokumentacja po polsku (patrz wyżej).

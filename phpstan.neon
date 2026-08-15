@@ -1,0 +1,23 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+
+    paths:
+        - app
+        - database
+        - routes
+
+    # ⚠️ Pin obowiązkowy (zadanie 007). Bez niego PHPStan analizuje pod wersję
+    # interpretera, na którym akurat działa — baseline wygenerowany lokalnie nie
+    # dopasowałby się na biegaczu CI i zaczerwienił build bez związku ze zmianą.
+    #
+    # PHP 8.3 jest przypięte w CZTERECH miejscach i zmienia się WYŁĄCZNIE razem:
+    #   1. Dockerfile              — `php:8.3-cli-bookworm`, `dunglas/frankenphp:1-php8.3`
+    #   2. composer.json           — config.platform.php = "8.3.0"
+    #   3. phpstan.neon            — ta linia
+    #   4. .github/workflows/deploy.yml — krok `shivammathur/setup-php`
+    # Zmiana wersji PHP wymaga też PRZEGENEROWANIA phpstan-baseline.neon.
+    phpVersion: 80300
