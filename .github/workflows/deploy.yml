@@ -234,3 +234,33 @@ jobs:
             --cpu-boost \
             ${{ steps.env.outputs.min_instances_flag }} \
             --port 8080
+
+      # Generic runner for one-off artisan commands (MakeAdmin, shield:generate,
+      # flare:test, …). A Cloud Run Job pins its image when the job is DEFINED,
+      # not when it is executed, and images here are tagged by commit SHA — so a
+      # hand-made job silently keeps running the code it was created with. This
+      # step repoints it at the image just deployed, on every deploy, which is
+      # the only thing that keeps an operator's one-off command honest.
+      #
+      # Default args are deliberately harmless (`artisan list`); the real command
+      # is an override at execution time, which applies to that single execution
+      # and leaves the job definition alone:
+      #
+      #   gcloud run jobs execute lowiska-staging-artisan --region europe-west1 --wait \
+      #     --args "artisan,shield:generate,--panel=admin,--option=permissions,--all"
+      #
+      # Last on purpose: a failure here must not stop the app from being
+      # deployed, and the red step is visible either way. Contract and runbook:
+      # gcp-foundation/docs/operations/lowiska-onboarding.md.
+      - name: Deploy artisan job
+        run: |
+          gcloud run jobs deploy "${{ steps.env.outputs.service }}-artisan" \
+            --image "${{ steps.env.outputs.image }}" \
+            --region "${REGION}" \
+            --service-account "${{ steps.env.outputs.runtime_sa }}" \
+            --set-cloudsql-instances "${{ steps.env.outputs.sql_conn }}" \
+            --set-secrets "${{ steps.args.outputs.secrets }}" \
+            --set-env-vars "${{ steps.args.outputs.envvars }}" \
+            --command php \
+            --args artisan,list \
+            --max-retries 0 --task-timeout 600
