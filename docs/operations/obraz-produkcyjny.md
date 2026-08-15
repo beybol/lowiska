@@ -101,3 +101,35 @@ Obraz stoi na trybie **classic**, nie worker. Tryb worker trzyma aplikację w pa
 żądaniami i wymaga przeglądu stanu współdzielonego (statyczne właściwości, singletony, kontener
 usług) — to osobne zadanie z własnym sprawdzeniem. Przejście nie wymaga zmiany serwera ani obrazu,
 więc nic nie jest tu zamknięte.
+
+---
+
+## 7. Zaufanie do proxy — dlaczego `trustProxies` jest wymagane
+
+Cloud Run terminuje TLS na froncie Google — do kontenera trafia zwykły HTTP z nagłówkami
+`X-Forwarded-Proto`, `X-Forwarded-For`, `X-Forwarded-Port`. Bez zaufanego proxy Laravel widzi
+połączenie jako `http` i generuje adresy zasobów (`asset()`, `url()`, Vite, Filament) ze schematem
+`http://` na stronie serwowanej po `https://` → przeglądarka blokuje je jako **mixed content** →
+panele Filamenta renderują się bez styli i bez JS.
+
+`bootstrap/app.php` deklaruje:
+
+```php
+$middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR
+    | Request::HEADER_X_FORWARDED_PORT
+    | Request::HEADER_X_FORWARDED_PROTO);
+```
+
+- **`at: '*'`** jest bezpieczne wyłącznie dlatego, że do kontenera na Cloud Run nie da się dostać
+  z pominięciem frontu Google — adresy proxy nie są stałą pulą, więc lista IP jest niewykonalna.
+- **Maska nagłówków jest jawna i celowo nie obejmuje `HEADER_X_FORWARDED_HOST` ani `_PREFIX`.**
+
+⚠️ **Nigdy nie wywołuj `trustProxies()` bez argumentu `headers:`.** Domyślna maska Laravela
+zawiera `X-Forwarded-Host`; w połączeniu z `at: '*'` oznacza to, że **dowolny klient dyktuje host**,
+z którego Laravel buduje adresy absolutne i podpisy URL-i (linki resetu hasła, weryfikacji e-maila)
+— zatrucie hosta, CWE-644. Podpis URL-a **nie chroni**: sygnatura liczona jest z `$request->url()`,
+które czyta ten sam podrobiony nagłówek. Pełne uzasadnienie i alternatywy w
+[ADR-003](../adr/ADR-003-zaufanie-do-proxy-i-maska-naglowkow.md); znane wcześniejsze wystąpienie
+tego wzorca — [`docs/security/2026-08-15-trustproxies-bez-maski-naglowkow.md`](../security/2026-08-15-trustproxies-bez-maski-naglowkow.md).
+
+Regresja pilnowana testem: `tests/Feature/TrustedProxyHeadersTest.php`.

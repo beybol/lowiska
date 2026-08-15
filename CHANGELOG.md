@@ -33,3 +33,6 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - Uruchomienie testów nie może już przypadkowo skasować roboczej bazy danych — pakiet testów
   korzysta z osobnej bazy, a przebieg zatrzymuje się z czytelnym komunikatem, gdyby kiedykolwiek
   wskazał inną.
+- Przygotowano aplikację do pracy za proxy terminującym szyfrowanie (wdrożenie docelowe) —
+  strony i panele będą poprawnie wykrywać połączenie szyfrowane, bez ryzyka podmiany adresu
+  w linkach z wiadomości e-mail.

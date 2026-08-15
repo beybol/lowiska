@@ -3,8 +3,8 @@
 ## Opis problemu
 
 `bootstrap/app.php` konfiguruje w `withMiddleware()` wyłącznie alias `two_factor` — nie ma
-wywołania `trustProxies()`. Aplikacja działa dziś lokalnie (Apache w kontenerze, ruch bez
-terminacji TLS przed aplikacją), więc brak ten jest niewidoczny.
+wywołania `trustProxies()`. Lokalnie ruch nie przechodzi przez proxy terminujące TLS
+(`artisan serve` w kontenerze, `http://localhost:11000`), więc brak ten jest niewidoczny.
 
 Na Cloud Run TLS kończy się na warstwie proxy Google, a do kontenera trafia zwykły HTTP —
 z nagłówkami `X-Forwarded-Proto: https` i `X-Forwarded-For`. Bez zaufanego proxy Laravel widzi
@@ -70,23 +70,32 @@ naiwnie. Dlatego wymaganie niżej mówi o **jawnej masce**, a nie o gołym `at: 
 - Zachować dotychczasowe zachowanie w środowisku lokalnym i testowym (żaden istniejący test nie
   może zmienić wyniku).
 - Odnotować w dokumentacji operacyjnej, dlaczego zaufanie jest ustawione na `*` i co jest realnym
-  zabezpieczeniem tej konfiguracji (patrz otwarte pytanie niżej).
+  zabezpieczeniem tej konfiguracji — uzasadnienie w [ADR-003](../../adr/ADR-003-zaufanie-do-proxy-i-maska-naglowkow.md),
+  w dokumentacji wystarczy niezmiennik plus odsyłacz.
+- Test regresyjny w `tests/Feature/TrustedProxyHeadersTest.php` (nazwa wiążąca — patrz
+  „Rozstrzygnięcia"), obejmujący cztery przypadki z kryteriów akceptacji.
 
 ## Kryteria akceptacji
 
-- [ ] `bootstrap/app.php` zawiera `trustProxies` wewnątrz `withMiddleware()` **z jawną maską
+- [x] `bootstrap/app.php` zawiera `trustProxies` wewnątrz `withMiddleware()` **z jawną maską
       `headers:`** (bez `HEADER_X_FORWARDED_HOST` i `HEADER_X_FORWARDED_PREFIX`).
-- [ ] Żądanie z nagłówkiem `X-Forwarded-Proto: https` daje `$request->isSecure() === true`
+- [x] Żądanie z nagłówkiem `X-Forwarded-Proto: https` daje `$request->isSecure() === true`
       oraz `url()` / `asset()` ze schematem `https://` — pokryte testem.
-- [ ] `$request->ip()` odczytuje wartość z `X-Forwarded-For` zamiast adresu proxy — pokryte testem.
-- [ ] **`X-Forwarded-Host: evil.tld` NIE zmienia adresów absolutnych** (`url()`, `asset()`) —
+- [x] `$request->ip()` odczytuje wartość z `X-Forwarded-For` zamiast adresu proxy — pokryte testem.
+- [x] **`X-Forwarded-Host: evil.tld` NIE zmienia adresów absolutnych** (`url()`, `asset()`) —
       pokryte testem.
-- [ ] **`X-Forwarded-Host: evil.tld` NIE zmienia adresów podpisanych** (`URL::signedRoute`,
-      `hasValidSignature`) — pokryte testem; to jest ten przypadek, w którym podpis nie chroni.
-- [ ] **Weryfikacja negatywna wykonana i opisana**: po tymczasowym cofnięciu maski dwa testy
-      od `X-Forwarded-Host` **padają**, a test od `X-Forwarded-Proto` **zostaje zielony**.
-      Bez tego kroku nie wiadomo, czy testy w ogóle badają to, co mają badać.
-- [ ] **Pełny pakiet testów (`docker compose exec app php artisan test`) jest zielony** — tier T3, patrz niżej.
+- [x] **`X-Forwarded-Host: evil.tld` NIE zmienia adresów podpisanych** — pokryte testem przez
+      rzeczywisty link weryfikacji e-maila (`VerifyEmail`), nie przez syntetyczny `signedRoute`;
+      to jest ten przypadek, w którym podpis nie chroni.
+- [x] **Weryfikacja negatywna wykonana i opisana**: po tymczasowym dopisaniu
+      `Request::HEADER_X_FORWARDED_HOST` do maski dwa testy od `X-Forwarded-Host` **padły**
+      (`url('/')` zwróciło `http://evil.tld`, link weryfikacji zawierał `evil.tld`), a test od
+      `X-Forwarded-Proto` **pozostał zielony**. Opisane w
+      `docs/security/2026-08-15-trustproxies-bez-maski-naglowkow.md`.
+- [x] **Pełny pakiet testów (`docker compose exec app php artisan test`) jest zielony** —
+      **z zastrzeżeniem odziedziczonym z zadania 004**: 53 przeszły, 3 czerwone (`AdminPanelTest`,
+      `OwnerPanelTest` — przyczyna: locale Filamenta, niezwiązana z tym zadaniem). Zero nowych
+      regresji; wszystkie 4 testy tego zadania zielone.
 
 ## Zakres testów
 
@@ -114,17 +123,16 @@ naiwnie. Dlatego wymaganie niżej mówi o **jawnej masce**, a nie o gołym `at: 
 
 ## Zmiany dokumentacji
 
-- [ ] `docs/conventions/` — bez nowego pliku; niezmiennik jest platformowy, nie należy do żadnej
+- [x] `docs/conventions/` — bez nowego pliku; niezmiennik jest platformowy, nie należy do żadnej
       powierzchni aplikacji z tabeli w `CLAUDE.md`
-- [ ] `docs/operations/obraz-produkcyjny.md` — akapit o wdrożeniu za proxy terminującym TLS:
-      dlaczego `trustProxies` jest wymagane, jaki jest objaw jego braku (mixed content, panel bez
-      styli) **oraz dlaczego maska nagłówków jest jawna** (odsyłacz do analizy WorkSnapa)
-- [ ] `docs/security/` — założyć katalog i przenieść tu notatkę o tym, że wzorzec z bliźniaczych
-      projektów był podatny; to samo miejsce przyda się przy kolejnych znaleziskach
-      z `/security-audit`
-- [ ] `README.md` — bez zmian
-- [ ] `CLAUDE.md` — bez zmian
-- [ ] `CHANGELOG.md` — wpis w changelogu
+- [x] `docs/operations/obraz-produkcyjny.md` — nowa sekcja 7: dlaczego `trustProxies` jest
+      wymagane, objaw jego braku, dlaczego maska nagłówków jest jawna, odsyłacze do ADR-003
+      i notatki w `docs/security/`
+- [x] `docs/security/` — założony; `2026-08-15-trustproxies-bez-maski-naglowkow.md` opisuje
+      mechanizm, dlaczego wzorzec trafił do treści zadania, naprawę i wynik weryfikacji negatywnej
+- [x] `README.md` — bez zmian
+- [x] `CLAUDE.md` — bez zmian
+- [x] `CHANGELOG.md` — wpis w sekcji „Bezpieczeństwo"
 
 ## Ograniczenia techniczne
 
@@ -132,37 +140,49 @@ naiwnie. Dlatego wymaganie niżej mówi o **jawnej masce**, a nie o gołym `at: 
   `App\Http\Middleware\TrustProxies` (ten wzorzec zniknął po Laravelu 10; nie przywracaj go).
 - Docelowe środowisko: Cloud Run w `europe-west1`, TLS terminowany przez front Google, adresy
   proxy **nie są stałą pulą** — konfiguracja musi działać bez listy adresów IP.
-- Środowisko lokalne (Docker Compose, Apache na porcie 8000, bez TLS) musi działać bez zmian.
+- Środowisko lokalne (Docker Compose, `artisan serve` w kontenerze, host `localhost:11000`, bez TLS)
+  musi działać bez zmian — po zadaniu 004 Apache nie występuje w żadnym z celów obrazu.
+- Pakiet testów biegnie na MySQL-u w schemacie `lowiska_test` (ADR-001), a bramka
+  w `tests/TestCase.php` przerywa przebieg wskazujący inną bazę — nowy test musi to respektować
+  (zwykły test funkcjonalny, bez własnego połączenia).
 
 ## Rozstrzygnięcia
 
 <!-- Punktowe decyzje ustalone przy /review-task: wygląd, copy, próg, nazwa, umiejscowienie.
      Wiążą implementację tak samo jak decyzje z ADR-ów, ale nie mają zasięgu poza zadaniem.
      Format: decyzja + jednozdaniowe uzasadnienie. -->
-- 
+- **Nazwa klasy testowej: `tests/Feature/TrustedProxyHeadersTest.php`** — ta sama co w WorkSnapie,
+  żeby przy porównywaniu obu repozytoriów nie trzeba było szukać odpowiednika.
+- **Powstaje katalog `docs/security/`** i trafia do niego notatka o tym, że wzorzec przejęty
+  z bliźniaczych projektów był podatny. Powód: rejestr znalezisk bezpieczeństwa ma mieć jedno
+  miejsce, osobne od instrukcji obsługi w `docs/operations/`; przyda się przy kolejnych przebiegach
+  `/security-audit`.
+- **Weryfikacja negatywna jest częścią zadania, nie sugestią** — jej wynik ma zostać opisany
+  w notatce w `docs/security/`, żeby przy następnej zmianie w tym miejscu było wiadomo, że testy
+  faktycznie badają to, co deklarują.
+- **Brak drugiego składnika w panelu `/owner` NIE wchodzi do tego zadania.** To osobna powierzchnia
+  (providery paneli) i osobny problem, wykryty przy okazji tego przeglądu; odłożony do upgrade'u
+  na Laravel 13 + najnowszego Filamenta, gdzie MFA jest częścią pakietu. Odnotowane w
+  [`TODO.md`](../../../TODO.md).
 
 ## Powiązane ADR-y
 
 <!-- Numery ADR-ów podjętych dla tego zadania (uzupełnia /review-task).
      Tylko decyzje spełniające trzyskładnikowe kryterium z CLAUDE.md —
      reszta idzie do „Rozstrzygnięcia" powyżej. -->
-- 
+- [**ADR-003 — Zaufanie do proxy: `at: '*'` wyłącznie z jawną maską nagłówków**](../../adr/ADR-003-zaufanie-do-proxy-i-maska-naglowkow.md)
+  — **status: accepted.** Opcja A (`at: '*'` + maska `HEADER_X_FORWARDED_FOR | _PORT | _PROTO`)
+  wdrożona w `bootstrap/app.php`.
 
-## Otwarte pytania (dla `/review-task`)
+## Otwarte pytania — zamknięte przy `/review-task` (2026-08-15)
 
-- **`at: '*'` czy lista adresów?** `'*'` oznacza „ufaj nagłówkom `X-Forwarded-*` od kogokolwiek",
-  co jest bezpieczne **tylko dlatego**, że na Cloud Run do kontenera nie da się dostać z pominięciem
-  frontu Google. Alternatywa (lista zakresów) jest przy Cloud Run niewykonalna — adresy nie są
-  stałe. Decyzja wiąże kod poza tym zadaniem i jej uzasadnienie nie wynika z samego kodu, więc jest
-  kandydatem na ADR; obie bliźniacze aplikacje (WorkSnap, PunktySzczepień) używają `'*'`.
-  ⚠️ **Audyt WorkSnapa (2026-08-15) rozstrzygnął część tego pytania:** samo `at: '*'` jest
-  akceptowalne, ale **wyłącznie razem z jawną maską `headers:`** — to maska, a nie zakres adresów,
-  jest tu realnym zabezpieczeniem. ADR (jeśli powstanie) powinien utrwalić **oba** elementy razem,
-  bo rozdzielone tworzą dokładnie tę podatność.
-- **Czy zweryfikowano, że problem realnie występuje?** Zadanie ma sens tylko wtedy, gdy aplikacja
-  faktycznie stanie za terminacją TLS. Dziś: `docs/operations/obraz-produkcyjny.md` i zadania
-  001–003 zakładają Cloud Run (`fisherya.com` / `staging.fisherya.com`), a obraz `prod` już
-  istnieje. Aplikacja **nie działa jeszcze produkcyjnie**, więc jest to przygotowanie przed
-  pierwszym wdrożeniem, nie naprawa działającego systemu — warto to potwierdzić przy `/review-task`.
-- Czy w konsekwencji tej zmiany aplikacja powinna przestać być uruchamialna bez proxy
-  terminującego TLS (np. wymuszenie `https` w produkcji), czy zostawiamy to konfiguracji środowiska?
+- ~~**`at: '*'` czy lista adresów?**~~ → **[ADR-003](../../adr/ADR-003-zaufanie-do-proxy-i-maska-naglowkow.md)**.
+  Rozstrzygnięcie wymaga zapisania **razem z maską nagłówków**, bo to maska — a nie zakres adresów —
+  jest tu realnym zabezpieczeniem; sama lista IP nie usunęłaby zaufania do `X-Forwarded-Host`.
+- ~~**Czy problem realnie występuje?**~~ → **Tak, ale jako przygotowanie, nie naprawa.** Aplikacja
+  nie działa jeszcze produkcyjnie, natomiast obraz `prod` (FrankenPHP, ADR-002) istnieje, a zadania
+  001–003 zakładają Cloud Run z domenami `fisherya.com` / `staging.fisherya.com`. Zmiana ma być
+  gotowa **przed** pierwszym wdrożeniem — po nim objawem jest panel bez styli.
+- ~~**Czy wymuszać HTTPS w produkcji?**~~ → **Nie w tym zadaniu.** Pytanie było już odpowiedziane
+  w „Zakresie wyłączeń": `URL::forceScheme` i przekierowanie 301 to inne rozwiązanie tego samego
+  objawu, przy poprawnym `trustProxies` zbędne. Zostaje konfiguracji środowiska.
