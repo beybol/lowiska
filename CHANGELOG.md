@@ -17,6 +17,9 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Zmienione
 
+- Aplikacja działa teraz na nowszym wydaniu frameworka, panelu administracyjnego oraz języka PHP.
+  Dla korzystających z aplikacji nic nie zmienia się w wyglądzie ani w sposobie pracy — panele
+  administratora i właściciela pokazują te same dane i te same możliwości co wcześniej.
 - Środowisko deweloperskie stawia się teraz jednym poleceniem `docker compose up --build` —
   razem z bazą danych, serwerem zasobów i skrzynką pocztową, bez potrzeby instalowania czegokolwiek
   na komputerze poza Dockerem. Aplikacja odpowiada pod adresem `http://localhost:11000`,
@@ -24,6 +27,10 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Poprawione
 
+- Naprawiono formularz rejestracji w panelu, który przestał pokazywać pola nazwiska, prefiksu
+  kraju i telefonu — strona otwierała się normalnie, więc brak tych pól nie rzucał się w oczy.
+- Naprawiono formularz firmy w panelu właściciela: strona dodawania firmy przestawała się
+  otwierać zamiast wyświetlić komunikat o błędzie pobierania danych z rejestru GUS.
 - Naprawiono zakładanie konta administratora, które dawało dostęp do logowania, ale panel
   administracyjny wyglądał na pusty — bez żadnej pozycji nawigacji ani zasobu. Komenda zakładająca
   konto nadaje teraz od razu pełne uprawnienia; uruchomiona ponownie na istniejącym koncie

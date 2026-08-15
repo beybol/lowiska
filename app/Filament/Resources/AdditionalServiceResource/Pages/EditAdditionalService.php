@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\AdditionalServiceResource\Pages;
 
 use App\Filament\Resources\AdditionalServiceResource;
-use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
 use App\Helpers\Helper;
+use Filament\Actions\DeleteAction;
+use Filament\Resources\Pages\EditRecord;
 
 class EditAdditionalService extends EditRecord
 {
@@ -20,7 +20,7 @@ class EditAdditionalService extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 
@@ -34,8 +34,7 @@ class EditAdditionalService extends EditRecord
         $fisheryId = $this->record->fishery_id ?? null;
 
         return [
-            AdditionalServiceResource::getUrl('index', ['fishery' => $fisheryId]) 
-                => __('Additional services'),
+            AdditionalServiceResource::getUrl('index', ['fishery' => $fisheryId]) => __('Additional services'),
             __('Edit'),
         ];
     }

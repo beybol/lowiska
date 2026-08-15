@@ -2,11 +2,12 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Country;
+use App\Models\State;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\State>
+ * @extends Factory<State>
  */
 class StateFactory extends Factory
 {
@@ -19,24 +20,24 @@ class StateFactory extends Factory
     {
         return [
             'name' => $this->faker->randomElement([
-                'Dolnośląskie', 
-                'Kujawsko-pomorskie', 
-                'Lubelskie', 
+                'Dolnośląskie',
+                'Kujawsko-pomorskie',
+                'Lubelskie',
                 'Lubuskie',
-                'Łódzkie', 
-                'Małopolskie', 
-                'Mazowieckie', 
+                'Łódzkie',
+                'Małopolskie',
+                'Mazowieckie',
                 'Opolskie',
-                'Podkarpackie', 
-                'Podlaskie', 
-                'Pomorskie', 
+                'Podkarpackie',
+                'Podlaskie',
+                'Pomorskie',
                 'Śląskie',
-                'Świętokrzyskie', 
-                'Warmińsko-mazurskie', 
-                'Wielkopolskie', 
-                'Zachodniopomorskie'
+                'Świętokrzyskie',
+                'Warmińsko-mazurskie',
+                'Wielkopolskie',
+                'Zachodniopomorskie',
             ]),
-            'country_id' => Country::poland()->value('id') 
+            'country_id' => Country::poland()->value('id')
                 ?? Country::factory()->create(['country_name' => 'Poland'])->id,
         ];
     }

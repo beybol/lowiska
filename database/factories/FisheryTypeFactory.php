@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\FisheryType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\FisheryType>
+ * @extends Factory<FisheryType>
  */
 class FisheryTypeFactory extends Factory
 {

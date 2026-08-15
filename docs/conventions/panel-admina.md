@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w `app/Filament/Resources/**`,
 `app/Providers/Filament/AdminPanelProvider.php`.
 
-Zadania źródłowe: 005. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
+Zadania źródłowe: 005, 009. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
 
 ---
 
@@ -32,3 +32,27 @@ Zadania źródłowe: 005. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cr
 ⛏️ **Panel właściciela nie ma dziś żadnego pola `FileUpload`.** Gdy je dostanie, ten sam
 niezmiennik go obejmuje — dopisz odsyłacz do tego pliku w `docs/conventions/panel-wlasciciela.md`
 (albo, jeśli reguła urośnie ponad uploady, wydziel wtedy wspólny plik o storage'u).
+
+---
+
+## 2. Formularze na Filamencie 5 (`Schema`)
+
+- **Zasób deklaruje formularz jako `public static function form(Schema $schema): Schema`
+  i wypełnia go `->components([...])`** — nie `form(Form $form)` ani `->schema([...])` na poziomie
+  formularza. `Filament\Forms\Form` nie istnieje od wersji 4; formularze, infolisty i układ
+  scalono we wspólny `Filament\Schemas\Schema`. Komponenty układu (`Section`, `Actions`, `Get`)
+  żyją teraz w `Filament\Schemas\Components\**`, a akcje tabel w `Filament\Actions\**`.
+- **Tabela używa `->recordActions([...])` i `->toolbarActions([...])**` zamiast `->actions()`
+  i `->bulkActions()`.
+- ⚠️ **Nazwa komponentu NIE MOŻE być równa kluczowi stanu, który ten komponent sam odczytuje.**
+  `Placeholder::make('error')` z `->content(fn (Get $get) => $get('error'))` do Filamenta 3
+  działało; od 4/5 komponent odpytuje sam siebie i wpada w **rekursję bez dna** — proces zjada
+  kilka gigabajtów i ginie (w testach jako `Segmentation fault`, bo pcov maskuje wyczerpanie
+  pamięci), zamiast rzucić czytelnym błędem. Stąd `Placeholder::make('cso_error_message')`
+  czytający stan `error` w `CompanyResource`. Diagnoza w zadaniu 009.
+- ⚠️ **Strony autoryzacji Filamenta konfiguruje się przez nadpisanie `form(Schema $schema)`**,
+  nie przez `getForms()` + `makeForm()` (metoda nie istnieje od wersji 5). Pozostawiony
+  `getForms()` **nie jest wołany i nie zgłasza błędu** — strona zwraca 200 i po cichu renderuje
+  wyłącznie domyślne pola rodzica. Własne pola rejestracji pilnuje
+  [`tests/Feature/PanelRegistrationFormTest.php`](../../tests/Feature/PanelRegistrationFormTest.php),
+  bo test samego kodu odpowiedzi tej awarii nie widzi.

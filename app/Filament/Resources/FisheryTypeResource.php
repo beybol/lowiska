@@ -2,30 +2,29 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\FisheryTypeResource\Pages;
-use App\Filament\Resources\FisheryTypeResource\RelationManagers;
-use App\Models\FisheryType;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Columns\TextColumn;
 use App\Filament\Resources\FisheryTypeResource\Pages\CreateFisheryType;
+use App\Filament\Resources\FisheryTypeResource\Pages\ManageFisheryTypes;
+use App\Models\FisheryType;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\TextInput;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 
 class FisheryTypeResource extends Resource
 {
     protected static ?string $model = FisheryType::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-sun';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-sun';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('name')
                     ->label(__('Fishery type name'))
                     ->required()
@@ -39,18 +38,18 @@ class FisheryTypeResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->label(__('Fishery type name'))
-                    ->searchable()
+                    ->searchable(),
             ])
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -58,7 +57,7 @@ class FisheryTypeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ManageFisheryTypes::route('/'),
+            'index' => ManageFisheryTypes::route('/'),
             'create' => CreateFisheryType::route('/create'),
         ];
     }
@@ -73,7 +72,7 @@ class FisheryTypeResource extends Resource
         return __('Fishery types');
     }
 
-    public static function getModelLabel(): string 
+    public static function getModelLabel(): string
     {
         return __('fishery type');
     }

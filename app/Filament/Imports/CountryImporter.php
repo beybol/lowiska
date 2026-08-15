@@ -25,15 +25,15 @@ class CountryImporter extends Importer
 
     public function resolveRecord(): ?Country
     {
-        return new Country();
+        return new Country;
     }
 
     public static function getCompletedNotificationBody(Import $import): string
     {
-        $body = __('Imported rows count') . ' ' . $import->successful_rows . '.';
+        $body = __('Imported rows count').' '.$import->successful_rows.'.';
 
         if ($failedRowsCount = $import->getFailedRowsCount()) {
-            $body .= ' ' . number_format($failedRowsCount) . ' ' . str('row')->plural($failedRowsCount) . ' ' . __('failed to import.');
+            $body .= ' '.number_format($failedRowsCount).' '.str('row')->plural($failedRowsCount).' '.__('failed to import.');
         }
 
         return $body;

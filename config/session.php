@@ -51,6 +51,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Session Serialization
+    |--------------------------------------------------------------------------
+    |
+    | Szkielet Laravela 13 domyślnie serializuje sesję do JSON-a zamiast do
+    | formatu PHP — to utwardzenie przeciwko atakom przez łańcuchy deserializacji
+    | (gadget chains), gdyby APP_KEY kiedykolwiek wyciekł.
+    |
+    | Przyjęte od razu (zadanie 009). Jedyny koszt zmiany `php` → `json` to
+    | unieważnienie aktywnych sesji, a aplikacja nie działa jeszcze produkcyjnie,
+    | więc nie ma czyjej sesji zepsuć. Aplikacja nie trzyma w sesji obiektów PHP.
+    |
+    */
+
+    'serialization' => env('SESSION_SERIALIZATION', 'json'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Session File Location
     |--------------------------------------------------------------------------
     |

@@ -3,11 +3,9 @@
 namespace App\Filament\Resources\PositionResource\Pages;
 
 use App\Filament\Resources\PositionResource;
-use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
 use App\Helpers\Helper;
+use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
-use App\Models\Fishery;
 
 class ListPositions extends ListRecords
 {
@@ -29,7 +27,7 @@ class ListPositions extends ListRecords
     protected function getHeaderActions(): array
     {
         return Helper::getListHeaderActionsForFishery(
-            static::$resource, 
+            static::$resource,
             $this->fisheryId,
         );
     }
@@ -48,8 +46,7 @@ class ListPositions extends ListRecords
     public function getBreadcrumbs(): array
     {
         return [
-            PositionResource::getUrl('index', ['fishery' => $this->fisheryId]) 
-                => __('Positions'),
+            PositionResource::getUrl('index', ['fishery' => $this->fisheryId]) => __('Positions'),
             __('List'),
         ];
     }

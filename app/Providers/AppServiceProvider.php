@@ -2,12 +2,13 @@
 
 namespace App\Providers;
 
-use BezhanSalleh\FilamentLanguageSwitch\LanguageSwitch;
+use BezhanSalleh\LanguageSwitch\LanguageSwitch;
 use Filament\Support\Assets\Css;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\ServiceProvider;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -68,7 +69,7 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        throw new \RuntimeException(
+        throw new RuntimeException(
             "Dysk uploadów rozwiązuje się do sterownika 'local' poza środowiskiem lokalnym/testowym "
             .'— pliki znikną przy najbliższym restarcie kontenera. '
             .'Ustaw FILESYSTEM_DISK=gcs, FILAMENT_FILESYSTEM_DISK=gcs i GOOGLE_CLOUD_STORAGE_BUCKET.'

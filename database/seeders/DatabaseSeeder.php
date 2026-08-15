@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\State;
-use App\Models\FishingMethod;
 use App\Models\Currency;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\FishingMethod;
+use App\Models\State;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {

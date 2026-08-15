@@ -48,7 +48,7 @@ test('existing user is promoted and role permissions are completed', function ()
 test('running against an incomplete role completes it, without touching existing permissions', function () {
     // Odtwarza dzisiejszy stan produkcyjny: rola istnieje, ale nie ma kompletu uprawnień.
     $role = Role::firstOrCreate(['name' => superAdminRoleName()]);
-    $onePermission = Permission::firstOrCreate(['name' => 'view_any_fish']);
+    $onePermission = Permission::firstOrCreate(['name' => 'view_any:fish']);
     $role->syncPermissions([$onePermission]);
 
     expect($role->permissions()->count())->toBe(1);
@@ -57,7 +57,7 @@ test('running against an incomplete role completes it, without touching existing
 
     $role->refresh();
     expect($role->permissions()->count())->toBe(Permission::count());
-    expect($role->hasPermissionTo('view_any_fish'))->toBeTrue();
+    expect($role->hasPermissionTo('view_any:fish'))->toBeTrue();
 });
 
 test('re-running on an already-complete role is idempotent', function () {

@@ -2,33 +2,33 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\StateResource\Pages;
-use App\Filament\Resources\StateResource\RelationManagers;
+use App\Filament\Resources\StateResource\Pages\CreateState;
+use App\Filament\Resources\StateResource\Pages\EditState;
+use App\Filament\Resources\StateResource\Pages\ListStates;
+use App\Models\Country;
 use App\Models\State;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Illuminate\Database\Eloquent\Model;
-use App\Models\Country;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class StateResource extends Resource
 {
     protected static ?string $model = State::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-globe-alt';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-globe-alt';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('name')
                     ->label(__('State name'))
                     ->maxLength(100)
@@ -42,7 +42,7 @@ class StateResource extends Resource
                             ->pluck('country_name', 'id'),
                     )
                     ->formatStateUsing(function ($state, $record) {
-                        if ($record && $record->country && !$record->country->is_active) {
+                        if ($record && $record->country && ! $record->country->is_active) {
                             return null;
                         }
 
@@ -79,17 +79,17 @@ class StateResource extends Resource
                 SelectFilter::make('country')
                     ->label(__('Country name'))
                     ->relationship(
-                        'country', 
-                        'country_name', 
+                        'country',
+                        'country_name',
                         fn (Builder $query) => $query->active()
                     ),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -104,9 +104,9 @@ class StateResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListStates::route('/'),
-            'create' => Pages\CreateState::route('/create'),
-            'edit' => Pages\EditState::route('/{record}/edit'),
+            'index' => ListStates::route('/'),
+            'create' => CreateState::route('/create'),
+            'edit' => EditState::route('/{record}/edit'),
         ];
     }
 
@@ -120,7 +120,7 @@ class StateResource extends Resource
         return __('States');
     }
 
-    public static function getModelLabel(): string 
+    public static function getModelLabel(): string
     {
         return __('state');
     }

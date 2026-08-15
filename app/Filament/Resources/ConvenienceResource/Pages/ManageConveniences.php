@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ConvenienceResource\Pages;
 
 use App\Filament\Resources\ConvenienceResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 
 class ManageConveniences extends ManageRecords
@@ -13,7 +13,7 @@ class ManageConveniences extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

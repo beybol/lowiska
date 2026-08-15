@@ -3,20 +3,19 @@
 namespace App\Filament\Resources\CompanyResource\Pages;
 
 use App\Filament\Resources\CompanyResource;
-use App\Filament\Resources\FisheryResource;
-use Filament\Actions;
-use Filament\Resources\Pages\CreateRecord;
-use Filament\Actions\Action;
 use App\Helpers\Helper;
+use App\Models\Company;
+use Filament\Actions\Action;
+use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Company;
 
 class CreateCompany extends CreateRecord
 {
     protected static string $resource = CompanyResource::class;
 
     public bool $wizard = false;
+
     public ?int $companyId = null;
 
     public function mount(): void
@@ -28,7 +27,7 @@ class CreateCompany extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['user_id'] = auth()->id();
-        
+
         return $data;
     }
 
@@ -88,7 +87,7 @@ class CreateCompany extends CreateRecord
     {
         $company = static::getModel()::create($data);
         $this->companyId = $company->id;
-        
+
         return $company;
     }
 

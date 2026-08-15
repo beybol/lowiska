@@ -31,11 +31,11 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
 
-        if ($user && !$user->two_factor_code) {
+        if ($user && ! $user->two_factor_code) {
             $user->generateTwoFactorCode();
-            $user->notify(new SendTwoFactorCode());
+            $user->notify(new SendTwoFactorCode);
             $request->session()->put('two_factor_source', 'breeze');
-            
+
             return redirect()->route('verify.index');
         }
 

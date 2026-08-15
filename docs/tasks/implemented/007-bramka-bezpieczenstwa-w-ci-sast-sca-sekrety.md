@@ -38,7 +38,7 @@ wszystkie były błędami logiki. Bramka ma łapać to, co masowe i tanie do prz
    (`base → vendor → assets → dev/prod`, ADR-002). To otworzyło opcję, której projekt źródłowy nie
    miał: uruchomienie SCA/SAST jako **etapu budowania Dockera**, reużywającego `base`, zamiast
    jako natywnych kroków na biegaczu GitHub Actions z `shivammathur/setup-php`. Rozstrzygnięte
-   w [ADR-005](../adr/ADR-005-mechanizm-uruchomienia-sast-sca-w-ci.md) — rekomendacja: natywny
+   w [ADR-005](../../adr/ADR-005-mechanizm-uruchomienia-sast-sca-w-ci.md) — rekomendacja: natywny
    biegacz.
 2. **`config.platform.php` jest już przypięty.** Projekt źródłowy odkrył w trakcie wdrożenia,
    że Composer rozwiązuje zależności wobec wersji PHP interpretera, nie wobec `require.php`, co
@@ -325,7 +325,7 @@ Zweryfikowane bezpośrednim wywołaniem `AppServiceProvider::assertUploadDiskIsS
 <!-- Numery ADR-ów podjętych dla tego zadania (uzupełnia /review-task).
      Tylko decyzje spełniające trzyskładnikowe kryterium z CLAUDE.md —
      reszta idzie do „Rozstrzygnięcia" powyżej. -->
-- [**ADR-005 — SCA/SAST w CI: natywny biegacz GitHub Actions, nie etap Dockera**](../adr/ADR-005-mechanizm-uruchomienia-sast-sca-w-ci.md)
+- [**ADR-005 — SCA/SAST w CI: natywny biegacz GitHub Actions, nie etap Dockera**](../../adr/ADR-005-mechanizm-uruchomienia-sast-sca-w-ci.md)
   — **status: proposed, sekcja „Decyzja" do wypełnienia przez autora.** Rekomendacja: Opcja A
   (`shivammathur/setup-php` + `composer install` natywnie na biegaczu, nie nowy cel `security`
   w `Dockerfile`). Kwalifikuje się jako ADR, nie rozstrzygnięcie: zasięg wykracza poza to zadanie
@@ -337,7 +337,7 @@ Zweryfikowane bezpośrednim wywołaniem `AppServiceProvider::assertUploadDiskIsS
 ## Otwarte pytania — zamknięte przy `/review-task` (2026-08-15)
 
 - ~~**SCA/SAST jako etap Dockera czy jako natywne kroki na biegaczu GitHub Actions?**~~ →
-  **[ADR-005](../adr/ADR-005-mechanizm-uruchomienia-sast-sca-w-ci.md)**, rekomendacja: natywny
+  **[ADR-005](../../adr/ADR-005-mechanizm-uruchomienia-sast-sca-w-ci.md)**, rekomendacja: natywny
   biegacz.
 - ~~**Czy gitleaks skanuje też w ramach etapu Dockera, czy wyłącznie jako natywny krok?**~~ →
   **Natywny krok**, niezależnie od decyzji ADR-005 — patrz „Rozstrzygnięcia".

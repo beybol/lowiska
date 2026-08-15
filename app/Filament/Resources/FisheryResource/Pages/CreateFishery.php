@@ -3,17 +3,17 @@
 namespace App\Filament\Resources\FisheryResource\Pages;
 
 use App\Filament\Resources\FisheryResource;
-use Filament\Actions;
-use Filament\Resources\Pages\CreateRecord;
 use App\Helpers\Helper;
-use Illuminate\Contracts\View\View;
 use Filament\Actions\Action;
+use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Contracts\View\View;
 
 class CreateFishery extends CreateRecord
 {
     protected static string $resource = FisheryResource::class;
 
     public bool $wizard = false;
+
     public ?int $companyId = null;
 
     protected function mutateFormDataBeforeCreate(array $data): array
@@ -60,7 +60,7 @@ class CreateFishery extends CreateRecord
                 $url = 'filament.owner.pages.verify-company';
                 $urlParameters = ['company' => $this->companyId];
             }
-            
+
             return [
                 Action::make('createFishery')
                     ->label(__('Create fishery'))

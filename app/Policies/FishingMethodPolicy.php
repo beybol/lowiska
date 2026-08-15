@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\FishingMethod;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class FishingMethodPolicy
@@ -15,7 +15,7 @@ class FishingMethodPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_fishing::method');
+        return $user->can('view_any:fishing_method');
     }
 
     /**
@@ -23,7 +23,7 @@ class FishingMethodPolicy
      */
     public function view(User $user, FishingMethod $fishingMethod): bool
     {
-        return $user->can('view_fishing::method');
+        return $user->can('view:fishing_method');
     }
 
     /**
@@ -31,7 +31,7 @@ class FishingMethodPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_fishing::method');
+        return $user->can('create:fishing_method');
     }
 
     /**
@@ -39,7 +39,7 @@ class FishingMethodPolicy
      */
     public function update(User $user, FishingMethod $fishingMethod): bool
     {
-        return $user->can('update_fishing::method');
+        return $user->can('update:fishing_method');
     }
 
     /**
@@ -47,7 +47,7 @@ class FishingMethodPolicy
      */
     public function delete(User $user, FishingMethod $fishingMethod): bool
     {
-        return $user->can('delete_fishing::method');
+        return $user->can('delete:fishing_method');
     }
 
     /**
@@ -55,7 +55,7 @@ class FishingMethodPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_fishing::method');
+        return $user->can('delete_any:fishing_method');
     }
 
     /**
@@ -63,7 +63,7 @@ class FishingMethodPolicy
      */
     public function forceDelete(User $user, FishingMethod $fishingMethod): bool
     {
-        return $user->can('force_delete_fishing::method');
+        return $user->can('force_delete:fishing_method');
     }
 
     /**
@@ -71,7 +71,7 @@ class FishingMethodPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_fishing::method');
+        return $user->can('force_delete_any:fishing_method');
     }
 
     /**
@@ -79,7 +79,7 @@ class FishingMethodPolicy
      */
     public function restore(User $user, FishingMethod $fishingMethod): bool
     {
-        return $user->can('restore_fishing::method');
+        return $user->can('restore:fishing_method');
     }
 
     /**
@@ -87,7 +87,7 @@ class FishingMethodPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_fishing::method');
+        return $user->can('restore_any:fishing_method');
     }
 
     /**
@@ -95,7 +95,7 @@ class FishingMethodPolicy
      */
     public function replicate(User $user, FishingMethod $fishingMethod): bool
     {
-        return $user->can('replicate_fishing::method');
+        return $user->can('replicate:fishing_method');
     }
 
     /**
@@ -103,6 +103,6 @@ class FishingMethodPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_fishing::method');
+        return $user->can('reorder:fishing_method');
     }
 }

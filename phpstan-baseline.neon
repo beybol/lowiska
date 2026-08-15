@@ -13,7 +13,7 @@ parameters:
 			path: app/Filament/Resources/AdditionalServiceResource/Pages/EditAdditionalService.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:forCurrentUser\(\)\.$#'
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:forCurrentUser\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: app/Filament/Resources/CompanyResource.php
@@ -31,13 +31,13 @@ parameters:
 			path: app/Filament/Resources/CompanyResource/Pages/CreateCompany.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:forCurrentUser\(\)\.$#'
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Company\>\:\:forCurrentUser\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: app/Filament/Resources/FisheryResource.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Company\>\:\:forCurrentUser\(\)\.$#'
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:forCurrentUser\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: app/Filament/Resources/FisheryResource.php

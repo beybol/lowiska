@@ -48,10 +48,10 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          # ⚠️ PHP 8.3 jest przypięte w CZTERECH miejscach i zmienia się WYŁĄCZNIE razem:
+          # ⚠️ PHP 8.4 jest przypięte w CZTERECH miejscach i zmienia się WYŁĄCZNIE razem:
           # Dockerfile · composer.json (config.platform.php) · phpstan.neon (phpVersion)
           # · ten krok. Patrz CLAUDE.md, sekcja „Bezpieczeństwo w CI".
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: pdo_mysql, mbstring, exif, pcntl, bcmath, gd, zip, intl, soap
           coverage: none
 

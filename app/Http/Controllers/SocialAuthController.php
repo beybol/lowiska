@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Laravel\Socialite\Facades\Socialite;
-use App\Models\User;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Filament\Facades\Filament;
 use App\Helpers\Helper;
+use App\Models\User;
+use Filament\Facades\Filament;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Laravel\Socialite\Facades\Socialite;
 
 class SocialAuthController extends Controller
 {
@@ -16,7 +15,7 @@ class SocialAuthController extends Controller
     {
         $source = $request->get('source', 'breeze');
         session(['social_auth_source' => $source]);
-        
+
         return Socialite::driver($provider)->redirect();
     }
 
@@ -53,7 +52,7 @@ class SocialAuthController extends Controller
 
         $source = session('social_auth_source', 'breeze');
         session()->forget('social_auth_source');
-        
+
         if ($source === 'breeze') {
             return redirect()->route('dashboard');
         } else {

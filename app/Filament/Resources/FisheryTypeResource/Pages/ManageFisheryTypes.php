@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\FisheryTypeResource\Pages;
 
 use App\Filament\Resources\FisheryTypeResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 
 class ManageFisheryTypes extends ManageRecords
@@ -13,7 +13,7 @@ class ManageFisheryTypes extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 

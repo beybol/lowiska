@@ -62,10 +62,10 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('verify', [TwoFactorController::class, 'index'])
         ->name('verify.index');
-        
+
     Route::post('verify', [TwoFactorController::class, 'store'])
         ->name('verify.store');
-        
+
     Route::post('verify/resend', [TwoFactorController::class, 'resend'])
         ->name('verify.resend');
 });

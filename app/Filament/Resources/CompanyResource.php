@@ -2,47 +2,47 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\CompanyResource\Pages;
-use App\Filament\Resources\CompanyResource\RelationManagers;
+use App\Filament\Resources\CompanyResource\Pages\CreateCompany;
+use App\Filament\Resources\CompanyResource\Pages\EditCompany;
+use App\Filament\Resources\CompanyResource\Pages\ListCompanies;
+use App\Helpers\Helper;
 use App\Models\Company;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Models\User;
-use Filament\Forms\Components\Toggle;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Actions;
-use Filament\Forms\Components\Actions\Action;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Get;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
-use App\Helpers\Helper;
-use Filament\Facades\Filament;
 
 class CompanyResource extends Resource
 {
     protected static ?string $model = Company::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-building-office';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-building-office';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Toggle::make('is_verified')
-                    ->hidden(fn() => Helper::isOwnerPanel())
+                    ->hidden(fn () => Helper::isOwnerPanel())
                     ->label(__('Verified')),
                 Select::make('user_id')
                     ->required()
-                    ->hidden(fn() => Helper::isOwnerPanel())
+                    ->hidden(fn () => Helper::isOwnerPanel())
                     ->label(__('Company entered by'))
                     ->disabled()
                     ->relationship('user', 'name')
@@ -50,8 +50,8 @@ class CompanyResource extends Resource
                         return $user->getFilamentName();
                     })
                     ->default(function (?Company $record) {
-                        return $record === null 
-                            ? auth()->id() 
+                        return $record === null
+                            ? auth()->id()
                             : $record->user_id;
                     }),
                 Section::make(__('Get data from CSO'))
@@ -71,12 +71,20 @@ class CompanyResource extends Resource
                                 ->label(__('Get data from CSO'))
                                 ->action(Helper::fetchDataFromCSO(...)),
                         ]),
-                        Placeholder::make('error')
+                        // ⚠️ Nazwa tego komponentu NIE MOŻE być równa kluczowi stanu,
+                        // który sam odczytuje (`error`, ustawiany przez
+                        // Helper::fetchDataFromCSO). Do Filamenta 3 nazywał się
+                        // `error` i działało; od Filamenta 4/5 (wspólny Schema)
+                        // `$get('error')` wewnątrz zawartości komponentu o tej samej
+                        // nazwie odpytuje sam siebie — rekurencja bez dna, która
+                        // zjadała ponad 6 GB i wywracała proces, a nie rzucała
+                        // czytelnym błędem (zadanie 009).
+                        Placeholder::make('cso_error_message')
                             ->content(function (Get $get) {
-                                return new HTMLString(
+                                return new HtmlString(
                                     '<div class="text-danger-600">'
-                                        . $get('error')
-                                        . '</div>'
+                                        .$get('error')
+                                        .'</div>'
                                 );
                             })
                             ->label(''),
@@ -115,7 +123,7 @@ class CompanyResource extends Resource
             ->columns([
                 ToggleColumn::make('is_verified')
                     ->label(__('Verified'))
-                    ->hidden(fn() => Helper::isOwnerPanel()),
+                    ->hidden(fn () => Helper::isOwnerPanel()),
                 TextColumn::make('name')
                     ->label(__('Company name'))
                     ->sortable()
@@ -128,12 +136,12 @@ class CompanyResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -148,9 +156,9 @@ class CompanyResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCompanies::route('/'),
-            'create' => Pages\CreateCompany::route('/create'),
-            'edit' => Pages\EditCompany::route('/{record}/edit'),
+            'index' => ListCompanies::route('/'),
+            'create' => CreateCompany::route('/create'),
+            'edit' => EditCompany::route('/{record}/edit'),
         ];
     }
 
@@ -164,7 +172,8 @@ class CompanyResource extends Resource
         return __('Companies');
     }
 
-    public static function getModelLabel(): string {
+    public static function getModelLabel(): string
+    {
         return __('company');
     }
 
@@ -175,7 +184,7 @@ class CompanyResource extends Resource
         if (Helper::isOwnerPanel()) {
             $query->forCurrentUser();
         }
-        
+
         return $query->with('user', 'state');
     }
 }

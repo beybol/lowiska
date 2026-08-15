@@ -2,29 +2,29 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\Login;
+use App\Filament\Pages\Auth\Register;
+use App\Filament\Resources\AdditionalServiceResource;
+use App\Filament\Resources\CompanyResource;
+use App\Filament\Resources\FisheryResource;
+use App\Filament\Resources\LongTermPermitResource;
+use App\Filament\Resources\PositionResource;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages;
+use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets;
+use Filament\Widgets\AccountWidget;
+use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use App\Http\Middleware\TwoFactorMiddleware;
-use App\Filament\Pages\Auth\Login;
-use App\Filament\Pages\Auth\Register;
-use App\Filament\Resources\CompanyResource;
-use App\Filament\Resources\FisheryResource;
-use App\Filament\Resources\LongTermPermitResource;
-use App\Filament\Resources\AdditionalServiceResource;
-use App\Filament\Resources\PositionResource;
 
 class OwnerPanelProvider extends PanelProvider
 {
@@ -45,18 +45,18 @@ class OwnerPanelProvider extends PanelProvider
                 CompanyResource::class,
                 FisheryResource::class,
                 LongTermPermitResource::class,
-                AdditionalServiceResource ::class,
+                AdditionalServiceResource::class,
                 PositionResource::class,
             ])
             ->discoverResources(in: app_path('Filament/Owner/Resources'), for: 'App\\Filament\\Owner\\Resources')
             ->discoverPages(in: app_path('Filament/Owner/Pages'), for: 'App\\Filament\\Owner\\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Owner/Widgets'), for: 'App\\Filament\\Owner\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+                AccountWidget::class,
+                FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -64,7 +64,7 @@ class OwnerPanelProvider extends PanelProvider
                 StartSession::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
-                VerifyCsrfToken::class,
+                PreventRequestForgery::class,
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,

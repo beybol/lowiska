@@ -1,6 +1,6 @@
 # Łowiska
 
-Aplikacja Laravel 12 z dwoma panelami Filament 3.3, obsługująca katalog i zarządzanie łowiskami
+Aplikacja Laravel 13 z dwoma panelami Filament 5, obsługująca katalog i zarządzanie łowiskami
 wędkarskimi. Adresowana do dwóch grup: **właścicieli i operatorów** łowisk komercyjnych (zarządzanie
 obiektem, sprzedaż pozwoleń online) oraz **wędkarzy** (wykupienie pozwolenia, rezerwacja stanowiska).
 

@@ -37,12 +37,16 @@ class MakeAdminCommand extends Command
         // freshly-provisioned system has zero permissions in the database — syncing
         // an empty/partial Permission::all() would leave the role just as blind as
         // it started. Generate first, then sync.
+        //
+        // --silent replaced --minimal in Shield 4 (zadanie 009); --option=permissions
+        // still keeps the generator off app/Policies/, which this project maintains
+        // by hand (see config/filament-shield.php, policies.generate => false).
         foreach (['admin', 'owner'] as $panel) {
             Artisan::call('shield:generate', [
                 '--panel' => $panel,
                 '--option' => 'permissions',
                 '--all' => true,
-                '--minimal' => true,
+                '--silent' => true,
             ]);
         }
 

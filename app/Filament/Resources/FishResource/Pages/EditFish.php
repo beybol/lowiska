@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources\FishResource\Pages;
 
 use App\Filament\Resources\FishResource;

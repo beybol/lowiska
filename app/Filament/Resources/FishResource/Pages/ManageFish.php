@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\FishResource\Pages;
 
 use App\Filament\Resources\FishResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 
 class ManageFish extends ManageRecords
@@ -13,7 +13,7 @@ class ManageFish extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

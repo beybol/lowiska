@@ -2,11 +2,12 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Fishery;
+use App\Models\LongTermPermit;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\LongTermPermit>
+ * @extends Factory<LongTermPermit>
  */
 class LongTermPermitFactory extends Factory
 {

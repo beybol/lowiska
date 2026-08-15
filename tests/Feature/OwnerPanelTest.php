@@ -2,22 +2,24 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use App\Helpers\Helper;
+use App\Models\AdditionalService;
 use App\Models\Company;
 use App\Models\Fishery;
-use App\Helpers\Helper;
-use App\Models\Position;
-use App\Models\AdditionalService;
 use App\Models\LongTermPermit;
+use App\Models\Position;
+use App\Models\User;
 
 test('Owner panel is accessible.', function () {
     $owner = User::factory()->create();
     Helper::addOwnerRole($owner);
 
+    // ⚠️ Zadanie 009: usunięto `assertSee(__('Panel'))` — patrz komentarz
+    // w tests/Feature/AdminPanelTest.php. Realnym dowodem, że panel się
+    // wyrenderował, są etykiety nawigacji sprawdzane niżej.
     $this->actingAs($owner)
         ->get('/owner')
         ->assertStatus(200)
-        ->assertSee(__('Panel'))
         ->assertSee(__('Companies'))
         ->assertDontSee(__('Fish'))
         ->assertDontSee(__('Conveniences'))
@@ -35,7 +37,7 @@ test('Admin has access to owner panel.', function () {
     $this->actingAs($admin)
         ->get('/owner')
         ->assertStatus(200)
-        ->assertSee(__('Panel'));
+        ->assertSee(__('Companies'));
 });
 
 test('Owner can view only his company.', function () {
@@ -75,7 +77,7 @@ test('Owner with company can view first wizard fishery step.', function () {
         ->get('/owner/companies/create?wizard=1')
         ->assertStatus(200)
         ->assertSee(__('Create fishery wizard'))
-        ->assertSeeText(__('Step') . ' 1 / 3')
+        ->assertSeeText(__('Step').' 1 / 3')
         ->assertSee(__('Before creating a fishery, you should choose or create a company.'))
         ->assertDontSee(__('Before creating a fishery, you should create a company.'))
         ->assertSee(__('Next'))
@@ -92,7 +94,7 @@ test('Owner without company can not view top choose company form.', function () 
         ->get('/owner/companies/create?wizard=1')
         ->assertStatus(200)
         ->assertSee(__('Create fishery wizard'))
-        ->assertSeeText(__('Step') . ' 1 / 3')
+        ->assertSeeText(__('Step').' 1 / 3')
         ->assertDontSee(__('Before creating a fishery, you should choose or create a company.'))
         ->assertSee(__('Before creating a fishery, you should create a company.'))
         ->assertSee(__('Next'))
@@ -108,10 +110,10 @@ test('Owner can see company verification screen.', function () {
     $company = Company::factory()->forUser($owner)->create();
 
     $this->actingAs($owner)
-        ->get('/owner/verify-company?company=' . $company->id)
+        ->get('/owner/verify-company?company='.$company->id)
         ->assertStatus(200)
         ->assertSee(__('Create fishery wizard'))
-        ->assertSeeText(__('Step') . ' 2 / 3')
+        ->assertSeeText(__('Step').' 2 / 3')
         ->assertSee(__('Verification transfer'))
         ->assertSee(__('Transfer for 1 złoty is required to verify company.'))
         ->assertSee(__('Next'))
@@ -124,10 +126,10 @@ test('Owner can see last fishery verification step.', function () {
     $company = Company::factory()->forUser($owner)->create();
 
     $this->actingAs($owner)
-        ->get('/owner/fisheries/create?company=' . $company->id . '&wizard=1')
+        ->get('/owner/fisheries/create?company='.$company->id.'&wizard=1')
         ->assertStatus(200)
         ->assertSee(__('Create fishery wizard'))
-        ->assertSeeText(__('Step') . ' 3 / 3')
+        ->assertSeeText(__('Step').' 3 / 3')
         ->assertSee(__('Final step - provide fishery details below.'))
         ->assertSee(__('Fishery address'))
         ->assertSee(__('Create fishery'))
@@ -163,7 +165,7 @@ test('See information about skipping step 2 if company was verified earlier.', f
     ]);
 
     $this->actingAs($owner)
-        ->get('/owner/fisheries/create?company=' . $company->id . '&wizard=1&verified_earlier=1')
+        ->get('/owner/fisheries/create?company='.$company->id.'&wizard=1&verified_earlier=1')
         ->assertStatus(200)
         ->assertSee(__('The selected company was verified earlier, so we skipped step 2.'));
 });
@@ -174,7 +176,7 @@ test('Not see information about skipping step 2 if company was not verified earl
     $company = Company::factory()->forUser($owner)->create();
 
     $this->actingAs($owner)
-        ->get('/owner/fisheries/create?company=' . $company->id . '&wizard=1')
+        ->get('/owner/fisheries/create?company='.$company->id.'&wizard=1')
         ->assertStatus(200)
         ->assertDontSee(__('The selected company was verified earlier, so we skipped step 2.'));
 });
@@ -197,7 +199,7 @@ test('Owner can view manage fishery page.', function () {
 
     $this->actingAs($owner)
         ->get("/owner/fisheries/{$fishery->id}/manage")
-        ->assertSee(__('Manage fishery') . ' ' . $fishery->name)
+        ->assertSee(__('Manage fishery').' '.$fishery->name)
         ->assertSee(__('Long term permits'))
         ->assertSee(__('Additional services'))
         ->assertSee(__('Positions'))

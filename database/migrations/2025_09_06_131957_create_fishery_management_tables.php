@@ -43,26 +43,26 @@ return new class extends Migration
         });
 
         Schema::create(
-            'additional_service_long_term_permit', 
+            'additional_service_long_term_permit',
             function (Blueprint $table) {
                 $table->unsignedBigInteger('additional_service_id');
                 $table->unsignedBigInteger('long_term_permit_id');
                 $table->foreign(
-                    'additional_service_id', 
+                    'additional_service_id',
                     'as_ltp_as_id_foreign',
                 )
                     ->references('id')
                     ->on('additional_services')
                     ->onDelete('cascade');
                 $table->foreign(
-                    'long_term_permit_id', 
+                    'long_term_permit_id',
                     'as_ltp_ltp_id_foreign',
                 )
                     ->references('id')
                     ->on('long_term_permits')
                     ->onDelete('cascade');
                 $table->primary(
-                    ['additional_service_id', 'long_term_permit_id'], 
+                    ['additional_service_id', 'long_term_permit_id'],
                     'as_ltp_primary',
                 );
             },
@@ -82,12 +82,12 @@ return new class extends Migration
         });
 
         Schema::create(
-            'additional_service_position', 
+            'additional_service_position',
             function (Blueprint $table) {
                 $table->unsignedBigInteger('additional_service_id');
                 $table->unsignedBigInteger('position_id');
                 $table->foreign(
-                    'additional_service_id', 
+                    'additional_service_id',
                     'as_pos_as_id_foreign',
                 )
                     ->references('id')
@@ -99,14 +99,14 @@ return new class extends Migration
                     ->onDelete('cascade');
                 $table->boolean('is_required')->default(false);
                 $table->primary(
-                    ['additional_service_id', 'position_id'], 
+                    ['additional_service_id', 'position_id'],
                     'as_pos_primary',
                 );
             }
         );
 
         Schema::create(
-            'long_term_permit_position', 
+            'long_term_permit_position',
             function (Blueprint $table) {
                 $table->unsignedBigInteger('position_id');
                 $table->unsignedBigInteger('long_term_permit_id');
@@ -115,14 +115,14 @@ return new class extends Migration
                     ->on('positions')
                     ->onDelete('cascade');
                 $table->foreign(
-                    'long_term_permit_id', 
+                    'long_term_permit_id',
                     'ltp_pos_ltp_id_foreign'
                 )
                     ->references('id')
                     ->on('long_term_permits')
                     ->onDelete('cascade');
                 $table->primary(
-                    ['position_id', 'long_term_permit_id'], 
+                    ['position_id', 'long_term_permit_id'],
                     'ltp_pos_primary',
                 );
             }

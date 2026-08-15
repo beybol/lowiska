@@ -2,9 +2,9 @@
 
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Hash;
 
 test('reset password link screen can be rendered', function () {
     $response = $this->get('/forgot-password');
@@ -27,7 +27,7 @@ test('reset password screen can be rendered', function () {
 
 test('password can be reset with valid token', function () {
     $user = User::factory()->create([
-        'password' => bcrypt('old-password')
+        'password' => bcrypt('old-password'),
     ]);
     $token = Password::createToken($user);
     $status = Password::reset([
@@ -41,8 +41,8 @@ test('password can be reset with valid token', function () {
     });
 
     $this->assertEquals(Password::PASSWORD_RESET, $status);
-    
+
     $user->refresh();
-    
+
     $this->assertTrue(Hash::check('new-password', $user->password));
 });

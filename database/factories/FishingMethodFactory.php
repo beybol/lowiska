@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\FishingMethod;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\FishingMethod>
+ * @extends Factory<FishingMethod>
  */
 class FishingMethodFactory extends Factory
 {

@@ -2,23 +2,24 @@
 
 namespace App\Helpers;
 
+use App\Filament\Resources\FisheryResource;
 use App\Models\Company;
 use App\Models\Country;
-use Filament\Forms\Set;
-use Filament\Actions\Action;
-use Filament\Facades\Filament;
-use Illuminate\Support\Collection;
+use App\Models\Fishery;
 use App\Models\State;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
-use Filament\Forms\Get;
 use App\Services\CSOService;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Hidden;
-use App\Models\Fishery;
+use Collator;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
-use App\Filament\Resources\FisheryResource;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Support\Collection;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class Helper
 {
@@ -29,8 +30,8 @@ class Helper
                 ->mapWithKeys(function ($item) {
                     return [
                         $item['additional_service_id'] => [
-                            'is_required' => $item['is_required'] ?? false
-                        ]
+                            'is_required' => $item['is_required'] ?? false,
+                        ],
                     ];
                 })
                 ->toArray()
@@ -41,17 +42,19 @@ class Helper
     {
         $services = $data['additionalServices'] ?? [];
         unset($data['additionalServices']);
+
         return $services;
     }
 
     public static function getFisheryTitle(?int $fisheryId, string $baseLabel): string
     {
         if ($fisheryId) {
-            $fishery = \App\Models\Fishery::find($fisheryId);
+            $fishery = Fishery::find($fisheryId);
             if ($fishery) {
-                return __($baseLabel . ' for fishery') . ' ' . $fishery->name;
+                return __($baseLabel.' for fishery').' '.$fishery->name;
             }
         }
+
         return __($baseLabel);
     }
 
@@ -66,7 +69,7 @@ class Helper
         } else {
             $actions[] = CreateAction::make();
         }
-        
+
         return $actions;
     }
 
@@ -76,6 +79,7 @@ class Helper
             $record->fishery_id ?? null,
             'cancel',
         );
+
         return [
             $saveAction,
             $cancelActionModifier($cancelAction),
@@ -84,15 +88,14 @@ class Helper
 
     public static function assertFisheryAccessOrAbort(
         ?int $fisheryId = null,
-    ): void
-    {
+    ): void {
         $fisheryId = $fisheryId ?? request()->get('fishery');
 
-        if (!$fisheryId) {
+        if (! $fisheryId) {
             abort(404);
         }
 
-        $currentPanel = Filament::getCurrentPanel()?->getId();
+        $currentPanel = Filament::getCurrentOrDefaultPanel()?->getId();
 
         if ($currentPanel === 'admin') {
             $fishery = Fishery::find($fisheryId);
@@ -100,12 +103,13 @@ class Helper
             $fishery = Fishery::query()->forCurrentUser()->find($fisheryId);
         }
 
-        if (!$fishery) {
+        if (! $fishery) {
             abort(404);
         }
     }
 
-    public static function getRichEditorOptions() {
+    public static function getRichEditorOptions()
+    {
         return [
             'bold',
             'bulletList',
@@ -162,8 +166,8 @@ class Helper
 
     public static function getSortedCountries(): Collection
     {
-        $collator = new \Collator(app()->getLocale());
-        
+        $collator = new Collator(app()->getLocale());
+
         return Country::active()
             ->get()
             ->sort(function ($country1, $country2) use ($collator) {
@@ -178,7 +182,7 @@ class Helper
     {
         return self::getSortedCountries()
             ->mapWithKeys(function ($country) {
-                $label = __($country->country_name) . ", {$country->prefix}";
+                $label = __($country->country_name).", {$country->prefix}";
 
                 return [$country->id => $label];
             })
@@ -187,50 +191,49 @@ class Helper
 
     public static function getSocialAuthActions(
         string $actionType = 'login'
-    ): array
-    {
-        $currentPanel = Filament::getCurrentPanel();
+    ): array {
+        $currentPanel = Filament::getCurrentOrDefaultPanel();
         $panelId = $currentPanel ? $currentPanel->getId() : 'admin';
-        
+
         return [
-            Action::make($actionType . '_google')
+            Action::make($actionType.'_google')
                 ->label(__(
-                    $actionType === 'login' 
-                        ? 'Login with Google' 
+                    $actionType === 'login'
+                        ? 'Login with Google'
                         : 'Register with Google'
-                    ))
+                ))
                 ->color('gray')
                 ->icon(fn () => view('components.icons.google'))
                 ->url(route('social.redirect', [
-                    'provider' => 'google', 
-                    'source' => $panelId
+                'provider' => 'google',
+                'source' => $panelId,
                 ])),
-            Action::make($actionType . '_facebook')
+            Action::make($actionType.'_facebook')
                 ->label(__(
-                    $actionType === 'login' 
-                        ? 'Login with Facebook' 
+                    $actionType === 'login'
+                        ? 'Login with Facebook'
                         : 'Register with Facebook'
                 ))
                 ->color('gray')
                 ->icon(fn () => view('components.icons.facebook'))
                 ->url(route('social.redirect', [
-                    'provider' => 'facebook', 
-                    'source' => $panelId
+                    'provider' => 'facebook',
+                    'source' => $panelId,
                 ])),
         ];
     }
 
     public static function isOwnerPanel(): bool
     {
-        $panel = Filament::getCurrentPanel();
-        
+        $panel = Filament::getCurrentOrDefaultPanel();
+
         return $panel?->getId() === 'owner';
     }
 
-    public static function sortStates() 
+    public static function sortStates()
     {
-        $collator = new \Collator(app()->getLocale());
-        
+        $collator = new Collator(app()->getLocale());
+
         return State::all()
             ->sort(function ($state1, $state2) use ($collator) {
                 return $collator->compare(
@@ -239,58 +242,58 @@ class Helper
                 );
             })
             ->pluck('name', 'id')
-            ->map(fn($name) => __($name));
+            ->map(fn ($name) => __($name));
     }
 
     public static function sortedCompanies($query = null, $modelsOnly = false)
     {
-        $collator = new \Collator(app()->getLocale());
+        $collator = new Collator(app()->getLocale());
         $companies = $query ?? Company::query();
-        
+
         $sortedCompanies = $companies->get()
             ->sort(function ($company1, $company2) use ($collator) {
                 return $collator->compare($company1->name, $company2->name);
             });
 
-        return $modelsOnly 
-            ? $sortedCompanies 
+        return $modelsOnly
+            ? $sortedCompanies
             : $sortedCompanies->pluck('name', 'id');
     }
 
     public static function addOwnerRole(User $user)
     {
         $companyPermissions = [
-            'view_any_company',
-            'view_company',
-            'create_company',
-            'update_company',
-            'delete_company',
-            'delete_any_company',
-            'force_delete_company',
-            'force_delete_any_company',
-            'restore_company',
-            'restore_any_company',
-            'replicate_company',
-            'reorder_company',
+            'view_any:company',
+            'view:company',
+            'create:company',
+            'update:company',
+            'delete:company',
+            'delete_any:company',
+            'force_delete:company',
+            'force_delete_any:company',
+            'restore:company',
+            'restore_any:company',
+            'replicate:company',
+            'reorder:company',
         ];
-        
+
         foreach ($companyPermissions as $permission) {
             Permission::firstOrCreate(['name' => $permission]);
         }
 
         $fisheryPermissions = [
-            'view_any_fishery',
-            'view_fishery',
-            'create_fishery',
-            'update_fishery',
-            'delete_fishery',
-            'delete_any_fishery',
-            'force_delete_fishery',
-            'force_delete_any_fishery',
-            'restore_fishery',
-            'restore_any_fishery',
-            'replicate_fishery',
-            'reorder_fishery',
+            'view_any:fishery',
+            'view:fishery',
+            'create:fishery',
+            'update:fishery',
+            'delete:fishery',
+            'delete_any:fishery',
+            'force_delete:fishery',
+            'force_delete_any:fishery',
+            'restore:fishery',
+            'restore_any:fishery',
+            'replicate:fishery',
+            'reorder:fishery',
         ];
 
         foreach ($fisheryPermissions as $permission) {
@@ -303,24 +306,24 @@ class Helper
     }
 
     public static function fetchDataFromCSO(
-        Get $get, 
-        Set $set, 
+        Get $get,
+        Set $set,
         ?Company $record
     ): void {
         $tin = trim($get('tin'));
         $renae = trim($get('renae'));
 
-        if (!$tin && !$renae) {
+        if (! $tin && ! $renae) {
             $set(
-                'error', 
+                'error',
                 __('Please provide TIN or RENAE number to fetch data from CSO.'),
             );
 
             return;
         }
 
-        if ($tin && !CSOService::isValidTIN($tin)) {
-            if ($renae && !CSOService::isValidRENAE($renae)) {
+        if ($tin && ! CSOService::isValidTIN($tin)) {
+            if ($renae && ! CSOService::isValidRENAE($renae)) {
                 $set('error', __('Invalid TIN and RENAE format.'));
 
                 return;
@@ -331,7 +334,7 @@ class Helper
             return;
         }
 
-        if ($renae && !CSOService::isValidRENAE($renae)) {
+        if ($renae && ! CSOService::isValidRENAE($renae)) {
             $set('error', __('Invalid RENAE format.'));
 
             return;
@@ -340,10 +343,10 @@ class Helper
         $company = Company::query()->findByNumber($tin, $renae)->first();
 
         if ($company) {
-            if (!$record || $company->id !== $record->id) {
+            if (! $record || $company->id !== $record->id) {
                 $currentUser = Filament::auth()->user();
                 $companyUser = $company->user;
-                
+
                 if ($companyUser->is($currentUser)) {
                     $set(
                         'error',
@@ -367,18 +370,16 @@ class Helper
                 Helper::setAddress($set, $address);
             } else {
                 $set(
-                    'error', 
+                    'error',
                     __('TIN and RENAE do not match. Please check numbers and try again.'),
                 );
             }
         } else {
             if ($tin) {
-                $address = CSOService
-                    ::fetchAddress($tin, true);
+                $address = CSOService::fetchAddress($tin, true);
                 Helper::setAddress($set, $address);
             } elseif ($renae) {
-                $address = CSOService::
-                    fetchAddress($renae);
+                $address = CSOService::fetchAddress($renae);
                 Helper::setAddress($set, $address);
             }
         }
@@ -395,7 +396,7 @@ class Helper
                     ->rules([
                         'nullable',
                         'regex:/^(?!0,00$)\d+,\d{2}$/',
-                        'min:0.01'
+                        'min:0.01',
                     ])
                     ->placeholder('100,00')
                     ->helperText(__('Format: 100,00 (używaj przecinka).'));
@@ -403,9 +404,9 @@ class Helper
             ->when($language !== 'pl', function ($component) {
                 return $component
                     ->rules([
-                        'nullable', 
+                        'nullable',
                         'regex:/^(?!0\.00$)\d+\.\d{2}$/',
-                        'min:0.01'
+                        'min:0.01',
                     ])
                     ->step(0.01)
                     ->inputMode('decimal')
@@ -424,7 +425,7 @@ class Helper
                     if ($record && $record->fishery) {
                         $component->state($record->fishery->name);
                     } elseif ($fisheryId = request()->get('fishery')) {
-                        $fishery = \App\Models\Fishery::find($fisheryId);
+                        $fishery = Fishery::find($fisheryId);
                         $component->state($fishery?->name);
                     }
                 })
@@ -436,7 +437,7 @@ class Helper
                     }
 
                     $fisheryId = request()->get('fishery');
-                    if (!$fisheryId && $livewire && property_exists($livewire, 'record') && $livewire->record && $livewire->record->fishery_id) {
+                    if (! $fisheryId && $livewire && property_exists($livewire, 'record') && $livewire->record && $livewire->record->fishery_id) {
                         $fisheryId = $livewire->record->fishery_id;
                     }
 
@@ -450,15 +451,15 @@ class Helper
     {
         $url = function () use ($fisheryId) {
             $id = $fisheryId;
-            
-            if (!$id) {
+
+            if (! $id) {
                 $id = request()->get('fishery');
             }
-            
-            if (!$id && isset($this->record)) {
+
+            if (! $id && isset($this->record)) {
                 $id = $this->record->fishery_id;
             }
-            
+
             if ($id) {
                 return FisheryResource::getUrl('manage', ['record' => $id]);
             }
@@ -467,7 +468,7 @@ class Helper
         };
 
         if ($actionType === 'cancel') {
-            return function($cancelAction) use ($url) {
+            return function ($cancelAction) use ($url) {
                 return $cancelAction
                     ->label(__('Back to fishery management'))
                     ->url($url);
@@ -483,10 +484,10 @@ class Helper
     public static function getFisheryManagementEditFormActions(): array
     {
         $cancelActionModifier = Helper::getBackToFisheryManagementAction(
-            $this->record->fishery_id, 
+            $this->record->fishery_id,
             'cancel',
         );
-        
+
         return [
             $this->getSaveFormAction(),
             $cancelActionModifier($this->getCancelFormAction()),

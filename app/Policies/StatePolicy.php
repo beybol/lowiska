@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\State;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class StatePolicy
@@ -15,7 +15,7 @@ class StatePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_state');
+        return $user->can('view_any:state');
     }
 
     /**
@@ -23,7 +23,7 @@ class StatePolicy
      */
     public function view(User $user, State $state): bool
     {
-        return $user->can('view_state');
+        return $user->can('view:state');
     }
 
     /**
@@ -31,7 +31,7 @@ class StatePolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_state');
+        return $user->can('create:state');
     }
 
     /**
@@ -39,7 +39,7 @@ class StatePolicy
      */
     public function update(User $user, State $state): bool
     {
-        return $user->can('update_state');
+        return $user->can('update:state');
     }
 
     /**
@@ -47,7 +47,7 @@ class StatePolicy
      */
     public function delete(User $user, State $state): bool
     {
-        return $user->can('delete_state');
+        return $user->can('delete:state');
     }
 
     /**
@@ -55,7 +55,7 @@ class StatePolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_state');
+        return $user->can('delete_any:state');
     }
 
     /**
@@ -63,7 +63,7 @@ class StatePolicy
      */
     public function forceDelete(User $user, State $state): bool
     {
-        return $user->can('force_delete_state');
+        return $user->can('force_delete:state');
     }
 
     /**
@@ -71,7 +71,7 @@ class StatePolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_state');
+        return $user->can('force_delete_any:state');
     }
 
     /**
@@ -79,7 +79,7 @@ class StatePolicy
      */
     public function restore(User $user, State $state): bool
     {
-        return $user->can('restore_state');
+        return $user->can('restore:state');
     }
 
     /**
@@ -87,7 +87,7 @@ class StatePolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_state');
+        return $user->can('restore_any:state');
     }
 
     /**
@@ -95,7 +95,7 @@ class StatePolicy
      */
     public function replicate(User $user, State $state): bool
     {
-        return $user->can('replicate_state');
+        return $user->can('replicate:state');
     }
 
     /**
@@ -103,6 +103,6 @@ class StatePolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_state');
+        return $user->can('reorder:state');
     }
 }

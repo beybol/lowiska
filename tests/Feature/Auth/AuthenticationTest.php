@@ -11,20 +11,20 @@ test('login screen can be rendered', function () {
 
 test('users can authenticate using the login screen', function () {
     $user = User::factory()->create([
-        'password' => bcrypt('password')
+        'password' => bcrypt('password'),
     ]);
     $credentials = [
         'email' => $user->email,
         'password' => 'password',
     ];
-    
+
     $this->assertTrue(Auth::attempt($credentials));
     $this->assertAuthenticatedAs($user);
 });
 
 test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create([
-        'password' => bcrypt('password')
+        'password' => bcrypt('password'),
     ]);
 
     $credentials = [
@@ -39,10 +39,10 @@ test('users can not authenticate with invalid password', function () {
 test('users can logout', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    
+
     $this->assertAuthenticated();
 
     Auth::logout();
-    
+
     $this->assertGuest();
 });

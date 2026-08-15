@@ -2,44 +2,45 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PositionResource\Pages;
-use App\Filament\Resources\PositionResource\RelationManagers;
+use App\Filament\Resources\PositionResource\Pages\CreatePosition;
+use App\Filament\Resources\PositionResource\Pages\EditPosition;
+use App\Filament\Resources\PositionResource\Pages\ListPositions;
+use App\Helpers\Helper;
+use App\Models\AdditionalService;
+use App\Models\LongTermPermit;
 use App\Models\Position;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
-use Filament\Forms\Components\RichEditor;
-use App\Helpers\Helper;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\CheckboxList;
-use App\Models\LongTermPermit;
-use App\Models\AdditionalService;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Checkbox;
-use Filament\Forms\Get;
+use Filament\Tables\Table;
 
 class PositionResource extends Resource
 {
     protected static ?string $model = Position::class;
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-group';
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-group';
 
     public static function shouldRegisterNavigation(): bool
     {
         return false;
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 ...Helper::getFisheryFields(),
                 Toggle::make('is_active')
                     ->label(__('Is active')),
@@ -56,7 +57,7 @@ class PositionResource extends Resource
                     ->options(function (callable $get) {
                         $fisheryId = $get('fishery_id');
 
-                        if (!$fisheryId) {
+                        if (! $fisheryId) {
                             return [];
                         }
 
@@ -64,9 +65,8 @@ class PositionResource extends Resource
                             ->forFishery($fisheryId)
                             ->isActive()
                             ->get()
-                            ->mapWithKeys(function($item) {
-                                return [$item->id 
-                                    => strip_tags($item->description)];
+                            ->mapWithKeys(function ($item) {
+                                return [$item->id => strip_tags($item->description)];
                             })
                             ->toArray();
                     })
@@ -75,10 +75,10 @@ class PositionResource extends Resource
                     ->visible(function (callable $get) {
                         $fisheryId = $get('fishery_id');
 
-                        if (!$fisheryId) {
+                        if (! $fisheryId) {
                             return false;
                         }
-                        
+
                         return LongTermPermit::query()
                             ->forFishery($fisheryId)
                             ->isActive()
@@ -92,7 +92,7 @@ class PositionResource extends Resource
                             ->options(function (Get $get) {
                                 $fisheryId = $get('../../fishery_id') ?? request()->get('fishery');
 
-                                if (!$fisheryId) {
+                                if (! $fisheryId) {
                                     return [];
                                 }
 
@@ -131,12 +131,12 @@ class PositionResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -151,9 +151,9 @@ class PositionResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPositions::route('/'),
-            'create' => Pages\CreatePosition::route('/create'),
-            'edit' => Pages\EditPosition::route('/{record}/edit'),
+            'index' => ListPositions::route('/'),
+            'create' => CreatePosition::route('/create'),
+            'edit' => EditPosition::route('/{record}/edit'),
         ];
     }
 
@@ -162,7 +162,7 @@ class PositionResource extends Resource
         $data = $record->toArray();
         unset($data['additional_services']);
         $data['additionalServices'] = $record->additionalServices
-            ->map(fn($service) => [
+            ->map(fn ($service) => [
                 'additional_service_id' => $service->id,
                 'is_required' => $service->pivot->is_required,
             ])

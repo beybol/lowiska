@@ -15,6 +15,28 @@ abstract class TestCase extends BaseTestCase
     private const TEST_DATABASE = 'lowiska_test';
 
     /**
+     * Deklaruje język klienta testowego (zadanie 009).
+     *
+     * `phpunit.xml` wymusza `APP_LOCALE=pl` (zadanie 006), ale od
+     * filament-language-switch 5.x o locale ŻĄDANIA decyduje middleware
+     * `SwitchLanguageLocale`, który czyta m.in. nagłówek `Accept-Language`.
+     * Klient testowy Symfony wysyła domyślnie `en-us,en;q=0.5`, więc panele
+     * renderowały się po angielsku wbrew wymuszeniu z `phpunit.xml` — a wtedy
+     * `assertDontSee(__('Fish'))` pęka, bo „Fish" jest podciągiem „Fisheries"
+     * (po polsku „Ryby" i „Łowiska" nie kolidują).
+     *
+     * ⚠️ To nie jest obejście testu: aplikacja ma honorować `Accept-Language`
+     * i w przeglądarce robi to poprawnie. Brakowało wyłącznie tego, żeby sam
+     * pakiet testów powiedział, w jakim języku rozmawia.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withHeader('Accept-Language', 'pl');
+    }
+
+    /**
      * Trzecia z pięciu warstw izolacji pakietu testów (ADR-001).
      *
      * Sprawdza ROZWIĄZANE połączenie, nie same zmienne środowiskowe — dopiero
@@ -55,75 +77,75 @@ abstract class TestCase extends BaseTestCase
     }
 
     private array $companyPermissions = [
-        'view_any_company',
-        'view_company',
-        'create_company',
-        'update_company',
-        'delete_company',
+        'view_any:company',
+        'view:company',
+        'create:company',
+        'update:company',
+        'delete:company',
     ];
 
     private array $fisheryPermissions = [
-        'view_any_fishery',
-        'view_fishery',
-        'create_fishery',
-        'update_fishery',
-        'delete_fishery',
+        'view_any:fishery',
+        'view:fishery',
+        'create:fishery',
+        'update:fishery',
+        'delete:fishery',
     ];
 
     private array $conveniencePermissions = [
-        'view_any_convenience',
-        'view_convenience',
-        'create_convenience',
-        'update_convenience',
-        'delete_convenience',
+        'view_any:convenience',
+        'view:convenience',
+        'create:convenience',
+        'update:convenience',
+        'delete:convenience',
     ];
 
     private array $countryPermissions = [
-        'view_any_country',
-        'view_country',
-        'create_country',
-        'update_country',
-        'delete_country',
+        'view_any:country',
+        'view:country',
+        'create:country',
+        'update:country',
+        'delete:country',
     ];
 
     private array $fishPermissions = [
-        'view_any_fish',
-        'view_fish',
-        'create_fish',
-        'update_fish',
-        'delete_fish',
+        'view_any:fish',
+        'view:fish',
+        'create:fish',
+        'update:fish',
+        'delete:fish',
     ];
 
     private array $fisheryTypePermissions = [
-        'view_any_fishery::type',
-        'view_fishery::type',
-        'create_fishery::type',
-        'update_fishery::type',
-        'delete_fishery::type',
+        'view_any:fishery_type',
+        'view:fishery_type',
+        'create:fishery_type',
+        'update:fishery_type',
+        'delete:fishery_type',
     ];
 
     private array $fishingMethodPermissions = [
-        'view_any_fishing::method',
-        'view_fishing::method',
-        'create_fishing::method',
-        'update_fishing::method',
-        'delete_fishing::method',
+        'view_any:fishing_method',
+        'view:fishing_method',
+        'create:fishing_method',
+        'update:fishing_method',
+        'delete:fishing_method',
     ];
 
     private array $statePermissions = [
-        'view_any_state',
-        'view_state',
-        'create_state',
-        'update_state',
-        'delete_state',
+        'view_any:state',
+        'view:state',
+        'create:state',
+        'update:state',
+        'delete:state',
     ];
 
     private array $userPermissions = [
-        'view_any_user',
-        'view_user',
-        'create_user',
-        'update_user',
-        'delete_user',
+        'view_any:user',
+        'view:user',
+        'create:user',
+        'update:user',
+        'delete:user',
     ];
 
     protected function createSuperAdmin(array $attributes = []): User

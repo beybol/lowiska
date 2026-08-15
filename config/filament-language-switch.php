@@ -34,6 +34,5 @@ return [
     'locales' => [
         'en' => ['name' => 'English', 'script' => 'Latn', 'native' => 'English', 'flag_code' => 'us'],
         'pl' => ['name' => 'Polish', 'script' => 'Latn', 'native' => 'Polski', 'flag_code' => 'pl'],
-    ]
+    ],
 ];
-

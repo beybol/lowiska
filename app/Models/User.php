@@ -2,31 +2,27 @@
 
 namespace App\Models;
 
+use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasName;
+use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Panel;
-use Filament\Models\Contracts\HasName;
-use App\Notifications\VerifyEmailNotification;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class User extends Authenticatable implements
-    FilamentUser,
-    HasName,
-    MustVerifyEmail
+class User extends Authenticatable implements FilamentUser, HasName, MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use 
-        HasFactory, 
-        Notifiable, 
+    /** @use HasFactory<UserFactory> */
+    use HasFactory,
+        HasRoles,
         LogsActivity,
-        HasRoles;
+        Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -70,7 +66,7 @@ class User extends Authenticatable implements
     protected static function booted(): void
     {
         static::saving(function (User $user) {
-            if ($user->is_admin && !$user->email_verified_at) {
+            if ($user->is_admin && ! $user->email_verified_at) {
                 $user->email_verified_at = now();
             }
         });

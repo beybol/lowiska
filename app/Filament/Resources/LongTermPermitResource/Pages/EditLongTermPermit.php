@@ -3,9 +3,8 @@
 namespace App\Filament\Resources\LongTermPermitResource\Pages;
 
 use App\Filament\Resources\LongTermPermitResource;
-use App\Filament\Resources\FisheryResource;
 use App\Helpers\Helper;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditLongTermPermit extends EditRecord
@@ -21,7 +20,7 @@ class EditLongTermPermit extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 
@@ -44,8 +43,7 @@ class EditLongTermPermit extends EditRecord
         $fisheryId = $this->record->fishery_id ?? null;
 
         return [
-            LongTermPermitResource::getUrl('index', ['fishery' => $fisheryId]) 
-                => __('Long term permits'),
+            LongTermPermitResource::getUrl('index', ['fishery' => $fisheryId]) => __('Long term permits'),
             __('Edit'),
         ];
     }

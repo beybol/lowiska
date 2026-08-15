@@ -1,13 +1,14 @@
 <?php
+
 // app/Http/Responses/LoginResponse.php
+
 namespace App\Http\Responses;
 
 use App\Notifications\SendTwoFactorCode;
-use Filament\Http\Responses\Auth\Contracts\LoginResponse as Contract;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 
-class LoginResponse implements Contract
+class LoginResponse implements \Filament\Auth\Http\Responses\Contracts\LoginResponse
 {
     public function toResponse($request): RedirectResponse
     {
@@ -15,7 +16,7 @@ class LoginResponse implements Contract
 
         $user->generateTwoFactorCode();
 
-        $user->notify(new SendTwoFactorCode());
+        $user->notify(new SendTwoFactorCode);
 
         return redirect()->intended(filament()->getUrl());
     }

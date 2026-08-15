@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Currency;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CurrencyPolicy
@@ -15,7 +15,7 @@ class CurrencyPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_currency');
+        return $user->can('view_any:currency');
     }
 
     /**
@@ -23,7 +23,7 @@ class CurrencyPolicy
      */
     public function view(User $user, Currency $currency): bool
     {
-        return $user->can('view_currency');
+        return $user->can('view:currency');
     }
 
     /**
@@ -31,7 +31,7 @@ class CurrencyPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_currency');
+        return $user->can('create:currency');
     }
 
     /**
@@ -39,7 +39,7 @@ class CurrencyPolicy
      */
     public function update(User $user, Currency $currency): bool
     {
-        return $user->can('update_currency');
+        return $user->can('update:currency');
     }
 
     /**
@@ -47,7 +47,7 @@ class CurrencyPolicy
      */
     public function delete(User $user, Currency $currency): bool
     {
-        return $user->can('delete_currency');
+        return $user->can('delete:currency');
     }
 
     /**
@@ -55,7 +55,7 @@ class CurrencyPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_currency');
+        return $user->can('delete_any:currency');
     }
 
     /**
@@ -63,7 +63,7 @@ class CurrencyPolicy
      */
     public function forceDelete(User $user, Currency $currency): bool
     {
-        return $user->can('force_delete_currency');
+        return $user->can('force_delete:currency');
     }
 
     /**
@@ -71,7 +71,7 @@ class CurrencyPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_currency');
+        return $user->can('force_delete_any:currency');
     }
 
     /**
@@ -79,7 +79,7 @@ class CurrencyPolicy
      */
     public function restore(User $user, Currency $currency): bool
     {
-        return $user->can('restore_currency');
+        return $user->can('restore:currency');
     }
 
     /**
@@ -87,7 +87,7 @@ class CurrencyPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_currency');
+        return $user->can('restore_any:currency');
     }
 
     /**
@@ -95,7 +95,7 @@ class CurrencyPolicy
      */
     public function replicate(User $user, Currency $currency): bool
     {
-        return $user->can('replicate_currency');
+        return $user->can('replicate:currency');
     }
 
     /**
@@ -103,6 +103,6 @@ class CurrencyPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_currency');
+        return $user->can('reorder:currency');
     }
 }

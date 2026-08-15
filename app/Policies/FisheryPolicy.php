@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Fishery;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class FisheryPolicy
@@ -15,7 +15,7 @@ class FisheryPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_fishery');
+        return $user->can('view_any:fishery');
     }
 
     /**
@@ -23,7 +23,7 @@ class FisheryPolicy
      */
     public function view(User $user, Fishery $fishery): bool
     {
-        return $user->can('view_fishery');
+        return $user->can('view:fishery');
     }
 
     /**
@@ -31,7 +31,7 @@ class FisheryPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_fishery');
+        return $user->can('create:fishery');
     }
 
     /**
@@ -39,7 +39,7 @@ class FisheryPolicy
      */
     public function update(User $user, Fishery $fishery): bool
     {
-        return $user->can('update_fishery');
+        return $user->can('update:fishery');
     }
 
     /**
@@ -47,7 +47,7 @@ class FisheryPolicy
      */
     public function delete(User $user, Fishery $fishery): bool
     {
-        return $user->can('delete_fishery');
+        return $user->can('delete:fishery');
     }
 
     /**
@@ -55,7 +55,7 @@ class FisheryPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_fishery');
+        return $user->can('delete_any:fishery');
     }
 
     /**
@@ -63,7 +63,7 @@ class FisheryPolicy
      */
     public function forceDelete(User $user, Fishery $fishery): bool
     {
-        return $user->can('force_delete_fishery');
+        return $user->can('force_delete:fishery');
     }
 
     /**
@@ -71,7 +71,7 @@ class FisheryPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_fishery');
+        return $user->can('force_delete_any:fishery');
     }
 
     /**
@@ -79,7 +79,7 @@ class FisheryPolicy
      */
     public function restore(User $user, Fishery $fishery): bool
     {
-        return $user->can('restore_fishery');
+        return $user->can('restore:fishery');
     }
 
     /**
@@ -87,7 +87,7 @@ class FisheryPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_fishery');
+        return $user->can('restore_any:fishery');
     }
 
     /**
@@ -95,7 +95,7 @@ class FisheryPolicy
      */
     public function replicate(User $user, Fishery $fishery): bool
     {
-        return $user->can('replicate_fishery');
+        return $user->can('replicate:fishery');
     }
 
     /**
@@ -103,6 +103,6 @@ class FisheryPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_fishery');
+        return $user->can('reorder:fishery');
     }
 }

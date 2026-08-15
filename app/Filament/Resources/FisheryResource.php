@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\FisheryResource\Pages;
+use App\Filament\Resources\FisheryResource\Pages\CreateFishery;
+use App\Filament\Resources\FisheryResource\Pages\EditFishery;
+use App\Filament\Resources\FisheryResource\Pages\ListFisheries;
 use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
 use App\Helpers\Helper;
 use App\Models\Company;
@@ -14,17 +16,20 @@ use App\Models\FishingMethod;
 use App\Models\State;
 use App\Models\User;
 use App\Rules\IbanValidation;
+use Collator;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ViewField;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,12 +38,12 @@ class FisheryResource extends Resource
 {
     protected static ?string $model = Fishery::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-sun';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-sun';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('name')
                     ->label(__('Fishery name'))
                     ->required()
@@ -167,7 +172,7 @@ class FisheryResource extends Resource
                             ->numeric(),
                         CheckboxList::make('fishing_methods')
                             ->options(function () {
-                                $collator = new \Collator('pl_PL');
+                                $collator = new Collator('pl_PL');
                                 $methods = FishingMethod::all()
                                     ->mapWithKeys(function ($method) {
                                         return [
@@ -239,8 +244,8 @@ class FisheryResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
                 Action::make('manage')
                     ->label(__('Manage'))
                     ->icon('heroicon-o-cog-6-tooth')
@@ -250,9 +255,9 @@ class FisheryResource extends Resource
                         ]);
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -267,9 +272,9 @@ class FisheryResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListFisheries::route('/'),
-            'create' => Pages\CreateFishery::route('/create'),
-            'edit' => Pages\EditFishery::route('/{record}/edit'),
+            'index' => ListFisheries::route('/'),
+            'create' => CreateFishery::route('/create'),
+            'edit' => EditFishery::route('/{record}/edit'),
             'manage' => ManageFishery::route('/{record}/manage'),
         ];
     }

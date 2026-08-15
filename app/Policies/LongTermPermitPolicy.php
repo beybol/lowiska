@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\LongTermPermit;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class LongTermPermitPolicy
@@ -15,7 +15,7 @@ class LongTermPermitPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_long::term::permit') || $user->hasRole('owner');
+        return $user->can('view_any:long_term_permit') || $user->hasRole('owner');
     }
 
     /**
@@ -23,7 +23,7 @@ class LongTermPermitPolicy
      */
     public function view(User $user, LongTermPermit $longTermPermit): bool
     {
-        return $user->can('view_long::term::permit') || 
+        return $user->can('view:long_term_permit') ||
                ($user->hasRole('owner') && $longTermPermit->fishery->user_id === $user->id);
     }
 
@@ -32,7 +32,7 @@ class LongTermPermitPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_long::term::permit') || $user->hasRole('owner');
+        return $user->can('create:long_term_permit') || $user->hasRole('owner');
     }
 
     /**
@@ -40,7 +40,7 @@ class LongTermPermitPolicy
      */
     public function update(User $user, LongTermPermit $longTermPermit): bool
     {
-        return $user->can('update_long::term::permit') || 
+        return $user->can('update:long_term_permit') ||
                ($user->hasRole('owner') && $longTermPermit->fishery->user_id === $user->id);
     }
 
@@ -49,7 +49,7 @@ class LongTermPermitPolicy
      */
     public function delete(User $user, LongTermPermit $longTermPermit): bool
     {
-        return $user->can('delete_long::term::permit') || 
+        return $user->can('delete:long_term_permit') ||
                ($user->hasRole('owner') && $longTermPermit->fishery->user_id === $user->id);
     }
 
@@ -58,7 +58,7 @@ class LongTermPermitPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_long::term::permit');
+        return $user->can('delete_any:long_term_permit');
     }
 
     /**
@@ -66,7 +66,7 @@ class LongTermPermitPolicy
      */
     public function forceDelete(User $user, LongTermPermit $longTermPermit): bool
     {
-        return $user->can('force_delete_long::term::permit');
+        return $user->can('force_delete:long_term_permit');
     }
 
     /**
@@ -74,7 +74,7 @@ class LongTermPermitPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_long::term::permit');
+        return $user->can('force_delete_any:long_term_permit');
     }
 
     /**
@@ -82,7 +82,7 @@ class LongTermPermitPolicy
      */
     public function restore(User $user, LongTermPermit $longTermPermit): bool
     {
-        return $user->can('restore_long::term::permit');
+        return $user->can('restore:long_term_permit');
     }
 
     /**
@@ -90,7 +90,7 @@ class LongTermPermitPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_long::term::permit');
+        return $user->can('restore_any:long_term_permit');
     }
 
     /**
@@ -98,7 +98,7 @@ class LongTermPermitPolicy
      */
     public function replicate(User $user, LongTermPermit $longTermPermit): bool
     {
-        return $user->can('replicate_long::term::permit');
+        return $user->can('replicate:long_term_permit');
     }
 
     /**
@@ -106,6 +106,6 @@ class LongTermPermitPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_long::term::permit');
+        return $user->can('reorder:long_term_permit');
     }
 }

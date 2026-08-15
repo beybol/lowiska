@@ -4,17 +4,17 @@ namespace App\Filament\Resources\LongTermPermitResource\Pages;
 
 use App\Filament\Resources\LongTermPermitResource;
 use App\Helpers\Helper;
-use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
-use App\Models\Fishery;
 use Illuminate\Database\Eloquent\Builder;
 
 class ListLongTermPermits extends ListRecords
 {
     protected static string $resource = LongTermPermitResource::class;
+
     protected $queryString = [
         'fisheryId' => ['as' => 'fishery'],
     ];
+
     public ?int $fisheryId = null;
 
     public function mount(): void
@@ -41,7 +41,7 @@ class ListLongTermPermits extends ListRecords
         if ($this->fisheryId) {
             $query->where('fishery_id', $this->fisheryId);
         }
-        
+
         return $query;
     }
 
@@ -50,8 +50,7 @@ class ListLongTermPermits extends ListRecords
         $fisheryId = request()->get('fishery');
 
         return [
-            LongTermPermitResource::getUrl('index', ['fishery' => $fisheryId]) 
-                => __('Long term permits'),
+            LongTermPermitResource::getUrl('index', ['fishery' => $fisheryId]) => __('Long term permits'),
             __('List'),
         ];
     }

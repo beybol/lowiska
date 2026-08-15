@@ -2,18 +2,15 @@
 
 namespace App\Filament\Pages\Auth;
 
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Component;
-use Filament\Forms\Components\TextInput;
-use Filament\Pages\Auth\Register as BaseRegister;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Database\Eloquent\Model;
 use App\Helpers\Helper;
-use App\Models\Country;
 use App\Models\User;
-use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Model;
 
-class Register extends BaseRegister
+class Register extends \Filament\Auth\Pages\Register
 {
     protected function handleRegistration(array $data): Model
     {
@@ -23,24 +20,31 @@ class Register extends BaseRegister
         return $user;
     }
 
-    protected function getForms(): array
+    /**
+     * ⚠️ Zadanie 009. Do Filamenta 3 formularz rejestracji budowało się przez
+     * `getForms()` + `$this->makeForm()`. W Filamencie 5 `makeForm()` już nie
+     * istnieje, a stronę konfiguruje się nadpisując `form(Schema $schema)`
+     * (`statePath('data')` ustawia rodzic w `defaultForm()`).
+     *
+     * Awaria była CICHA: nadpisany `getForms()` przestał być wołany, strona
+     * dalej zwracała 200, ale renderowała wyłącznie domyślne pola rodzica —
+     * `surname`, `country_id` i `phone` znikały z rejestracji bez jednego
+     * błędu w logach. Wyłapał to dopiero PHPStan (`makeForm()` nie istnieje),
+     * nie testy funkcjonalne.
+     */
+    public function form(Schema $schema): Schema
     {
-        return [
-            'form' => $this->form(
-                $this->makeForm()
-                    ->model(User::class)
-                    ->schema([
-                        $this->getNameFormComponent(),
-                        $this->getSurnameFormComponent(),
-                        $this->getEmailFormComponent(),
-                        $this->getPasswordFormComponent(),
-                        $this->getPasswordConfirmationFormComponent(),
-                        $this->getCountryPrefixesFormComponent(),
-                        $this->getPhoneFormComponent(),
-                    ])
-                    ->statePath('data'),
-            ),
-        ];
+        return $schema
+            ->model(User::class)
+            ->components([
+                $this->getNameFormComponent(),
+                $this->getSurnameFormComponent(),
+                $this->getEmailFormComponent(),
+                $this->getPasswordFormComponent(),
+                $this->getPasswordConfirmationFormComponent(),
+                $this->getCountryPrefixesFormComponent(),
+                $this->getPhoneFormComponent(),
+            ]);
     }
 
     protected function getNameFormComponent(): Component

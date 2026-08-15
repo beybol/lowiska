@@ -2,17 +2,15 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\User;
-use App\Models\State;
 use App\Models\Company;
 use App\Models\Fish;
-use App\Models\FisheryType;
-use App\Models\FishingMethod;
-use App\Models\Convenience;
+use App\Models\Fishery;
+use App\Models\State;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Fishery>
+ * @extends Factory<Fishery>
  */
 class FisheryFactory extends Factory
 {

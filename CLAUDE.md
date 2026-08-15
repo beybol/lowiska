@@ -13,7 +13,7 @@ opcjonalny: wejście w powierzchnię bez przeczytania jej pliku jest błędem pr
 
 ## Co to jest
 
-**Łowiska** — aplikacja Laravel 12 z dwoma panelami Filament 3.3, obsługująca katalog i zarządzanie
+**Łowiska** — aplikacja Laravel 13 z dwoma panelami Filament 5, obsługująca katalog i zarządzanie
 łowiskami wędkarskimi. Model domenowy widoczny w kodzie: `Fishery` (łowisko) z `Position`
 (stanowiska), `FisheryType`, `Convenience`, `AdditionalService`, `Fish`, `FishingMethod`,
 `LongTermPermit` (zezwolenia długoterminowe), `Company` (podmiot gospodarczy) oraz słowniki
@@ -194,7 +194,7 @@ docker compose exec app php artisan test --filter="NazwaKlasy" # pojedyncza klas
 docker build --target prod -t lowiska:prod .   # obraz produkcyjny (FrankenPHP)
 ```
 
-**Testy** biegną na **Pest 3**. `tests/Pest.php` rozszerza `Tests\TestCase` i dokłada `RefreshDatabase`
+**Testy** biegną na **Pest 5**. `tests/Pest.php` rozszerza `Tests\TestCase` i dokłada `RefreshDatabase`
 całemu katalogowi `Feature`, więc **każdy** test funkcjonalny czyści bazę, do której akurat wskazuje
 połączenie.
 
@@ -246,19 +246,31 @@ Trzy warstwy, wszystkie blokujące, opisane w
 ⚠️ **Baseline PHPStana zmniejsza się, nigdy nie jest regenerowany hurtem** — regeneracja ukrywa
 świeżo wprowadzony błąd razem ze starym długiem.
 
-⚠️ **PHP 8.3 jest przypięte w CZTERECH miejscach i zmienia się wyłącznie razem** — podniesienie
+⚠️ **PHP 8.4 jest przypięte w CZTERECH miejscach i zmienia się wyłącznie razem** — podniesienie
 wersji wymaga zmiany wszystkich naraz **oraz przegenerowania baseline'u**:
 
 | # | Plik | Wpis |
 |---|---|---|
-| 1 | `Dockerfile` | `php:8.3-cli-bookworm`, `dunglas/frankenphp:1-php8.3` |
-| 2 | `composer.json` | `config.platform.php` |
-| 3 | `phpstan.neon` | `phpVersion` |
+| 1 | `Dockerfile` | `php:8.4-cli-bookworm`, `dunglas/frankenphp:1-php8.4` |
+| 2 | `composer.json` | `config.platform.php` (dziś `8.4.24`) |
+| 3 | `phpstan.neon` | `phpVersion` (dziś `80400`) |
 | 4 | `.github/workflows/deploy.yml` | krok `shivammathur/setup-php` |
 
 Powód dla pozycji 2: Composer rozwiązuje zależności wobec wersji PHP **interpretera, na którym
 akurat działa**, nie wobec `require.php` — bez `config.platform` lock potrafi zawierać pakiety
 niewdrażalne w kontenerze (wywróciło to pierwsze wdrożenie bramki w bliźniaczym projekcie).
+
+⚠️ **`config.platform.php` trzyma PEŁNĄ wersję z łatką (`8.4.24`), nie sam próg `8.4.0`** —
+i to jest świadome (zadanie 009). Zaniżony pin nie jest „bezpieczniejszy": blokuje pakiety
+wymagające nowszej łatki (`symfony/*` 8.1 wymaga ≥ 8.4.1), więc lock cicho zostaje na starszych
+wersjach, których `composer outdated` nie umie wytłumaczyć. Wartość ma odpowiadać temu, co
+naprawdę jest w obrazach — **zweryfikuj OBA** przed zmianą, bo pin nad-deklarowany (wyższy niż
+obraz) to dokładnie ten scenariusz „pakiety niewdrażalne w kontenerze":
+
+```bash
+docker compose exec app php -r 'echo PHP_VERSION;'                    # obraz dev
+docker run --rm dunglas/frankenphp:1-php8.4 php -r 'echo PHP_VERSION;' # obraz prod
+```
 
 ## Konwencje kodu
 

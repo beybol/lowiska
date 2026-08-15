@@ -34,7 +34,7 @@ test('user registration validates unique email', function () {
     User::factory()->create(['email' => 'test@example.com']);
 
     $this->assertDatabaseHas('users', ['email' => 'test@example.com']);
-    
+
     try {
         User::create([
             'name' => 'User',
@@ -43,7 +43,7 @@ test('user registration validates unique email', function () {
             'password' => Hash::make('password'),
         ]);
         $this->fail('Expected unique constraint violation');
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         $this->assertTrue(true);
     }
 });

@@ -3,9 +3,8 @@
 namespace App\Filament\Resources\AdditionalServiceResource\Pages;
 
 use App\Filament\Resources\AdditionalServiceResource;
-use Filament\Actions;
-use Filament\Resources\Pages\CreateRecord;
 use App\Helpers\Helper;
+use Filament\Resources\Pages\CreateRecord;
 
 class CreateAdditionalService extends CreateRecord
 {
@@ -37,8 +36,7 @@ class CreateAdditionalService extends CreateRecord
         $fisheryId = request()->get('fishery');
 
         return [
-            AdditionalServiceResource::getUrl('index', ['fishery' => $fisheryId]) 
-                => __('Additional services'),
+            AdditionalServiceResource::getUrl('index', ['fishery' => $fisheryId]) => __('Additional services'),
             __('Create'),
         ];
     }

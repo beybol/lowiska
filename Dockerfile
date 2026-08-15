@@ -6,7 +6,7 @@
 # ---------------------------------------------------------------------------
 # base — wspólny fundament PHP dla etapów budujących i dla celu `dev`
 # ---------------------------------------------------------------------------
-FROM php:8.3-cli-bookworm AS base
+FROM php:8.4-cli-bookworm AS base
 
 COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
 
@@ -97,7 +97,7 @@ CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
 # ---------------------------------------------------------------------------
 # prod — FrankenPHP w trybie classic, pod Cloud Run (ADR-002)
 # ---------------------------------------------------------------------------
-FROM dunglas/frankenphp:1-php8.3 AS prod
+FROM dunglas/frankenphp:1-php8.4 AS prod
 
 COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer

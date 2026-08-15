@@ -2,12 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\State;
 use GusApi\Exception\InvalidUserKeyException;
 use GusApi\Exception\NotFoundException;
 use GusApi\GusApi;
-use GusApi\ReportTypes;
-use GusApi\BulkReportTypes;
-use App\Models\State;
 
 class CSOService
 {
@@ -18,14 +16,14 @@ class CSOService
         if (strlen($tin) !== 10) {
             return false;
         }
-        
+
         $weights = [6, 5, 7, 2, 3, 4, 5, 6, 7];
         $sum = 0;
-        
+
         for ($i = 0; $i < 9; $i++) {
             $sum += $tin[$i] * $weights[$i];
         }
-        
+
         $checksum = $sum % 11;
 
         if ($checksum === 10) {
@@ -45,8 +43,7 @@ class CSOService
     public static function fetchAddress(
         ?string $search,
         bool $isTin = false
-    ): array
-    {
+    ): array {
         $cso = new GusApi(config('services.cso.key'));
         $pureSearch = str_replace('-', '', $search);
 
@@ -61,7 +58,7 @@ class CSOService
 
             $address = [];
 
-            if (!empty($gusReport)) {
+            if (! empty($gusReport)) {
                 $address = [
                     'tin' => $gusReport->getNip(),
                     'renae' => $gusReport->getRegon(),
@@ -73,7 +70,7 @@ class CSOService
                     'house_number' => $gusReport->getPropertyNumber(),
                 ];
                 $localStateName = mb_strtolower(
-                    $gusReport->getProvince(), 
+                    $gusReport->getProvince(),
                     'UTF-8',
                 );
                 $jsonPath = lang_path('pl.json');
@@ -85,8 +82,7 @@ class CSOService
                 $englishKey = $flipped[$localStateName];
 
                 if ($englishKey) {
-                    $state = State
-                        ::getByName($englishKey)
+                    $state = State::getByName($englishKey)
                         ->first();
 
                     if ($state) {
@@ -116,7 +112,7 @@ class CSOService
     public static function checkAreMatched($tin, $renae): bool
     {
         $tinAddress = self::fetchAddress($tin, true);
-        
+
         if ($tinAddress['error']) {
             return false;
         }
@@ -126,4 +122,3 @@ class CSOService
         return $downloadedRenae === $renae;
     }
 }
-

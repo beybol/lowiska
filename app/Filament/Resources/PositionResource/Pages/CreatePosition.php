@@ -3,9 +3,8 @@
 namespace App\Filament\Resources\PositionResource\Pages;
 
 use App\Filament\Resources\PositionResource;
-use Filament\Actions;
-use Filament\Resources\Pages\CreateRecord;
 use App\Helpers\Helper;
+use Filament\Resources\Pages\CreateRecord;
 
 class CreatePosition extends CreateRecord
 {
@@ -16,7 +15,7 @@ class CreatePosition extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->additionalServicesToSync = Helper::extractAdditionalServices($data);
-        
+
         return $data;
     }
 
@@ -41,8 +40,7 @@ class CreatePosition extends CreateRecord
         $fisheryId = request()->get('fishery');
 
         return [
-            PositionResource::getUrl('index', ['fishery' => $fisheryId]) 
-                => __('Positions'),
+            PositionResource::getUrl('index', ['fishery' => $fisheryId]) => __('Positions'),
             __('Create'),
         ];
     }

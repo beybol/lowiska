@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\AdditionalService;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class AdditionalServicePolicy
@@ -15,7 +15,7 @@ class AdditionalServicePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_additional::service') || $user->hasRole('owner');
+        return $user->can('view_any:additional_service') || $user->hasRole('owner');
     }
 
     /**
@@ -23,7 +23,7 @@ class AdditionalServicePolicy
      */
     public function view(User $user, AdditionalService $additionalService): bool
     {
-        return $user->can('view_additional::service') || 
+        return $user->can('view:additional_service') ||
                ($user->hasRole('owner') && $additionalService->fishery->user_id === $user->id);
     }
 
@@ -32,7 +32,7 @@ class AdditionalServicePolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_additional::service') || $user->hasRole('owner');
+        return $user->can('create:additional_service') || $user->hasRole('owner');
     }
 
     /**
@@ -40,7 +40,7 @@ class AdditionalServicePolicy
      */
     public function update(User $user, AdditionalService $additionalService): bool
     {
-        return $user->can('update_additional::service') || 
+        return $user->can('update:additional_service') ||
                ($user->hasRole('owner') && $additionalService->fishery->user_id === $user->id);
     }
 
@@ -49,7 +49,7 @@ class AdditionalServicePolicy
      */
     public function delete(User $user, AdditionalService $additionalService): bool
     {
-        return $user->can('delete_additional::service') || 
+        return $user->can('delete:additional_service') ||
                ($user->hasRole('owner') && $additionalService->fishery->user_id === $user->id);
     }
 
@@ -58,7 +58,7 @@ class AdditionalServicePolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_additional::service');
+        return $user->can('delete_any:additional_service');
     }
 
     /**
@@ -66,7 +66,7 @@ class AdditionalServicePolicy
      */
     public function forceDelete(User $user, AdditionalService $additionalService): bool
     {
-        return $user->can('force_delete_additional::service');
+        return $user->can('force_delete:additional_service');
     }
 
     /**
@@ -74,7 +74,7 @@ class AdditionalServicePolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_additional::service');
+        return $user->can('force_delete_any:additional_service');
     }
 
     /**
@@ -82,7 +82,7 @@ class AdditionalServicePolicy
      */
     public function restore(User $user, AdditionalService $additionalService): bool
     {
-        return $user->can('restore_additional::service');
+        return $user->can('restore:additional_service');
     }
 
     /**
@@ -90,7 +90,7 @@ class AdditionalServicePolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_additional::service');
+        return $user->can('restore_any:additional_service');
     }
 
     /**
@@ -98,7 +98,7 @@ class AdditionalServicePolicy
      */
     public function replicate(User $user, AdditionalService $additionalService): bool
     {
-        return $user->can('replicate_additional::service');
+        return $user->can('replicate:additional_service');
     }
 
     /**
@@ -106,6 +106,6 @@ class AdditionalServicePolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_additional::service');
+        return $user->can('reorder:additional_service');
     }
 }

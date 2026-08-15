@@ -6,7 +6,7 @@ use Filament\Pages\Page;
 
 class VerifyCompany extends Page
 {
-    protected static string $view = 'filament.owner.pages.verify-company';
+    protected string $view = 'filament.owner.pages.verify-company';
 
     public function getTitle(): string
     {

@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\FishingMethodResource\Pages;
 
 use App\Filament\Resources\FishingMethodResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditFishingMethod extends EditRecord
@@ -13,7 +13,7 @@ class EditFishingMethod extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 

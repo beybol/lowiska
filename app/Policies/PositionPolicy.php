@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Position;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class PositionPolicy
@@ -15,7 +15,7 @@ class PositionPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_position') || $user->hasRole('owner');
+        return $user->can('view_any:position') || $user->hasRole('owner');
     }
 
     /**
@@ -23,7 +23,7 @@ class PositionPolicy
      */
     public function view(User $user, Position $position): bool
     {
-        return $user->can('view_position') || 
+        return $user->can('view:position') ||
                ($user->hasRole('owner') && $position->fishery->user_id === $user->id);
     }
 
@@ -32,7 +32,7 @@ class PositionPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_position') || $user->hasRole('owner');
+        return $user->can('create:position') || $user->hasRole('owner');
     }
 
     /**
@@ -40,7 +40,7 @@ class PositionPolicy
      */
     public function update(User $user, Position $position): bool
     {
-        return $user->can('update_position') || 
+        return $user->can('update:position') ||
                ($user->hasRole('owner') && $position->fishery->user_id === $user->id);
     }
 
@@ -49,7 +49,7 @@ class PositionPolicy
      */
     public function delete(User $user, Position $position): bool
     {
-        return $user->can('delete_position') || 
+        return $user->can('delete:position') ||
                ($user->hasRole('owner') && $position->fishery->user_id === $user->id);
     }
 
@@ -58,7 +58,7 @@ class PositionPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_position');
+        return $user->can('delete_any:position');
     }
 
     /**
@@ -66,7 +66,7 @@ class PositionPolicy
      */
     public function forceDelete(User $user, Position $position): bool
     {
-        return $user->can('force_delete_position');
+        return $user->can('force_delete:position');
     }
 
     /**
@@ -74,7 +74,7 @@ class PositionPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_position');
+        return $user->can('force_delete_any:position');
     }
 
     /**
@@ -82,7 +82,7 @@ class PositionPolicy
      */
     public function restore(User $user, Position $position): bool
     {
-        return $user->can('restore_position');
+        return $user->can('restore:position');
     }
 
     /**
@@ -90,7 +90,7 @@ class PositionPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_position');
+        return $user->can('restore_any:position');
     }
 
     /**
@@ -98,7 +98,7 @@ class PositionPolicy
      */
     public function replicate(User $user, Position $position): bool
     {
-        return $user->can('replicate_position');
+        return $user->can('replicate:position');
     }
 
     /**
@@ -106,6 +106,6 @@ class PositionPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_position');
+        return $user->can('reorder:position');
     }
 }

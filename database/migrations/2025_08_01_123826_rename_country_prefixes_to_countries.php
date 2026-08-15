@@ -28,7 +28,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::rename('countries', 'country_prefixes');
-        
+
         Schema::table('country_prefixes', function (Blueprint $table) {
             $table->dropColumn('is_active');
         });

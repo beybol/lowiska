@@ -2,34 +2,33 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\AdditionalServiceResource\Pages;
-use App\Filament\Resources\AdditionalServiceResource\RelationManagers;
+use App\Filament\Resources\AdditionalServiceResource\Pages\CreateAdditionalService;
+use App\Filament\Resources\AdditionalServiceResource\Pages\EditAdditionalService;
+use App\Filament\Resources\AdditionalServiceResource\Pages\ListAdditionalServices;
+use App\Helpers\Helper;
 use App\Models\AdditionalService;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Forms\Components\RichEditor;
-use App\Helpers\Helper;
-use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Table;
 
 class AdditionalServiceResource extends Resource
 {
     protected static ?string $model = AdditionalService::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-plus';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-plus';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 ...Helper::getFisheryFields(),
                 TextInput::make('name')
                     ->label(__('Additional service name'))
@@ -74,12 +73,12 @@ class AdditionalServiceResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -94,9 +93,9 @@ class AdditionalServiceResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAdditionalServices::route('/'),
-            'create' => Pages\CreateAdditionalService::route('/create'),
-            'edit' => Pages\EditAdditionalService::route('/{record}/edit'),
+            'index' => ListAdditionalServices::route('/'),
+            'create' => CreateAdditionalService::route('/create'),
+            'edit' => EditAdditionalService::route('/{record}/edit'),
         ];
     }
 

@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\FisheryType;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class FisheryTypePolicy
@@ -15,7 +15,7 @@ class FisheryTypePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_fishery::type');
+        return $user->can('view_any:fishery_type');
     }
 
     /**
@@ -23,7 +23,7 @@ class FisheryTypePolicy
      */
     public function view(User $user, FisheryType $fisheryType): bool
     {
-        return $user->can('view_fishery::type');
+        return $user->can('view:fishery_type');
     }
 
     /**
@@ -31,7 +31,7 @@ class FisheryTypePolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_fishery::type');
+        return $user->can('create:fishery_type');
     }
 
     /**
@@ -39,7 +39,7 @@ class FisheryTypePolicy
      */
     public function update(User $user, FisheryType $fisheryType): bool
     {
-        return $user->can('update_fishery::type');
+        return $user->can('update:fishery_type');
     }
 
     /**
@@ -47,7 +47,7 @@ class FisheryTypePolicy
      */
     public function delete(User $user, FisheryType $fisheryType): bool
     {
-        return $user->can('delete_fishery::type');
+        return $user->can('delete:fishery_type');
     }
 
     /**
@@ -55,7 +55,7 @@ class FisheryTypePolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_fishery::type');
+        return $user->can('delete_any:fishery_type');
     }
 
     /**
@@ -63,7 +63,7 @@ class FisheryTypePolicy
      */
     public function forceDelete(User $user, FisheryType $fisheryType): bool
     {
-        return $user->can('force_delete_fishery::type');
+        return $user->can('force_delete:fishery_type');
     }
 
     /**
@@ -71,7 +71,7 @@ class FisheryTypePolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_fishery::type');
+        return $user->can('force_delete_any:fishery_type');
     }
 
     /**
@@ -79,7 +79,7 @@ class FisheryTypePolicy
      */
     public function restore(User $user, FisheryType $fisheryType): bool
     {
-        return $user->can('restore_fishery::type');
+        return $user->can('restore:fishery_type');
     }
 
     /**
@@ -87,7 +87,7 @@ class FisheryTypePolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_fishery::type');
+        return $user->can('restore_any:fishery_type');
     }
 
     /**
@@ -95,7 +95,7 @@ class FisheryTypePolicy
      */
     public function replicate(User $user, FisheryType $fisheryType): bool
     {
-        return $user->can('replicate_fishery::type');
+        return $user->can('replicate:fishery_type');
     }
 
     /**
@@ -103,6 +103,6 @@ class FisheryTypePolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_fishery::type');
+        return $user->can('reorder:fishery_type');
     }
 }

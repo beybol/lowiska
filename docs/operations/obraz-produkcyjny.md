@@ -35,7 +35,7 @@ base ──┬─→ vendor ──┐
 
 | Etap | Rola |
 |---|---|
-| `base` | PHP 8.3 + rozszerzenia (`pdo_mysql`, `mbstring`, `exif`, `pcntl`, `bcmath`, `gd`, `zip`, `intl`, **`soap`**) + Composer |
+| `base` | PHP 8.4 + rozszerzenia (`pdo_mysql`, `mbstring`, `exif`, `pcntl`, `bcmath`, `gd`, `zip`, `intl`, **`soap`**) + Composer |
 | `vendor` | `composer install --no-dev --optimize-autoloader` |
 | `assets` | Node 22, `npm ci`, `npm run build` |
 | `dev` | `base` + `pcov` + Node + klient MySQL-a; kod wchodzi **powiązaniem katalogu** |

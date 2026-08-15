@@ -2,39 +2,39 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\LongTermPermitResource\Pages;
-use App\Filament\Resources\LongTermPermitResource\RelationManagers;
-use App\Models\LongTermPermit;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\RichEditor;
+use App\Filament\Resources\LongTermPermitResource\Pages\CreateLongTermPermit;
+use App\Filament\Resources\LongTermPermitResource\Pages\EditLongTermPermit;
+use App\Filament\Resources\LongTermPermitResource\Pages\ListLongTermPermits;
 use App\Helpers\Helper;
+use App\Models\LongTermPermit;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Table;
 
 class LongTermPermitResource extends Resource
 {
     protected static ?string $model = LongTermPermit::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-check';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-check';
 
     public static function shouldRegisterNavigation(): bool
     {
         return false;
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 ...Helper::getFisheryFields(),
                 Toggle::make('is_active')
                     ->label(__('Is active')),
@@ -86,12 +86,12 @@ class LongTermPermitResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -106,11 +106,11 @@ class LongTermPermitResource extends Resource
     public static function getPages(): array
     {
         $fisheryId = request()->get('fishery');
-        
+
         return [
-            'index' => Pages\ListLongTermPermits::route('/'),
-            'create' => Pages\CreateLongTermPermit::route('/create'),
-            'edit' => Pages\EditLongTermPermit::route('/{record}/edit'),
+            'index' => ListLongTermPermits::route('/'),
+            'create' => CreateLongTermPermit::route('/create'),
+            'edit' => EditLongTermPermit::route('/{record}/edit'),
         ];
     }
 

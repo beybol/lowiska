@@ -1,5 +1,7 @@
 <?php
 
+use League\Flysystem\GoogleCloudStorage\UniformBucketLevelAccessVisibility;
+
 return [
 
     /*
@@ -72,7 +74,7 @@ return [
             // PortableVisibilityHandler próbuje ustawić legacy ACL przy każdym uploadzie i pęka:
             // "Cannot insert legacy ACL for an object when uniform bucket-level access is enabled".
             // Nie usuwaj tego wpisu.
-            'visibility_handler' => \League\Flysystem\GoogleCloudStorage\UniformBucketLevelAccessVisibility::class,
+            'visibility_handler' => UniformBucketLevelAccessVisibility::class,
             // Świadomy rozjazd z resztą tego pliku (wszędzie indziej false): cichy `false` przy
             // nieudanym zapisie do bucketa (sieć, uprawnienia) jest dokładnie tą kategorią cichej
             // awarii, którą zadanie 005 ma usunąć.

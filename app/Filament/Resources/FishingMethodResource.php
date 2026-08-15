@@ -2,31 +2,30 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\FishingMethodResource\Pages;
-use App\Filament\Resources\FishingMethodResource\RelationManagers;
-use App\Models\FishingMethod;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Columns\TextColumn;
 use App\Filament\Resources\FishingMethodResource\Pages\CreateFishingMethod;
 use App\Filament\Resources\FishingMethodResource\Pages\EditFishingMethod;
+use App\Filament\Resources\FishingMethodResource\Pages\ManageFishingMethods;
+use App\Models\FishingMethod;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\TextInput;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 
 class FishingMethodResource extends Resource
 {
     protected static ?string $model = FishingMethod::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-sun';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-sun';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('name')
                     ->label(__('Fishing method name'))
                     ->required()
@@ -45,13 +44,13 @@ class FishingMethodResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -59,7 +58,7 @@ class FishingMethodResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ManageFishingMethods::route('/'),
+            'index' => ManageFishingMethods::route('/'),
             'create' => CreateFishingMethod::route('/create'),
             'edit' => EditFishingMethod::route('/{record}/edit'),
         ];
@@ -75,7 +74,7 @@ class FishingMethodResource extends Resource
         return __('Fishing methods');
     }
 
-    public static function getModelLabel(): string 
+    public static function getModelLabel(): string
     {
         return __('fishing method');
     }

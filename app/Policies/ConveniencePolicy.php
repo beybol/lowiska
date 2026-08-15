@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Convenience;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class ConveniencePolicy
@@ -15,7 +15,7 @@ class ConveniencePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_convenience');
+        return $user->can('view_any:convenience');
     }
 
     /**
@@ -23,7 +23,7 @@ class ConveniencePolicy
      */
     public function view(User $user, Convenience $convenience): bool
     {
-        return $user->can('view_convenience');
+        return $user->can('view:convenience');
     }
 
     /**
@@ -31,7 +31,7 @@ class ConveniencePolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_convenience');
+        return $user->can('create:convenience');
     }
 
     /**
@@ -39,7 +39,7 @@ class ConveniencePolicy
      */
     public function update(User $user, Convenience $convenience): bool
     {
-        return $user->can('update_convenience');
+        return $user->can('update:convenience');
     }
 
     /**
@@ -47,7 +47,7 @@ class ConveniencePolicy
      */
     public function delete(User $user, Convenience $convenience): bool
     {
-        return $user->can('delete_convenience');
+        return $user->can('delete:convenience');
     }
 
     /**
@@ -55,7 +55,7 @@ class ConveniencePolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_convenience');
+        return $user->can('delete_any:convenience');
     }
 
     /**
@@ -63,7 +63,7 @@ class ConveniencePolicy
      */
     public function forceDelete(User $user, Convenience $convenience): bool
     {
-        return $user->can('force_delete_convenience');
+        return $user->can('force_delete:convenience');
     }
 
     /**
@@ -71,7 +71,7 @@ class ConveniencePolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_convenience');
+        return $user->can('force_delete_any:convenience');
     }
 
     /**
@@ -79,7 +79,7 @@ class ConveniencePolicy
      */
     public function restore(User $user, Convenience $convenience): bool
     {
-        return $user->can('restore_convenience');
+        return $user->can('restore:convenience');
     }
 
     /**
@@ -87,7 +87,7 @@ class ConveniencePolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_convenience');
+        return $user->can('restore_any:convenience');
     }
 
     /**
@@ -95,7 +95,7 @@ class ConveniencePolicy
      */
     public function replicate(User $user, Convenience $convenience): bool
     {
-        return $user->can('replicate_convenience');
+        return $user->can('replicate:convenience');
     }
 
     /**
@@ -103,6 +103,6 @@ class ConveniencePolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_convenience');
+        return $user->can('reorder:convenience');
     }
 }

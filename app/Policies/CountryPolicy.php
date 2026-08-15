@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Country;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CountryPolicy
@@ -15,7 +15,7 @@ class CountryPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_country');
+        return $user->can('view_any:country');
     }
 
     /**
@@ -23,7 +23,7 @@ class CountryPolicy
      */
     public function view(User $user, Country $country): bool
     {
-        return $user->can('view_country');
+        return $user->can('view:country');
     }
 
     /**
@@ -31,7 +31,7 @@ class CountryPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_country');
+        return $user->can('create:country');
     }
 
     /**
@@ -39,7 +39,7 @@ class CountryPolicy
      */
     public function update(User $user, Country $country): bool
     {
-        return $user->can('update_country');
+        return $user->can('update:country');
     }
 
     /**
@@ -47,7 +47,7 @@ class CountryPolicy
      */
     public function delete(User $user, Country $country): bool
     {
-        return $user->can('delete_country');
+        return $user->can('delete:country');
     }
 
     /**
@@ -55,7 +55,7 @@ class CountryPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_country');
+        return $user->can('delete_any:country');
     }
 
     /**
@@ -63,7 +63,7 @@ class CountryPolicy
      */
     public function forceDelete(User $user, Country $country): bool
     {
-        return $user->can('force_delete_country');
+        return $user->can('force_delete:country');
     }
 
     /**
@@ -71,7 +71,7 @@ class CountryPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_country');
+        return $user->can('force_delete_any:country');
     }
 
     /**
@@ -79,7 +79,7 @@ class CountryPolicy
      */
     public function restore(User $user, Country $country): bool
     {
-        return $user->can('restore_country');
+        return $user->can('restore:country');
     }
 
     /**
@@ -87,7 +87,7 @@ class CountryPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_country');
+        return $user->can('restore_any:country');
     }
 
     /**
@@ -95,7 +95,7 @@ class CountryPolicy
      */
     public function replicate(User $user, Country $country): bool
     {
-        return $user->can('replicate_country');
+        return $user->can('replicate:country');
     }
 
     /**
@@ -103,6 +103,6 @@ class CountryPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_country');
+        return $user->can('reorder:country');
     }
 }

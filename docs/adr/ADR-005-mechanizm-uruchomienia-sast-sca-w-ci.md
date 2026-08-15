@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-08-15
-- **Zadanie:** [007 — Bramka bezpieczeństwa w CI: SAST, SCA i skan sekretów](../tasks/007-bramka-bezpieczenstwa-w-ci-sast-sca-sekrety.md)
+- **Zadanie:** [007 — Bramka bezpieczeństwa w CI: SAST, SCA i skan sekretów](../tasks/implemented/007-bramka-bezpieczenstwa-w-ci-sast-sca-sekrety.md)
 
 ## Kontekst
 

@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\PositionResource\Pages;
 
 use App\Filament\Resources\PositionResource;
-use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
 use App\Helpers\Helper;
+use Filament\Actions\DeleteAction;
+use Filament\Resources\Pages\EditRecord;
 
 class EditPosition extends EditRecord
 {
@@ -16,7 +16,7 @@ class EditPosition extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $this->additionalServicesToSync = Helper::extractAdditionalServices($data);
-        
+
         return $data;
     }
 
@@ -39,7 +39,7 @@ class EditPosition extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 
@@ -57,8 +57,7 @@ class EditPosition extends EditRecord
         $fisheryId = $this->record->fishery_id ?? null;
 
         return [
-            PositionResource::getUrl('index', ['fishery' => $fisheryId]) 
-                => __('Positions'),
+            PositionResource::getUrl('index', ['fishery' => $fisheryId]) => __('Positions'),
             __('Edit'),
         ];
     }

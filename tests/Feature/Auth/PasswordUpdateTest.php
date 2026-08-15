@@ -5,12 +5,12 @@ use Illuminate\Support\Facades\Hash;
 
 test('password can be updated', function () {
     $user = User::factory()->create([
-        'password' => bcrypt('password')
+        'password' => bcrypt('password'),
     ]);
     $oldPassword = $user->password;
-    
+
     $this->assertTrue(Hash::check('password', $oldPassword));
-    
+
     $user->password = Hash::make('new-password');
     $user->save();
     $user->refresh();
@@ -21,7 +21,7 @@ test('password can be updated', function () {
 
 test('correct password must be provided to update password', function () {
     $user = User::factory()->create([
-        'password' => bcrypt('password')
+        'password' => bcrypt('password'),
     ]);
 
     $this->assertTrue(Hash::check('password', $user->password));
