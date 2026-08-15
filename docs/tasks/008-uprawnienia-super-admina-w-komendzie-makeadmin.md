@@ -196,6 +196,13 @@ Uprawnienia trzeba najpierw **wygenerować**, dopiero potem przypisać.
   przy pierwszej aktualizacji pakietu. Wyjście da się wyciszyć (`--silent`/`--minimal`), a test
   i tak weryfikuje **skutek** (liczbę uprawnień roli), nie komunikaty na konsoli.
 
+⚠️ **Dopisek po pierwszym pushu (2026-08-15): to zadanie nie jest przyczyną awarii deploya.**
+Pierwszy realny przebieg `security` z zadania 007 czerwienił się po tym pushu — zdiagnozowane
+jako luka współdzielona przez zadania 005 i 007 (strażnik dysku uploadów budzi framework w jobie
+CI bez `APP_ENV`), niezwiązana ani z wersją PHP, ani ze zmianami tego zadania (008 nie dotyka
+`deploy.yml` ani `AppServiceProvider`). Naprawione i opisane w `docs/tasks/007-*.md`, sekcja
+„Wyniki weryfikacji" → „Czego nie udało się potwierdzić empirycznie".
+
 ## Powiązane ADR-y
 
 <!-- Numery ADR-ów podjętych dla tego zadania (uzupełnia /review-task).

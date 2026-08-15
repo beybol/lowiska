@@ -283,6 +283,23 @@ nie odczytem wzrokowym), a GitHub Actions nie startuje joba, którego zależnoś
 niepowodzeniem. Prawdziwy przebieg CI wymaga wypchnięcia zmian, co jest decyzją użytkownika —
 `/implement-task` nie commituje ani nie pushuje. **Do potwierdzenia po pierwszym wypchnięciu.**
 
+⚠️ **Potwierdzone po pierwszym pushu (2026-08-15) — i naprawione tu, nie w zadaniu 008.**
+Pierwszy realny przebieg `security` czerwienił się już na kroku „Install PHP dependencies",
+zanim doszło do SCA/SAST/sekretów: `composer install` bez `--no-scripts` budzi framework
+przez `post-autoload-dump` (`artisan package:discover`), a job nie miał ustawionego `APP_ENV`
+ani `.env`. Laravel domyślnie rozwiązuje `APP_ENV` na `production`
+(`config/app.php` → `env('APP_ENV', 'production')`), dysk uploadów bez `FILESYSTEM_DISK` — na
+`local`; strażnik z zadania 005 (`AppServiceProvider::assertUploadDiskIsSafe()`) odmawia wtedy
+startu aplikacji, bo poza `local`/`testing` dysk `local` oznacza utratę plików przy restarcie
+kontenera. Ten sam wybuch spotkałby krok SAST — Larastan też budzi kontener aplikacji.
+**To luka wspólna zadań 005 i 007**, nie awaria wersji PHP i nie skutek zadania 008 (008 nie
+dotyka `deploy.yml` ani `AppServiceProvider`). Naprawiono jednym wierszem: `security` dostał
+`APP_ENV: local` na poziomie joba (`.github/workflows/deploy.yml`) — job analizuje kod i nigdy
+nie rozmawia z GCP, więc `local` jest tu poprawnym, a nie obchodzonym środowiskiem.
+Zweryfikowane bezpośrednim wywołaniem `AppServiceProvider::assertUploadDiskIsSafe()` w kontenerze
+`app`: `('production', 'local')` rzuca wyjątek (odtworzenie awarii), `('local', 'local')` — nie
+(potwierdzenie poprawki).
+
 ## Rozstrzygnięcia
 
 <!-- Punktowe decyzje ustalone przy /review-task: wygląd, copy, próg, nazwa, umiejscowienie.

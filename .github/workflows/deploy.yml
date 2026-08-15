@@ -31,6 +31,14 @@ jobs:
       # Analiza statyczna nie zbiera pokrycia, a ubuntu-latest ma Xdebug załadowany
       # domyślnie — bez tego PHPStan jest kilkukrotnie wolniejszy bez pożytku.
       XDEBUG_MODE: off
+      # Bez .env i bez tej zmiennej APP_ENV domyślnie rozwiązuje się na 'production'
+      # (config/app.php), a dysk uploadów na 'local' (brak FILESYSTEM_DISK=gcs w tym
+      # jobie — świadomie, bo `security` nie rozmawia z GCP). Strażnik z zadania 005
+      # (AppServiceProvider::assertUploadDiskIsSafe) odmawia wtedy startu aplikacji —
+      # zarówno przy `composer install` (post-autoload-dump woła artisana), jak i przy
+      # analizie Larastanem, która też budzi kontener. `local` jest tu poprawnym
+      # środowiskiem: job analizuje kod, nie wdraża niczego.
+      APP_ENV: local
     steps:
       - uses: actions/checkout@v4
         with:
