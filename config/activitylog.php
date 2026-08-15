@@ -1,54 +1,59 @@
 <?php
 
+use Spatie\Activitylog\Actions\CleanActivityLogAction;
+use Spatie\Activitylog\Actions\LogActivityAction;
 use Spatie\Activitylog\Models\Activity;
+
+/*
+|--------------------------------------------------------------------------
+| Migracja schematu 4.x -> 5.x (zadanie 010)
+|--------------------------------------------------------------------------
+|
+| Równoważności względem 4.x:
+|   - `delete_records_older_than_days` -> `clean_after_days`
+|   - `subject_returns_soft_deleted_models` -> `include_soft_deleted_subjects`
+|   - `table_name`, `database_connection` -> USUNIĘTE (v5 nie czyta ich już
+|     sam; tabela `activity_log` i domyślne połączenie są zaszyte na sztywno
+|     w migracjach tego projektu — patrz docs/conventions/dziennik-zmian.md)
+|   - env `ACTIVITY_LOGGER_ENABLED` -> `ACTIVITYLOG_ENABLED` (zmiana nazwy
+|     zmiennej w samym pakiecie; w tym projekcie nigdy nieustawiona)
+|   - nowe: `default_except_attributes`, `buffer`, `actions`
+|
+*/
 
 return [
 
-    /*
-     * If set to false, no activities will be saved to the database.
-     */
-    'enabled' => env('ACTIVITY_LOGGER_ENABLED', true),
+    'enabled' => env('ACTIVITYLOG_ENABLED', true),
 
-    /*
-     * When the clean-command is executed, all recording activities older than
-     * the number of days specified here will be deleted.
-     */
-    'delete_records_older_than_days' => 365,
+    'clean_after_days' => 365,
 
-    /*
-     * If no log name is passed to the activity() helper
-     * we use this default log name.
-     */
     'default_log_name' => 'default',
 
-    /*
-     * You can specify an auth driver here that gets user models.
-     * If this is null we'll use the current Laravel auth driver.
-     */
     'default_auth_driver' => null,
 
-    /*
-     * If set to true, the subject returns soft deleted models.
-     */
-    'subject_returns_soft_deleted_models' => false,
+    'include_soft_deleted_subjects' => false,
 
-    /*
-     * This model will be used to log activity.
-     * It should implement the Spatie\Activitylog\Contracts\Activity interface
-     * and extend Illuminate\Database\Eloquent\Model.
-     */
     'activity_model' => Activity::class,
 
     /*
-     * This is the name of the table that will be created by the migration and
-     * used by the Activity model shipped with this package.
+     * Zakres logowania w tym projekcie to `logOnly($this->fillable)` w każdym
+     * modelu (patrz docs/conventions/dziennik-zmian.md) — to zadanie przenosi
+     * istniejące zachowanie, nie zawęża go globalnie. Wykluczenie pól
+     * wrażliwych (np. `phone`) jest osobnym tematem, celowo poza zakresem.
      */
-    'table_name' => env('ACTIVITY_LOGGER_TABLE_NAME', 'activity_log'),
+    'default_except_attributes' => [],
 
     /*
-     * This is the database connection that will be used by the migration and
-     * the Activity model shipped with this package. In case it's not set
-     * Laravel's database.default will be used instead.
+     * Bufor domyślnie wyłączony — projekt nie loguje na tyle dużego wolumenu
+     * aktywności w jednym żądaniu, żeby zysk z buforowania przeważył nad
+     * prostotą (aktywność bez buforowania ma ID od razu po zapisie).
      */
-    'database_connection' => env('ACTIVITY_LOGGER_DB_CONNECTION'),
+    'buffer' => [
+        'enabled' => env('ACTIVITYLOG_BUFFER_ENABLED', false),
+    ],
+
+    'actions' => [
+        'log_activity' => LogActivityAction::class,
+        'clean_log' => CleanActivityLogAction::class,
+    ],
 ];

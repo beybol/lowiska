@@ -6,9 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateActivityLogTable extends Migration
 {
+    /**
+     * ⚠️ Zadanie 010: `config('activitylog.table_name')` i `database_connection`
+     * zastąpione literałami — v5 usunął te klucze konfiguracji (własny model
+     * `Activity` ma dziś `protected $table = 'activity_log'` na sztywno), więc
+     * odwołanie do nieistniejącego klucza zwracałoby `null` i wywaliłoby
+     * `Schema::create(null, ...)`. Zmiana jest behawioralnie neutralna: obie
+     * zmienne środowiskowe nigdy nie były w tym projekcie ustawione, więc
+     * `config()` i tak zawsze rozwiązywało się do tych samych wartości.
+     */
     public function up()
     {
-        Schema::connection(config('activitylog.database_connection'))->create(config('activitylog.table_name'), function (Blueprint $table) {
+        Schema::create('activity_log', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('log_name')->nullable();
             $table->text('description');
@@ -22,6 +31,6 @@ class CreateActivityLogTable extends Migration
 
     public function down()
     {
-        Schema::connection(config('activitylog.database_connection'))->dropIfExists(config('activitylog.table_name'));
+        Schema::dropIfExists('activity_log');
     }
 }

@@ -89,28 +89,31 @@ testu**, więc dziś nic by tego nie wykryło.
 
 ## Kryteria akceptacji
 
-- [ ] `composer.json` wskazuje `spatie/laravel-activitylog: ^5.0`, `composer.lock` zaktualizowany.
-- [ ] Aplikacja wstaje (`php artisan package:discover` bez błędu) — to jest próg, na którym
-      poległo podniesienie w zadaniu 009.
-- [ ] `grep -rn "Activitylog\\\\Traits\|Activitylog\\\\LogOptions" app/` nie zwraca nic.
-- [ ] **Zapis modelu tworzy wpis z niepustymi zmianami atrybutów** — zweryfikowane testem
-      automatycznym, nie oglądaniem tabeli. To jedyne kryterium odróżniające „logowanie działa"
-      od „tabela zapisuje puste wpisy, bo `getActivitylogOptions()` zniknęło".
-- [ ] **Przekształcenie danych ma test jednostkowy**: zasiane wiersze w formacie v4
-      (`properties.attributes`/`old`) po przepuszczeniu przez klasę transformującą mają wypełnione
-      `attribute_changes`, a wiersz bez tych kluczy przechodzi bez uszkodzenia.
-      ⚠️ Testujemy **klasę**, nie migrację — patrz „Rozstrzygnięcia".
-- [ ] Schemat po migracji: kolumna `attribute_changes` istnieje, `batch_uuid` nie istnieje.
-      ⚠️ **Nie** przez `migrate:fresh` na bazie roboczej (twarda zasada z `CLAUDE.md`, wymaga
-      osobnej zgody) — pakiet testowy odtwarza schemat od zera sam z siebie.
-- [ ] `config/activitylog.php` nie zawiera kluczy usuniętych w v5 (`table_name`,
-      `database_connection`, `delete_records_older_than_days`, `subject_returns_soft_deleted_models`).
-- [ ] `composer audit --locked` — brak podatności.
-- [ ] `vendor/bin/phpstan analyse` — zielono; baseline **nie rośnie** (nowe naruszenie oznacza
-      realny błąd migracji, nie dług do zamrożenia — tak zachował się `Register::makeForm()`
-      w zadaniu 009).
-- [ ] Zakres testów zadeklarowany niżej (T3, pełny pakiet) jest zielony.
-- [ ] `docker compose exec app vendor/bin/pint` — czysto.
+- [x] `composer.json` wskazuje `spatie/laravel-activitylog: ^5.0` (zainstalowane 5.1.0),
+      `composer.lock` zaktualizowany.
+- [x] Aplikacja wstaje — `php artisan package:discover` bez błędu.
+- [x] `grep -rn "Activitylog\\\\Traits\|Activitylog\\\\LogOptions" app/` nie zwraca nic —
+      13 modeli przepisanych na `Activitylog\Models\Concerns\LogsActivity` i
+      `Activitylog\Support\LogOptions`.
+- [x] **Zapis modelu tworzy wpis z niepustymi zmianami atrybutów** —
+      `tests/Feature/ActivityLoggingTest.php`, zweryfikowane też negatywnie: po usunięciu
+      `getActivitylogOptions()` z modelu test czerwienieje z konkretnym asercyjnym komunikatem
+      (`Failed asserting that null is identical to 'Stara nazwa'`), nie cichym przejściem.
+- [x] **Przekształcenie danych ma test jednostkowy** —
+      `tests/Unit/ActivityLogSchemaMigratorTest.php`, cztery przypadki (podział, brak kluczy,
+      pusta tablica, same klucze zmian). Testowana klasa
+      (`app/Services/ActivityLogSchemaMigrator.php`), nie migracja.
+- [x] Schemat po migracji: `attribute_changes` istnieje, `batch_uuid` nie istnieje. Zweryfikowane
+      też na bazie roboczej **z danymi** (53 wiersze, w tym 48 sprzed migracji) — wszystkie mają
+      teraz wypełnione `attribute_changes`, zero utraty treści.
+- [x] `config/activitylog.php` nie zawiera kluczy usuniętych w v5.
+- [x] `composer audit --locked` — brak podatności.
+- [x] `vendor/bin/phpstan analyse` — `[OK] No errors`, baseline nietknięty (nie było potrzeby
+      dodawać nowych wpisów).
+- [x] Zakres testów (T3, pełny pakiet) zielony: **76 testów, 256 asercji** (+5 względem stanu
+      po zadaniu 009: 71/244).
+- [x] `vendor/bin/pint` — czysto (201 plików; 13 poprawek `ordered_imports` w modelach po zmianie
+      przestrzeni nazw, naprawione).
 
 ## Zakres testów
 

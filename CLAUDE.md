@@ -68,6 +68,7 @@ da się odtworzyć z samego kodu.
 | `app/Filament/Owner/**`, `app/Providers/Filament/OwnerPanelProvider.php` | `docs/conventions/panel-wlasciciela.md` ⛏️ |
 | `app/Policies/**`, role i uprawnienia Shielda, `User` | `docs/conventions/autoryzacja.md` |
 | `app/Services/CSOService.php`, `app/Rules/IbanValidation.php`, `app/Helpers/**` | `docs/conventions/integracje.md` ⛏️ |
+| Modele z traitem `LogsActivity`, `config/activitylog.php` | `docs/conventions/dziennik-zmian.md` |
 | `routes/**`, widoki Breeze, `resources/views/**` | `docs/conventions/strona-publiczna.md` ⛏️ |
 
 **Dokumentacja projektu** - znajduje się w katalogu docs

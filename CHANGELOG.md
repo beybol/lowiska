@@ -27,6 +27,9 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Poprawione
 
+- Naprawiono podniesienie wersji dziennika zmian: aktualizacja wewnętrznej biblioteki
+  odpowiadającej za rejestrowanie kto i co zmienił w danych — bez zauważalnej zmiany dla
+  korzystających z aplikacji.
 - Naprawiono formularz rejestracji w panelu, który przestał pokazywać pola nazwiska, prefiksu
   kraju i telefonu — strona otwierała się normalnie, więc brak tych pól nie rzucał się w oczy.
 - Naprawiono formularz firmy w panelu właściciela: strona dodawania firmy przestawała się
