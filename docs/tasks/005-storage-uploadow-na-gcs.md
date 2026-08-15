@@ -117,7 +117,7 @@ wzorcem co bliźniaczy PunktySzczepień (zadanie 00055 tamże).
 ## Zakres testów
 
 - **Tier:** T3 — pełny pakiet
-- **Uruchamiamy:** `./test.sh`
+- **Uruchamiamy:** `docker compose exec app php artisan test`
 - **Uzasadnienie:** T3 **nie jest tu przedmiotem wyboru** — zadanie zmienia `composer.json`, czyli
   pozycję z listy „T3 obowiązkowy" w `CLAUDE.md`, a nowa zależność wnosi własny service provider,
   więc dokłada element bootstrapu aplikacji. Drugim powodem jest strażnik startowy: kod wykonywany
@@ -158,7 +158,7 @@ wzorcem co bliźniaczy PunktySzczepień (zadanie 00055 tamże).
 ## Ograniczenia techniczne
 
 - Laravel 12, PHP 8.3 (`config.platform` w `composer.json`), Filament 3.3, Pest 3; testy uruchamiane
-  **wyłącznie** przez `./test.sh`.
+  **wyłącznie** przez `docker compose exec app php artisan test`.
 - **Zero kluczy service account.** Nie dodawać `key_file`, `key_file_path` ani żadnej zmiennej
   z treścią klucza JSON — tożsamość runtime to ADC z metadata servera Cloud Run, tak jak WIF
   po stronie CI/CD. To ograniczenie całej platformy, nie preferencja tego zadania.

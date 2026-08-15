@@ -3,20 +3,23 @@
 .gitignore
 .gitattributes
 
-# Docker
-Dockerfile*
+# Docker — pliki sterujące budowaniem nie są potrzebne w obrazie.
+# ⚠️ Katalog docker/ MUSI zostać: cel prod kopiuje z niego Caddyfile,
+# ustawienia PHP i entrypoint.
+Dockerfile
 docker-compose*.yml
 .dockerignore
 
 # Environment files
+.env
 .env.*
 !.env.example
 
-# Dependencies
+# Dependencies — wchodzą z etapów `vendor` i `assets`
 node_modules
 vendor
 
-# Build artifacts
+# Build artifacts — wchodzą z etapu `assets`
 public/build
 public/hot
 
@@ -42,8 +45,11 @@ coverage
 .phpunit.result.cache
 
 # Documentation
-README.md
+docs
 *.md
+
+# Claude Code
+.claude
 
 # OS generated files
 .DS_Store

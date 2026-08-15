@@ -16,7 +16,8 @@
 ## Zakres testów
 <!-- Jeden tier: T1 punktowy / T2 zależności / T3 pełny pakiet.
      Kryteria doboru: CLAUDE.md → „Zakres testów — dobierany do zadania".
-     W „Uruchamiamy" wpisz wykonywalną komendę (./test.sh --filter="…" albo ./test.sh),
+     W „Uruchamiamy" wpisz wykonywalną komendę
+     (docker compose exec app php artisan test --filter="…" albo bez --filter dla T3),
      nie prozę — czyta to /implement-task.
      Tier niższy niż T3 = pełny pakiet ODROCZONY na koniec sesji, nie pominięty. -->
 - **Tier:** 

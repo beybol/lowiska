@@ -49,9 +49,10 @@ Przestrzegaj też ogólnych konwencji z `CLAUDE.md` (sekcja „Konwencje kodu").
 
 ### Krok 3 — Testy w zadeklarowanym zakresie
 1. Uruchom **dokładnie to**, co deklaruje `## Zakres testów` — nie mniej i nie więcej:
-   `./test.sh --filter="NazwaKlasy"` (T1/T2) albo `./test.sh` (T3).
-   ⚠️ **Nie uruchamiaj gołego `php artisan test`** — patrz `CLAUDE.md`, sekcja o słabym punkcie
-   izolacji testów. Wyłącznie `./test.sh`.
+   `docker compose exec app php artisan test --filter="NazwaKlasy"` (T1/T2) albo `docker compose exec app php artisan test` (T3).
+   ⚠️ **Testy uruchamiaj w kontenerze** (`docker compose exec app …`) — pakiet biegnie na MySQL-u
+   w schemacie `lowiska_test`, a bramka z `tests/TestCase.php` przerwie przebieg uruchomiony
+   przeciwko innej bazie.
 2. Uruchom `docker compose exec app vendor/bin/pint` na dotkniętych plikach — lint biegnie
    **niezależnie od tieru**, także przy pustym T1.
 3. Czerwone testy w zadeklarowanym zakresie → napraw przed przejściem dalej. Nie raportuj
@@ -86,7 +87,7 @@ Zaktualizuj pliki wymienione w sekcji „Zmiany dokumentacji" pliku zadania:
    - **✅ Uruchomiono:** komendy + wynik (liczba testów, zielone/czerwone) + `pint`.
    - **⚠️ NIE uruchomiono:** przy tierze **T1/T2** napisz **wprost**, że **pełny pakiet testów
      nie był uruchomiony** i jest **odroczony na koniec sesji** — do zrobienia przez
-     `/review-implementation` (Krok 1) albo ręcznie (`./test.sh`).
+     `/review-implementation` (Krok 1) albo ręcznie (`docker compose exec app php artisan test`).
    - Przy tierze **T3** napisz równie wprost, że pełny pakiet **przeszedł** — wtedy Krok 1
      `/review-implementation` można świadomie pominąć.
 

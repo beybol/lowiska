@@ -54,7 +54,7 @@ są elementem układu lokalnego — Cloud Run ich nie odtwarza.
 ## Zakres testów
 
 - **Tier:** T2 — zależności
-- **Uruchamiamy:** `./test.sh --filter="CountryImporter|CountryResource|AdminPanelTest"`
+- **Uruchamiamy:** `docker compose exec app php artisan test --filter="CountryImporter|CountryResource|AdminPanelTest"`
 - **Uzasadnienie:** zmiana dotyka sposobu wykonywania zadań kolejkowanych, czyli kontraktu
   używanego przez każdą akcję importu, a nie pojedynczej metody. T1 pokryłby samą klasę importera
   i przeoczył to, co faktycznie jest tu przedmiotem zadania — czy import **domyka się** w ścieżce
@@ -90,7 +90,7 @@ są elementem układu lokalnego — Cloud Run ich nie odtwarza.
 - Cloud Run: brak procesów w tle, instancja usypiana między żądaniami, staging schodzi do zera
   instancji; limit czasu żądania jest twardą granicą wariantu 1.
 - Baza to współdzielony Cloud SQL (MySQL 8) — sterownik `database` jest dostępny w obu wariantach.
-- Testy uruchamiane **wyłącznie** przez `./test.sh`.
+- Testy uruchamiane **wyłącznie** przez `docker compose exec app php artisan test`.
 
 ## Rozstrzygnięcia
 

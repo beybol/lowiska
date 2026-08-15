@@ -47,10 +47,10 @@ elementu zadaj konkretne pytanie do autora:
 - Tier wygląda na zaniżony względem tego, co zadanie realnie rusza → zaproponuj podniesienie
   z uzasadnieniem. ⚠️ Trafienie w **listę wyzwalaczy T3** z `CLAUDE.md` (`bootstrap/app.php`,
   `User`, polityki i Shield, providery paneli, `phpunit.xml`, `tests/TestCase.php`, `tests/Pest.php`,
-  `test.sh`, migracje, `composer.json`, pliki Dockerfile) przesądza tier — to nie jest wtedy
-  propozycja, tylko stwierdzenie.
-- W polu „Uruchamiamy" ma stać wykonywalna komenda (`./test.sh` albo `./test.sh --filter="…"`),
-  nie proza. Gołe `php artisan test` popraw na `./test.sh` — patrz `CLAUDE.md`.
+  `tests/Unit/PhpunitConfigInvariantTest.php`, migracje, `composer.json`, `Dockerfile`,
+  `docker-compose.yml`, `docker/**`) przesądza tier — to nie jest wtedy propozycja, tylko stwierdzenie.
+- W polu „Uruchamiamy" ma stać wykonywalna komenda (`docker compose exec app php artisan test`
+  albo `docker compose exec app php artisan test --filter="…"`), nie proza.
 
 **Sprawdź też, czy zadanie wskazuje powierzchnię i jej plik konwencji.** Jeśli powierzchnia nie ma
 jeszcze pliku w `docs/conventions/`, a zadanie ustala regułę wiążącą przyszły kod — dopisz do

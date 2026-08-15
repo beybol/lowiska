@@ -59,6 +59,9 @@ bazy roboczej.
 
 - `docker-compose.yml` ma opisywać sześć usług: `app`, `vite`, `queue`, `scheduler`, `mailpit`,
   `mysql` — i ma być **jedynym** plikiem opisującym środowisko deweloperskie, bez nakładek.
+  ⚠️ **Skorygowane po implementacji:** usługi są nadal sześć, ale `vite` i `scheduler` dostały
+  **profile** i nie startują przy zwykłym `docker compose up` — obie zjadały procesor bez przerwy.
+  Patrz „Korekty po implementacji".
 - Wpisy `extra_hosts`, `container_name` i nazwana sieć `laravel` mają zniknąć — sieć domyślna
   Compose'a wystarcza, a usługi mają się widzieć po nazwach.
 - Wolumeny nazwane: `dbdata` (dane MySQL-a), `vendor` (zależności PHP), `node_modules`. Katalogi
@@ -66,6 +69,9 @@ bazy roboczej.
   czytanych przy każdym żądaniu.
 - Usługa `vite` ma montować `vendor` tylko do odczytu, jeśli którykolwiek arkusz stylów importuje
   cokolwiek z tego katalogu; w przeciwnym razie montaż ma zostać pominięty, a nie dodany „na zapas".
+  **Rozstrzygnięte w implementacji: montaż jest potrzebny** — `tailwind.config.js` ma w `content`
+  ścieżkę `./vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php`, więc
+  bez tego katalogu klasy paginacji wypadają z gotowego arkusza.
 
 ### Baza danych
 
@@ -80,7 +86,7 @@ bazy roboczej.
   danych. Ma to być opisane w dokumentacji operacyjnej wraz z ręcznym odpowiednikiem dla środowisk,
   w których wolumen już istnieje.
 - **Bez przenoszenia obecnych danych.** Kontener startuje pusty, stan roboczy odtwarza się przez
-  `php artisan migrate --seed` (`DatabaseSeeder`) oraz `php artisan app:make-admin`
+  `php artisan migrate --seed` (`DatabaseSeeder`) oraz `php artisan MakeAdmin {name} {surname} {email}`
   (`MakeAdminCommand`). Baza na hoście ma zostać nietknięta — jest kopią zapasową do ewentualnego
   późniejszego przeniesienia.
 
@@ -94,7 +100,9 @@ bazy roboczej.
   stoją dziś na 8.3). Rozszerzenia: `pdo_mysql`, `mbstring`, `exif`, `pcntl`, `bcmath`, `gd`, `zip`,
   `intl`, **`soap`** (wymagane przez `gusapi/gusapi` w `CSOService`), a w celu `dev` dodatkowo
   **`pcov`** — bez sterownika pokrycia nie zadziała etap testów mutacyjnych z `/review-implementation`.
-- **Cel `dev`:** OPcache z `enable_cli=1`, `validate_timestamps=1`, `revalidate_freq=0` (`artisan serve`
+- **Cel `dev`:** OPcache z `enable_cli=1`, `validate_timestamps=1`, ~~`revalidate_freq=0`~~
+  **→ `revalidate_freq=2`** (skorygowane po implementacji: przy `0` żądanie trwało ~4 s zamiast
+  ~0,03 s — patrz „Korekty po implementacji") (`artisan serve`
   działa na interfejsie wiersza poleceń, więc bez `enable_cli` OPcache nie obejmuje serwowanej
   aplikacji), `memory_limit=1G` wyłącznie tutaj, Node 22 i klient MySQL-a. Polecenie domyślne:
   `php artisan serve --host=0.0.0.0 --port=8000`. **Bez** `COPY . .`, **bez** `npm run build`,
@@ -186,26 +194,29 @@ i `docker-compose*.yml`, a nie zna katalogu `docker/`.
 
 ## Kryteria akceptacji
 
-- [ ] `docker compose up --build` na czystym klonie stawia komplet usług, a aplikacja odpowiada pod
-      `http://localhost:11000`; serwer zasobów działa na 8173, skrzynka pocztowa na 11025,
-      baza na 6306.
-- [ ] `docker compose exec app php artisan migrate --seed` przechodzi na świeżym, pustym wolumenie bazy.
-- [ ] `docker compose exec app php artisan app:make-admin` tworzy konto, a panele `/admin` i `/owner`
+- [x] `docker compose up --build` stawia komplet usług, a aplikacja odpowiada pod
+      `http://localhost:11000`; skrzynka pocztowa na 11025, baza na 6306. Serwer zasobów działa
+      na 8173 **po włączeniu profilu** `vite` (patrz „Korekty po implementacji").
+- [x] `docker compose exec app php artisan migrate --seed` przechodzi na świeżym, pustym wolumenie bazy.
+- [x] `docker compose exec app php artisan MakeAdmin Jan Kowalski jan@example.com` tworzy konto, a panele `/admin` i `/owner`
       otwierają się po zalogowaniu.
-- [ ] Mail weryfikacyjny wysłany przy rejestracji pojawia się w skrzynce pod `http://localhost:11025`,
-      a odnośnik w nim jest klikalny.
-- [ ] Pełny pakiet testów jest zielony — patrz „Zakres testów".
-- [ ] **Dowód, że bramka wykonawcza działa**: po celowym wskazaniu bazy roboczej pakiet ma się
-      przerwać komunikatem bramki, **zanim** wykona jakąkolwiek migrację.
-- [ ] **Dowód, że test-strażnik działa**: po celowym zdjęciu `force="true"` z dowolnej zmiennej `DB_*`
-      `PhpunitConfigInvariantTest` ma być czerwony.
-- [ ] Po pełnym przebiegu testów baza `lowiska` **w kontenerze** zawiera dane sprzed przebiegu,
-      a baza na **hoście** pozostaje nietknięta.
-- [ ] `docker build --target prod -t lowiska:prod .` kończy się powodzeniem, a uruchomiony obraz
-      odpowiada na `/up` pod portem podanym w zmiennej `PORT`.
-- [ ] Żaden plik w repozytorium nie odwołuje się już do `test.sh`, `.docker/`, `host.docker.internal`
-      ani `192.168.65.7`.
-- [ ] `grep -r "łowiska"` nie zwraca nazwy bazy z diakrytykiem w plikach konfiguracyjnych.
+- [x] Mail weryfikacyjny pojawia się w skrzynce pod `http://localhost:11025`, a odnośnik w nim
+      wskazuje port hosta (`http://localhost:11000/verify-email/…`), czyli jest klikalny.
+- [ ] ~~Pełny pakiet testów jest zielony~~ — **niespełnione: 49 przeszło, 3 czerwone.** Przyczyna
+      jest niezależna od tego zadania (locale `en` kontra asercje pisane pod polski interfejs
+      Filamenta) — patrz „Korekty po implementacji".
+- [x] **Dowód, że bramka wykonawcza działa**: po wskazaniu bazy `lowiska` pakiet przerwał się
+      komunikatem bramki **przed** jakąkolwiek migracją (`exit(1)`).
+- [x] **Dowód, że test-strażnik działa**: po zdjęciu `force="true"` z `DB_DATABASE`
+      `PhpunitConfigInvariantTest` był czerwony, ze wskazaniem brakującego atrybutu.
+- [x] Po pełnym przebiegu testów baza `lowiska` **w kontenerze** zawiera dane sprzed przebiegu
+      (1 użytkownik, 16 województw, 4 waluty), a baza na **hoście** pozostaje nietknięta.
+- [x] `docker build --target prod -t lowiska:prod .` kończy się powodzeniem, a uruchomiony obraz
+      odpowiada `200` na `/up` pod portem z `PORT` (sprawdzone dla `PORT=9099`).
+- [x] Żaden plik w repozytorium nie odwołuje się już do `test.sh`, `.docker/`, `host.docker.internal`
+      ani `192.168.65.7` jako do czegoś istniejącego (pozostały wyłącznie wzmianki historyczne
+      w ADR-ach i w opisie tego zadania).
+- [x] `grep -r "łowiska"` nie zwraca nazwy bazy z diakrytykiem w plikach konfiguracyjnych.
 
 ## Zakres testów
 
@@ -310,3 +321,70 @@ i `docker-compose*.yml`, a nie zna katalogu `docker/`.
 
 **Obie decyzje architektoniczne są rozstrzygnięte — bramka `/implement-task` na pustej sekcji
 „Decyzja" jest otwarta.**
+
+## Korekty po implementacji
+
+Rozjazdy między pierwotnym opisem a stanem faktycznym. Przekreślone fragmenty wyżej zostawiono,
+żeby było widać, że decyzja została świadomie odwrócona — obowiązuje to, co niżej.
+
+### 1. `opcache.revalidate_freq = 2`, nie `0`
+
+Wymaganie mówiło `revalidate_freq=0`. Zmierzone na tym projekcie: przy `0` żądanie do `/admin`
+trwało **~4 s**, przy `2` — **~0,03 s**. Powód: kod leży na powiązaniu z dysku Windows, gdzie
+pojedynczy `stat` kosztuje ~25 ms (zmierzone: 109 plików `app/` = 2698 ms; te same 109 plików
+z wolumenu nazwanego = 707 ms). Przy `freq=0` OPcache robi to przy **każdym** żądaniu.
+Ceną są do dwóch sekund opóźnienia, zanim zmiana w pliku stanie się widoczna.
+Dołożone też `memory_consumption=256` i `max_accelerated_files=20000` — domyślne 128 MB/10000
+nie mieści Laravela z dwoma panelami Filamenta.
+
+### 2. `vite` i `scheduler` na profilach
+
+Wymaganie zakładało, że `docker compose up` stawia wszystkie sześć usług. Po pomiarze obie te
+usługi dostały profile i **nie startują domyślnie**:
+
+- `vite` — odpytywanie plików zjadało **~44% rdzenia** bez przerwy, także gdy nikt nic nie edytował;
+- `scheduler` — pętla co 60 s stawiająca cały framework.
+
+Uruchamianie: `docker compose --profile vite up -d vite`, analogicznie dla `scheduler`.
+⚠️ `docker compose down` bez podania profilu **nie zatrzymuje** tych usług.
+
+Konsekwencja: w trybie domyślnym Laravel serwuje zasoby zbudowane z `public/build`. Żeby świeży
+klon nie wstawał bez styli, **katalog ten został włączony do repozytorium** (usunięty z `.gitignore`,
+tak samo jak w PunktachSzczepień) — decyzja autora, 2026-08-15. Ceną jest obowiązek przebudowania
+i zacommitowania zasobów po każdej zmianie w `resources/css/**` lub `resources/js/**`.
+`public/hot` pozostaje ignorowany. Procedurę przełączania trybów opisuje
+`docs/operations/docker.md`, sekcja 5.
+
+### 3. Interwał odpytywania Vite: 1000 ms, nie 300 ms
+
+Pierwsza wersja miała `interval: 300`. Bliźniacze projekty używają 1000 ms z tego samego powodu
+(zmierzone tam ~33% rdzenia). Wyrównane.
+
+### 4. Nazwa komendy administratora
+
+W treści zadania figurowało `app:make-admin`. Faktyczna sygnatura to
+**`MakeAdmin {name} {surname} {email}`** — trzy argumenty wymagane. Komenda ustawia nowemu
+użytkownikowi **hasło równe adresowi e-mail**, a dla istniejącego adresu nie tworzy konta, tylko
+promuje je do Super Admina.
+
+### 5. Stan testów: 49 zielonych, 3 czerwone
+
+Kryterium „pełny pakiet zielony" **nie zostało spełnione**. Czerwone są `AdminPanelTest > Admin
+panel is accessible` oraz dwa testy z `OwnerPanelTest`, wszystkie na asercji `assertSee(__('Panel'))`.
+
+Przyczyna jest **niezależna od tego zadania**: Filament renderuje tytuł Dashboardu jako „Panel"
+tylko przy locale `pl` (`vendor/filament/filament/resources/lang/pl/pages/dashboard.php`), a przy
+`en` — „Dashboard". Locale to `en`, bo tak ma `.env`. Dowód, że to nie regres: przed zadaniem 004
+ani `phpunit.xml`, ani `docker-compose.yml` nie ustawiały `APP_LOCALE`, a przy `APP_LOCALE=pl`
+wszystkie 20 testów paneli przechodzi.
+
+Naprawa to jedna linia (`APP_LOCALE` w `phpunit.xml`) albo poprawienie asercji, ale jedno i drugie
+zmienia semantykę testów merytorycznych, które są w „Zakresie wyłączeń" tego zadania. **Do
+rozstrzygnięcia osobnym zadaniem.**
+
+### 6. Pozostały sufit wydajnościowy
+
+Czasy odpowiedzi są nierówne (0,02 s przy gęstych żądaniach, kilka sekund po upływie okna
+rewalidacji). To ograniczenie powiązania katalogu z dysku Windows, nie konfiguracji — trwałym
+rozwiązaniem jest przeniesienie repozytorium na system plików Linuksa (WSL2). Opisane
+w `docs/operations/docker.md`, sekcja 7.

@@ -15,8 +15,21 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
      ### Dodane / ### Zmienione / ### Poprawione / ### Usunięte / ### Wycofane / ### Bezpieczeństwo
      Przy wydaniu sekcja `[unreleased]` zamienia się w `## [X.Y.Z] - RRRR-MM-DD`. -->
 
+### Zmienione
+
+- Środowisko deweloperskie stawia się teraz jednym poleceniem `docker compose up --build` —
+  razem z bazą danych, serwerem zasobów i skrzynką pocztową, bez potrzeby instalowania czegokolwiek
+  na komputerze poza Dockerem. Aplikacja odpowiada pod adresem `http://localhost:11000`,
+  a wiadomości wysyłane przez aplikację trafiają do skrzynki pod `http://localhost:11025`.
+
 ### Poprawione
 
 - Naprawiono odczyt klucza do rejestru GUS oraz adresu administratora, które po zbudowaniu
   pamięci podręcznej konfiguracji na produkcji przestawałyby działać, uniemożliwiając wyszukiwanie
   firmy po NIP-ie oraz wyświetlanie danych kontaktowych w komunikacie o zajętej firmie.
+
+### Bezpieczeństwo
+
+- Uruchomienie testów nie może już przypadkowo skasować roboczej bazy danych — pakiet testów
+  korzysta z osobnej bazy, a przebieg zatrzymuje się z czytelnym komunikatem, gdyby kiedykolwiek
+  wskazał inną.

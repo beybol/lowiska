@@ -64,22 +64,24 @@ powtarzaj ich tutaj z pamięci, przeczytaj `CLAUDE.md`.
 1. Ustal, czego zadanie dotknie (klasy, warstwy) — na podstawie tematu i szybkiego rozpoznania
    w kodzie (`Grep`/`Glob`), nie zgadywania.
 2. **Sprawdź listę wyzwalaczy T3** z `CLAUDE.md` (`bootstrap/app.php`, `User`, polityki i Shield,
-   providery paneli, `phpunit.xml`, `tests/TestCase.php`, `tests/Pest.php`, `test.sh`, migracje,
-   `composer.json`, pliki Dockerfile). Trafienie w którykolwiek → **T3 nie jest przedmiotem wyboru**;
+   providery paneli, `phpunit.xml`, `tests/TestCase.php`, `tests/Pest.php`,
+   `tests/Unit/PhpunitConfigInvariantTest.php`, migracje, `composer.json`, `Dockerfile`,
+   `docker-compose.yml`, `docker/**`). Trafienie w którykolwiek → **T3 nie jest przedmiotem wyboru**;
    powiedz to wprost zamiast oferować pozorną alternatywę.
 3. **Zaproponuj tier z uzasadnieniem** i wskaż, jeśli już wiadomo, konkretne klasy testowe.
 4. **Zapytaj o zatwierdzenie** (`AskUserQuestion`): zaproponowany tier / tier wyżej / tier niżej.
    Rekomendację postaw jako pierwszą opcję.
 5. Wypełnij sekcję `## Zakres testów` (Tier / Uruchamiamy / Uzasadnienie). Pole „Uruchamiamy"
-   ma zawierać **wykonywalną komendę**: `./test.sh --filter="NazwaKlasy"` dla T1/T2 albo `./test.sh`
+   ma zawierać **wykonywalną komendę**: `docker compose exec app php artisan test --filter="NazwaKlasy"` dla T1/T2 albo `docker compose exec app php artisan test`
    dla T3 — nie prozę, bo czyta je `/implement-task`.
 
 ⚠️ **Nie wpisuj do kryteriów akceptacji „zielony pełny pakiet testów", jeśli tier to nie T3.**
 Kryterium ma odzwierciedlać zadeklarowany zakres. Przy tierze niższym niż T3 dopisz do kryteriów
 jawnie, że pełny pakiet jest **odroczony** na koniec sesji (`/review-implementation`, Krok 1).
 
-⚠️ **Komendą testów w tym projekcie jest `./test.sh`**, nie gołe `php artisan test` — patrz
-`CLAUDE.md`, sekcja o słabym punkcie izolacji testów.
+⚠️ **Komendą testów w tym projekcie jest `docker compose exec app php artisan test`** — testy biegną
+na MySQL-u w schemacie `lowiska_test`, chronionym pięcioma warstwami izolacji (patrz `CLAUDE.md`,
+sekcja o bezpieczeństwie bazy danych, oraz `docs/operations/docker.md`).
 
 ### Krok 4 — Zapis pliku
 

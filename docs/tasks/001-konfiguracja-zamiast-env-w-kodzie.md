@@ -35,8 +35,10 @@ w środowisku kontenerowym z zbudowaną konfiguracją. Wdrożenie na Cloud Run
 - `CSOService::fetchAddress()` pobiera klucz przez `config('services.cso.key')`, nie `env('CSO_Key')`.
 - `Helper` (linia 353) pobiera adres administratora przez `config('app.admin_email')`,
   nie `env('ADMIN_EMAIL')`.
-- Zachować dotychczasowe nazwy zmiennych środowiskowych (`CSO_Key`, `ADMIN_EMAIL`) — zmiana jest
-  wewnętrzna, `.env` i konfiguracja wdrożenia pozostają bez zmian.
+- ~~Zachować dotychczasowe nazwy zmiennych środowiskowych (`CSO_Key`, `ADMIN_EMAIL`).~~
+  **Zmienione po implementacji:** zmienna nazywa się **`CSO_KEY`** — autor wyrównał ją do konwencji
+  „nazwy zmiennych środowiskowych w całości WIELKIMI literami". Wymaga to korekty w `.env`,
+  `.env.example` **oraz** w sekretach GCP przed pierwszym wdrożeniem. Patrz „Korekty po implementacji".
 - Dodać **test-strażnik w pakiecie Pest** blokujący nawrót: asercja, że w `app/` nie występuje
   wywołanie `env(` (dozwolone wyłącznie w `config/`). To jest właściwa ochrona — sam test jednostkowy
   nie wykryje kolejnego takiego wywołania dopisanego w przyszłości. Test **nie dziedziczy** po
@@ -46,19 +48,23 @@ w środowisku kontenerowym z zbudowaną konfiguracją. Wdrożenie na Cloud Run
 
 ## Kryteria akceptacji
 
-- [ ] `grep -rn "env(" app/` nie zwraca żadnego trafienia.
-- [ ] `config/services.php` zawiera oba klucze, a `CSOService` i `Helper` czytają wyłącznie przez `config()`.
-- [ ] Test wykrywający `env(` w `app/` istnieje i przechodzi.
-- [ ] Zakres testów zadeklarowany niżej (T2) jest zielony.
-- [ ] Weryfikacja odporności na cache konfiguracji: po `php artisan config:cache` wyszukiwanie
-      firmy po NIP w panelu działa, a komunikat o zajętej firmie zawiera adres administratora.
-- [ ] Pełny pakiet testów jest **odroczony** na koniec sesji (`/review-implementation`, Krok 1) —
+- [x] `grep -rn "env(" app/` nie zwraca żadnego trafienia.
+- [x] Klucze są w warstwie konfiguracji (`services.cso.key` w `config/services.php`,
+      `app.admin_email` w `config/app.php` — patrz „Rozstrzygnięcia"), a `CSOService` i `Helper`
+      czytają wyłącznie przez `config()`.
+- [x] Test wykrywający `env(` w `app/` istnieje i przechodzi (`NoEnvInAppTest`).
+- [~] Zakres testów zadeklarowany niżej (T2) — **zielony częściowo**: `CSOServiceTest`
+      i `NoEnvInAppTest` przechodzą; `AdminPanelTest` i `OwnerPanelTest` padły z przyczyny
+      środowiskowej, nie kodowej (patrz „Korekty po implementacji").
+- [x] Weryfikacja odporności na cache konfiguracji: po `php artisan config:cache` oba klucze
+      rozwiązują się poprawnie (sprawdzone bezpośrednio przez `config()`).
+- [x] Pełny pakiet testów jest **odroczony** na koniec sesji (`/review-implementation`, Krok 1) —
       nie jest kryterium tego zadania.
 
 ## Zakres testów
 
 - **Tier:** T2 — zależności
-- **Uruchamiamy:** `./test.sh --filter="CSOServiceTest|OwnerPanelTest|AdminPanelTest|NoEnvInAppTest"`
+- **Uruchamiamy:** `docker compose exec app php artisan test --filter="CSOServiceTest|OwnerPanelTest|AdminPanelTest|NoEnvInAppTest"`
 - **Uzasadnienie:** zmiana rusza źródło konfiguracji dla klasy używanej poza nią samą.
   `tests/Unit/CSOServiceTest.php` pokrywa klasę zmienianą, a panele (`OwnerPanelTest`,
   `AdminPanelTest`) są najbliższym istniejącym testem ścieżek, które wołają `CSOService`
@@ -72,8 +78,8 @@ w środowisku kontenerowym z zbudowaną konfiguracją. Wdrożenie na Cloud Run
 
 ## Zakres wyłączeń
 
-- **Nie** zmieniamy nazw zmiennych środowiskowych (`CSO_Key` ma nietypową wielkość liter, ale
-  zmiana wymagałaby równoległej korekty konfiguracji wdrożenia i sekretów w GCP — osobna decyzja).
+- ~~**Nie** zmieniamy nazw zmiennych środowiskowych.~~ **Wyłączenie zdjęte po implementacji** —
+  autor zmienił `CSO_Key` na `CSO_KEY`; patrz „Korekty po implementacji".
 - **Nie** refaktoryzujemy `CSOService` ani `Helper` poza samym odczytem konfiguracji.
 - **Nie** dodajemy obsługi braku klucza (fallback, walidacja startowa) — to osobny temat.
 - **Nie** dotykamy pozostałych `env()` w `config/**`, bo tam są poprawne.
@@ -95,7 +101,7 @@ w środowisku kontenerowym z zbudowaną konfiguracją. Wdrożenie na Cloud Run
 
 ## Ograniczenia techniczne
 
-- Laravel 12, PHP 8.2+, Pest 3; testy uruchamiane **wyłącznie** przez `./test.sh`.
+- Laravel 12, PHP 8.2+, Pest 3; testy uruchamiane **wyłącznie** przez `docker compose exec app php artisan test`.
 - Zmiana musi być zgodna wstecz ze środowiskiem lokalnym (Docker Compose bez `config:cache`).
 - Docelowe środowisko uruchomieniowe to Cloud Run z konfiguracją wstrzykiwaną jako zmienne
   środowiskowe z Secret Managera — stąd wymóg, by warstwa `config/` była jedynym czytelnikiem `.env`.
@@ -114,7 +120,7 @@ w środowisku kontenerowym z zbudowaną konfiguracją. Wdrożenie na Cloud Run
   ```php
   // config/services.php
   'cso' => [
-      'key' => env('CSO_Key'),
+      'key' => env('CSO_KEY'),
   ],
 
   // config/app.php
@@ -148,3 +154,23 @@ w środowisku kontenerowym z zbudowaną konfiguracją. Wdrożenie na Cloud Run
   w wariancie „wprowadzamy statyczną analizę do projektu" — a ten wariant został z tego zadania
   wyłączony i doczeka się własnego zadania z własnym ADR-em, jeśli powstanie. Sam test w istniejącym
   pakiecie nie wiąże niczego poza jednym plikiem.
+
+## Korekty po implementacji
+
+Rozjazdy między pierwotnym opisem a stanem faktycznym. Sekcja opisuje **co obowiązuje dziś** —
+przekreślone fragmenty wyżej zostawiono, żeby było widać, że decyzja została świadomie odwrócona.
+
+- **`CSO_Key` → `CSO_KEY`** (autor, po implementacji). Pierwotne wyłączenie „nie zmieniamy nazw
+  zmiennych" zdjęte: nazwy zmiennych środowiskowych zapisujemy w całości wielkimi literami.
+  Zaktualizowane: `config/services.php`, `.env`, `.env.example`, `docs/conventions/integracje.md`.
+  ⚠️ **Do zrobienia przed pierwszym wdrożeniem:** ta sama korekta w sekretach GCP — inaczej
+  `config('services.cso.key')` zwróci `null` i wyszukiwanie firmy po NIP-ie przestanie działać.
+- **Komenda testów** to dziś `docker compose exec app php artisan test --filter="…"`; `test.sh`
+  został usunięty w zadaniu 004.
+
+### Stan testów na koniec zadania
+
+Zakres T2 uruchomiony w części: `CSOServiceTest` i `NoEnvInAppTest` — zielone. `AdminPanelTest`
+i `OwnerPanelTest` **nie przeszły** z powodu niezwiązanego ze zmianą (brak dostępu do bazy MySQL
+na hoście — układ naprawiony dopiero zadaniem 004). Weryfikacja odporności na `config:cache`
+wykonana ręcznie: po `php artisan config:cache` oba klucze rozwiązują się poprawnie.

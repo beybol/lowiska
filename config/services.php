@@ -52,6 +52,6 @@ return [
     ],
 
     'cso' => [
-        'key' => env('CSO_Key'),
+        'key' => env('CSO_KEY'),
     ],
 ];

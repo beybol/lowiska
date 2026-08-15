@@ -15,8 +15,10 @@ Zadania źródłowe: 001.
   podręcznej konfiguracji, a `env()` wywołane poza `config/` zaczyna po cichu zwracać `null`.
 - Klucz rejestru GUS: `config('services.cso.key')` (`CSOService::fetchAddress()`).
 - Adres administratora: `config('app.admin_email')` (`Helper::fetchDataFromCSO()`).
-- Zmienne środowiskowe pozostają pod dotychczasowymi nazwami (`CSO_Key`, `ADMIN_EMAIL`) — zmienia
-  się wyłącznie sposób ich odczytu w kodzie, nie nazwy w `.env` ani w konfiguracji wdrożenia.
+- **Nazwy zmiennych środowiskowych zapisujemy w całości WIELKIMI literami** (`CSO_KEY`,
+  `ADMIN_EMAIL`) — konwencja obowiązująca w całym `.env`; wcześniejsze `CSO_Key` było wyjątkiem
+  i zostało wyrównane. Zmiana nazwy zmiennej wymaga korekty w `.env`, `.env.example` **oraz**
+  w konfiguracji wdrożenia (sekrety w GCP).
 - ⚠️ **Strażnikiem tej reguły jest test `tests/Unit/NoEnvInAppTest.php`**, nie statyczna analiza —
   skanuje katalog `app/` w poszukiwaniu wywołania `env(`. Nie dziedziczy po `Tests\TestCase`
   (nie potrzebuje aplikacji ani bazy). Nie wracaj do wprowadzania PHPStan/Larastan tylko po to,

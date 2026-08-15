@@ -23,8 +23,8 @@ Argumenty (`$ARGUMENTS`):
 ## Zasady nadrzędne
 - **Nie commituj i nie przenoś zadań** — cykl życia zadań i git są własnością użytkownika.
 - **Raport i tworzone zadania po polsku**; kod i komentarze po angielsku.
-- **Testy uruchamiaj wyłącznie przez `./test.sh`** — nigdy gołym `php artisan test` (patrz
-  `CLAUDE.md`, sekcja o słabym punkcie izolacji testów).
+- **Testy uruchamiaj w kontenerze**: `docker compose exec app php artisan test` — pakiet biegnie
+  na MySQL-u w schemacie `lowiska_test` (patrz `CLAUDE.md`, sekcja o bezpieczeństwie bazy danych).
 - Każde pytanie zadawaj przez `AskUserQuestion`.
 - **Testy mutacyjne i security-review są od siebie niezależne co do ZGODY, ale nie co do
   wykonania** — zgodę na każdy zbierasz osobno (Krok 3A / Krok 3B), a uruchamiasz je **jeden po
@@ -130,7 +130,7 @@ do kodu, który i tak trzeba ruszyć, a część uwag bywa echem realnej awarii.
    Pominąć → zapamiętaj `testy: pominięte (powód)`, przejdź do Kroku 2.
 2. Uruchom:
    ```bash
-   ./test.sh
+   docker compose exec app php artisan test
    ```
 3. **Zielono** → powiedz to (liczba testów/asercji) i przejdź do Kroku 2.
 4. **Czerwono** → pokaż failujące testy i **zapytaj**: „Pakiet jest czerwony — co dalej?"
@@ -156,7 +156,7 @@ do kodu, który i tak trzeba ruszyć, a część uwag bywa echem realnej awarii.
 3. Agent zwraca uwagi (jest read-only). Jeśli **brak uwag** → powiedz to i przejdź do Kroku 3.
 4. Jeśli są uwagi → pokaż je i **zapytaj** (`AskUserQuestion`): „Co z uwagami z przeglądu?"
    - **Popraw teraz** → nanieś poprawki (Edit/Write), uruchom **testy dotkniętych plików**
-     (`./test.sh --filter="…"`) i `vendor/bin/pint`, po czym **wróć na początek Kroku 0**
+     (`docker compose exec app php artisan test --filter="…"`) i `vendor/bin/pint`, po czym **wróć na początek Kroku 0**
      (ponowna pętla: re-selekcja plików → Krok 1 → Krok 2, aż agent nie zgłosi uwag albo
      użytkownik wybierze inne wyjście). Pełny pakiet zostaw Krokowi 1 tej pętli — nie odpalaj
      go tutaj drugi raz.
@@ -245,7 +245,7 @@ punktowo, bo przyczyną jest wyścig.
       **Bez progu `--min`** — nie stawiamy bramki; raportujemy wynik.
       ⚠️ Długi przebieg przekroczy domyślny timeout `Bash` (600 s) i poleci w tło — to w porządku,
       odczytaj wynik, gdy przyjdzie powiadomienie. **Nie uruchamiaj w tym czasie niczego innego,
-      co dotyka bazy testowej** (w tym `./test.sh`).
+      co dotyka bazy testowej** (w tym `docker compose exec app php artisan test`).
    2. **Security-review** — `Agent` tool, **zawsze jako osobny agent** (nigdy inline przez
       orchestrator): `subagent_type: "general-purpose"`, `model: "opus"`, `run_in_background: false`.
       W prompcie agenta podaj listę zmienionych plików, zakres oraz instrukcję: wywołaj skill
@@ -268,7 +268,7 @@ punktowo, bo przyczyną jest wyścig.
      - **Zignoruj** → nie podejmuj żadnej akcji, nic nie zapisuj.
 4. Jeśli **którykolwiek** z dwóch pod-etapów dostał „Popraw teraz" → nanieś **wszystkie**
    takie poprawki razem (Edit/Write/nowe testy), uruchom **testy dotkniętych plików**
-   (`./test.sh --filter="…"`) i `vendor/bin/pint`, po czym **wróć na początek Kroku 0** (pętla:
+   (`docker compose exec app php artisan test --filter="…"`) i `vendor/bin/pint`, po czym **wróć na początek Kroku 0** (pętla:
    re-selekcja plików + Krok 1 → Krok 2 → Krok 3 od nowa, aż żaden etap nie zgłosi uwag albo
    użytkownik wybierze inne wyjście). W przeciwnym razie przejdź do Kroku 4.
 

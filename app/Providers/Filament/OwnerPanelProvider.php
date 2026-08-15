@@ -36,14 +36,14 @@ class OwnerPanelProvider extends PanelProvider
             ->login(Login::class)
             ->registration(Register::class)
             ->emailVerification()
-            ->brandName(__('Fisherings owner panel'))
+            ->brandName(__('Fisherya owner panel'))
             ->topNavigation()
             ->colors([
                 'primary' => Color::Green,
             ])
             ->resources([
-                CompanyResource::class, 
-                FisheryResource::class, 
+                CompanyResource::class,
+                FisheryResource::class,
                 LongTermPermitResource::class,
                 AdditionalServiceResource ::class,
                 PositionResource::class,

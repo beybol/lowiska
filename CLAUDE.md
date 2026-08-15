@@ -116,21 +116,23 @@ Każde zadanie deklaruje **jeden tier** w sekcji `## Zakres testów` i to on, ni
 w kryteriach akceptacji. Powód: pełny pakiet trwa swoje, a im drobniejsze zadania definiujemy, tym
 częściej implementacja jest krótsza niż przebieg testów całości.
 
-- **T1 — punktowy**: testy klas nowych i zmienionych (`./test.sh --filter="NazwaKlasy"`). Domyślny dla
+- **T1 — punktowy**: testy klas nowych i zmienionych
+  (`docker compose exec app php artisan test --filter="NazwaKlasy"`). Domyślny dla
   zmian treści, copy, CSS, pojedynczej metody. Pusty **wyłącznie** wtedy, gdy zmiana nie dotyka kodu
   wykonywalnego (sama `docs/**`) — zmiana widoku Blade, klucza tłumaczenia, trasy albo pliku
   konfiguracyjnego **nie jest** pusta.
 - **T2 — zależności**: T1 + testy klas i procesów, które z dotkniętych korzystają (wołający, test
   funkcjonalny przepływu). Domyślny, gdy zmiana rusza kontrakt używany gdzie indziej.
-- **T3 — pełny pakiet** (`./test.sh`): fundamenty i wszystko, co leży na każdej ścieżce.
+- **T3 — pełny pakiet** (`docker compose exec app php artisan test`): fundamenty i wszystko, co leży
+  na każdej ścieżce.
 
 **T3 jest obowiązkowy, gdy zmiana dotyka czegokolwiek z tej listy:**
 
 - `bootstrap/app.php` — w Laravelu 12 mieszkają tu middleware, routing i obsługa wyjątków
 - `User`, role i uprawnienia Shielda, dowolna klasa w `app/Policies/`
 - providery paneli (`AdminPanelProvider`, `OwnerPanelProvider`)
-- `phpunit.xml`, `tests/TestCase.php`, `tests/Pest.php`, `test.sh`
-- migracje, `composer.json`, `Dockerfile.dev`/`Dockerfile.prod`
+- `phpunit.xml`, `tests/TestCase.php`, `tests/Pest.php`, `tests/Unit/PhpunitConfigInvariantTest.php`
+- migracje, `composer.json`, `Dockerfile`, `docker-compose.yml`, `docker/**`
 
 ⚠️ **Tier niższy niż T3 to odroczenie, nie zwolnienie** — pełny pakiet nadal ma się wykonać, tylko
 **na koniec sesji** (Krok 1 `/review-implementation` albo ręcznie). Dlatego `/implement-task` **zawsze**
@@ -173,7 +175,8 @@ wyłącznie zasięgiem i miejscem zapisu, nie mocą.
 #### Gdzie żyje reszta dokumentacji
 
 - **Dokumentacja operacyjna** — [`docs/operations/`](docs/operations/); dziś
-  [`docker.md`](docs/operations/docker.md) (układ kontenerów, baza, uruchamianie).
+  [`docker.md`](docs/operations/docker.md) (układ sześciu usług, porty, baza, izolacja testów)
+  oraz [`obraz-produkcyjny.md`](docs/operations/obraz-produkcyjny.md) (cel `prod`, FrankenPHP).
 - **Decyzje architektoniczne** — [`docs/adr/`](docs/adr/).
 - **Zadania** — [`docs/tasks/`](docs/tasks/), zrealizowane w `docs/tasks/implemented/`.
 
@@ -183,12 +186,12 @@ wyłącznie zasięgiem i miejscem zapisu, nie mocą.
 Szczegóły: [`docs/operations/docker.md`](docs/operations/docker.md).
 
 ```bash
-docker compose up --build                      # app (Apache, host 8000) + queue + scheduler
+docker compose up --build                      # app 11000 · vite 8173 · mysql 6306 · mailpit 11025
 docker compose exec app php artisan migrate    # migracje
 docker compose exec app vendor/bin/pint        # formatowanie/lint — przed zakończeniem zadania
-./test.sh                                      # pełny pakiet testów (Pest)
-./test.sh --filter="NazwaKlasy"                # pojedyncza klasa / metoda
-docker build --target prod -f Dockerfile.prod -t lowiska:prod .   # obraz produkcyjny
+docker compose exec app php artisan test                       # pełny pakiet testów (Pest)
+docker compose exec app php artisan test --filter="NazwaKlasy" # pojedyncza klasa / metoda
+docker build --target prod -t lowiska:prod .   # obraz produkcyjny (FrankenPHP)
 ```
 
 **Testy** biegną na **Pest 3**. `tests/Pest.php` rozszerza `Tests\TestCase` i dokłada `RefreshDatabase`
@@ -198,25 +201,30 @@ połączenie.
 ## Bezpieczeństwo bazy danych — twarda zasada
 
 ⚠️ **Nigdy nie uruchamiaj `php artisan migrate:fresh` (ani `migrate:refresh`, `db:wipe`,
-`migrate:fresh --seed`) bez wcześniejszego wprost zapytania użytkownika i uzyskania zgody** —
-niezależnie od flag typu `--env=testing` czy `--database=…` i niezależnie od tego, jak bardzo kontekst
-wygląda na bezpieczny. `--env=testing` **nie gwarantuje** trafienia w izolowaną bazę: przy braku pliku
-`.env.testing` Laravel po cichu wraca do zwykłego `.env`, czyli do bazy deweloperskiej.
+`migrate:fresh --seed`, `docker compose down -v`) bez wcześniejszego wprost zapytania użytkownika
+i uzyskania zgody** — niezależnie od flag typu `--env=testing` czy `--database=…` i niezależnie od
+tego, jak bardzo kontekst wygląda na bezpieczny.
 
-⛏️ **Znany słaby punkt izolacji testów — do naprawy osobnym zadaniem, nie przy okazji.** Dziś stan
-jest taki:
+**Testy biegną na MySQL-u, w schemacie `lowiska_test`** ([ADR-001](docs/adr/ADR-001-silnik-bazy-w-pakiecie-testow.md)),
+w tym samym kontenerze co baza robocza `lowiska`. Ponieważ `tests/Pest.php` dokłada `RefreshDatabase`
+całemu katalogowi `Feature`, **każdy** test funkcjonalny czyści bazę, do której akurat wskazuje
+połączenie — dlatego izolacja stoi na **pięciu warstwach naraz**:
 
-- `phpunit.xml` deklaruje `DB_CONNECTION=sqlite` / `DB_DATABASE=:memory:`, ale **żaden wpis nie ma
-  `force="true"`**, więc prawdziwa zmienna środowiskowa go bije.
-- `docker-compose.yml` wstrzykuje `DB_CONNECTION`/`DB_DATABASE` przez listę `environment:`, czyli do
-  `$_SERVER` — a `force="true"` i tak zapisuje wyłącznie `putenv()`/`$_ENV`. W kontenerze deklaracja
-  z `phpunit.xml` nie ma więc szans wygrać nawet po dopisaniu `force`.
-- `test.sh` eksportuje `DB_DATABASE=test` — i to jest jedyna warstwa, która realnie działa, bo `export`
-  trafia do `$_SERVER`.
+1. `phpunit.xml` — komplet `DB_*` z `force="true"`, w tym **`DB_URL` wymuszony pusty**.
+2. `docker-compose.yml` — usługi `app`, `queue`, `scheduler` **nie dostają zmiennych `DB_*`** ani
+   `env_file`; zmienne z listy `environment:` trafiają do `$_SERVER` i przebiłyby `phpunit.xml`.
+3. `tests/TestCase.php` — bramka w `createApplication()` sprawdzająca **rozwiązane** połączenie;
+   niezgodność przerywa cały pakiet przez `exit(1)`.
+4. `tests/Unit/PhpunitConfigInvariantTest.php` — czerwienieje, gdy ktoś zdejmie `force="true"`.
+5. Uprawnienia w bazie — skrypt `docker/mysql/initdb/01-test-schema.sql`.
 
-Wniosek praktyczny na dziś: **uruchamiaj testy wyłącznie przez `./test.sh`** i nie zakładaj, że
-`php artisan test` trafi w bazę testową. Bliźniaczy projekt PunktySzczepień ma udokumentowaną historię
-wyczyszczenia realnej bazy dokładnie tym mechanizmem.
+⚠️ **Nie osłabiaj żadnej z tych warstw pojedynczo** — każda zakłada, że pozostałe działają. W
+szczególności nie dopisuj `DB_*` do `environment:` w Compose i nie zdejmuj `force="true"`. Bliźniaczy
+projekt PunktySzczepień ma udokumentowaną historię wielokrotnego wyczyszczenia realnej bazy dokładnie
+przez brak warstwy drugiej.
+
+⚠️ **Nie wprowadzaj `.env.testing`** — `phpunit.xml` i bramka są jedynym źródłem prawdy o bazie
+testowej; kolejny plik z tą samą prawdą to kolejne miejsce cichego rozjazdu.
 
 ## Konwencje kodu
 

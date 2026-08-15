@@ -1,440 +1,313 @@
-# Docker Setup for Laravel Application
+# Lokalne środowisko deweloperskie
 
-## Overview
-
-This Laravel application includes Docker containerization with separate environments for development and production. The setup includes support for PHP 8.3, Apache, Node.js/npm, Composer, and separate containers for queue workers and schedulers.
-
-## Architecture
-
-- **app**: Main Laravel application with Apache web server (port 8000)
-- **queue**: Queue worker container for background job processing (emails, exports, etc.)
-- **scheduler**: Cron scheduler container for running scheduled tasks (cleanup, reports, etc.)
-- **External Database**: Connects to external MySQL database (local XAMPP, remote server, cloud service)
-
-**Important**: All containers share the same database connection and require database tables to function properly. Queue and scheduler containers will fail to start if database tables don't exist, so migrations must be run before full startup.
-
-## Database Configuration Options
-
-This application is configured to use an **external MySQL database** instead of a containerized one. This allows for flexible deployment scenarios:
-
-### Option 1: Local MySQL (XAMPP/WAMP/Local Installation)
-
-For local MySQL database (XAMPP, WAMP, or directly installed MySQL):
-
-```env
-DB_HOST=host.docker.internal  # Windows/Mac
-# or
-DB_HOST=172.17.0.1           # Linux Docker default gateway
-DB_PORT=3306
-DB_DATABASE=łowiska
-DB_USERNAME=docker           # Recommended: create dedicated user
-# or
-DB_USERNAME=root             # Alternative: use existing root user
-DB_PASSWORD=your_password    # Set when creating user or use existing password
-```
-
-**Note**: 
-- Use `host.docker.internal` on Windows/Mac, or Docker gateway IP (`172.17.0.1`) on Linux
-- For security, create a dedicated `docker` user instead of using `root`
-- The password must match what you set when creating the database user
-
-### Option 2: Remote/Cloud MySQL Database
-
-For remote MySQL databases (VPS, dedicated servers, cloud services like AWS RDS, Google Cloud SQL, Azure Database):
-
-```env
-DB_HOST=your-mysql-server.com          # Remote server IP/hostname
-# or
-DB_HOST=your-cloud-instance.region.rds.amazonaws.com  # Cloud service endpoint
-DB_PORT=3306
-DB_DATABASE=łowiska
-DB_USERNAME=your_username              # Server-specific username
-DB_PASSWORD=your_password              # Server-specific password
-```
-
-## Database Requirements
-
-Before starting the application, ensure your MySQL database is properly configured:
-
-1. **Database exists**: Create a database named `łowiska` (or as specified in `DB_DATABASE`)
-2. **User permissions**: The database user must have full privileges on the target database
-3. **Network access**: 
-   - For local databases: MySQL must accept connections from Docker containers
-   - For remote databases: Firewall and security groups must allow connections from your server
-4. **MySQL version**: Compatible with MySQL 5.7+ or MariaDB 10.3+
-
-### Creating Database User (if needed)
-
-For local MySQL installations, you may need to create a user with external connection privileges:
-
-```sql
--- Connect to MySQL as root (mysql -u root -p)
-CREATE DATABASE lowiska CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Create user with a password of your choice
-CREATE USER 'docker'@'%' IDENTIFIED BY 'your_chosen_password';
-GRANT ALL PRIVILEGES ON lowiska.* TO 'docker'@'%';
-FLUSH PRIVILEGES;
-```
-
-**Important**: Replace `your_chosen_password` with a secure password of your choice. This password must match the `DB_PASSWORD` value in your `.env` file.
-
-**Security Note**: For production environments, use strong passwords and limit user privileges to only what's necessary.
-
-## File Structure
-
-- `Dockerfile.dev`: Development container with dev dependencies
-- `Dockerfile.prod`: Production-optimized container with cached assets
-- `docker-compose.yml`: Base multi-container orchestration
-- `docker-compose.override.yml`: Development overrides (auto-loaded)
-- `docker-compose.prod.yml`: Production overrides
-- `.docker/vhost.conf`: Apache virtual host configuration with mod_rewrite
-- `.dockerignore`: Files excluded from Docker context
-
-## Quick Start
-
-### Development Environment
-
-**⚠️ Important: Follow these steps in exact order to avoid common issues**
-
-1. **Copy and configure environment file:**
-   ```bash
-   cp .env.example .env
-   ```
-
-   **Important**: If your application runs in specific port, you should add it to `APP_URL`. It is important to see images in fishery Filament panel.
-   
-   **Important**: Update the `.env` file with your database configuration:
-   
-   - For **local XAMPP/WAMP**: Use `DB_HOST=host.docker.internal`
-   - For **remote server**: Use your server's IP/hostname
-   - For **cloud services**: Use the provided connection string
-   - For **local MySQL**: Use `host.docker.internal` or appropriate gateway IP
-   - **Set DB_PASSWORD**: Use the password you create for your database user (see Database Requirements section)
-   
-   Example configurations are provided in the Database Configuration Options section above.
-
-2. **Build and start containers:**
-   ```bash
-   docker compose up -d --build
-   ```
-   
-   **Why `--build`**: Ensures fresh images with all dependencies including `intl` extension.
-
-3. **Generate application key:**
-   ```bash
-   docker compose exec app php artisan key:generate
-   ```
-   
-   **Critical**: This must be done after containers are running, not before.
-
-4. **Restart containers to load new APP_KEY:**
-   ```bash
-   docker compose down && docker compose up -d
-   ```
-   
-   **Important**: Docker compose doesn't automatically reload environment variables when they change in `.env` file.
-
-5. **Run database migrations:**
-   ```bash
-   docker compose exec app php artisan migrate
-   ```
-
-6. **Restart containers to ensure all services work with database:**
-   ```bash
-   docker compose down && docker compose up -d
-   ```
-   
-   **Important**: Queue and scheduler containers need database tables to function properly. After migrations, restart ensures all services connect to the updated database.
-
-   **Note**: If the queue container fails to start or exits with error, restart it separately:
-   ```bash
-   docker compose restart queue
-   ```
-   This may be needed if the queue container started before database tables were created.
-
-7. **Build front**
-   ```bash
-   docker compose exec app npm run build
-   ```
-
-8. **Clear cache (recommended):**
-   ```bash
-   docker compose exec app php artisan config:clear
-   docker compose exec app php artisan cache:clear
-   ```
-
-9. **Optional - Run seeders (if they exist):**
-   ```bash
-   docker compose exec app php artisan db:seed
-   ```
-
-10. **Create super admin:**
-   ```bash
-   docker compose exec app php artisan shield:super-admin
-   ```
-
-11. **Generate roles (choose admin panel):**
-   ```bash
-   docker compose exec app php artisan shield:generate --all
-   ```
-
-12. **Generate symbolic link (to work wih images):**
-   Remove-Item path_to_\public\storage
-   ```bash
-   Remove-Item path_to_\public\storage
-   cmd /c mklink /D storage ..\storage\app\public
-   ```   
-
-13. **Access the application:**
-   - Open http://localhost:8000 in your browser
-   - You should see the Laravel welcome page
-
-## Testing
-
-To run tests with proper database isolation, create database test and use the included test script:
+Całe środowisko stoi w kontenerach i opisuje je **jeden plik** — `docker-compose.yml`.
+Nie ma nakładek (`docker-compose.override.yml` został usunięty w zadaniu 004): efektywna
+konfiguracja jest tym, co widać w pliku, bez scalania w tle.
 
 ```bash
-# Run all tests with forced test database
-docker compose exec app ./test.sh
-
-### Verification
-
-Check if everything is running correctly:
-
-```bash
-# Check container status (should show: app, queue, scheduler)
-docker compose ps
-
-# Check application response
-curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" http://localhost:8000
-
-# View logs if needed
-docker compose logs app
-docker compose logs queue
-docker compose logs scheduler
+docker compose up --build
 ```
 
-**Expected result**: All three containers (app, queue, scheduler) should be in "Up" status.
+Po wstaniu usług:
 
-### Common Setup Issues (Fixed by following above order)
-
-- ✅ **`intl` extension missing**: Fixed in Dockerfile.dev
-- ✅ **"No application encryption key"**: Fixed by step 4 (key generation after containers start)
-- ✅ **"Unsupported cipher"**: Fixed by proper key generation sequence
-- ✅ **Database connection errors**: Fixed by using localhost MySQL configuration in .env.example
-- ✅ **Permission errors**: Fixed by proper ownership settings in Dockerfile
-
-### Production Environment
-
-For production deployment:
-
-1. Use production compose file:
-   ```bash
-   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-   ```
-
-2. Or remove the development override file and update environment:
-   ```bash
-   mv docker-compose.override.yml docker-compose.override.yml.bak
-   APP_ENV=production docker compose up -d
-   ```
-
-## Container Details
-
-### Main Application (app)
-- **Port**: 8000 (mapped to container port 80)
-- **Features**: PHP 8.3, Apache with mod_rewrite/headers/expires/deflate
-- **Volumes**: `/storage` directory mounted for persistent data
-- **Development**: Source code mounted for live editing
-
-### Queue Worker (queue)
-- **Purpose**: Processes background jobs from the queue
-- **Command**: `php artisan queue:work --verbose --tries=3 --timeout=90`
-- **Scaling**: Can be scaled with `docker-compose up --scale queue=3`
-- **Database**: Connects to external MySQL database for queue storage
-
-### Scheduler (scheduler)
-- **Purpose**: Runs Laravel's task scheduler
-- **Command**: Executes `php artisan schedule:run` every minute
-- **Note**: Only run one instance to avoid duplicate scheduled tasks
-- **Database**: Connects to external MySQL database for scheduled task logging
-
-### External Database
-- **Type**: MySQL 5.7+ or MariaDB 10.3+
-- **Connection**: Via configured `DB_HOST` (local XAMPP, remote server, or cloud service)
-- **Storage**: All application data persisted in external database
-- **Backup**: Managed separately from Docker containers
-
-## Apache Configuration
-
-The `.docker/vhost.conf` includes:
-- **mod_rewrite**: Enabled for Laravel routing
-- **Security Headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
-- **Compression**: gzip compression for static assets
-- **Caching**: Browser caching headers for static assets
-- **Logging**: Error and access logs
-
-### View Logs
 ```bash
-# All services
-docker compose logs -f
+docker compose exec app php artisan migrate --seed   # schemat + dane startowe
 
-# Specific service
-docker compose logs -f app
-docker compose logs -f queue
-docker compose logs -f scheduler
+# Konto administratora — argumenty są WYMAGANE: imię, nazwisko, adres e-mail.
+docker compose exec app php artisan MakeAdmin Jan Kowalski jan@example.com
 ```
 
-## Troubleshooting
+⚠️ **Nowemu użytkownikowi komenda ustawia hasło równe adresowi e-mail** (`MakeAdminCommand`), więc
+z konta założonego tą drogą korzystaj wyłącznie lokalnie i zmień hasło, zanim gdziekolwiek trafi.
+Podanie adresu istniejącego użytkownika nie tworzy konta, tylko **promuje** je do roli Super Admina
+(hasło zostaje bez zmian).
 
-### Common Issues and Solutions
+---
 
-1. **"No application encryption key has been specified"**
-   ```bash
-   # Solution: Generate key after containers are running
-   docker compose exec app php artisan key:generate
-   docker compose exec app php artisan config:clear
-   ```
+## 1. Usługi i porty
 
-2. **"Unsupported cipher or incorrect key length"**
-   ```bash
-   # Solution: Clear corrupted key and regenerate
-   docker compose exec app bash -c "rm /var/www/html/.env && cp /var/www/html/.env.example /var/www/html/.env"
-   docker compose exec app php artisan key:generate --force
-   docker compose exec app php artisan config:clear
-   ```
+Porty hosta są przesunięte o **+3000** względem portów kontenerów, żeby środowisko mogło chodzić
+równocześnie z bliźniaczymi projektami (WorkSnap +1000, PunktySzczepień +2000).
 
-3. **"intl extension is missing"**
-   ```bash
-   # Solution: Rebuild containers (fix is in Dockerfile.dev)
-   docker compose down
-   docker compose up -d --build --no-cache
-   ```
+| Usługa | Host | Kontener | Do czego |
+|---|---|---|---|
+| `app` | **11000** | 8000 | aplikacja — http://localhost:11000 |
+| `vite` | **8173** | 8173 | serwer zasobów front-endu |
+| `mysql` | **6306** | 3306 | baza (klient z hosta łączy się tu) |
+| `mailpit` | **11025** | 8025 | skrzynka pocztowa — http://localhost:11025 |
+| `mailpit` | **4025** | 1025 | SMTP dla aplikacji |
 
-4. **Database connection errors**
-   
-   **For local databases (XAMPP/WAMP):**
-   ```bash
-   # Ensure .env has correct settings:
-   # DB_HOST=host.docker.internal
-   # DB_USERNAME=docker (or root)
-   # DB_PASSWORD=your_password
-   
-   # Test connection from container:
-   docker compose exec app php artisan migrate:status
-   ```
-   
-   **For remote databases:**
-   ```bash
-   # Check if database server is accessible:
-   docker compose exec app bash -c "timeout 3 bash -c '</dev/tcp/your-db-host/3306'; echo $?"
-   # Should return 0 if connection is successful
-   
-   # Verify credentials and database exists:
-   docker compose exec app php artisan tinker --execute="DB::connection()->getPdo();"
-   ```
-   
-5. **"Connection refused" to external database**
-   ```bash
-   # For local MySQL (XAMPP/WAMP):
-   # 1. Ensure MySQL is running in XAMPP Control Panel
-   # 2. Check if MySQL accepts external connections
-   # 3. Create database user with external access:
-   
-   mysql -u root -p -e "CREATE USER 'docker'@'%' IDENTIFIED BY 'your_chosen_password';GRANT ALL PRIVILEGES ON lowiska.* TO 'docker'@'%';FLUSH PRIVILEGES;"
-   ```
+Usługi `queue` i `scheduler` nie wystawiają portów. Wszystkie usługi widzą się **po nazwach**
+w domyślnej sieci Compose'a — stąd `DB_HOST=mysql` i `MAIL_HOST=mailpit` w `.env`.
 
-6. **Docker containers can't reach host database**
-   ```bash
-   # On Windows/Mac: Use host.docker.internal
-   DB_HOST=host.docker.internal
-   
-   # On Linux: Use Docker gateway IP
-   DB_HOST=172.17.0.1
-   # or find gateway IP:
-   docker network inspect bridge | grep Gateway
-  
-   ```
+### Usługi na profilach — nie startują domyślnie
 
-7. **Permission errors with storage/logs**
-   ```bash
-   # Fix file permissions
-   docker compose exec app bash -c "chown -R www-data:www-data /var/www/html/storage"
-   docker compose exec app bash -c "chown -R www-data:www-data /var/www/html/bootstrap/cache"
-   ```
+`docker compose up` stawia **cztery** usługi: `app`, `queue`, `mysql`, `mailpit`. `vite`
+i `scheduler` mają profile i uruchamia się je tylko wtedy, gdy są potrzebne — obie zjadały procesor
+bez przerwy (patrz sekcja 7).
 
-8. **Port conflicts**: Change port mapping if 8000 or 3306 are in use
-   ```yaml
-   ports:
-     - "8001:80"  # Use port 8001 instead
-   ```
-
-9. **Asset building issues**: Rebuild containers
-   ```bash
-   docker compose down
-   docker compose up --build
-   ```
-
-10. **Queue or scheduler containers not running/failing**
-    ```bash
-    # Check logs for specific error:
-    docker compose logs queue
-    docker compose logs scheduler
-    
-    # Common cause: Database tables missing
-    # Solution: Run migrations and restart containers
-    docker compose exec app php artisan migrate
-    docker compose down && docker compose up -d
-    
-    # If queue container still fails (shows "Exited (1)" status):
-    docker compose restart queue
-    
-    # Verify all containers are running:
-    docker compose ps
-    # Should show: app, queue, scheduler (all in "Up" status)
-    ```
-    
-    **Note**: Queue and scheduler containers require database tables (cache, jobs, sessions) to function. They will fail if migrations haven't been run.
-    
-    **Common error**: `Table 'łowiska.cache' doesn't exist` - This happens when queue container starts before migrations are complete. Simply restart the queue container after migrations.
-
-11. **Docker build fails with compiler errors (GCC internal error)**
-    ```bash
-    # Error during image build:
-    # "internal compiler error: Segmentation fault" in mbstring compilation
-    
-    # Solution 1: Retry the build
-    docker compose build --no-cache
-    docker compose up -d
-    
-    # Solution 2: Build with more memory (if using limited resources)
-    docker system prune -f  # Free up space first
-    docker compose build --no-cache --memory=2g
-    ```
-    
-    **Note**: This is a known issue with GCC compiler on some systems when building PHP extensions. Usually resolved by retrying the build or using slightly different PHP version.
-
-### Emergency Reset
-
-If nothing works, complete reset:
 ```bash
-# Stop and remove everything
+docker compose --profile scheduler up -d scheduler   # przy pracy nad zadaniami cyklicznymi
+```
+
+Przełączanie trybu pracy nad stylami opisuje **sekcja 5**.
+
+⚠️ **`docker compose down` nie zatrzymuje usług profilowanych** — trzeba wymienić profile:
+
+```bash
+docker compose --profile vite --profile scheduler down
+```
+
+⚠️ **Port Vite musi być po obu stronach ten sam (8173).** Adres pochodzenia wstrzykiwany na stronę
+bierze się z konfiguracji serwera Vite, nie z mapowania Compose'a — przy różnych portach
+przeglądarka pukałaby pod adres, którego nikt nie słucha.
+
+---
+
+## 2. Wolumeny
+
+| Wolumen | Zawartość | Dlaczego nazwany |
+|---|---|---|
+| `dbdata` | dane MySQL-a | przeżywa `docker compose down` |
+| `vendor` | zależności PHP | ⚠️ tysiące plików czytanych przy każdym żądaniu |
+| `node_modules` | zależności front-endu | jw. |
+
+⚠️ **`vendor` i `node_modules` nie mogą leżeć na powiązaniu z dysku Windows.** Powiązania
+katalogów w Docker Desktopie są wolne, a te dwa katalogi czyta się w całości przy każdym żądaniu —
+na powiązaniu środowisko staje się bezużyteczne. Nie wracaj do montowania ich z hosta.
+
+Usługa `vite` montuje `vendor` **tylko do odczytu**: `tailwind.config.js` ma w `content` ścieżkę
+`./vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php`, więc bez tego
+katalogu klasy paginacji wypadłyby z gotowego arkusza stylów.
+
+⚠️ **Pierwsze uruchomienie trwa dłużej**, bo oba wolumeny startują puste: `dev-entrypoint` wykonuje
+`composer install` w usłudze `app`, a usługa `vite` ma w poleceniu `npm install && npm run dev`.
+Kolejne starty korzystają z zawartości wolumenów.
+
+---
+
+## 3. Baza danych
+
+Obraz `mysql:8.4`, dwa schematy:
+
+- **`lowiska`** — baza robocza, tworzona przez `MYSQL_DATABASE`;
+- **`lowiska_test`** — baza pakietu testów, tworzona skryptem `docker/mysql/initdb/01-test-schema.sql`.
+
+Konto aplikacji to `lowiska` / `lowiska` (konto `root` ma hasło `root`). Klientem z hosta łączysz się
+na porcie **6306**:
+
+```bash
+mysql -h 127.0.0.1 -P 6306 -ulowiska -plowiska lowiska
+docker compose exec mysql mysql -ulowiska -plowiska lowiska   # albo bez klienta na hoście
+```
+
+Skrypt startowy jest konieczny, bo obraz MySQL-a nadaje uprawnienia **wyłącznie** do schematu
+z `MYSQL_DATABASE` — bez niego konto aplikacji nie zobaczyłoby drugiej bazy.
+
+`app`, `queue` i `scheduler` czekają na bazę przez `depends_on: condition: service_healthy`
+(kontrola stanu to `mysqladmin ping`).
+
+### ⚠️ Skrypty startowe wykonują się tylko raz
+
+Zawartość `docker-entrypoint-initdb.d` MySQL wykonuje **tylko przy tworzeniu pustego katalogu
+danych**. Jeśli wolumen `dbdata` już istnieje, dodany albo zmieniony skrypt nie zadziała — trzeba
+wykonać jego treść ręcznie:
+
+```bash
+docker compose exec mysql mysql -uroot -proot -e "
+  CREATE DATABASE IF NOT EXISTS lowiska_test
+    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  GRANT ALL PRIVILEGES ON lowiska_test.* TO 'lowiska'@'%';
+  GRANT ALL PRIVILEGES ON \`lowiska\\_test\\_%\`.* TO 'lowiska'@'%';
+  FLUSH PRIVILEGES;
+"
+```
+
+Alternatywa — skasowanie wolumenu i odtworzenie stanu od zera:
+
+```bash
 docker compose down -v
-docker system prune -f
-
-# Start fresh
-cp .env.example .env
-docker compose up -d --build
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
+docker compose up --build
+docker compose exec app php artisan migrate --seed
+docker compose exec app php artisan MakeAdmin Jan Kowalski jan@example.com
 ```
 
-### Rebuild Containers
+⚠️ `docker compose down -v` **kasuje dane robocze**. Zgodnie z `CLAUDE.md` operacje czyszczące bazę
+wykonuje się wyłącznie po wyraźnej zgodzie.
+
+Grant na `lowiska\_test\_%` jest nadawany z góry, choć zrównoleglenie testów jest jeszcze poza
+zakresem — dołożenie go później wymagałoby ręcznego wejścia do bazy w każdym istniejącym środowisku.
+Backslash escapuje tu `_`, które w tym wzorcu jest inaczej znakiem „dowolny znak".
+
+Sprawdzenie, czy uprawnienia są na miejscu:
+
 ```bash
-# Rebuild all containers
-docker compose down && docker compose up --build
-
-# Rebuild specific service
-docker compose build app && docker compose up -d app
+docker compose exec mysql mysql -ulowiska -plowiska -e "SHOW GRANTS FOR CURRENT_USER();"
 ```
+
+⚠️ `SHOW GRANTS` wyświetla ten wzorzec jako ``lowiska\\_test\\_%`` — **podwojony backslash to tylko
+sposób wyświetlania**, nie błąd w skrypcie. Jeśli chcesz się upewnić, że wzorzec działa, utwórz
+tymczasowo bazę `lowiska_test_1` i spróbuj się do niej odwołać kontem `lowiska`.
+
+---
+
+## 4. Izolacja pakietu testów — pięć warstw
+
+Testy biegną na **MySQL-u, w schemacie `lowiska_test`** ([ADR-001](../adr/ADR-001-silnik-bazy-w-pakiecie-testow.md)).
+Ponieważ `tests/Pest.php` dokłada `RefreshDatabase` całemu katalogowi `Feature`, **każdy** test
+funkcjonalny czyści bazę, do której akurat wskazuje połączenie. Stąd pięć warstw — żadna nie jest
+ozdobna:
+
+1. **`phpunit.xml`** — komplet zmiennych `DB_*` z `force="true"`, w tym **`DB_URL` wymuszony
+   pusty** (bez tego `DATABASE_URL` ze środowiska przesłania host i schemat).
+2. **`docker-compose.yml`** — usługi `app`, `queue` i `scheduler` **nie dostają żadnych zmiennych
+   `DB_*`** ani `env_file`. Powód: zmienne z listy `environment:` trafiają do `$_SERVER`,
+   a `force="true"` zapisuje wyłącznie `putenv()`/`$_ENV` — czyli w kontenerze deklaracja
+   z `phpunit.xml` przegrywałaby z Compose'em.
+3. **`tests/TestCase.php`** — bramka w `createApplication()` sprawdzająca **rozwiązane** połączenie
+   (nie same zmienne). Niezgodność przerywa **cały** pakiet przez `exit(1)`; nieudana asercja
+   przerwałaby tylko jeden test i wpuściła następny na złą bazę.
+4. **`tests/Unit/PhpunitConfigInvariantTest.php`** — czerwienieje, gdy ktoś zdejmie `force="true"`
+   z dowolnej zmiennej `DB_*` albo zmieni schemat testowy. Dziedziczy po klasie bazowej PHPUnit,
+   nie po `Tests\TestCase`, żeby działać także przy zepsutej konfiguracji.
+5. **Uprawnienia w bazie** — skrypt startowy MySQL-a (sekcja 3).
+
+Komenda testów:
+
+```bash
+docker compose exec app php artisan test
+docker compose exec app php artisan test --filter="NazwaKlasy"
+```
+
+⚠️ **`test.sh` już nie istnieje.** Był jedyną realnie działającą ochroną w poprzednim układzie
+(`export DB_DATABASE=test`) i został usunięty dopiero razem z kompletem warstw wyżej. Nie
+przywracaj go — pięć warstw zastępuje go z nawiązką, a jeden `export` w skrypcie tworzył złudzenie,
+że reszta układu jest bezpieczna.
+
+---
+
+## 5. Front-end — dwa tryby pracy
+
+Środowisko chodzi w jednym z dwóch trybów. **Domyślny jest tryb A** — Vite nie startuje.
+
+| | **A. Zasoby zbudowane** (domyślny) | **B. Serwer zasobów** (praca nad CSS/JS) |
+|---|---|---|
+| Skąd style i skrypty | `public/build` | serwer Vite na `localhost:8173` |
+| Przeładowanie po zmianie | trzeba przebudować | natychmiast (HMR) |
+| Koszt na biegu jałowym | zerowy | ~44% rdzenia (odpytywanie plików) |
+| Kiedy | **codzienna praca nad PHP**, testy, panele | edycja `resources/css/**`, `resources/js/**` |
+
+### Wejście w tryb B — praca nad stylami
+
+```bash
+docker compose --profile vite up -d vite
+docker compose logs -f vite          # poczekaj na „VITE ready"
+```
+
+Od tej chwili Vite tworzy `public/hot`, a Laravel serwuje zasoby z serwera deweloperskiego —
+zmiana w arkuszu jest widoczna bez przebudowywania.
+
+### Powrót do trybu A — koniec pracy nad stylami
+
+⚠️ **Trzy kroki, żadnego nie pomijaj.**
+
+```bash
+docker compose exec app npm run build              # 1. zbuduj zasoby
+docker compose --profile vite rm -sf vite          # 2. zatrzymaj i usuń usługę
+rm -f public/hot                                   # 3. usuń znacznik serwera
+```
+
+Krok 3 jest tym, o którym najłatwiej zapomnieć: **dopóki `public/hot` istnieje, Laravel szuka
+serwera Vite**, którego już nie ma — strona ładuje się wtedy całkiem bez stylów. `rm -sf` w kroku 2
+zatrzymuje kontener i usuwa go za jednym razem (`-s` = stop), ale pliku `hot` nie sprząta.
+
+⚠️ **Wynik kroku 1 wchodzi do commita.** Katalog `public/build` jest wersjonowany (patrz niżej),
+więc po pracy nad stylami przebudowane pliki trzeba dołożyć do zmian — inaczej reszta zespołu
+i obraz produkcyjny zobaczą stary arkusz.
+
+### `public/build` jest wersjonowany
+
+Zbudowane zasoby **leżą w repozytorium** — tak samo jak w PunktachSzczepień. Powód: serwer Vite nie
+startuje domyślnie, więc bez nich świeży klon wstałby bez styli, a `docker compose up` przestałby
+być jedynym potrzebnym poleceniem.
+
+Konsekwencja, o której trzeba pamiętać: **zmiana w `resources/css/**` lub `resources/js/**` jest
+kompletna dopiero po przebudowaniu i zacommitowaniu wyniku.**
+
+```bash
+docker compose exec app npm run build
+git add public/build
+```
+
+⚠️ `public/hot` pozostaje ignorowany i **nigdy** nie wchodzi do repozytorium — to znacznik
+uruchomionego serwera deweloperskiego, wskazujący `localhost:8173`. Zacommitowany zepsułby
+aplikację każdemu, kto nie ma uruchomionego Vite.
+
+Obrazu produkcyjnego to nie dotyczy: cel `prod` buduje zasoby samodzielnie w etapie `assets`,
+a `.dockerignore` wyklucza `public/build` z kontekstu budowania — do obrazu trafia zawsze świeży
+build, nie kopia z repozytorium.
+
+### Skąd wiem, w którym trybie jestem
+
+```bash
+ls public/hot 2>/dev/null && echo "tryb B (Vite)" || echo "tryb A (zbudowane)"
+docker compose ps --services   # czy `vite` jest na liście
+```
+
+### Ustawienia wymuszone przez środowisko
+
+`vite.config.js` niesie dwa ustawienia, których nie zmieniaj bez pomiaru:
+
+- **`hmr.host = 'localhost'`** — przeglądarka łączy się z hosta, a `0.0.0.0` jest w niej blokowane;
+- **`watch.usePolling = true`** z wykluczeniem `vendor`, `node_modules`, `storage`,
+  `bootstrap/cache`, `.git` i `public/build`.
+
+⚠️ Powiązanie katalogu z Windows **nie przekazuje zdarzeń systemu plików**, więc bez odpytywania
+przeładowanie nie działa. Bez wykluczeń odpytywanie całego drzewa zatyka serwer — obie rzeczy naraz,
+nie jedna z nich.
+
+⚠️ **Front-end jest w stanie mieszanym:** `package.json` ma jednocześnie `tailwindcss` 3
+i `@tailwindcss/vite` 4, a arkusz używa składni v3 (`@tailwind base`) przez PostCSS. Zadanie 004
+świadomie tego nie porządkowało. Jeśli budowanie zasobów zacznie się sypać — to jest pierwsze
+miejsce do sprawdzenia.
+
+---
+
+## 6. Poczta
+
+Cała poczta deweloperska idzie do Mailpita (`MAIL_HOST=mailpit`, `MAIL_PORT=1025`). Skrzynka:
+**http://localhost:11025**.
+
+Aplikacja wysyła maile weryfikacyjne i resetu hasła (Breeze), a odnośniki w nich muszą być
+klikalne — dlatego `APP_URL` wskazuje **port hosta** (`http://localhost:11000`), nie port
+kontenera.
+
+---
+
+## 7. Wydajność — co już zrobiono i gdzie jest sufit
+
+Kod leży na **powiązaniu katalogu z dysku Windows**, a każdy `stat` przez tę warstwę kosztuje
+wielokrotnie więcej niż na systemie plików kontenera. Zmierzone na tym projekcie:
+
+| Operacja | Powiązanie z Windows (`app/`) | Wolumen nazwany (`vendor/`) |
+|---|---|---|
+| `stat` 109 plików PHP | **~2700 ms** (~25 ms/plik) | ~700 ms (~6,5 ms/plik) |
+
+Stąd trzy ustawienia, których **nie wolno cofnąć**:
+
+- **`opcache.revalidate_freq = 2`** (`docker/php/dev.ini`) — przy `0` OPcache sprawdza znaczniki
+  czasu przy **każdym** żądaniu; zmierzone: ~4 s na żądanie zamiast ~0,03 s.
+- **`interval: 1000`** w `vite.config.js` — przy 300 ms samo odpytywanie zjadało ~44% rdzenia.
+- **profile na `vite` i `scheduler`** — patrz sekcja 1.
+
+⚠️ **Czasy odpowiedzi pozostaną nierówne** (od ~0,02 s przy gęstych żądaniach do kilku sekund, gdy
+minie okno rewalidacji). To sufit tego układu, nie błąd konfiguracji: `revalidate_freq` przesuwa
+koszt w czasie, ale go nie usuwa. Trwałe rozwiązanie to przeniesienie repozytorium na system plików
+Linuksa (WSL2, `\\wsl$\...`), gdzie powiązanie katalogu przestaje przechodzić przez most
+Windows↔Linux.
+
+---
+
+## 8. Obraz produkcyjny
+
+Cel `prod` z tego samego `Dockerfile` opisuje [`obraz-produkcyjny.md`](obraz-produkcyjny.md).
