@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-08-15
-- **Zadanie:** [004 — Przebudowa lokalnego środowiska deweloperskiego na kontenery](../tasks/004-przebudowa-lokalnego-srodowiska-w-kontenerach.md)
+- **Zadanie:** [004 — Przebudowa lokalnego środowiska deweloperskiego na kontenery](../tasks/implemented/004-przebudowa-lokalnego-srodowiska-w-kontenerach.md)
 
 ## Kontekst
 

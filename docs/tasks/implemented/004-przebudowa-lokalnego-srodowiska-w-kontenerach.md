@@ -308,12 +308,12 @@ i `docker-compose*.yml`, a nie zna katalogu `docker/`.
 ## Powiązane ADR-y
 
 <!-- Uzupełnia /review-task. -->
-- [**ADR-001 — Silnik bazy danych w pakiecie testów**](../adr/ADR-001-silnik-bazy-w-pakiecie-testow.md)
+- [**ADR-001 — Silnik bazy danych w pakiecie testów**](../../adr/ADR-001-silnik-bazy-w-pakiecie-testow.md)
   — **status: accepted, decyzja podjęta.** Testy biegną na **MySQL-u, w schemacie `lowiska_test`**;
   SQLite znika z pakietu w całości. Wszystkie pięć warstw izolacji jest obowiązkowe, a naprawa
   testów zaczerwienionych przez zmianę silnika należy do tego zadania. Szczegóły konsekwencji —
   w sekcji „Decyzja" ADR-a.
-- [**ADR-002 — FrankenPHP jako serwer aplikacyjny obrazu produkcyjnego**](../adr/ADR-002-frankenphp-jako-serwer-obrazu-produkcyjnego.md)
+- [**ADR-002 — FrankenPHP jako serwer aplikacyjny obrazu produkcyjnego**](../../adr/ADR-002-frankenphp-jako-serwer-obrazu-produkcyjnego.md)
   — **status: accepted, decyzja podjęta.** Cel `prod` stoi na **FrankenPHP w trybie classic**
   z `tini` jako `PID 1`, nasłuchem na `$PORT` i kontrolą stanu na `/up`; Apache i `.docker/` znikają.
   Tryb worker (Octane) świadomie odroczony do osobnego zadania. Szczegóły konsekwencji — w sekcji
