@@ -34,6 +34,16 @@
         <env name="DB_URL" value="" force="true"/>
 
         <env name="APP_ENV" value="testing" force="true"/>
+        <!--
+            ⚠️ Zadanie 006. Locale testów to `pl`, NIE `en` z .env — celowo, nie przez przeoczenie.
+            Własne tłumaczenia aplikacji (Companies, Fish, Countries…) idą przez ten sam katalog
+            (lang/pl.json) po obu stronach — test i strona — więc są zgodne w każdym locale.
+            Jedyny wyjątek to tytuł Dashboardu, który pochodzi z pakietu Filamenta
+            (vendor/filament/filament/resources/lang/{pl,en}/pages/dashboard.php) i różni się
+            między "Panel" (pl) a "Dashboard" (en) — testy AdminPanelTest/OwnerPanelTest asertują
+            dosłowne "Panel". Nie zmieniaj na "en" bez naprawienia tych asercji.
+        -->
+        <env name="APP_LOCALE" value="pl" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
         <env name="BCRYPT_ROUNDS" value="4" force="true"/>
         <env name="CACHE_STORE" value="array" force="true"/>

@@ -92,10 +92,11 @@ naiwnie. Dlatego wymaganie niżej mówi o **jawnej masce**, a nie o gołym `at: 
       (`url('/')` zwróciło `http://evil.tld`, link weryfikacji zawierał `evil.tld`), a test od
       `X-Forwarded-Proto` **pozostał zielony**. Opisane w
       `docs/security/2026-08-15-trustproxies-bez-maski-naglowkow.md`.
-- [x] **Pełny pakiet testów (`docker compose exec app php artisan test`) jest zielony** —
-      **z zastrzeżeniem odziedziczonym z zadania 004**: 53 przeszły, 3 czerwone (`AdminPanelTest`,
-      `OwnerPanelTest` — przyczyna: locale Filamenta, niezwiązana z tym zadaniem). Zero nowych
-      regresji; wszystkie 4 testy tego zadania zielone.
+- [x] **Pełny pakiet testów (`docker compose exec app php artisan test`) jest zielony** — w chwili
+      implementacji z zastrzeżeniem odziedziczonym z zadania 004 (53/3, przyczyna: locale
+      Filamenta, niezwiązana z tym zadaniem; zero nowych regresji, wszystkie 4 testy tego zadania
+      zielone). **Zastrzeżenie zniknęło po zadaniu [006](006-locale-testow-pakietu-filament.md)**
+      — pakiet jest dziś zielony w całości (56/56).
 
 ## Zakres testów
 

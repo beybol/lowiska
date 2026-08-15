@@ -369,18 +369,12 @@ promuje je do Super Admina.
 
 ### 5. Stan testów: 49 zielonych, 3 czerwone
 
-Kryterium „pełny pakiet zielony" **nie zostało spełnione**. Czerwone są `AdminPanelTest > Admin
-panel is accessible` oraz dwa testy z `OwnerPanelTest`, wszystkie na asercji `assertSee(__('Panel'))`.
-
-Przyczyna jest **niezależna od tego zadania**: Filament renderuje tytuł Dashboardu jako „Panel"
-tylko przy locale `pl` (`vendor/filament/filament/resources/lang/pl/pages/dashboard.php`), a przy
-`en` — „Dashboard". Locale to `en`, bo tak ma `.env`. Dowód, że to nie regres: przed zadaniem 004
-ani `phpunit.xml`, ani `docker-compose.yml` nie ustawiały `APP_LOCALE`, a przy `APP_LOCALE=pl`
-wszystkie 20 testów paneli przechodzi.
-
-Naprawa to jedna linia (`APP_LOCALE` w `phpunit.xml`) albo poprawienie asercji, ale jedno i drugie
-zmienia semantykę testów merytorycznych, które są w „Zakresie wyłączeń" tego zadania. **Do
-rozstrzygnięcia osobnym zadaniem.**
+~~Kryterium „pełny pakiet zielony" **nie zostało spełnione**.~~ **Naprawione zadaniem
+[006](006-locale-testow-pakietu-filament.md):** `phpunit.xml` wymusza `APP_LOCALE=pl`. Czerwone
+były `AdminPanelTest > Admin panel is accessible` oraz dwa testy z `OwnerPanelTest`, wszystkie na
+asercji `assertSee(__('Panel'))` — Filament renderuje tytuł Dashboardu jako „Panel" tylko przy
+locale `pl`, a przy `en` (locale z `.env`) — „Dashboard". Pełny pakiet jest od zadania 006 zielony
+w całości (56/56).
 
 ### 6. Pozostały sufit wydajnościowy
 
