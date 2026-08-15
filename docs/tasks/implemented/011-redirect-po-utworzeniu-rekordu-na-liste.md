@@ -159,20 +159,31 @@ w tym samym wzorcu co pozostałe dziewięć.
 własnej tablicy, ale i brak testu, który by to ujawnił) — to może być ten sam wzorzec gdzie
 indziej. Poza zakresem tego zadania, warto odnotować jako kandydata do przeglądu.
 
-### 3. Pre-existing bug w `UserResource`: brak pola `password` w formularzu
+### 3. Pre-existing bug w `UserResource`: brak pola `password` w formularzu — NAPRAWIONE
 
 Próba przetestowania pełnego cyklu `fillForm()->call('create')` dla `UserResource` kończyła się
 **błędem SQL** (`Field 'password' doesn't have a default value`) — formularz zasobu
-(`app/Filament/Resources/UserResource.php::form()`) nie ma pola `password`, a kolumna
+(`app/Filament/Resources/UserResource.php::form()`) nie miał pola `password`, a kolumna
 `users.password` w bazie nie ma wartości domyślnej. Utworzenie użytkownika przez panel
-administratora **nie działa dziś w ogóle** — niezależnie od tego zadania.
+administratora **nie działało w ogóle** — niezależnie od tego zadania.
 
-**Świadomie nie naprawione** — to defekt spoza zakresu (dotyczy tworzenia użytkowników, nie
-przekierowań), a naprawa wymaga decyzji produktowej (czy dodać pole `password`, czy generować
-hasło losowo i wysyłać e-mailem, czy coś innego) — materiał na osobne zadanie. `UserResourceTest`
-weryfikuje `getRedirectUrl()` bezpośrednio na zamontowanym komponencie
-(`Livewire::test(CreateUser::class)->instance()->getRedirectUrl()`), omijając wywołanie
-`create()`, żeby przetestować wyłącznie zmianę z tego zadania.
+⚠️ **Początkowo odłożone jako defekt spoza zakresu**, z testem obchodzącym problem
+(`getRedirectUrl()` wołane bezpośrednio, z pominięciem `create()`). Na decyzję użytkownika
+**naprawione inline w tym samym zadaniu** jako zmiana wystarczająco mała, żeby nie zakładać
+osobnego zadania — dodane pole `password` w `form()`:
+
+- `->required(fn (string $operation): bool => $operation === 'create')` — `form()` jest
+  współdzielone między `CreateUser` a `EditUser`, więc hasło jest wymagane wyłącznie przy
+  tworzeniu;
+- `->dehydrated(fn (?string $state): bool => filled($state))` — puste pole przy edycji **nie
+  trafia do modelu**, więc edycja innych pól nie zeruje istniejącego hasła;
+- bez `Hash::make()` — `User::$casts` ma `'password' => 'hashed'`, więc model haszuje sam;
+  jawne haszowanie dałoby podwójny hash.
+
+Test obchodzący problem zastąpiony pełnym cyklem, plus dwa nowe testy pokrywające obie gałęzie
+(`password is required on create and hashed`, `editing a user without touching the password
+field keeps it intact`). Obie gałęzie zweryfikowane empirycznie przed zapisaniem testów:
+hasło haszowane poprawnie (pojedynczo), edycja bez dotykania pola zachowuje stary hash.
 
 ### 4. `Livewire::test()` nie przenosi query stringa do `mount()` — zweryfikowane empirycznie
 

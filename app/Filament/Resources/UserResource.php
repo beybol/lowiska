@@ -42,6 +42,18 @@ class UserResource extends Resource
                     ->email()
                     ->required()
                     ->maxLength(255),
+                // `form()` jest współdzielone między CreateUser i EditUser — stąd required()
+                // tylko dla operacji create i dehydrated() tylko gdy wypełnione, żeby edycja
+                // innych pól nie wymuszała podania hasła ani go nie zerowała. `User::$casts`
+                // ma `password => 'hashed'`, więc model sam haszuje wartość przy zapisie —
+                // nie wołać tu dodatkowo Hash::make().
+                TextInput::make('password')
+                    ->label(__('Password'))
+                    ->password()
+                    ->revealable()
+                    ->required(fn (string $operation): bool => $operation === 'create')
+                    ->dehydrated(fn (?string $state): bool => filled($state))
+                    ->maxLength(255),
                 TextInput::make('phone')
                     ->label(__('Phone (without prefix)'))
                     ->tel()

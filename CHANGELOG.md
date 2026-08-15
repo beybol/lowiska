@@ -30,6 +30,10 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Poprawione
 
+- Naprawiono zakładanie użytkownika w panelu administratora — formularz nie miał pola hasła,
+  przez co zapis nowego użytkownika kończył się błędem i konta nie dało się utworzyć.
+  Przy edycji istniejącego użytkownika pole hasła można zostawić puste, żeby nie zmieniać
+  dotychczasowego.
 - Naprawiono podniesienie wersji dziennika zmian: aktualizacja wewnętrznej biblioteki
   odpowiadającej za rejestrowanie kto i co zmienił w danych — bez zauważalnej zmiany dla
   korzystających z aplikacji.

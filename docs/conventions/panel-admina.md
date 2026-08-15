@@ -65,7 +65,33 @@ niezmiennik go obejmuje — dopisz odsyłacz do tego pliku w `docs/conventions/p
 
 ---
 
-## 3. Redirect po utworzeniu rekordu — lista, nie edycja
+## 3. Pola haseł w formularzach zasobów
+
+- **`form()` zasobu jest współdzielone przez strony `Create*` i `Edit*`** — pole, które ma się
+  zachowywać inaczej w każdej z nich, rozróżnia je przez `$operation`, nie przez osobne
+  formularze. Wzorzec dla hasła (`UserResource`):
+  ```php
+  TextInput::make('password')
+      ->password()
+      ->revealable()
+      ->required(fn (string $operation): bool => $operation === 'create')
+      ->dehydrated(fn (?string $state): bool => filled($state)),
+  ```
+  `required()` tylko przy tworzeniu; `dehydrated()` wypuszcza wartość do modelu **wyłącznie gdy
+  pole jest wypełnione**, więc edycja innych pól nie zeruje istniejącego hasła.
+- ⚠️ **Nie wołaj `Hash::make()` w formularzu.** `User::$casts` ma `'password' => 'hashed'`,
+  więc model haszuje przy zapisie sam — jawne haszowanie w komponencie daje **podwójny hash**
+  i ciche zerwanie logowania (hasło przestaje pasować, bez żadnego błędu przy zapisie).
+- ⚠️ Pole wymagane przez bazę, którego **nie ma w formularzu**, wywraca zapis błędem SQL
+  (`Field 'x' doesn't have a default value`) dopiero przy realnym `create()` — nie przy
+  otwarciu formularza. Formularz zasobu musi pokrywać wszystkie kolumny `NOT NULL` bez wartości
+  domyślnej. Tak zniknęło pole `password` z `UserResource` i tworzenie użytkownika przez panel
+  nie działało (diagnoza w zadaniu 011); pilnuje tego
+  [`tests/Feature/UserResourceTest.php`](../../tests/Feature/UserResourceTest.php).
+
+---
+
+## 4. Redirect po utworzeniu rekordu — lista, nie edycja
 
 - **Standardowy CRUD nadpisuje `getRedirectUrl(): string` na stronie `Create*`, żeby po
   zapisaniu wrócić na listę zasobu**, nie na domyślny widok edycji Filamenta (zadanie 011).
