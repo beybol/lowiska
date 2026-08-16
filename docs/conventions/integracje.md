@@ -3,7 +3,14 @@
 Obowiązuje przy zmianach w `app/Services/CSOService.php`, `app/Rules/IbanValidation.php`,
 `app/Helpers/**`.
 
-Zadania źródłowe: 001.
+Zadania źródłowe: 001, 012.
+
+⚠️ **`app/Helpers/Helper.php` to nie tylko integracje.** Mieszkają tam także niezmienniki
+nawigacji łowisk — `fisheryHubUrl()`, `fisherySectionUrl()`, `fisheryBreadcrumbs()`,
+`assertFisheryAccessOrAbort()`, `forceVerifiedFishery()` — opisane w
+[`panel-wlasciciela.md`](panel-wlasciciela.md) §2. Zanim ruszysz którąkolwiek z nich,
+przeczytaj tamten plik: dwie z nich są bramkami dostępu, a jedna zależy od kolejności
+zakładek w `FisheryResource::getRelations()`.
 
 ---
 

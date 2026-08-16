@@ -18,13 +18,20 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test',
-            'surname' => 'Admin',
-            'email' => 'test.admin@example.com',
-            'password' => 'adminadmin',
-            'is_admin' => true,
-        ]);
+        // ⚠️ Konto administratora ze stałym hasłem powstaje WYŁĄCZNIE poza produkcją.
+        // Workflow wdrożeniowy udostępnia generyczny job artisanowy, więc `db:seed`
+        // da się odpalić na produkcji jednym poleceniem — bez tej bramki powstawałby
+        // wtedy natychmiastowy backdoor (audyt bezpieczeństwa, zadanie 012).
+        // Konto administratora na produkcji zakłada komenda `MakeAdmin`, która losuje hasło.
+        if (! app()->isProduction()) {
+            User::factory()->create([
+                'name' => 'Test',
+                'surname' => 'Admin',
+                'email' => 'test.admin@example.com',
+                'password' => 'adminadmin',
+                'is_admin' => true,
+            ]);
+        }
 
         State::factory()->create(['name' => 'Greater Poland']);
         State::factory()->create(['name' => 'Holy Cross']);

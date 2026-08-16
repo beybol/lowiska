@@ -19,13 +19,14 @@ use App\Models\Position;
  * ⚠️ Zakładkę identyfikuje **pozycja** w `FisheryResource::getRelations()`, nie nazwa
  * klasy — dlatego oczekiwany adres liczymy z tej samej tablicy, zamiast wpisywać numer.
  *
- * ⚠️ Nie przez pełny cykl Livewire (`fillForm()->call('create')`) — `mount()`
- * tej strony czyta `request()->get('fishery')` wprost z frameworkowego żądania,
- * a testowy harness Livewire (`Livewire::test()`, także `withQueryParams()`,
- * które obsługuje wyłącznie właściwości `#[Url]`) nie przenosi query stringa
- * do tego wywołania — zweryfikowane empirycznie. `getRedirectUrl()` ma fallback
- * `$this->record->fishery_id`, więc wołamy go bezpośrednio na instancji strony
- * z ustawionym rekordem — testuje tę samą logikę, bez symulowania żądania.
+ * ⚠️ Ten test celowo NIE idzie przez cykl Livewire: sprawdza gałąź fallbacku
+ * `$this->record->fishery_id`, czyli sytuację bez parametru `?fishery` w żądaniu.
+ * Gałąź `request()->get('fishery')` pokrywa `OwnerPanelTest` przez
+ * `Livewire::withQueryParams()`.
+ *
+ * ⚠️ Wcześniej stało tu, że `withQueryParams()` nie dowozi query stringa do
+ * `mount()` — to nieprawda po upgrade z zadania 009. Reguła jest opisana raz,
+ * w `docs/conventions/panel-admina.md` §4.
  */
 test('creating a position redirects to its tab in the fishery hub', function () {
     $company = Company::factory()->create();

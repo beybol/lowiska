@@ -488,11 +488,20 @@ Zrobione:
   listy również na stronę edycji łowiska (zgłoszenie d) — `getRelations()` obowiązuje
   **wszystkie** strony zasobu, nie tylko hub.
 
-**Pułapka, która kosztowała najwięcej: `CreateAction` w RelationManagerze nie renderuje się.**
-Przycisk przepada na własnej autoryzacji relacji — bez wyjątku, bez wpisu w logu, po prostu
-`array_filter(…, isVisible())` w widoku tabeli wycina go z HTML-a. Zamiana na zwykłą `Action`
-z jawnym `Gate::allows('create', Model::class)` i `url()` na pełną stronę tworzenia rozwiązała
-sprawę (zgłoszenie f).
+**Pułapka, która kosztowała najwięcej: akcje CRUD-owe Filamenta w RelationManagerze na stronie
+`ViewRecord` nie renderują się w ogóle.** `RelationManager::isReadOnly()` zwraca prawdę, bo hub
+jest `ViewRecord`, a panel domyślnie ustawia RelationManagery na stronach podglądu w tryb
+read-only. Autoryzacja odmawia wtedy **po klasie akcji** (`CreateAction`, `EditAction`,
+`DeleteAction`, `AttachAction`…), a `array_filter(…, isVisible())` w widoku tabeli wycina je
+z HTML-a — bez wyjątku i bez wpisu w logu. Zwykła `Action` nie jest na tej liście, więc
+przechodzi; stąd przyciski dodawania i edycji są zwykłymi akcjami z jawnym `Gate::allows()`
+i `url()` na pełną stronę.
+
+⚠️ **Sprostowanie:** pierwsza diagnoza w tym pliku mówiła, że `CreateAction` „przepada na
+własnej autoryzacji relacji". To była zła przyczyna — decyduje `isReadOnly()`, czyli typ strony
+huba, a nie własność relacji. Wyszło to dopiero w przeglądzie `/review-implementation`, przy
+okazji zgłoszenia, że z zakładek nie da się **edytować** rekordów (ta sama przyczyna, drugi
+objaw). Zweryfikowane u źródła w `vendor/filament/filament/…/RelationManager.php:220,359-365`.
 
 **Pułapka druga, testowa:** pierwsze próby diagnozy dały fałszywe „brak przycisku", bo
 `Livewire::test(...)->html()` łapie stan `isTableLoaded: false` — tabela dociąga się osobnym
@@ -545,6 +554,292 @@ używaną w przeglądarce. Notatka w konwencjach panelu admina poprawiona.
 ⚠️ **Flake do obserwacji:** jeden z trzech pełnych przebiegów pokazał czerwony
 `Owner can view only his fishery.`; dwa kolejne pełne przebiegi oraz cały plik uruchomiony
 osobno przechodzą. Nie udało się powtórzyć ani powiązać ze zmianami tego zadania.
+
+### 15. Przegląd `/review-implementation` — 17 uwag, wszystkie rozpatrzone
+
+Agent przeglądu na zakresie `unpushed` (4 commity, 63 pliki). Uwagi i decyzje:
+
+**Regresja wprowadzona w §13:** z zakładek huba **nie dało się edytować** rekordów — ta sama
+przyczyna co znikający przycisk dodawania (`isReadOnly()` na `ViewRecord`). RelationManagery
+nadpisują teraz `recordActions()` zwykłą `Action` linkującą na pełną stronę edycji. Wcześniej
+edycja była dostępna przez przycisk „Lista", który §13 usunął — czyli refaktor odciął jedyne
+wejście, a testy tego nie widziały.
+
+**Dwie luki autoryzacyjne (zastane, nie z tego zadania) — naprawione:**
+
+1. **Listy zasobów podrzędnych.** `$fisheryId` to publiczna właściwość komponentu wiązana
+   z query stringiem, sprawdzana tylko w `mount()`, a `getTableQuery()` filtrował **warunkowo**
+   (`if ($this->fisheryId)`), więc wyzerowanie właściwości znosiło filtr w całości. Zasoby nie
+   miały `getEloquentQuery()` zawężającego do właściciela. Teraz: bramka biegnie w
+   `getTableQuery()` na **każdym** żądaniu, a trzy zasoby dokładają zawężenie
+   `whereHas('fishery', forCurrentUser())` pod `Helper::isOwnerPanel()`.
+2. **Tworzenie rekordu pod cudzym łowiskiem.** `fishery_id` szło z pola `Hidden`, a polityki
+   przy tworzeniu nie widzą rekordu nadrzędnego, więc `PositionPolicy::create()` przepuszczało
+   każdego właściciela. Teraz `Helper::forceVerifiedFishery()` w `mutateFormDataBeforeCreate()`
+   przepuszcza zgłoszone ID przez bramkę.
+
+⚠️ **Pierwsza wersja tej drugiej poprawki była błędna i złapały ją testy.** Zapamiętałem
+zweryfikowane ID w `protected` właściwości strony — a Livewire utrwala między żądaniami
+**tylko właściwości publiczne**, więc przy zapisie (żądanie na `/livewire/update`, bez
+`?fishery`) bramka dostawała `null` i przerywała 404. W przeglądarce zachowałoby się tak samo:
+zapis stanowiska przestałby działać. Wersja finalna jest **bezstanowa** — autoryzuje wartość
+przychodzącą w danych formularza, więc nie zależy od cyklu życia komponentu.
+
+Nowe testy zweryfikowane **negatywnie**: po osłabieniu bramki (przywrócenie warunkowego filtru
++ wyłączenie zawężenia) test czerwienieje. Bez tego kroku byłyby dokładnie tym pozorem pokrycia,
+który ten sam przegląd wytknął gdzie indziej.
+
+**Pozory pokrycia — naprawione:**
+
+- `assertSee($record->name)` w teście parametryzowanym: `LongTermPermit` **nie ma** kolumny
+  `name`, a `assertSee(null)` nie asertuje niczego — zestaw „pozwolenia" sprawdzał o jedną
+  rzecz mniej niż wyglądało. Etykiety idą teraz z datasetu i są **krótkie**, bo kolumny opisowe
+  mają `limit(20)` i losowa treść z fabryki nie trafia do HTML-a w całości. W teście podmiany
+  ma to znaczenie krytyczne: ucięcie dałoby fałszywy sukces asercji „nie zawiera".
+- Test granicy paneli szedł na `/owner/fisheries/{id}/positions/create` — **trasa nie istnieje**,
+  więc 404 pochodziło z routingu i test przeszedłby tak samo dla własnego łowiska. Teraz
+  prawdziwy adres i para przypadków: cudze → 404, własne → 200.
+- Test przekierowań liczy oczekiwany adres tą samą konwencją co kod, więc pilnuje wyłącznie
+  indeksu. Dołożony osobny test sprawdzający, że adres z `fisheryHubUrl()` **faktycznie
+  aktywuje** tę zakładkę (`assertSet('activeRelationManager', …)`).
+- `FisheryMapPreviewTest` przechodził tylko na maszynie z `GOOGLE_MAPS_API_KEY` w `.env` —
+  klucz ustawiany jest teraz w teście, a zmienna dopisana do `.env.example`. Testy dostały też
+  `Filament::setCurrentPanel('owner')`, więc pokrywają wariant kreatora, a nie płaski formularz
+  administratora.
+
+**Duplikacja i wydajność:** sześć kopii `sectionUrl()` zastąpił `Helper::fisherySectionUrl()`;
+`Fishery::find()` wołane 3–4× na render (przy `live()` polach — na każdy render) trafiło za
+`findFishery()` z memoizacją. ⚠️ Cache siedzi w **kontenerze**, nie we właściwości `static` —
+statyczna tablica przeżyłaby `RefreshDatabase` i podała kolejnemu testowi model z wyczyszczonej
+tabeli. Sygnatury przyjmują `int|string|null` z jawną normalizacją, bo karmi je `request()`.
+
+**Odrzucone jako niebędące problemem:** N+1 w zakładkach (wszystkie delegowane tabele mają
+kolumny skalarne, a infolist huba czyta relacje z `with()` w `getEloquentQuery()`), oraz
+`assert()` w RelationManagerach (`ownerRecord` może tu być wyłącznie `Fishery`, a przy
+`zend.assertions=-1` degraduje się do zwykłego błędu, nie do cichego złego wyniku).
+
+**Braki procesowe odnotowane:** `docs/conventions/strona-publiczna.md` nie istnieje, mimo że
+tabela routingu w `CLAUDE.md` tam kieruje dla `resources/views/**`.
+
+### 16. Trzecia luka autoryzacyjna — przeoczona przez pierwszy przegląd
+
+Przy sprawdzaniu poprawek z §15 okazało się, że bramka przy zapisie objęła tylko **tworzenie**.
+Strony `Edit*` nie weryfikowały ponownie `fishery_id`, a `mount()` sprawdza łowisko rekordu
+**sprzed** zmiany — więc właściciel mógł przenieść własne stanowisko, usługę albo pozwolenie
+pod **cudze** łowisko, podmieniając wartość pola `Hidden` w żądaniu zapisu. Cudzego rekordu nie
+dało się już wtedy otworzyć (warstwa 1 z §15 to blokuje), ale zaśmiecenie cudzego łowiska
+własnym rekordem — owszem.
+
+Naprawa: `Helper::forceVerifiedFishery()` również w `mutateFormDataBeforeSave()` wszystkich
+trzech stron edycji. Trzy nowe testy, zweryfikowane negatywnie (po zdjęciu bramki czerwienieją).
+
+Reguła — trzy warstwy, żadnej nie zdejmować pojedynczo — trafiła do
+[`docs/conventions/autoryzacja.md`](../conventions/autoryzacja.md) §4.
+
+**Wniosek procesowy:** obie tury przeglądu znalazły luki tej samej klasy, a trzecią znalazło
+dopiero ręczne prześledzenie ścieżki zapisu. Zasoby podrzędne łowiska są w tym projekcie
+powierzchnią o najgorszym stosunku „wygląda na pokryte" do „jest pokryte" — polityki sugerują
+ochronę, której nie dają, bo przy tworzeniu nie widzą rekordu nadrzędnego.
+
+### 17. Drugi przegląd — pięć defektów, wszystkie naprawione
+
+Drugi przebieg `/review-implementation` (zawężony do kodu i testów) potwierdził poprawki z §15–16
+i znalazł pięć rzeczy:
+
+1. **N+1 w zakładkach huba.** `visible()` akcji edycji pyta politykę per wiersz, a ta dla
+   właściciela sięga po `$record->fishery->user_id` — każdy wiersz dociągał własne zapytanie.
+   Dodany `->with('fishery')` w `getEloquentQuery()` trzech zasobów **oraz**
+   `modifyQueryUsing()` w RelationManagerach, bo te jadą po relacji i nie przechodzą przez
+   `getEloquentQuery()`.
+2. **Niezmiennik bezpieczeństwa przeklejony w trzech miejscach.** Zawężenie do łowisk właściciela
+   zjechało do `Helper::scopeToOwnedFisheries()` — czwarty zasób podrzędny dodany kiedyś
+   w przyszłości dostanie regułę jedną linijką, zamiast jej po cichu nie dostać.
+3. **Wyciek odczytowy przez opcje formularza.** `CheckboxList` pozwoleń i `Select` usług
+   liczyły opcje z **klienckiego** `fishery_id` bez zawężenia — podmiana stanu wyświetlała
+   opisy pozwoleń i nazwy usług cudzego łowiska. Zapis był bezpieczny, odczyt nie. Oba
+   zapytania przepuszczone przez `scopeToOwnedFisheries()`.
+4. **Klucz cache bez ID użytkownika.** Kontener przeżywa wiele żądań w obrębie jednego testu,
+   więc test wchodzący najpierw jako A, potem jako B na to samo łowisko dostałby wpis A
+   i **przeszedł na zielono mimo zepsutej bramki**. Produkcja bezpieczna (kontener ginie
+   z żądaniem), ale klucz i tak niesie teraz `auth()->id()`.
+5. **Testy bezpieczeństwa bez kontroli pozytywnej.** Asercje „nie przeniesiono" / „nie powstało"
+   przechodzą także wtedy, gdy zapis **w ogóle się nie wykonał**. Dołożone kontrole pozytywne
+   w osobnych wywołaniach (przy podmianie bramka przerywa żądanie, więc nie da się tam nic
+   asertować o formularzu) plus brakujący trzeci zestaw danych (`CreateLongTermPermit`).
+
+Przy okazji, z „wątpliwości": `?fishery=abc` dawało `TypeError` (500) zamiast 404 — właściwość
+jest typowana `?int`, a `request()->get()` daje string; przypisanie idzie teraz **po** bramce,
+która normalizuje i zwraca `int`. Przekierowanie po utworzeniu preferuje `fishery_id`
+**zapisanego rekordu** przed parametrem URL.
+
+**Świadomie zostawione:** z zakładki huba nie da się **usunąć** rekordu — `DeleteAction`
+i `DeleteBulkAction` też przepadają w trybie read-only, a Filament ukrywa wtedy całą grupę
+akcji masowych razem z kolumną zaznaczeń (czyli nie zostaje nieklikalny element). Kasowanie
+żyje na stronie edycji, o jedno kliknięcie dalej. Jeśli ma być w zakładce, wymaga zwykłej
+`Action` z `requiresConfirmation()` i jawnym `Gate::allows('delete', $record)`.
+
+**Sprostowana notatka:** `Helper::getListHeaderActionsForFishery()` ma martwą gałąź `else`
+(dla braku łowiska) — bramka w `mount()` nie dopuszcza już takiego stanu.
+
+### 18. Trzeci przegląd i zdiagnozowany flake
+
+Trzeci przebieg potwierdził, że poprawki z §17 niczego nie zepsuły, i zwrócił trzy rzeczy:
+
+1. **Snippet w `panel-admina.md` §4 pokazywał starą kolejność źródeł** w `getRedirectUrl()` —
+   a wg `CLAUDE.md` snippet w konwencjach wiąże jak ADR, więc skopiowany do czwartego zasobu
+   odtworzyłby dokładnie ten defekt, który §17 naprawiło. Przepisany.
+2. **Warstwa 1 bramki nie miała pokrycia.** Testy „przez podmianę właściwości" kończą się na
+   warstwie 2 (`assertFisheryAccessOrAbort()` w `getTableQuery()`), więc przechodziłyby także
+   wtedy, gdyby `scopeToOwnedFisheries()` w ogóle nie istniało — a to ona jako jedyna chroni
+   **odczyt pojedynczego rekordu**. Dołożone trzy testy izolujące warstwę 1
+   (`getEloquentQuery()->find($cudzy)` → `null`) plus trzy na `GET …/{cudzy}/edit` → 404.
+   Zweryfikowane negatywnie: po wyłączeniu warstwy 1 czerwienieją 3/3.
+3. **Martwy `getRedirectUrl()` na stronie listy usług** — należy do `Create*`/`Edit*`, sięgał
+   po nieistniejący `$this->record` i prowadził na wycofaną samotną listę. Usunięty.
+
+Z „wątpliwości" domknięte: predykat w `scopeToOwnedFisheries()` zmieniony na **fail-closed**
+(`! isAdminPanel()`, jak w bramce — przy `isOwnerPanel()` nierozpoznany kontekst panelu
+oznaczałby brak zawężenia); `is_numeric()` przed zapytaniami o opcje formularza (kliencki
+`"abc"` dawał `TypeError` zamiast pustej listy); test na `?fishery=abc` → 404; brakujący test
+przekierowania dla pozwoleń.
+
+#### Flake, który ciągnął się przez całą sesję — przyczyna znaleziona
+
+`Owner panel is accessible.` i `Owner can view only his fishery.` czerwieniły się losowo, mniej
+więcej raz na sto przebiegów pakietu, i nie dawały się powtórzyć punktowo. Przyczyna:
+**`faker_locale` to `pl_PL`**, a nazwy z fabryk trafiają na stronę — nazwisko użytkownika do
+paska Filamenta, nazwy firm i łowisk do tabel. Nazwisko **„Krajewski"** zawiera podciąg
+**„Kraje"**, czyli tłumaczenie `__('Countries')` sprawdzane przez `assertDontSee()`. Zmierzone:
+**45 kolizji na 5000 losowań** (~0,9%), co odpowiada obserwowanej częstotliwości.
+
+Naprawa: nazwy ustawiane wprost w tych testach. Reguła w
+[`panel-wlasciciela.md`](../conventions/panel-wlasciciela.md) §5. Po poprawce **trzy pełne
+przebiegi z rzędu na zielono** (130 testów, 445 asercji).
+
+### 19. Testy mutacyjne — jedna klasa domknięta, druga odłożona z pomiarem
+
+- **`App\Rules\IbanValidation` — MSI 100%**, 131 mutantów, 1 timeout, **zero ocalałych**.
+  Przebieg ~8 min. To jest wzorzec: klasa z logiką obliczeniową pokryta szybkim testem
+  `tests/Unit`.
+- **`App\Helpers\Helper` — nie domknięte.** Dwie próby (bez filtra i zawężona do nowego
+  `HelperFisheryAccessTest`) przekroczyły dziesięciominutowe okno środowiska i zostały
+  przerwane bez wyniku. Przyczyna jest strukturalna: klasa ma ~620 linii i jest pokryta
+  testami `Feature` bootującymi panele, więc koszt jednego mutanta to kilkadziesiąt sekund,
+  a mutantów są setki.
+
+Zamiast heroicznego przebiegu powstało coś trwalszego: **`tests/Feature/HelperFisheryAccessTest.php`**
+— 17 przypadków wołających metody bramkujące i nawigacyjne **bezpośrednio**, bez renderowania
+stron (~27 s zamiast ~2,5 min). Pokrywa: zwracanie zweryfikowanego ID, odmowę dla cudzego
+łowiska, odmowę dla wartości nieliczbowych i nieistniejących, przepisanie `fishery_id` przez
+bramkę, zawężenie zapytań i jego **brak** w panelu admina, indeks zakładki różny dla różnych
+managerów, fallback adresu sekcji oraz kształt okruszków w obu wariantach.
+
+Domknięcie mutacji przeniesione do **zadania 013** wraz z rozbiciem `Helper` na klasy dziedzinowe
+— bez tego rozbicia mutacje tej klasy pozostaną niewykonalne.
+
+⚠️ **Sprostowanie:** komenda `/review-implementation` twierdzi, że obraz deweloperski nie ma
+sterownika pokrycia. **Ma — PCOV** (zweryfikowane `php -m`). Poprawka wchodzi w zakres zadania 013.
+
+### 20. Audyt bezpieczeństwa — 14 znalezisk, wszystkie naprawione
+
+Pełny audyt (`security-review` na zmienionym zestawie + podążanie za referencjami) potwierdził,
+że **trzy warstwy z `autoryzacja.md` §4 są kompletne i symetryczne** we wszystkich trzech
+zasobach podrzędnych, oraz że czyste są: RelationManagery, `resolveRecordRouteBinding()`,
+wyszukiwarka globalna, eksport, akcje masowe, `ToggleColumn`, zapytania o opcje formularza
+i snapshot Livewire zmienionych stron.
+
+**Znalazł jednak jedną ścieżkę odczytu omijającą wszystkie trzy warstwy** — i leżała
+w kodzie tego zadania.
+
+#### Luka niezmiennika §4: nazwa cudzego łowiska przez okruszki
+
+Strony `Create*` czytają `?fishery` **wprost z żądania** w `getBreadcrumbs()`, a bramka
+z `mount()` biegnie tylko przy pierwszym GET-cie. `Helper::fisheryBreadcrumbs()` wołało
+`findFishery()` **bez** zawężenia, a okruszki Filament przelicza przy **każdym** renderze
+Livewire (kod siedzi w widoku komponentu, nie layoutu). Zatem
+`POST /livewire/update?fishery=<cudze>` zwracał nazwę cudzego łowiska i link do jego huba,
+pozwalając enumerować katalog po ID.
+
+Naprawa: **`findFishery()` jest teraz domyślnie zawężone**, wariant nieograniczony trzeba
+wybrać świadomie. To samo objęło `getFisheryTitle()` i hydratację pola `fishery_name`.
+
+#### Trzy poważne rzeczy zastane, spoza zakresu 012
+
+1. **Hasło super-admina równe jego adresowi e-mail** (`MakeAdminCommand`) — zgłoszone jako HIGH,
+   **świadomie NIE naprawione**. Uzasadnienie i warunek powrotu: §21 niżej.
+2. **Logowanie społecznościowe pomijało drugi składnik w całości.** `callback()` wołało samo
+   `Auth::login()`; `TwoFactorMiddleware` tego nie łapie, bo traktuje **pusty** kod jako „brak
+   oczekującego wyzwania". Ktokolwiek przeszedł flow Google/Facebook dla adresu odpowiadającego
+   lokalnemu użytkownikowi — w tym `is_admin` — dostawał pełną sesję. Dodane generowanie kodu,
+   powiadomienie i przekierowanie na `/verify`, plus brakujące `session()->regenerate()`
+   (fiksacja sesji).
+3. **Panel właściciela nie miał `TwoFactorMiddleware`.** `Login::authenticate()` woła
+   `parent::authenticate()` **przed** rzuceniem wyjątku, więc sesja guarda już istniała —
+   wystarczyło zignorować przekierowanie i wejść wprost na `/owner/fisheries`.
+   `TODO.md` odraczało to „do upgrade'u na Laravel 13 + najnowszego Filamenta"; upgrade
+   wszedł zadaniem 009, więc **warunek odroczenia wygasł**. Middleware dołożony.
+
+#### Polityki łowiska i firmy: jedna warstwa zamiast dwóch
+
+`FisheryPolicy` i `CompanyPolicy` przyjmowały rekord i **go ignorowały**, a
+`Helper::addOwnerRole()` nadaje roli `owner` **pełny** zestaw `*:fishery` i `*:company` — więc
+`Gate::allows('update', $cudzeŁowisko)` zwracało `true` dla dowolnego zarejestrowanego konta.
+Jedyną ochroną było zawężenie zapytania w zasobie. Obie polityki sprawdzają teraz właściciela
+na rekordzie; administrator (`is_admin`) zachowuje pełny dostęp także wtedy, gdy ma dodatkowo
+rolę `owner`.
+
+#### Pozostałe naprawione
+
+| Znalezisko | Naprawa |
+|---|---|
+| Kod 2FA z `rand()` (Mersenne Twister, nie CSPRNG) | `random_int()` |
+| Porównanie kodu 2FA przez `!==` | `hash_equals()` |
+| `two_factor_code` poza `$hidden` → trafiał do snapshotu Livewire | dopisany do `$hidden` |
+| Dziennik zmian zapisywał **hash hasła** i żywy kod 2FA przy każdym logowaniu | `logExcept()` + `logOnlyDirty()` |
+| `->image()` przepuszcza SVG (ze skryptem) na obu polach uploadu | jawne `acceptedFileTypes()` |
+| Seeder zakładał admina `adminadmin` bez bramki środowiskowej | `if (! app()->isProduction())` |
+| `forCurrentUser()` był no-opem dla niezalogowanego (fail-open) | `whereRaw('0 = 1')` |
+| `findByNumber()` — niezgrupowany `orWhere`, puste numery łapały cudzą firmę | warunki domknięte w grupę |
+| Zaślepki generatora w `RolePolicy` (`'{{ ForceDelete }}'`) | prawdziwe nazwy uprawnień |
+| `Placeholder` sklejał `$get('error')` w surowy HTML | zwykły tekst + klasa CSS |
+| `SESSION_SECURE_COOKIE` nieustawione (`null` ≠ „auto") | `true` we wdrożeniu, opis w `.env.example` |
+
+**Świadomie NIE zmienione:** wiązanie kont Socialite wyłącznie po adresie e-mail (dostawcy
+weryfikują własność skrzynki; staje się problemem przy pierwszym dostawcy zwracającym adres
+niezweryfikowany — do rozważenia przy dokładaniu kolejnego) oraz brak throttlingu na `/verify`
+(rate limiting to osobny temat, nie zakres tego zadania).
+
+**Testy:** dodane pokrycie dla wycieku nazwy przez okruszki oraz dla polityk łowiska i firmy
+(własne vs cudze vs administrator z rolą `owner`). Oba zweryfikowane negatywnie — po zdjęciu
+poprawki czerwienieją.
+
+### 21. Rozstrzygnięcie: hasło `MakeAdmin` zostaje równe adresowi e-mail
+
+Audyt zgłosił to jako HIGH i **ma rację co do mechaniki**: adres administratora jest jawny
+(`deploy.yml` podaje `ADMIN_EMAIL`), konto nie ma 2FA przy pierwszym logowaniu i ma
+auto-zweryfikowany e-mail. Napisałem poprawkę losującą hasło; **autor ją cofnął** i to jest
+decyzja wiążąca.
+
+**Uzasadnienie autora:** projekt nie działa produkcyjnie, staging stoi za dodatkowym hasłem,
+a panel admina wymaga 2FA. Na tym etapie losowe hasło jest utrudnieniem, które realnie nie
+chroni przed nikim — a wypisane raz w logach `gcloud run jobs execute` grozi utratą dostępu
+do konta, czyli wprowadza realny koszt bez realnej korzyści.
+
+**Co zostało z mojej poprawki:** opcja `--password`. Niczego nie wymusza — bez flagi zachowanie
+jest identyczne jak przed zmianą — ale daje gotową ścieżkę produkcyjną bez wracania do kodu.
+
+⚠️ **Warunek powrotu: pierwsze wdrożenie produkcyjne.** Wtedy hasło musi być losowe albo podane
+jawnie. Docelowy kształt (wg autora): wymuszone 2FA dla każdego konta z `is_admin = 1` oraz
+wymuszona zmiana hasła przy pierwszym logowaniu. Pozycja odłożona w `TODO.md`.
+
+⚠️ **Jedna przesłanka z uzasadnienia zdezaktualizowała się na korzyść:** „można się przelogować
+przez panel ownera i to ominąć" **już nie działa** — panel właściciela dostał
+`TwoFactorMiddleware`, a logowanie społecznościowe wymaga kodu (§20). Ta furtka jest zamknięta
+niezależnie od decyzji o `MakeAdmin`.
+
+Pilnuje tego `tests/Feature/MakeAdminCommandTest.php` — test **utrwala rozstrzygnięcie**, nie
+chwali zachowania: gdy warunek powrotu się spełni, ma zaczerwienić się razem ze zmianą, zamiast
+przepuścić ją milcząco.
 
 ## Rozstrzygnięcia
 

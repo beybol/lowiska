@@ -59,14 +59,35 @@ Zadania źródłowe: 012. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-kompon
   (`PositionResource::table($table)`), zamiast powielać kolumny i pola. Dzięki temu zakładka
   i samodzielna strona listy pokazują to samo. Zasoby podrzędne zachowują własne strony list
   i tworzenia filtrowane przez `?fishery=` — RelationManagery ich **nie** zastępują.
-- ⚠️ **Przyciskiem dodawania w zakładce jest zwykła `Action`, nie `CreateAction`.** Ta druga
-  w RelationManagerze przepada na własnej autoryzacji relacji i znika bez śladu w HTML-u —
-  żaden błąd, po prostu brak przycisku. Widoczność sprawdzaj jawnie
-  (`Gate::allows('create', Model::class)`), a `url()` kieruj na pełną stronę tworzenia.
+  ⚠️ Uwaga: po zadaniu 012 **nic już nie linkuje do samodzielnych stron list** — hub pokazuje
+  tabele wprost, a okruszki i przekierowania po zapisie prowadzą na zakładkę huba. Te strony
+  zostały jako cel deep-linku i jako fallback w `Helper::fisherySectionUrl()`, gdy łowiska
+  nie da się ustalić. Nie usuwaj ich w ramach „sprzątania martwego kodu" bez świadomej decyzji.
+- ⚠️ **W zakładkach huba akcje CRUD-owe Filamenta NIE DZIAŁAJĄ — używaj zwykłych `Action`.**
+  `RelationManager::isReadOnly()` zwraca prawdę na stronie `ViewRecord` (a hub nią jest,
+  bo taki jest domyślny tryb panelu dla RelationManagerów na stronach podglądu), a autoryzacja
+  odmawia **po klasie akcji**: `CreateAction`, `EditAction`, `DeleteAction`, `AttachAction`
+  i pokrewne. Efekt jest cichy — akcja wypada z HTML-a bez błędu i bez wpisu w logu, więc
+  „nie ma przycisku" wygląda jak problem ze stylami. Zwykła `Action` nie jest na tej liście,
+  więc przechodzi. Widoczność sprawdzaj wtedy jawnie (`Gate::allows('create', Model::class)`,
+  `Gate::allows('update', $record)`), a `url()` kieruj na pełną stronę tworzenia/edycji.
+  ⚠️ Dotyczy to także akcji **odziedziczonych z delegowanego zasobu** — `recordActions()`
+  z `PositionResource` niesie `EditAction`, więc RelationManager musi je nadpisać, inaczej
+  z zakładki nie da się wejść w edycję.
 - ⚠️ **`Resource::getRelations()` obowiązuje WSZYSTKIE strony zasobu**, więc bez
   `canViewForRecord()` zwracającego `$pageClass === ManageFishery::class` listy doklejają się
   także do formularza edycji łowiska.
 - **Liczniki aktywnych pozycji niesie `getBadge()` RelationManagera**, nie ręczne `Tab::badge()`.
+- ⚠️ **Eager-load w RelationManagerze trzeba dołożyć osobno.** RelationManager jedzie po relacji
+  `ownerRecord`, więc **nie** przechodzi przez `getEloquentQuery()` zasobu i nie dziedziczy
+  stamtąd `with()`. Ponieważ `visible()` akcji wiersza pyta politykę, a ta sięga po
+  `$record->fishery`, brak `->modifyQueryUsing(fn ($q) => $q->with('fishery'))` to N+1 na całą
+  tabelę — dokładnie ten przypadek, przed którym ostrzega `CLAUDE.md`.
+- **Z zakładki nie da się usunąć rekordu i to jest stan zamierzony.** `DeleteAction`
+  i `DeleteBulkAction` przepadają w trybie read-only tak samo jak edycja; Filament ukrywa wtedy
+  całą grupę akcji masowych razem z kolumną zaznaczeń, więc nie zostaje nieklikalny element.
+  Kasowanie żyje na stronie edycji. Przeniesienie go do zakładki wymaga zwykłej `Action`
+  z `requiresConfirmation()` i jawnym `Gate::allows('delete', $record)`.
 - **Zapis i okruszki stron podrzędnych wracają na zakładkę huba, nie na samotną listę** —
   adres składa `Helper::fisheryHubUrl($fisheryId, XRelationManager::class)`.
   ⚠️ Filament identyfikuje zakładkę **pozycją** w `FisheryResource::getRelations()`
@@ -150,6 +171,14 @@ Zadania źródłowe: 012. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-kompon
   `assertCanSeeTableRecords()` samo wymusza doładowanie tabeli, ale surowy `->html()` **nie** —
   wtedy potrzebne jest `->call('loadTable')`. Bez tego probe pokazuje „brak przycisku"
   i „brak wierszy" tam, gdzie w przeglądarce wszystko jest.
+- ⚠️ **`assertDontSee()` na krótkim polskim słowie wymaga danych ustawionych WPROST.**
+  `faker_locale` to `pl_PL`, a nazwy z fabryk lądują na stronie (nazwisko użytkownika w pasku
+  Filamenta, nazwy firm i łowisk w tabelach). „Krajewski" zawiera „Kraje", czyli tłumaczenie
+  `__('Countries')` — zmierzone **45 kolizji na 5000 losowań**, czyli test czerwieni się mniej
+  więcej raz na sto przebiegów pakietu i wygląda wtedy na losową awarię środowiska.
+  W testach porównujących „widać moje, nie widać cudzego" ustawiaj nazwy jawnie
+  (`create(['name' => 'Lowisko Wlasne XYZ'])`), zamiast liczyć na to, że dwa losowania nie
+  będą swoimi podciągami.
 - **Kroki kreatora sprawdzaj po klasie `fi-sc-wizard-header-step-label`** (prefiks `fi-sc-`
   to komponent schematu). Szukanie `fi-wizard` niczego nie znajdzie i wygląda jak brak
   kreatora, choć nagłówek jest renderowany poprawnie.

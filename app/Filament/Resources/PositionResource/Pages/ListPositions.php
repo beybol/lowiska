@@ -19,8 +19,11 @@ class ListPositions extends ListRecords
 
     public function mount(): void
     {
-        $this->fisheryId = request()->get('fishery');
-        Helper::assertFisheryAccessOrAbort($this->fisheryId);
+        // ⚠️ Przypisanie idzie PO bramce, bo `$fisheryId` jest typowane `?int`,
+        // a `request()->get()` daje string — `?fishery=abc` wywalało `TypeError`
+        // (500) jeszcze zanim bramka zdążyła zwrócić 404. Bramka normalizuje
+        // wartość i zwraca zweryfikowany `int`.
+        $this->fisheryId = Helper::assertFisheryAccessOrAbort(request()->get('fishery'));
         parent::mount();
     }
 
@@ -34,13 +37,16 @@ class ListPositions extends ListRecords
 
     protected function getTableQuery(): Builder
     {
+        // ⚠️ Bramka biegnie tu, a nie tylko w `mount()`. `$fisheryId` jest publiczną
+        // właściwością komponentu wiązaną z query stringiem, więc kolejne żądanie
+        // Livewire może przynieść inną wartość — albo `null`, przy którym dawny
+        // warunkowy filtr nie dokładał NICZEGO i lista pokazywała cudze rekordy.
         $query = parent::getTableQuery();
 
-        if ($this->fisheryId) {
-            $query->where('fishery_id', $this->fisheryId);
-        }
-
-        return $query;
+        return $query->where(
+            'fishery_id',
+            Helper::assertFisheryAccessOrAbort($this->fisheryId),
+        );
     }
 
     public function getBreadcrumbs(): array

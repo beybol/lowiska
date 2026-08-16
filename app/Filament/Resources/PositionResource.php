@@ -25,6 +25,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class PositionResource extends Resource
 {
@@ -57,13 +58,22 @@ class PositionResource extends Resource
                     ->options(function (callable $get) {
                         $fisheryId = $get('fishery_id');
 
-                        if (! $fisheryId) {
+                        // ⚠️ `is_numeric`, nie samo `if (! $fisheryId)` — wartość jest
+                        // klienckim stanem pola `Hidden`, a `forFishery()` typuje `int`,
+                        // więc `"abc"` dawało TypeError (500) zamiast pustej listy.
+                        if (! is_numeric($fisheryId)) {
                             return [];
                         }
 
-                        return LongTermPermit::query()
+                        // ⚠️ `fishery_id` pochodzi z pola `Hidden`, czyli od klienta —
+                        // bez zawężenia podmiana stanu wyrenderowała opisy pozwoleń
+                        // CUDZEGO łowiska. Zapis był bezpieczny, odczyt nie.
+                        $query = LongTermPermit::query()
                             ->forFishery($fisheryId)
-                            ->isActive()
+                            ->isActive();
+                        Helper::scopeToOwnedFisheries($query);
+
+                        return $query
                             ->get()
                             ->mapWithKeys(function ($item) {
                                 return [$item->id => strip_tags($item->description)];
@@ -75,14 +85,16 @@ class PositionResource extends Resource
                     ->visible(function (callable $get) {
                         $fisheryId = $get('fishery_id');
 
-                        if (! $fisheryId) {
+                        if (! is_numeric($fisheryId)) {
                             return false;
                         }
 
-                        return LongTermPermit::query()
+                        $query = LongTermPermit::query()
                             ->forFishery($fisheryId)
-                            ->isActive()
-                            ->exists();
+                            ->isActive();
+                        Helper::scopeToOwnedFisheries($query);
+
+                        return $query->exists();
                     }),
                 Repeater::make('additionalServices')
                     ->statePath('additionalServices')
@@ -92,14 +104,17 @@ class PositionResource extends Resource
                             ->options(function (Get $get) {
                                 $fisheryId = $get('../../fishery_id') ?? request()->get('fishery');
 
-                                if (! $fisheryId) {
+                                if (! is_numeric($fisheryId)) {
                                     return [];
                                 }
 
-                                return AdditionalService::forFishery($fisheryId)
-                                    ->isActive()
-                                    ->pluck('name', 'id')
-                                    ->toArray();
+                                // ⚠️ Jak wyżej — bez zawężenia lista pokazywała nazwy
+                                // usług cudzego łowiska.
+                                $query = AdditionalService::forFishery($fisheryId)
+                                    ->isActive();
+                                Helper::scopeToOwnedFisheries($query);
+
+                                return $query->pluck('name', 'id')->toArray();
                             })
                             ->disableOptionsWhenSelectedInSiblingRepeaterItems(true)
                             ->required(),
@@ -176,5 +191,25 @@ class PositionResource extends Resource
         $data['additionalServices'] = array_values($data['additionalServices'] ?? []);
 
         return $data;
+    }
+
+    /**
+     * ⚠️ Bez tego zawężenia widoczność stanowisk stała WYŁĄCZNIE na publicznej
+     * właściwości `ListPositions::$fisheryId`, sprawdzanej raz w `mount()` — czyli
+     * na danych od klienta. Podmiana jej w kolejnym żądaniu Livewire (albo
+     * wyzerowanie, bo filtr w `getTableQuery()` jest warunkowy) wypisywała cudze
+     * rekordy. `CLAUDE.md`: pobranie z **zakresem widoczności**, nie sam filtr
+     * z żądania. Panel admina celowo bez zawężenia — widzi wszystko.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        Helper::scopeToOwnedFisheries($query);
+
+        // ⚠️ Eager-load jest tu WYMAGANY, nie kosmetyczny: `visible()` akcji wiersza
+        // pyta politykę, a ta dla właściciela sięga po `$record->fishery->user_id` —
+        // bez tego każdy wiersz tabeli dociąga własne zapytanie o łowisko.
+        return $query->with('fishery');
     }
 }

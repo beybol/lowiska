@@ -46,17 +46,41 @@ class Company extends Model
     }
 
     #[Scope]
-    public function forCurrentUser(Builder $query): void
+    protected function forCurrentUser(Builder $query): void
     {
-        if (auth()->check()) {
-            $query->where('user_id', auth()->id());
+        // ⚠️ Fail-CLOSED. Wcześniej brak zalogowanego użytkownika oznaczał, że scope
+        // nie dokłada NICZEGO — czyli prymityw, który cała reszta kodu traktuje jak
+        // bramkę, przy gościu przepuszczał wszystko. Trasy paneli są za `Authenticate`,
+        // więc dziś nieosiągalne, ale to nie jest powód, żeby zostawiać fail-open.
+        if (! auth()->check()) {
+            $query->whereRaw('0 = 1');
+
+            return;
         }
+
+        $query->where('user_id', auth()->id());
     }
 
     #[Scope]
-    public function findByNumber(Builder $query, string $tin, string $renae): void
+    protected function findByNumber(Builder $query, string $tin, string $renae): void
     {
-        $query->where('tin', $tin)
-            ->orWhere('renae', $renae);
+        // ⚠️ Warunki DOMKNIĘTE w grupę. Bez tego `orWhere` wychodził poza scope
+        // i każdy przyszły wołający, który dołożyłby własny warunek, dostałby go
+        // po cichu zniesionego przez alternatywę.
+        $query->where(function (Builder $grouped) use ($tin, $renae): void {
+            if (filled($tin)) {
+                $grouped->orWhere('tin', $tin);
+            }
+
+            if (filled($renae)) {
+                $grouped->orWhere('renae', $renae);
+            }
+
+            // Komplet pustych numerów nie ma dopasowywać niczego — wcześniej trafiał
+            // w pierwszą firmę z pustym `renae` i zgłaszał ją jako kolizję.
+            if (blank($tin) && blank($renae)) {
+                $grouped->whereRaw('0 = 1');
+            }
+        });
     }
 }

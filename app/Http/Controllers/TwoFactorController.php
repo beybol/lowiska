@@ -27,7 +27,9 @@ class TwoFactorController extends Controller
         if (
             ! $user->two_factor_code ||
             ! $user->two_factor_expires_at ||
-            $user->two_factor_code !== $request->two_factor_code ||
+            // ⚠️ Porównanie o stałym czasie — kod 2FA jest sekretem, a `!==` na stringach
+            // kończy się na pierwszym różnym bajcie (audyt bezpieczeństwa, zadanie 012).
+            ! hash_equals((string) $user->two_factor_code, (string) $request->two_factor_code) ||
             Carbon::parse($user->two_factor_expires_at)->isPast()
         ) {
             return back()->withErrors([

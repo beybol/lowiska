@@ -19,6 +19,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class LongTermPermitResource extends Resource
 {
@@ -105,8 +106,6 @@ class LongTermPermitResource extends Resource
 
     public static function getPages(): array
     {
-        $fisheryId = request()->get('fishery');
-
         return [
             'index' => ListLongTermPermits::route('/'),
             'create' => CreateLongTermPermit::route('/create'),
@@ -117,5 +116,21 @@ class LongTermPermitResource extends Resource
     public static function getPluralLabel(): ?string
     {
         return __('Long term permits');
+    }
+
+    /**
+     * ⚠️ Zawężenie do łowisk właściciela — patrz komentarz w `PositionResource`.
+     * Bez niego widoczność stała na publicznej właściwości `$fisheryId` strony listy.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        Helper::scopeToOwnedFisheries($query);
+
+        // ⚠️ Eager-load jest tu WYMAGANY, nie kosmetyczny: `visible()` akcji wiersza
+        // pyta politykę, a ta dla właściciela sięga po `$record->fishery->user_id` —
+        // bez tego każdy wiersz tabeli dociąga własne zapytanie o łowisko.
+        return $query->with('fishery');
     }
 }

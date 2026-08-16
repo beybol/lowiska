@@ -36,12 +36,10 @@ class CreateLongTermPermit extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $fisheryId = request()->get('fishery');
-        if ($fisheryId) {
-            $data['fishery_id'] = $fisheryId;
-        }
-
-        return $data;
+        // ⚠️ Wcześniej nadpisanie było warunkowe (`if ($fisheryId)`), więc w żądaniu
+        // zapisu — które nie niesie `?fishery` — wracała nietknięta wartość z pola
+        // `Hidden`, czyli od klienta. Teraz każda wartość przechodzi przez bramkę.
+        return Helper::forceVerifiedFishery($data);
     }
 
     protected function getFormActions(): array
@@ -56,18 +54,19 @@ class CreateLongTermPermit extends CreateRecord
 
     public function getRedirectUrl(): string
     {
-        $fisheryId = request()->get('fishery') ?? $this->record->fishery_id ?? null;
+        // Źródłem prawdy jest ZAPISANY rekord, nie parametr URL — przy właścicielu
+        // dwóch łowisk rekord mógł wylądować w B, a przekierowanie prowadzić do A.
+        $fisheryId = $this->record->fishery_id ?? request()->get('fishery');
 
         return self::sectionUrl($fisheryId);
     }
 
-    /**
-     * Po zapisie i z okruszków wracamy na listę **w zakładce huba**, nie na samotną
-     * stronę listy — ta druga wypada poza kontekst łowiska (zadanie 012).
-     */
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisheryHubUrl($fisheryId, LongTermPermitsRelationManager::class)
-            ?? LongTermPermitResource::getUrl('index', ['fishery' => $fisheryId]);
+        return Helper::fisherySectionUrl(
+            LongTermPermitResource::class,
+            LongTermPermitsRelationManager::class,
+            $fisheryId,
+        );
     }
 }

@@ -10,6 +10,7 @@ use Filament\Actions\Action;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 
@@ -47,7 +48,10 @@ class PositionsRelationManager extends RelationManager
     {
         assert($ownerRecord instanceof Fishery);
 
-        return (string) $ownerRecord->positions()->isActive()->count();
+        $count = $ownerRecord->positions()->isActive()->count();
+
+        // Pusta zakladka nie dostaje plakietki - "0" niesie tyle samo co jej brak.
+        return $count > 0 ? (string) $count : null;
     }
 
     public function form(Schema $schema): Schema
@@ -58,17 +62,33 @@ class PositionsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return PositionResource::table($table)
+            // ⚠️ RelationManager jedzie po relacji `ownerRecord`, więc NIE przechodzi
+            // przez `PositionResource::getEloquentQuery()` i nie dziedziczy stamtąd eager-loadu.
+            // Bez tego `visible()` akcji edycji pyta politykę per wiersz, a ta sięga
+            // po `$record->fishery` — klasyczny N+1 w tabeli nad relacją.
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('fishery'))
             ->headerActions([
-                // ⚠️ Zwykła `Action`, nie `CreateAction` — ta druga w RelationManagerze
-                // przepada na własnej autoryzacji relacji i przycisk w ogóle się nie
-                // renderuje. Tu i tak nie chcemy modala, tylko linku na pełną stronę
-                // dodawania, która niesie własny formularz i bramkę dostępu (zadanie 012).
                 Action::make('create')
                     ->label(__('Create'))
                     ->icon('heroicon-m-plus')
                     ->visible(fn (): bool => Gate::allows('create', Position::class))
                     ->url(fn (): string => PositionResource::getUrl('create', [
                         'fishery' => $this->getOwnerRecord()->getKey(),
+                    ])),
+            ])
+            // ⚠️ `recordActions()` z zasobu MUSI zostać nadpisane. Zasób daje tu
+            // `EditAction`, a `RelationManager::isReadOnly()` jest prawdą na stronie
+            // `ViewRecord` (czyli w naszym hubie) i odmawia **po klasie akcji**:
+            // `CreateAction`, `EditAction`, `DeleteAction`… Efekt jest cichy — akcja
+            // znika z HTML-a bez błędu, a z zakładki nie da się wejść w edycję.
+            // Zwykłej `Action` ta lista nie obejmuje, więc link działa (zadanie 012).
+            ->recordActions([
+                Action::make('edit')
+                    ->label(__('Edit'))
+                    ->icon('heroicon-m-pencil-square')
+                    ->visible(fn (Position $record): bool => Gate::allows('update', $record))
+                    ->url(fn (Position $record): string => PositionResource::getUrl('edit', [
+                        'record' => $record,
                     ])),
             ]);
     }

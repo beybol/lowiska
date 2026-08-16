@@ -25,7 +25,6 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\HtmlString;
 
 class CompanyResource extends Resource
 {
@@ -101,14 +100,13 @@ class CompanyResource extends Resource
                     // brak ustawienia i wypisuje nazwę komponentu („Cso error message").
                     // Do ukrycia służy `hiddenLabel()`. Dodatkowo cały komunikat pokazuje
                     // się dopiero, gdy jest co pokazać (zadanie 012).
+                    // ⚠️ Treść idzie jako ZWYKŁY tekst, nie `HtmlString`. `error` to goły
+                    // klucz w publicznym `$data` komponentu, więc sklejanie go w surowy
+                    // HTML było self-XSS-em czekającym na pierwszą wartość spoza `__()`
+                    // (audyt bezpieczeństwa, zadanie 012).
                     Placeholder::make('cso_error_message')
-                        ->content(function (Get $get) {
-                            return new HtmlString(
-                                '<div class="text-danger-600">'
-                                    .$get('error')
-                                    .'</div>'
-                            );
-                        })
+                        ->content(fn (Get $get) => $get('error'))
+                        ->extraAttributes(['class' => 'text-danger-600'])
                         ->hiddenLabel()
                         ->visible(fn (Get $get): bool => filled($get('error'))),
                     TextInput::make('cso_response')
@@ -205,7 +203,13 @@ class CompanyResource extends Resource
         $query = parent::getEloquentQuery();
 
         if (Helper::isOwnerPanel()) {
-            $query->forCurrentUser();
+            // ⚠️ Zawężenie typu TYLKO na potrzeby wywołania scope'u. Filament deklaruje
+            // `Builder<Model>`, więc analiza statyczna nie widziała tu scope'ów modelu
+            // (`forCurrentUser()` miało własny wpis w baseline). Zawężenia nie da się
+            // przenieść na zwracany typ — `Builder` nie jest kowariantny po modelu.
+            /** @var Builder<Company> $scopedQuery */
+            $scopedQuery = $query;
+            $scopedQuery->forCurrentUser();
         }
 
         return $query->with('user', 'state');

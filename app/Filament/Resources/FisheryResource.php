@@ -254,12 +254,19 @@ class FisheryResource extends Resource
                 ->hidden(Fish::count() === 0),
             FileUpload::make('map_image_path')
                 ->image()
+                // ⚠️ `image()` to samo `image/*`, a `finfo` zwraca dla SVG
+                // `image/svg+xml` — plik ze skryptem przechodził walidację i lądował
+                // na dysku z rozszerzeniem `.svg`. Panel właściciela ma otwartą
+                // samorejestrację, więc formularz jest osiągalny z internetu.
+                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                 ->directory('maps')
                 ->visibility('public')
                 ->label(__('Fishery map')),
             FileUpload::make('gallery_images')
                 ->multiple()
                 ->image()
+                // ⚠️ Jak wyżej — `image()` przepuszcza SVG.
+                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                 ->directory('galleries')
                 ->visibility('public')
                 ->label(__('Gallery images')),
@@ -344,7 +351,13 @@ class FisheryResource extends Resource
         $query = parent::getEloquentQuery();
 
         if (Helper::isOwnerPanel()) {
-            $query->forCurrentUser();
+            // ⚠️ Zawężenie typu TYLKO na potrzeby wywołania scope'u. Filament deklaruje
+            // `Builder<Model>`, więc analiza statyczna nie widziała tu scope'ów modelu
+            // (`forCurrentUser()` miało własny wpis w baseline). Zawężenia nie da się
+            // przenieść na zwracany typ — `Builder` nie jest kowariantny po modelu.
+            /** @var Builder<Fishery> $scopedQuery */
+            $scopedQuery = $query;
+            $scopedQuery->forCurrentUser();
         }
 
         return $query->with('user', 'company', 'state');

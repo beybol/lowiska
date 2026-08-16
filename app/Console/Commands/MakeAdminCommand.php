@@ -15,7 +15,7 @@ class MakeAdminCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'MakeAdmin {name} {surname} {email}';
+    protected $signature = 'MakeAdmin {name} {surname} {email} {--password= : Hasło konta; pominięte = adres e-mail (patrz komentarz przy tworzeniu konta)}';
 
     /**
      * The console command description.
@@ -73,11 +73,24 @@ class MakeAdminCommand extends Command
                 $user->assignRole($superAdminRole);
             }
         } else {
+            // ⚠️ Hasło domyślnie RÓWNE adresowi e-mail — to jest świadome rozstrzygnięcie
+            // autora, nie przeoczenie (zadanie 012, §21). Audyt bezpieczeństwa zgłosił to
+            // jako HIGH i słusznie: adres administratora jest jawny w workflow wdrożeniowym.
+            // Utrzymane, bo na tym etapie nie ma modelu zagrożeń — projekt nie jest
+            // produkcyjny, staging stoi za osobnym hasłem, a losowe hasło wypisywane raz
+            // w logach `gcloud run jobs execute` grozi utratą dostępu do konta.
+            //
+            // ⚠️ WARUNEK POWROTU: pierwsze wdrożenie produkcyjne. Wtedy hasło musi być
+            // losowe albo podane, a docelowo dochodzi wymuszone 2FA dla `is_admin`
+            // i wymuszona zmiana hasła przy pierwszym logowaniu — patrz `TODO.md`.
+            // `--password` działa już dziś i jest właściwą ścieżką na produkcji.
+            $password = $this->option('password') ?: $email;
+
             $user = User::create([
                 'name' => $name,
                 'surname' => $surname,
                 'email' => $email,
-                'password' => $email,
+                'password' => $password,
                 'is_admin' => true,
             ]);
             $user->assignRole($superAdminRole);

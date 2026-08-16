@@ -9,6 +9,7 @@ use App\Filament\Resources\CompanyResource;
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\LongTermPermitResource;
 use App\Filament\Resources\PositionResource;
+use App\Http\Middleware\TwoFactorMiddleware;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -68,6 +69,14 @@ class OwnerPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                // ⚠️ Drugi składnik obowiązuje TAK SAMO jak w panelu administratora.
+                // Bez tego `Login::authenticate()` wołało `parent::authenticate()`
+                // PRZED rzuceniem wyjątku, więc sesja guarda `web` już istniała —
+                // wystarczyło zignorować przekierowanie na `/verify` i wejść wprost
+                // na `/owner/fisheries`. `TODO.md` odraczało to do upgrade'u na
+                // Laravel 13 + najnowszego Filamenta; upgrade wszedł zadaniem 009,
+                // więc warunek odroczenia wygasł (audyt bezpieczeństwa, zadanie 012).
+                TwoFactorMiddleware::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

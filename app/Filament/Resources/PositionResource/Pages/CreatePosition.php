@@ -17,7 +17,7 @@ class CreatePosition extends CreateRecord
     {
         $this->additionalServicesToSync = Helper::extractAdditionalServices($data);
 
-        return $data;
+        return Helper::forceVerifiedFishery($data);
     }
 
     protected function afterCreate(): void
@@ -50,19 +50,20 @@ class CreatePosition extends CreateRecord
 
     public function getRedirectUrl(): string
     {
-        $fisheryId = request()->get('fishery') ?? $this->record->fishery_id ?? null;
+        // Źródłem prawdy jest ZAPISANY rekord, nie parametr URL — przy właścicielu
+        // dwóch łowisk rekord mógł wylądować w B, a przekierowanie prowadzić do A.
+        $fisheryId = $this->record->fishery_id ?? request()->get('fishery');
 
         return self::sectionUrl($fisheryId);
     }
 
-    /**
-     * Po zapisie i z okruszków wracamy na listę **w zakładce huba**, nie na samotną
-     * stronę listy — ta druga wypada poza kontekst łowiska (zadanie 012).
-     */
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisheryHubUrl($fisheryId, PositionsRelationManager::class)
-            ?? PositionResource::getUrl('index', ['fishery' => $fisheryId]);
+        return Helper::fisherySectionUrl(
+            PositionResource::class,
+            PositionsRelationManager::class,
+            $fisheryId,
+        );
     }
 
     protected function getFormActions(): array

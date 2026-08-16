@@ -6,6 +6,7 @@ use App\Filament\Resources\FisheryResource\Pages\CreateFishery;
 use App\Helpers\Helper;
 use App\Models\State;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Livewire\Livewire;
 
 /**
@@ -27,6 +28,18 @@ use Livewire\Livewire;
  * pokazaniu. Skoro adres i tak liczy się serwerowo, mapa pojawia się sama, gdy
  * adres jest kompletny — nie dokładaj tu lokalnego stanu.
  */
+/**
+ * ⚠️ Klucz Google Maps ustawiamy w teście, a nie liczymy na `.env`.
+ * `GOOGLE_MAPS_API_KEY` nie występuje ani w `phpunit.xml`, ani w `.env.example`,
+ * więc bez tego iframe w ogóle się nie renderuje (`$embedUrl` jest `null`)
+ * i asercja `toContain('maps/embed')` przechodziła WYŁĄCZNIE na maszynie
+ * deweloperskiej z kluczem w `.env`, a na czystym klonie i w CI czerwieniła się.
+ */
+beforeEach(function () {
+    config()->set('services.google_maps.api_key', 'test-key');
+    Filament::setCurrentPanel('owner');
+});
+
 test('map preview stays empty until the address is complete', function () {
     $owner = User::factory()->create();
     Helper::addOwnerRole($owner);

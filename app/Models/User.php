@@ -48,6 +48,10 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     protected $hidden = [
         'password',
         'remember_token',
+        // ⚠️ Żywy kod drugiego składnika. Bez tego trafiał do `attributesToArray()`,
+        // a stamtąd hurtem do stanu formularza edycji użytkownika, czyli do snapshotu
+        // Livewire widocznego dla klienta (audyt bezpieczeństwa, zadanie 012).
+        'two_factor_code',
     ];
 
     /**
@@ -94,7 +98,10 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     public function generateTwoFactorCode(): void
     {
         $this->timestamps = false;
-        $this->two_factor_code = rand(100000, 999999);
+        // ⚠️ `random_int`, nie `rand`. Mersenne Twister jest deterministyczny wobec
+        // stanu, który napastnik może próbkować bez ograniczeń przez ponowne wysyłanie
+        // kodu na WŁASNYM koncie — a to jest drugi składnik uwierzytelnienia.
+        $this->two_factor_code = random_int(100000, 999999);
         $this->two_factor_expires_at = now()->addMinutes(10);
         $this->save();
     }
@@ -110,7 +117,14 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly($this->fillable);
+            ->logOnly($this->fillable)
+            // ⚠️ Bez `logExcept` dziennik zapisywał HASH HASŁA i żywy kod 2FA przy każdym
+            // logowaniu: `logOnlyDirty` jest domyślnie wyłączone, więc pakiet zrzuca pełny
+            // snapshot logowanych atrybutów, a `resolveAttributeValue()` czyta przez
+            // `getAttribute()`, czyli **pomija `$hidden`**. Tabela `users` trzyma tylko
+            // bieżący hash — dziennik kumulowałby każdy historyczny przez rok.
+            ->logExcept(['password', 'two_factor_code', 'two_factor_expires_at'])
+            ->logOnlyDirty();
     }
 
     public function companies(): HasMany

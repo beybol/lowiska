@@ -23,7 +23,21 @@ class FisheryPolicy
      */
     public function view(User $user, Fishery $fishery): bool
     {
-        return $user->can('view:fishery');
+        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `Helper::addOwnerRole()` nadaje roli
+        // `owner` PEŁNY zestaw `*:fishery`, więc `can()` zwracało `true` także dla
+        // CUDZEGO rekordu — jedyną ochroną było zawężenie zapytania w zasobie,
+        // czyli jedna warstwa zamiast dwóch. Administrator (`is_admin`) widzi
+        // wszystko, także gdy ma dodatkowo rolę `owner`
+        // (audyt bezpieczeństwa, zadanie 012).
+        if (! $user->can('view:fishery')) {
+            return false;
+        }
+
+        if ($user->hasRole('owner') && ! $user->is_admin) {
+            return $fishery->user_id === $user->id;
+        }
+
+        return true;
     }
 
     /**
@@ -39,7 +53,21 @@ class FisheryPolicy
      */
     public function update(User $user, Fishery $fishery): bool
     {
-        return $user->can('update:fishery');
+        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `Helper::addOwnerRole()` nadaje roli
+        // `owner` PEŁNY zestaw `*:fishery`, więc `can()` zwracało `true` także dla
+        // CUDZEGO rekordu — jedyną ochroną było zawężenie zapytania w zasobie,
+        // czyli jedna warstwa zamiast dwóch. Administrator (`is_admin`) widzi
+        // wszystko, także gdy ma dodatkowo rolę `owner`
+        // (audyt bezpieczeństwa, zadanie 012).
+        if (! $user->can('update:fishery')) {
+            return false;
+        }
+
+        if ($user->hasRole('owner') && ! $user->is_admin) {
+            return $fishery->user_id === $user->id;
+        }
+
+        return true;
     }
 
     /**
@@ -47,7 +75,21 @@ class FisheryPolicy
      */
     public function delete(User $user, Fishery $fishery): bool
     {
-        return $user->can('delete:fishery');
+        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `Helper::addOwnerRole()` nadaje roli
+        // `owner` PEŁNY zestaw `*:fishery`, więc `can()` zwracało `true` także dla
+        // CUDZEGO rekordu — jedyną ochroną było zawężenie zapytania w zasobie,
+        // czyli jedna warstwa zamiast dwóch. Administrator (`is_admin`) widzi
+        // wszystko, także gdy ma dodatkowo rolę `owner`
+        // (audyt bezpieczeństwa, zadanie 012).
+        if (! $user->can('delete:fishery')) {
+            return false;
+        }
+
+        if ($user->hasRole('owner') && ! $user->is_admin) {
+            return $fishery->user_id === $user->id;
+        }
+
+        return true;
     }
 
     /**

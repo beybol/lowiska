@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\Helper;
 use App\Models\User;
+use App\Notifications\SendTwoFactorCode;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,8 +51,26 @@ class SocialAuthController extends Controller
 
         Auth::login($user);
 
+        // ⚠️ Odnowienie identyfikatora sesji po zalogowaniu — dokładnie jak robi to
+        // Breeze w `AuthenticatedSessionController::store()`. Bez tego ścieżka
+        // społecznościowa zostawiała fiksację sesji (audyt bezpieczeństwa, zadanie 012).
+        request()->session()->regenerate();
+
         $source = session('social_auth_source', 'breeze');
         session()->forget('social_auth_source');
+
+        // ⚠️ Drugi składnik obowiązuje TAK SAMO jak przy logowaniu hasłem. Wcześniej
+        // ta ścieżka wołała samo `Auth::login()`, więc ktokolwiek przeszedł flow
+        // dostawcy dla adresu odpowiadającego lokalnemu użytkownikowi — w tym konta
+        // `is_admin` — dostawał pełną sesję z pominięciem 2FA. `TwoFactorMiddleware`
+        // tego nie łapał, bo traktuje PUSTY kod jako „brak oczekującego wyzwania".
+        if (! $user->two_factor_code) {
+            $user->generateTwoFactorCode();
+            $user->notify(new SendTwoFactorCode);
+            session()->put('two_factor_source', $source);
+
+            return redirect()->route('verify.index');
+        }
 
         if ($source === 'breeze') {
             return redirect()->route('dashboard');

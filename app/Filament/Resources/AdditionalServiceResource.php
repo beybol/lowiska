@@ -18,6 +18,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class AdditionalServiceResource extends Resource
 {
@@ -102,5 +103,21 @@ class AdditionalServiceResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         return false;
+    }
+
+    /**
+     * ⚠️ Zawężenie do łowisk właściciela — patrz komentarz w `PositionResource`.
+     * Bez niego widoczność stała na publicznej właściwości `$fisheryId` strony listy.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        Helper::scopeToOwnedFisheries($query);
+
+        // ⚠️ Eager-load jest tu WYMAGANY, nie kosmetyczny: `visible()` akcji wiersza
+        // pyta politykę, a ta dla właściciela sięga po `$record->fishery->user_id` —
+        // bez tego każdy wiersz tabeli dociąga własne zapytanie o łowisko.
+        return $query->with('fishery');
     }
 }

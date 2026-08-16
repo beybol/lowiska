@@ -51,18 +51,23 @@ class EditLongTermPermit extends EditRecord
         );
     }
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // ⚠️ Bramka MUSI działać także przy edycji — patrz komentarz w `EditPosition`.
+        return Helper::forceVerifiedFishery($data);
+    }
+
     public function getRedirectUrl(): string
     {
         return self::sectionUrl($this->record->fishery_id ?? null);
     }
 
-    /**
-     * Po zapisie i z okruszków wracamy na listę **w zakładce huba**, nie na samotną
-     * stronę listy — ta druga wypada poza kontekst łowiska (zadanie 012).
-     */
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisheryHubUrl($fisheryId, LongTermPermitsRelationManager::class)
-            ?? LongTermPermitResource::getUrl('index', ['fishery' => $fisheryId]);
+        return Helper::fisherySectionUrl(
+            LongTermPermitResource::class,
+            LongTermPermitsRelationManager::class,
+            $fisheryId,
+        );
     }
 }

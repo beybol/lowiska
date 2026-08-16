@@ -18,7 +18,11 @@ class EditPosition extends EditRecord
     {
         $this->additionalServicesToSync = Helper::extractAdditionalServices($data);
 
-        return $data;
+        // ⚠️ Bramka MUSI działać także przy edycji, nie tylko przy tworzeniu.
+        // `mount()` sprawdza łowisko rekordu SPRZED zmiany, a `fishery_id` jest
+        // w formularzu polem `Hidden` — bez tego dało się przenieść własny rekord
+        // pod cudze łowisko, podmieniając wartość w żądaniu zapisu.
+        return Helper::forceVerifiedFishery($data);
     }
 
     protected function afterSave(): void
@@ -70,14 +74,13 @@ class EditPosition extends EditRecord
         return self::sectionUrl($this->record->fishery_id ?? null);
     }
 
-    /**
-     * Po zapisie i z okruszków wracamy na listę **w zakładce huba**, nie na samotną
-     * stronę listy — ta druga wypada poza kontekst łowiska (zadanie 012).
-     */
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisheryHubUrl($fisheryId, PositionsRelationManager::class)
-            ?? PositionResource::getUrl('index', ['fishery' => $fisheryId]);
+        return Helper::fisherySectionUrl(
+            PositionResource::class,
+            PositionsRelationManager::class,
+            $fisheryId,
+        );
     }
 
     public function getFormState(): array

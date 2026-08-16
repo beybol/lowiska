@@ -30,7 +30,9 @@ test('Admin panel is accessible.', function () {
 });
 
 test('Other user can not have access to admin panel.', function () {
-    $user = User::factory()->create();
+    // Nazwa wprost — patrz komentarz w tests/Feature/OwnerPanelTest.php:
+    // losowe polskie nazwisko bywa podciągiem tłumaczenia sprawdzanego przez `assertDontSee`.
+    $user = User::factory()->create(['name' => 'Uzytkownik Testowy']);
 
     // Asercja negatywna celuje w REALNĄ etykietę nawigacji, nie w gołe słowo
     // „Panel" (patrz komentarz wyżej) — dzięki temu naprawdę dowodzi, że

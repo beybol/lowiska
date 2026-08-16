@@ -17,12 +17,23 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class Helper
 {
+    /**
+     * Klucz pamięci podręcznej `findFishery()` w kontenerze.
+     *
+     * ⚠️ Celowo w kontenerze, a nie we `właściwości static` — kontener jest odtwarzany
+     * na każde żądanie **i na każdy test**, a statyczna tablica przeżywałaby
+     * `RefreshDatabase` i podawała kolejnemu testowi model z wyczyszczonej tabeli.
+     */
+    private const FISHERY_CACHE = 'lowiska.fishery_cache';
+
     public static function syncAdditionalServices($record, array $services): void
     {
         $record->additionalServices()->sync(
@@ -49,7 +60,9 @@ class Helper
     public static function getFisheryTitle(?int $fisheryId, string $baseLabel): string
     {
         if ($fisheryId) {
-            $fishery = Fishery::find($fisheryId);
+            // ⚠️ Przez `findFishery()`, nie gołym `Fishery::find()` — tytuł strony
+            // ujawniał nazwę cudzego łowiska tak samo jak okruszki (audyt, zadanie 012).
+            $fishery = self::findFishery($fisheryId);
             if ($fishery) {
                 return __($baseLabel.' for fishery').' '.$fishery->name;
             }
@@ -75,7 +88,7 @@ class Helper
      * @return array<int|string, string>
      */
     public static function fisheryBreadcrumbs(
-        ?int $fisheryId,
+        int|string|null $fisheryId,
         string $sectionLabel,
         ?string $sectionUrl = null,
         ?string $currentLabel = null,
@@ -84,7 +97,7 @@ class Helper
             FisheryResource::getUrl('index') => __('Fisheries'),
         ];
 
-        $fishery = $fisheryId ? Fishery::find($fisheryId) : null;
+        $fishery = self::findFishery($fisheryId);
 
         if ($fishery) {
             $breadcrumbs[FisheryResource::getUrl('manage', ['record' => $fishery])] = $fishery->name;
@@ -128,9 +141,9 @@ class Helper
      *
      * @param  class-string  $relationManager
      */
-    public static function fisheryHubUrl(?int $fisheryId, string $relationManager): ?string
+    public static function fisheryHubUrl(int|string|null $fisheryId, string $relationManager): ?string
     {
-        $fishery = $fisheryId ? Fishery::find($fisheryId) : null;
+        $fishery = self::findFishery($fisheryId);
 
         if (! $fishery) {
             return null;
@@ -142,6 +155,80 @@ class Helper
             'record' => $fishery,
             'relation' => $relation === false ? null : $relation,
         ], fn ($value): bool => $value !== null));
+    }
+
+    /**
+     * Adres listy zasobu podrzędnego: zakładka huba, a gdy łowiska nie da się ustalić —
+     * samodzielna strona listy jako fallback.
+     *
+     * Jedna implementacja dla wszystkich sześciu stron Create/Edit zasobów podrzędnych.
+     * ⚠️ Wcześniej ta sama metoda była skopiowana sześć razy jako prywatna `sectionUrl()`,
+     * więc zmiana reguły fallbacku wymagała edycji sześciu plików.
+     *
+     * @param  class-string  $resourceClass
+     * @param  class-string  $relationManager
+     */
+    public static function fisherySectionUrl(
+        string $resourceClass,
+        string $relationManager,
+        int|string|null $fisheryId,
+    ): string {
+        return self::fisheryHubUrl($fisheryId, $relationManager)
+            ?? $resourceClass::getUrl('index', ['fishery' => $fisheryId]);
+    }
+
+    /**
+     * Łowisko po ID, z memoizacją w obrębie żądania.
+     *
+     * ⚠️ Renderowanie strony podrzędnej sięga po ten sam wiersz cztery razy (bramka
+     * dostępu, adres sekcji, okruszki, hydratacja pola `fishery_id`), a pola adresu
+     * w kreatorze są `live()`, więc powtarza się to przy każdym renderze Livewire.
+     */
+    private static function findFishery(
+        int|string|null $fisheryId,
+        ?bool $scopedToCurrentUser = null,
+    ): ?Fishery {
+        // ⚠️ Domyślnie ZAWĘŻONE. Wariant nieograniczony trzeba wybrać świadomie.
+        // Powód: okruszki i tytuły stron `Create*` czytają `?fishery` wprost z żądania
+        // (bramka z `mount()` nie biegnie przy kolejnych żądaniach Livewire), więc przy
+        // domyślnie szerokim wyszukiwaniu `POST /livewire/update?fishery=<cudze>` zwracał
+        // NAZWĘ cudzego łowiska i link do jego huba — jedyna ścieżka odczytu omijająca
+        // wszystkie trzy warstwy z `docs/conventions/autoryzacja.md` §4.
+        $scopedToCurrentUser ??= ! self::isAdminPanel();
+
+        if (! is_numeric($fisheryId)) {
+            return null;
+        }
+
+        $fisheryId = (int) $fisheryId;
+
+        // Wariant zawężony do użytkownika trzyma się pod osobnym kluczem — te dwa
+        // nie mogą się nawzajem podmieniać, bo drugi jest bramką dostępu.
+        // ⚠️ W kluczu jest też ID użytkownika: kontener przeżywa WIELE żądań HTTP
+        // w obrębie jednego testu (aplikacja wstaje w `setUp()`, nie przy każdym
+        // `$this->get()`), więc test wchodzący najpierw jako A, potem jako B na to
+        // samo łowisko dostałby z cache'u wpis A i przeszedłby na zielono mimo
+        // zepsutej bramki.
+        $cacheKey = $fisheryId.($scopedToCurrentUser ? ':own:'.auth()->id() : '');
+
+        /** @var \ArrayObject<string, Fishery|null> $cache */
+        $cache = app()->bound(self::FISHERY_CACHE)
+            ? app(self::FISHERY_CACHE)
+            : tap(new \ArrayObject, fn (\ArrayObject $fresh) => app()->instance(self::FISHERY_CACHE, $fresh));
+
+        if ($cache->offsetExists($cacheKey)) {
+            return $cache->offsetGet($cacheKey);
+        }
+
+        $query = Fishery::query();
+
+        if ($scopedToCurrentUser) {
+            $query->forCurrentUser();
+        }
+
+        $cache->offsetSet($cacheKey, $fishery = $query->find($fisheryId));
+
+        return $fishery;
     }
 
     public static function getEditFormActionsForFishery($record, $saveAction, $cancelAction)
@@ -157,26 +244,95 @@ class Helper
         ];
     }
 
+    /**
+     * Bramka dostępu do łowiska; **zwraca zweryfikowane ID**.
+     *
+     * ⚠️ Zwracaną wartość trzeba zapamiętać po stronie serwera i to JEJ używać przy
+     * zapisie. `fishery_id` w formularzu jest polem `Hidden`, czyli danymi od klienta —
+     * bramka w `mount()` sprawdza parametr `?fishery`, ale nic nie pilnowało, że
+     * zapisywany rekord trafia do tego samego łowiska. Polityki zasobów podrzędnych
+     * tego nie wyłapią, bo przy tworzeniu nie widzą rekordu nadrzędnego.
+     */
     public static function assertFisheryAccessOrAbort(
-        ?int $fisheryId = null,
-    ): void {
+        int|string|null $fisheryId = null,
+    ): int {
         $fisheryId = $fisheryId ?? request()->get('fishery');
 
-        if (! $fisheryId) {
+        if (! is_numeric($fisheryId)) {
             abort(404);
         }
 
-        $currentPanel = Filament::getCurrentOrDefaultPanel()?->getId();
+        $fisheryId = (int) $fisheryId;
 
-        if ($currentPanel === 'admin') {
-            $fishery = Fishery::find($fisheryId);
-        } else {
-            $fishery = Fishery::query()->forCurrentUser()->find($fisheryId);
-        }
+        $fishery = self::findFishery($fisheryId);
 
         if (! $fishery) {
             abort(404);
         }
+
+        return $fisheryId;
+    }
+
+    /**
+     * Zawęża zapytanie zasobu **podrzędnego wobec łowiska** do łowisk właściciela.
+     *
+     * ⚠️ Jedno miejsce dla całego niezmiennika widoczności tych zasobów. Wcześniej ta
+     * sama reguła była przeklejona do `getEloquentQuery()` trzech zasobów — czwarty
+     * zasób podrzędny dodany za pół roku po prostu by jej nie dostał i nic by nie pękło.
+     * Reguła i jej trzy warstwy: `docs/conventions/autoryzacja.md` §4.
+     *
+     * Podzapytanie zamiast `whereHas` z domknięciem: Larastan nie rozwiązuje typu
+     * w domknięciu `whereHas` (widzi `Builder<Model>`), więc scope `forCurrentUser()`
+     * zgłaszałby się jako nieistniejąca metoda.
+     *
+     * @param  Builder<covariant Model>  $query
+     */
+    public static function scopeToOwnedFisheries(Builder $query): void
+    {
+        // ⚠️ Warunek jest fail-closed (`! isAdminPanel()`), a nie `isOwnerPanel()` —
+        // tak samo jak bramka `assertFisheryAccessOrAbort()`. Obie połowy tego samego
+        // niezmiennika muszą reagować identycznie na nierozpoznany kontekst panelu:
+        // przy `isOwnerPanel()` nieznany panel oznaczałby BRAK zawężenia.
+        if (self::isAdminPanel()) {
+            return;
+        }
+
+        $query->whereIn(
+            'fishery_id',
+            Fishery::query()->forCurrentUser()->select('id'),
+        );
+    }
+
+    private static function isAdminPanel(): bool
+    {
+        return Filament::getCurrentOrDefaultPanel()?->getId() === 'admin';
+    }
+
+    /**
+     * Autoryzuje łowisko zgłoszone w danych formularza i wpisuje je z powrotem.
+     *
+     * ⚠️ Jedyne miejsce, które decyduje, do jakiego łowiska trafia rekord podrzędny.
+     * Polityki zasobów podrzędnych tego nie wyłapią — przy tworzeniu nie widzą rekordu
+     * nadrzędnego, więc `PositionPolicy::create()` przepuszcza każdego właściciela.
+     *
+     * ⚠️ Bramka MUSI działać na wartości ze **zgłoszenia**, a nie na ID zapamiętanym
+     * w `mount()`: Livewire utrwala między żądaniami wyłącznie właściwości publiczne,
+     * a żądanie zapisu leci na `/livewire/update`, więc nie niesie ani `?fishery`,
+     * ani niczego z `protected`. Zapamiętane ID było tam po prostu `null`.
+     * Ta wersja jest bezstanowa: cokolwiek przyjdzie od klienta, musi przejść przez
+     * `assertFisheryAccessOrAbort()`, które poza panelem admina zawęża do łowisk
+     * bieżącego użytkownika.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function forceVerifiedFishery(array $data): array
+    {
+        $data['fishery_id'] = self::assertFisheryAccessOrAbort(
+            $data['fishery_id'] ?? request()->get('fishery'),
+        );
+
+        return $data;
     }
 
     public static function getRichEditorOptions()
@@ -478,11 +634,14 @@ class Helper
                     if ($record && $record->fishery) {
                         $component->state($record->fishery->name);
                     } elseif ($fisheryId = request()->get('fishery')) {
-                        $fishery = Fishery::find($fisheryId);
-                        $component->state($fishery?->name);
+                        $component->state(self::findFishery($fisheryId)?->name);
                     }
                 })
                 ->readonly(),
+            // ⚠️ To pole jest wyłącznie WYGODĄ formularza, nie źródłem prawdy.
+            // Wartość zapisywana do bazy wymusza `Helper::forceVerifiedFishery()`
+            // ze zweryfikowanego ID zapamiętanego w `mount()` — `Hidden` to dane
+            // od klienta i bez tego dało się utworzyć rekord pod cudzym łowiskiem.
             Hidden::make('fishery_id')
                 ->default(function ($record, $livewire = null) {
                     if ($record && $record->fishery_id) {

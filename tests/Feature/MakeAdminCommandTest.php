@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -80,4 +81,30 @@ test('re-running on an already-complete role is idempotent', function () {
 
     expect(Permission::count())->toBe($totalPermissionsAfterFirstRun);
     expect($role->permissions()->count())->toBe($permissionCountAfterFirstRun);
+});
+
+test('the admin password defaults to the email address and can be overridden', function () {
+    // ⚠️ Domyślne hasło = adres e-mail jest ŚWIADOMYM rozstrzygnięciem autora
+    // (zadanie 012 §21), utrzymanym mimo zgłoszenia z audytu bezpieczeństwa: projekt
+    // nie jest produkcyjny, staging stoi za osobnym hasłem, a losowe hasło wypisywane
+    // raz w logach joba grozi utratą dostępu. Ten test **pilnuje rozstrzygnięcia**,
+    // a nie chwali zachowania — gdy warunek powrotu się spełni (pierwsze wdrożenie
+    // produkcyjne), ma zaczerwienić się razem ze zmianą, a nie przepuścić jej milcząco.
+    $email = 'nowy.admin@example.com';
+
+    $this->artisan('MakeAdmin', ['name' => 'Nowy', 'surname' => 'Admin', 'email' => $email])
+        ->assertSuccessful();
+
+    expect(Hash::check($email, User::where('email', $email)->firstOrFail()->password))->toBeTrue();
+
+    // Ścieżka produkcyjna: hasło podane jawnie ma nadpisać domyślne.
+    $this->artisan('MakeAdmin', [
+        'name' => 'Drugi', 'surname' => 'Admin', 'email' => 'drugi.admin@example.com',
+        '--password' => 'BardzoDlugieHaslo123!',
+    ])->assertSuccessful();
+
+    $second = User::where('email', 'drugi.admin@example.com')->firstOrFail();
+
+    expect(Hash::check('BardzoDlugieHaslo123!', $second->password))->toBeTrue()
+        ->and(Hash::check('drugi.admin@example.com', $second->password))->toBeFalse();
 });

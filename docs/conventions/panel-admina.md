@@ -113,29 +113,38 @@ i hub „Zarządzaj łowiskiem", ADR-006).
   ```php
   public function getRedirectUrl(): string
   {
-      $fisheryId = request()->get('fishery') ?? $this->record->fishery_id ?? null;
+      // Źródłem prawdy jest ZAPISANY rekord, nie parametr URL — przy właścicielu
+      // dwóch łowisk rekord mógł wylądować w B, a przekierowanie prowadzić do A.
+      $fisheryId = $this->record->fishery_id ?? request()->get('fishery');
 
       return self::sectionUrl($fisheryId);
   }
 
   private static function sectionUrl(int|string|null $fisheryId): string
   {
-      return Helper::fisheryHubUrl($fisheryId, XRelationManager::class)
-          ?? XResource::getUrl('index', ['fishery' => $fisheryId]);
+      return Helper::fisherySectionUrl(
+          XResource::class,
+          XRelationManager::class,
+          $fisheryId,
+      );
   }
   ```
   Ta sama metoda obsługuje też `getBreadcrumbs()` i stronę `Edit*`, żeby zapis i okruszki
   prowadziły w to samo miejsce. Szczegóły — w tym dlaczego numeru zakładki nie wolno wpisywać
   ręcznie — w [`panel-wlasciciela.md`](panel-wlasciciela.md).
 - **Dzisiejsze wyjątki od tej reguły:**
-  - **`CompanyResource` i `FisheryResource` — świadomie wyłączone.** To jedna klasa
-    współdzielona między panelem admina a panelem właściciela (patrz niżej); wizard zakładania
-    łowiska (`wizard=true`: Company → verify-company → Fishery) ma już własną, celową nawigację
-    poza tą regułą, a panel właściciela ma pozostać bez zmian dla obu zasobów. Wprowadzenie
-    rozgałęzienia `Helper::isOwnerPanel()` tylko po to, żeby admin zachowywał się inaczej niż
-    owner, uznano za nieproporcjonalny koszt (zadanie 011, „Rozstrzygnięcia").
-  - `LongTermPermitResource` — już zgodny z regułą od zanim reguła powstała; to on jest wzorcem
-    powyżej, nie odstępstwem.
+  - **`CompanyResource` — świadomie wyłączony.** To jedna klasa współdzielona między panelami
+    (patrz niżej), a panel właściciela ma pozostać bez zmian. Wprowadzenie rozgałęzienia
+    `Helper::isOwnerPanel()` tylko po to, żeby admin zachowywał się inaczej niż owner, uznano
+    za nieproporcjonalny koszt (zadanie 011, „Rozstrzygnięcia").
+  - **`FisheryResource` — zgodny w adminie, odstępstwo tylko w panelu właściciela.**
+    `CreateFishery::getRedirectUrl()` rozgałęzia jawnie: admin wraca na listę (czyli spełnia
+    regułę), właściciel trafia do huba „Zarządzaj łowiskiem", bo kreator kończy tam proces
+    zakładania (ADR-006, [`panel-wlasciciela.md`](panel-wlasciciela.md) §1).
+    ⚠️ Dawny przepływ `?wizard=true` (Company → verify-company → Fishery) **już nie istnieje** —
+    zadanie 012 usunęło `VerifyCompany` i parametr `wizard`.
+  - `LongTermPermitResource` — już zgodny z regułą od zanim reguła powstała; to on był wzorcem
+    dla zasobów podrzędnych, zanim zadanie 012 przeniosło ich cel na zakładkę huba.
 - ⚠️ **`AdditionalServiceResource` i `PositionResource` nie mają osobnych klas per panel** —
   `OwnerPanelProvider` rejestruje wprost te same klasy z `app/Filament/Resources/`, które widzi
   panel admina. Zmiana `getRedirectUrl()` dla tych dwóch zasobów obejmuje **automatycznie oba

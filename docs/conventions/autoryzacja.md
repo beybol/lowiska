@@ -63,3 +63,56 @@ Zadania źródłowe: 008, 009.
   do panelu domyślnego pomija stronę `VerifyCompany` panelu właściciela — czyli częściowo odtwarza
   objaw naprawiany zadaniem 008. Uprawnienie nieprzypisane do żadnej roli jest bezczynne, więc
   nadmiar nic nie kosztuje.
+
+---
+
+## 4. Zasoby podrzędne łowiska — polityka NIE wystarcza
+
+Stanowiska, usługi dodatkowe i pozwolenia należą do łowiska, a ich polityki **przy tworzeniu nie
+widzą rekordu nadrzędnego** — `PositionPolicy::create()` dostaje sam typ i przepuszcza każdego
+z rolą `owner`. Dlatego przynależność do łowiska pilnują trzy warstwy naraz i **żadnej nie wolno
+zdejmować pojedynczo** (zadanie 012, sekcje 15 i 16):
+
+1. **Zawężenie zapytania zasobu** — `Helper::scopeToOwnedFisheries($query)` w `getEloquentQuery()`.
+   To jedyna warstwa działająca na **odczycie pojedynczego rekordu** (`resolveRecordRouteBinding()`
+   na stronie edycji), więc bez niej da się wejść na cudzy rekord wprost z URL-a. Nowy zasób
+   podrzędny wobec łowiska dostaje ją jedną linijką — **nie przeklejaj warunku**.
+   ⚠️ To zawężenie **nie obejmuje zapytań o opcje w formularzu** (`Select`, `CheckboxList`).
+   Te liczą się z `$get('fishery_id')`, czyli z pola `Hidden` — danych od klienta — i muszą
+   przejść przez `scopeToOwnedFisheries()` osobno, inaczej podmiana stanu wyświetli nazwy
+   z cudzego łowiska. Zapis pozostaje bezpieczny, ale to i tak wyciek odczytowy.
+2. **Bramka na każdym żądaniu listy** — `Helper::assertFisheryAccessOrAbort($this->fisheryId)`
+   w `getTableQuery()`, nie tylko w `mount()`. ⚠️ `$fisheryId` jest publiczną właściwością
+   komponentu wiązaną z query stringiem, więc kolejne żądanie Livewire może przynieść inną
+   wartość — albo `null`, przy którym warunkowy filtr nie dokładał **żadnego** ograniczenia.
+3. **Bramka przy zapisie** — `Helper::forceVerifiedFishery($data)` w
+   `mutateFormDataBeforeCreate()` **oraz** `mutateFormDataBeforeSave()`. ⚠️ Obie, nie jedna:
+   `mount()` strony edycji sprawdza łowisko rekordu **sprzed** zmiany, a `fishery_id` jest
+   w formularzu polem `Hidden`, więc bez tego dało się przenieść własny rekord pod cudze łowisko.
+
+⚠️ **Bramka przy zapisie musi być bezstanowa.** Nie zapamiętuj zweryfikowanego ID we właściwości
+strony: Livewire utrwala między żądaniami **wyłącznie właściwości publiczne**, a żądanie zapisu
+leci na `/livewire/update` i nie niesie ani `?fishery`, ani niczego z `protected`. Pierwsza wersja
+tej poprawki właśnie tak wyglądała i przerywała zapis błędem 404 — złapały to testy, nie przegląd.
+
+⚠️ **Polityka bez sprawdzenia właściciela na rekordzie jest zerową warstwą, nie pierwszą.**
+`Helper::addOwnerRole()` nadaje roli `owner` **pełny** zestaw `*:fishery` i `*:company`, więc
+samo `$user->can('update:fishery')` zwraca `true` dla cudzego rekordu. Polityka zasobu należącego
+do właściciela musi porównać `user_id` — wzorzec w `FisheryPolicy`/`CompanyPolicy`/`PositionPolicy`.
+Administrator (`is_admin`) zostaje poza zawężeniem także wtedy, gdy ma dodatkowo rolę `owner`.
+
+⚠️ **Nazwa cudzego rekordu też jest danymi.** Okruszki i tytuły stron `Create*` czytają `?fishery`
+wprost z żądania, a Filament przelicza je przy **każdym** renderze Livewire — bramka z `mount()`
+biegnie tylko przy pierwszym GET-cie. Dlatego `Helper::findFishery()` jest **domyślnie zawężone**,
+a wariant nieograniczony trzeba wybrać świadomie. Nie odwracaj tej domyślności.
+
+⚠️ **Ustawienie bezpieczeństwa dodane do jednego panelu trzeba dodać do drugiego.**
+`TwoFactorMiddleware` żył w stosie `/admin` i nie żył w `/owner` przez dwa zadania i trzy tury
+przeglądu kodu — wyłapał to dopiero audyt czytający oba providery obok siebie. Konfiguracja
+per panel nie dziedziczy się sama; przy każdej zmianie w `AdminPanelProvider` sprawdź
+`OwnerPanelProvider` i odwrotnie.
+
+⚠️ **Testy tych warstw weryfikuj negatywnie** — zepsuj bramkę i sprawdź, że test czerwienieje.
+Asercje typu „nie zawiera nazwy cudzego rekordu" łatwo przechodzą z niewłaściwego powodu: kolumny
+opisowe mają `limit(20)`, więc losowa treść z fabryki i tak nie trafia do HTML-a w całości.
+Wzorzec: `tests/Feature/OwnerPanelTest.php`, przypadki „Owner can not…".

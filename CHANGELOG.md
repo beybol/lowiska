@@ -28,6 +28,33 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   na komputerze poza Dockerem. Aplikacja odpowiada pod adresem `http://localhost:11000`,
   a wiadomości wysyłane przez aplikację trafiają do skrzynki pod `http://localhost:11025`.
 
+### Bezpieczeństwo
+
+- Logowanie przez Google i Facebook wymaga teraz kodu z drugiego składnika, tak samo jak
+  logowanie hasłem — wcześniej pomijało ten krok w całości.
+- Panel właściciela wymaga teraz kodu z drugiego składnika przy każdym logowaniu; wcześniej
+  dało się pominąć ten krok i wejść wprost pod adres wewnątrz panelu.
+- Właściciel łowiska nie zobaczy już nazwy cudzego łowiska w ścieżce nawigacji ani w tytule
+  strony, gdy poda w adresie identyfikator, który do niego nie należy.
+- Właściciel nie może już otworzyć ani zmienić cudzego łowiska i cudzej firmy — wcześniej
+  chroniło to tylko filtrowanie list.
+- Do galerii i mapy łowiska można teraz wgrać wyłącznie JPEG, PNG i WebP; wcześniej przechodził
+  też plik SVG, który potrafi nieść skrypt.
+- Dziennik zmian przestał zapisywać zaszyfrowane hasło i kod jednorazowy użytkownika.
+- Zamknięto trzy sposoby, na jakie właściciel łowiska mógł sięgnąć poza własne dane: wyświetlić
+  listę stanowisk, usług dodatkowych lub pozwoleń **cudzego** łowiska, dodać do niego nowy wpis
+  oraz przenieść do niego swój istniejący wpis przez edycję. Widoczność i zapis są teraz
+  ograniczone do łowisk, których użytkownik jest właścicielem, niezależnie od tego, co przyjdzie
+  z przeglądarki.
+- Uruchomienie testów nie może już przypadkowo skasować roboczej bazy danych — pakiet testów
+  korzysta z osobnej bazy, a przebieg zatrzymuje się z czytelnym komunikatem, gdyby kiedykolwiek
+  wskazał inną.
+- Przygotowano aplikację do pracy za proxy terminującym szyfrowanie (wdrożenie docelowe) —
+  strony i panele będą poprawnie wykrywać połączenie szyfrowane, bez ryzyka podmiany adresu
+  w linkach z wiadomości e-mail.
+- Ciasteczko sesji jest teraz oznaczane jako wysyłane wyłącznie po połączeniu szyfrowanym
+  na środowisku docelowym.
+
 ### Poprawione
 
 - Naprawiono podgląd mapy w formularzu łowiska — nie dawało się go pokazać. Mapa pojawia się
@@ -44,6 +71,8 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   a krok z przelewem weryfikacyjnym pomija się, gdy firma była już zweryfikowana.
 - Naprawiono wygląd strony „Zarządzaj łowiskiem" — zakładki i przyciski dodawania renderowały
   się jako wielkie, niestylowane ikony z rozsypaną nawigacją.
+- W zakładkach zarządzania łowiskiem wróciły przyciski edycji przy pozycjach na listach —
+  po przebudowie strony dało się rekordy tylko oglądać i dodawać.
 - Strona „Zarządzaj łowiskiem" otwiera się teraz na danych łowiska, a nie na jednej z list.
   Listy pozwoleń, usług dodatkowych i stanowisk widać od razu po wejściu w zakładkę — wcześniej
   były schowane za dodatkowym przyciskiem „Lista". Z zakładki z danymi można przejść do edycji
@@ -79,12 +108,3 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   docelowym przyjmowałby plik bez błędu, ale obrazek przestawałby się otwierać po najbliższym
   restarcie — uploady trafiają teraz na trwały storage, a aplikacja odmawia startu, gdyby to
   ustawienie zostało przez pomyłkę pominięte.
-
-### Bezpieczeństwo
-
-- Uruchomienie testów nie może już przypadkowo skasować roboczej bazy danych — pakiet testów
-  korzysta z osobnej bazy, a przebieg zatrzymuje się z czytelnym komunikatem, gdyby kiedykolwiek
-  wskazał inną.
-- Przygotowano aplikację do pracy za proxy terminującym szyfrowanie (wdrożenie docelowe) —
-  strony i panele będą poprawnie wykrywać połączenie szyfrowane, bez ryzyka podmiany adresu
-  w linkach z wiadomości e-mail.
