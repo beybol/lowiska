@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PositionResource\Pages;
 
+use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
 use App\Filament\Resources\PositionResource;
 use App\Helpers\Helper;
 use Filament\Actions\DeleteAction;
@@ -56,10 +57,27 @@ class EditPosition extends EditRecord
     {
         $fisheryId = $this->record->fishery_id ?? null;
 
-        return [
-            PositionResource::getUrl('index', ['fishery' => $fisheryId]) => __('Positions'),
+        return Helper::fisheryBreadcrumbs(
+            $fisheryId,
+            __('Positions'),
+            self::sectionUrl($fisheryId),
             __('Edit'),
-        ];
+        );
+    }
+
+    public function getRedirectUrl(): string
+    {
+        return self::sectionUrl($this->record->fishery_id ?? null);
+    }
+
+    /**
+     * Po zapisie i z okruszków wracamy na listę **w zakładce huba**, nie na samotną
+     * stronę listy — ta druga wypada poza kontekst łowiska (zadanie 012).
+     */
+    private static function sectionUrl(int|string|null $fisheryId): string
+    {
+        return Helper::fisheryHubUrl($fisheryId, PositionsRelationManager::class)
+            ?? PositionResource::getUrl('index', ['fishery' => $fisheryId]);
     }
 
     public function getFormState(): array

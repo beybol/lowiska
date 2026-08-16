@@ -65,7 +65,7 @@ da się odtworzyć z samego kodu.
 | Dotykasz | Przeczytaj |
 |---|---|
 | `app/Filament/Resources/**`, `app/Providers/Filament/AdminPanelProvider.php` | `docs/conventions/panel-admina.md` ⛏️ |
-| `app/Filament/Owner/**`, `app/Providers/Filament/OwnerPanelProvider.php` | `docs/conventions/panel-wlasciciela.md` ⛏️ |
+| `app/Filament/Owner/**`, `app/Providers/Filament/OwnerPanelProvider.php` | `docs/conventions/panel-wlasciciela.md` |
 | `app/Policies/**`, role i uprawnienia Shielda, `User` | `docs/conventions/autoryzacja.md` |
 | `app/Services/CSOService.php`, `app/Rules/IbanValidation.php`, `app/Helpers/**` | `docs/conventions/integracje.md` ⛏️ |
 | Modele z traitem `LogsActivity`, `config/activitylog.php` | `docs/conventions/dziennik-zmian.md` |
@@ -291,6 +291,10 @@ docker run --rm dunglas/frankenphp:1-php8.4 php -r 'echo PHP_VERSION;' # obraz p
   (przejście do edycji) jest zbędnym krokiem pośrednim dla typowego CRUD-u w tym projekcie.
   Odstępstwo od tej reguły wymaga świadomej decyzji zapisanej w treści zadania — patrz
   `docs/conventions/panel-admina.md` po listę dzisiejszych wyjątków.
+- **Relacje Eloquenta deklaruj z generykami** (`@return HasMany<Position, $this>`). Bez nich
+  Larastan nie rozwija typu, więc wywołanie scope'a na relacji (`->positions()->isActive()`)
+  zgłasza się jako nieistniejąca metoda i ląduje w baseline — z generykami znika u źródła.
+  Tą drogą zadanie 012 zdjęło z baseline'u cztery błędy; sięgaj po nią, zanim dopiszesz wpis.
 - Nowa decyzja architektoniczna (wybór biblioteki/wzorca) → ADR wg kryterium wyżej, nie milcząco w kodzie.
 
 ⛏️ **Do uzupełnienia:** konwencje wynikające z realnych decyzji tego projektu — nazewnictwo, granica

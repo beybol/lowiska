@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PositionResource\Pages;
 
+use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
 use App\Filament\Resources\PositionResource;
 use App\Helpers\Helper;
 use Filament\Resources\Pages\CreateRecord;
@@ -39,17 +40,29 @@ class CreatePosition extends CreateRecord
     {
         $fisheryId = request()->get('fishery');
 
-        return [
-            PositionResource::getUrl('index', ['fishery' => $fisheryId]) => __('Positions'),
+        return Helper::fisheryBreadcrumbs(
+            $fisheryId,
+            __('Positions'),
+            self::sectionUrl($fisheryId),
             __('Create'),
-        ];
+        );
     }
 
     public function getRedirectUrl(): string
     {
         $fisheryId = request()->get('fishery') ?? $this->record->fishery_id ?? null;
 
-        return PositionResource::getUrl('index', ['fishery' => $fisheryId]);
+        return self::sectionUrl($fisheryId);
+    }
+
+    /**
+     * Po zapisie i z okruszków wracamy na listę **w zakładce huba**, nie na samotną
+     * stronę listy — ta druga wypada poza kontekst łowiska (zadanie 012).
+     */
+    private static function sectionUrl(int|string|null $fisheryId): string
+    {
+        return Helper::fisheryHubUrl($fisheryId, PositionsRelationManager::class)
+            ?? PositionResource::getUrl('index', ['fishery' => $fisheryId]);
     }
 
     protected function getFormActions(): array

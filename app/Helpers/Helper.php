@@ -58,6 +58,50 @@ class Helper
         return __($baseLabel);
     }
 
+    /**
+     * Okruszki dla zasobów podrzędnych łowiska:
+     * `Łowiska > {nazwa łowiska} > {sekcja} [> {bieżąca strona}]`.
+     *
+     * „Łowiska" prowadzi do listy łowisk, nazwa łowiska — do jego strony
+     * zarządzania, więc z każdego ekranu podrzędnego da się wrócić o poziom wyżej
+     * bez cofania w przeglądarce (zadanie 012).
+     *
+     * Gdy `$fisheryId` jest puste (zasób otwarty bez kontekstu łowiska, np.
+     * z panelu administratora), człon z nazwą łowiska po prostu znika.
+     *
+     * @param  string|null  $sectionUrl  gdy podany, sekcja staje się klikalna,
+     *                                   a `$currentLabel` dokłada się jako ostatni,
+     *                                   nieklikalny człon
+     * @return array<int|string, string>
+     */
+    public static function fisheryBreadcrumbs(
+        ?int $fisheryId,
+        string $sectionLabel,
+        ?string $sectionUrl = null,
+        ?string $currentLabel = null,
+    ): array {
+        $breadcrumbs = [
+            FisheryResource::getUrl('index') => __('Fisheries'),
+        ];
+
+        $fishery = $fisheryId ? Fishery::find($fisheryId) : null;
+
+        if ($fishery) {
+            $breadcrumbs[FisheryResource::getUrl('manage', ['record' => $fishery])] = $fishery->name;
+        }
+
+        if (filled($currentLabel) && filled($sectionUrl)) {
+            $breadcrumbs[$sectionUrl] = $sectionLabel;
+            $breadcrumbs[] = $currentLabel;
+
+            return $breadcrumbs;
+        }
+
+        $breadcrumbs[] = $sectionLabel;
+
+        return $breadcrumbs;
+    }
+
     public static function getListHeaderActionsForFishery($resourceClass, $fisheryId)
     {
         $actions = [];
@@ -71,6 +115,33 @@ class Helper
         }
 
         return $actions;
+    }
+
+    /**
+     * Adres konkretnej zakładki huba „Zarządzaj łowiskiem".
+     *
+     * Filament identyfikuje aktywny RelationManager **pozycją w tablicy**
+     * `FisheryResource::getRelations()` (parametr `?relation=`), a nie nazwą klasy.
+     * ⚠️ Dlatego klucza nie wolno zaszywać liczbą w stronach — przestawienie kolejności
+     * zakładek przekierowywałoby po zapisie na cudzą listę i nic by nie pękło. Tu jest
+     * wyliczany z tej samej tablicy, którą renderuje hub (zadanie 012).
+     *
+     * @param  class-string  $relationManager
+     */
+    public static function fisheryHubUrl(?int $fisheryId, string $relationManager): ?string
+    {
+        $fishery = $fisheryId ? Fishery::find($fisheryId) : null;
+
+        if (! $fishery) {
+            return null;
+        }
+
+        $relation = array_search($relationManager, FisheryResource::getRelations(), true);
+
+        return FisheryResource::getUrl('manage', array_filter([
+            'record' => $fishery,
+            'relation' => $relation === false ? null : $relation,
+        ], fn ($value): bool => $value !== null));
     }
 
     public static function getEditFormActionsForFishery($record, $saveAction, $cancelAction)
@@ -145,23 +216,6 @@ class Helper
             $set('state_id', $stateId);
             $set('error', null);
         }
-    }
-
-    public static function isWizard($livewire = null): bool
-    {
-        if (request()->query('wizard', false)) {
-            return true;
-        }
-
-        if (
-            $livewire
-            && property_exists($livewire, 'wizard')
-            && $livewire->wizard
-        ) {
-            return true;
-        }
-
-        return false;
     }
 
     public static function getSortedCountries(): Collection
@@ -394,7 +448,12 @@ class Helper
             ->rules([
                 'nullable',
                 'regex:/^\d+([.,]\d{1,2})?$/',
-                function (string $attribute, $value, \Closure $fail) {
+                // ⚠️ Reguła-domknięcie musi być OPAKOWANA w domknięcie, które ją
+                // zwraca. Filament woła `evaluate()` na każdym elemencie `rules()`
+                // i wstrzykuje argumenty PO NAZWIE — przekazana wprost reguła
+                // Laravela wywala się na `[$attribute] was unresolvable`
+                // (BindingResolutionException) dopiero przy zapisie formularza.
+                static fn (): \Closure => static function (string $attribute, $value, \Closure $fail): void {
                     if (blank($value)) {
                         return;
                     }

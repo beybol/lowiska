@@ -30,8 +30,14 @@ Zadania źródłowe: 005, 009, 011. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-found
   konfiguracji. Rozstrzygnięcie i uzasadnienie w treści zadania 005.
 
 ⛏️ **Panel właściciela nie ma dziś żadnego pola `FileUpload`.** Gdy je dostanie, ten sam
-niezmiennik go obejmuje — dopisz odsyłacz do tego pliku w `docs/conventions/panel-wlasciciela.md`
-(albo, jeśli reguła urośnie ponad uploady, wydziel wtedy wspólny plik o storage'u).
+niezmiennik go obejmuje — dopisz wtedy odsyłacz do tej sekcji
+w [`panel-wlasciciela.md`](panel-wlasciciela.md) (albo, jeśli reguła urośnie ponad uploady,
+wydziel wspólny plik o storage'u).
+
+ℹ️ **Zasoby z `app/Filament/Resources/**` są współdzielone z panelem właściciela** — zanim
+zmienisz zachowanie zasobu, sprawdź [`panel-wlasciciela.md`](panel-wlasciciela.md), bo część
+z nich rozgałęzia się przez `Helper::isOwnerPanel()` (m.in. kreator zakładania łowiska
+i hub „Zarządzaj łowiskiem", ADR-006).
 
 ---
 
@@ -102,16 +108,25 @@ niezmiennik go obejmuje — dopisz odsyłacz do tego pliku w `docs/conventions/p
       return XResource::getUrl('index');
   }
   ```
-  a dla zasobów zagnieżdżonych pod łowiskiem (query string `fishery`), wzorem
-  `LongTermPermitResource\Pages\CreateLongTermPermit`:
+  a dla zasobów zagnieżdżonych pod łowiskiem (stanowiska, usługi dodatkowe, pozwolenia)
+  celem jest **zakładka huba „Zarządzaj łowiskiem"**, nie samotna strona listy (zadanie 012):
   ```php
   public function getRedirectUrl(): string
   {
       $fisheryId = request()->get('fishery') ?? $this->record->fishery_id ?? null;
 
-      return XResource::getUrl('index', ['fishery' => $fisheryId]);
+      return self::sectionUrl($fisheryId);
+  }
+
+  private static function sectionUrl(int|string|null $fisheryId): string
+  {
+      return Helper::fisheryHubUrl($fisheryId, XRelationManager::class)
+          ?? XResource::getUrl('index', ['fishery' => $fisheryId]);
   }
   ```
+  Ta sama metoda obsługuje też `getBreadcrumbs()` i stronę `Edit*`, żeby zapis i okruszki
+  prowadziły w to samo miejsce. Szczegóły — w tym dlaczego numeru zakładki nie wolno wpisywać
+  ręcznie — w [`panel-wlasciciela.md`](panel-wlasciciela.md).
 - **Dzisiejsze wyjątki od tej reguły:**
   - **`CompanyResource` i `FisheryResource` — świadomie wyłączone.** To jedna klasa
     współdzielona między panelem admina a panelem właściciela (patrz niżej); wizard zakładania
@@ -126,11 +141,13 @@ niezmiennik go obejmuje — dopisz odsyłacz do tego pliku w `docs/conventions/p
   panel admina. Zmiana `getRedirectUrl()` dla tych dwóch zasobów obejmuje **automatycznie oba
   panele** — nie da się tu ustawić „inny redirect w adminie, inny w ownerze" bez jawnego
   rozgałęzienia analogicznego do `CompanyResource`/`FisheryResource`.
-- ⚠️ **Test tych dwóch zasobów nie idzie przez pełny cykl Livewire** (`fillForm()->call('create')`)
-  — `mount()` czyta `request()->get('fishery')` wprost z frameworkowego żądania, a testowy
-  harness Livewire (`Livewire::test()`, także `withQueryParams()`, który obsługuje wyłącznie
-  właściwości `#[Url]`) nie przenosi query stringa do tego wywołania. Testy
-  ([`PositionResourceTest`](../../tests/Feature/PositionResourceTest.php),
-  [`AdditionalServiceResourceTest`](../../tests/Feature/AdditionalServiceResourceTest.php))
-  wołają `getRedirectUrl()` bezpośrednio na instancji strony z ręcznie ustawionym `$record` —
-  testuje to samą logikę (gałąź fallbacku `$this->record->fishery_id`) bez symulowania żądania.
+- **Redirect da się testować na dwa sposoby i oba są w użyciu:**
+  - `new CreateX; $page->record = $record;` a potem `getRedirectUrl()` — sprawdza gałąź
+    fallbacku `$this->record->fishery_id`, bez symulowania żądania
+    ([`PositionResourceTest`](../../tests/Feature/PositionResourceTest.php),
+    [`AdditionalServiceResourceTest`](../../tests/Feature/AdditionalServiceResourceTest.php)).
+  - `Livewire::withQueryParams(['fishery' => $id])->test(CreateX::class)->instance()->getRedirectUrl()`
+    — sprawdza gałąź `request()->get('fishery')`, czyli tę realnie używaną w przeglądarce
+    ([`OwnerPanelTest`](../../tests/Feature/OwnerPanelTest.php)). Zadanie 011 zapisało tu, że
+    `withQueryParams()` nie dowozi query stringa do `mount()`; po upgrade z zadania 009 **dowozi**
+    — strona montuje się bez 404 z `assertFisheryAccessOrAbort()` i widzi parametr.

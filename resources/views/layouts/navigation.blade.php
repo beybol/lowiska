@@ -16,7 +16,7 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
                     <x-nav-link 
-                        :href="route('filament.owner.resources.companies.create', ['wizard' => 1])"
+                        :href="route('filament.owner.resources.fisheries.create')"
                     >
                         {{ __('Register fishery') }}
                     </x-nav-link>
@@ -76,7 +76,7 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link 
-                :href="route('filament.owner.resources.companies.create', ['wizard' => 1])"
+                :href="route('filament.owner.resources.fisheries.create')"
             >
                 {{ __('Register fishery') }}
             </x-responsive-nav-link>

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\LongTermPermitResource\Pages;
 
+use App\Filament\Resources\FisheryResource\RelationManagers\LongTermPermitsRelationManager;
 use App\Filament\Resources\LongTermPermitResource;
 use App\Helpers\Helper;
 use Filament\Actions\DeleteAction;
@@ -42,9 +43,26 @@ class EditLongTermPermit extends EditRecord
     {
         $fisheryId = $this->record->fishery_id ?? null;
 
-        return [
-            LongTermPermitResource::getUrl('index', ['fishery' => $fisheryId]) => __('Long term permits'),
+        return Helper::fisheryBreadcrumbs(
+            $fisheryId,
+            __('Long term permits'),
+            self::sectionUrl($fisheryId),
             __('Edit'),
-        ];
+        );
+    }
+
+    public function getRedirectUrl(): string
+    {
+        return self::sectionUrl($this->record->fishery_id ?? null);
+    }
+
+    /**
+     * Po zapisie i z okruszków wracamy na listę **w zakładce huba**, nie na samotną
+     * stronę listy — ta druga wypada poza kontekst łowiska (zadanie 012).
+     */
+    private static function sectionUrl(int|string|null $fisheryId): string
+    {
+        return Helper::fisheryHubUrl($fisheryId, LongTermPermitsRelationManager::class)
+            ?? LongTermPermitResource::getUrl('index', ['fishery' => $fisheryId]);
     }
 }

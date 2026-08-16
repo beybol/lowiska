@@ -30,3 +30,32 @@ nie dziedziczy się sama.
 
 **Źródło:** `WorkSnap/docs/security/2026-08-15-zatrucie-hosta-i-obejscie-2fa-na-admin.md`, sekcja 2.
 Odnotowane przy `/review-task 002` (2026-08-15).
+
+---
+
+## `Role` bez własnej tablicy uprawnień w `createSuperAdmin()`
+
+**Stan dziś:** [`tests/TestCase.php`](tests/TestCase.php) trzyma osobną tablicę uprawnień per
+zasób (`$companyPermissions`, `$fisheryPermissions`, … `$currencyPermissions`), które
+`createSuperAdmin()` tworzy przez `Permission::firstOrCreate()` przed przypisaniem ich do roli
+super admina. `RolePolicy` sprawdza uprawnienia `view_any:role`, `view:role`, `create:role`,
+`update:role`, `delete:role`, `delete_any:role` (zasób `Role` z `filament-shield`) — ale w
+`TestCase.php` nie ma odpowiadającej im `$rolePermissions`, więc nic ich nie tworzy jawnie
+przed testami.
+
+**Dlaczego to odnotowujemy:** to dokładnie ten sam wzorzec, co brakujące `$currencyPermissions`
+naprawione w [zadaniu 011](docs/tasks/implemented/011-redirect-po-utworzeniu-rekordu-na-liste.md)
+— zasób ma politykę i (przez `filament-shield`) zasób administracyjny, ale nikt nie dopisał go do
+listy w `createSuperAdmin()`. Tam problem ujawnił się dopiero przy pisaniu testu sprawdzającego
+konkretne zachowanie zasobu; tu żaden istniejący test nie zarządza rolami jako super admin, więc
+luka jest dziś niewidoczna. Zgłoszone przez użytkownika 2026-08-16 przy okazji przeglądu zadania
+011.
+
+**Dlaczego nie naprawiamy teraz:** nic dziś nie psuje — brak testu, który by to ujawnił, więc nie
+ma czerwonego testu prowadzącego naprawę, a dodanie samej tablicy „na zapas" bez testu
+wymuszającego jej użycie byłoby zgadywaniem, czy nazwy uprawnień (`role` vs `roles` — do
+sprawdzenia względem `config/permission.php`) są aktualne.
+
+**Warunek powrotu:** pierwszy test lub zadanie dotykające zarządzania rolami w panelu admina
+(np. zasób `RoleResource` z `filament-shield`) jako super admin — wtedy dopisać
+`$rolePermissions` do `createSuperAdmin()` tym samym wzorcem co pozostałe zasoby.

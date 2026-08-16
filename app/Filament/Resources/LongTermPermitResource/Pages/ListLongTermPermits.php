@@ -47,11 +47,9 @@ class ListLongTermPermits extends ListRecords
 
     public function getBreadcrumbs(): array
     {
-        $fisheryId = request()->get('fishery');
-
-        return [
-            LongTermPermitResource::getUrl('index', ['fishery' => $fisheryId]) => __('Long term permits'),
-            __('List'),
-        ];
+        return Helper::fisheryBreadcrumbs(
+            $this->fisheryId,
+            __('Long term permits'),
+        );
     }
 }

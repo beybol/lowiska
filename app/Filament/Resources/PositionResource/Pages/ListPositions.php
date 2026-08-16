@@ -45,10 +45,10 @@ class ListPositions extends ListRecords
 
     public function getBreadcrumbs(): array
     {
-        return [
-            PositionResource::getUrl('index', ['fishery' => $this->fisheryId]) => __('Positions'),
-            __('List'),
-        ];
+        return Helper::fisheryBreadcrumbs(
+            $this->fisheryId,
+            __('Positions'),
+        );
     }
 
     public function getTitle(): string

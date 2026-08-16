@@ -34,12 +34,10 @@ class ListAdditionalServices extends ListRecords
 
     public function getBreadcrumbs(): array
     {
-        $fisheryId = request()->get('fishery');
-
-        return [
-            AdditionalServiceResource::getUrl('index', ['fishery' => $fisheryId]) => __('Additional services'),
-            __('List'),
-        ];
+        return Helper::fisheryBreadcrumbs(
+            $this->fisheryId,
+            __('Additional services'),
+        );
     }
 
     protected function getTableQuery(): ?Builder

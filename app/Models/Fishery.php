@@ -100,16 +100,25 @@ class Fishery extends Model
         return $this->belongsTo(Currency::class);
     }
 
+    /**
+     * @return HasMany<LongTermPermit, $this>
+     */
     public function longTermPermits(): HasMany
     {
         return $this->hasMany(LongTermPermit::class);
     }
 
+    /**
+     * @return HasMany<AdditionalService, $this>
+     */
     public function additionalServices(): HasMany
     {
         return $this->hasMany(AdditionalService::class);
     }
 
+    /**
+     * @return HasMany<Position, $this>
+     */
     public function positions(): HasMany
     {
         return $this->hasMany(Position::class);

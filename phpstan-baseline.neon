@@ -19,18 +19,6 @@ parameters:
 			path: app/Filament/Resources/CompanyResource.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Filament/Resources/CompanyResource/Pages/CreateCompany.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Company\>\:\:forCurrentUser\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Filament/Resources/CompanyResource/Pages/CreateCompany.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Company\>\:\:forCurrentUser\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -67,34 +55,10 @@ parameters:
 			path: app/Filament/Resources/FisheryResource.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Filament/Resources/FisheryResource/Pages/ManageFishery.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Filament/Resources/FisheryResource/Pages/ManageFishery.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:additionalServices\(\)\.$#'
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Company\>\:\:forCurrentUser\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: app/Filament/Resources/FisheryResource/Pages/ManageFishery.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:longTermPermits\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Filament/Resources/FisheryResource/Pages/ManageFishery.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:positions\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Filament/Resources/FisheryResource/Pages/ManageFishery.php
+			path: app/Filament/Resources/FisheryResource/Pages/CreateFishery.php
 
 		-
 			message: '#^Cannot access property \$fishery_id on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'

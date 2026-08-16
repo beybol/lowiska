@@ -30,6 +30,30 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Poprawione
 
+- Naprawiono podgląd mapy w formularzu łowiska — nie dawało się go pokazać. Mapa pojawia się
+  teraz sama, gdy adres jest kompletny, i nadąża za zmianami w polach adresu.
+- Naprawiono dodawanie usługi dodatkowej — zapis formularza kończył się błędem aplikacji
+  zamiast utworzeniem usługi.
+- Naprawiono dodawanie stanowiska: formularz startował z jedną pustą pozycją usługi dodatkowej,
+  przez co stanowiska bez usług nie dawało się zapisać bez ręcznego usunięcia tego wiersza.
+- Po założeniu łowiska użytkownik trafia teraz od razu do zarządzania nim (stanowiska,
+  pozwolenia, usługi), zamiast wracać na listę łowisk.
+- Naprawiono kreator zakładania łowiska w panelu właściciela: wybór firmy renderował się jako
+  surowy, niestylowany element, a wybrana firma potrafiła zniknąć w drodze do kolejnego kroku.
+  Kreator jest teraz jednym formularzem z krokami — wybrana firma nie gubi się między nimi,
+  a krok z przelewem weryfikacyjnym pomija się, gdy firma była już zweryfikowana.
+- Naprawiono wygląd strony „Zarządzaj łowiskiem" — zakładki i przyciski dodawania renderowały
+  się jako wielkie, niestylowane ikony z rozsypaną nawigacją.
+- Strona „Zarządzaj łowiskiem" otwiera się teraz na danych łowiska, a nie na jednej z list.
+  Listy pozwoleń, usług dodatkowych i stanowisk widać od razu po wejściu w zakładkę — wcześniej
+  były schowane za dodatkowym przyciskiem „Lista". Z zakładki z danymi można przejść do edycji
+  łowiska jednym przyciskiem.
+- Zapisanie stanowiska, usługi dodatkowej lub pozwolenia odsyła teraz na listę w zarządzaniu
+  łowiskiem — z widoczną nazwą łowiska i pozostałymi zakładkami — zamiast na osobną listę
+  wyrwaną z kontekstu. Dotyczy zarówno dodawania, jak i edycji.
+- Na stronach stanowisk, usług dodatkowych i pozwoleń ścieżka nawigacji prowadzi teraz przez
+  „Łowiska → nazwę łowiska → sekcję", a dwa pierwsze elementy są klikalne — wcześniej z listy
+  stanowisk nie było jak wrócić do konkretnego łowiska.
 - Naprawiono zakładanie użytkownika w panelu administratora — formularz nie miał pola hasła,
   przez co zapis nowego użytkownika kończył się błędem i konta nie dało się utworzyć.
   Przy edycji istniejącego użytkownika pole hasła można zostawić puste, żeby nie zmieniać

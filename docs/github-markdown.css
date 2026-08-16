@@ -1,0 +1,167 @@
+/*
+ * github-markdown.css — dopracowany styl w duchu GitHub (light), zoptymalizowany pod render
+ * raportów MD (tabele, task-listy, code, blockquote, emoji) i eksport do PDF.
+ *
+ * Użycie z pandoc (CSS wbudowany w HTML — brak problemów ze ścieżką):
+ *   pandoc raport.md -o raport.html -s --embed-resources --css=github-markdown.css
+ * Potem HTML → PDF istniejącym Edge/Chrome:
+ *   msedge --headless=new --print-to-pdf="raport.pdf" --no-pdf-header-footer "file:///.../raport.html"
+ */
+
+:root {
+    --fg: #1f2328;
+    --fg-muted: #59636e;
+    --fg-subtle: #818b98;
+    --accent: #0969da;
+    --border: #d1d9e0;
+    --border-muted: #d1d9e0b3;
+    --canvas: #ffffff;
+    --canvas-subtle: #f6f8fa;
+    --neutral-muted: #818b9826;
+    --success: #1a7f37;
+    --attention: #9a6700;
+    --danger: #cf222e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    -webkit-text-size-adjust: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+        Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--fg);
+    background: var(--canvas);
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 56px 80px;
+    word-wrap: break-word;
+}
+
+/* ---------- Nagłówki ---------- */
+h1, h2, h3, h4, h5, h6 {
+    margin: 28px 0 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+h1 { font-size: 2em; padding-bottom: .3em; border-bottom: 1px solid var(--border-muted); }
+h2 { font-size: 1.5em; padding-bottom: .3em; border-bottom: 1px solid var(--border-muted); }
+h3 { font-size: 1.25em; }
+h4 { font-size: 1em; }
+h5 { font-size: .875em; }
+h6 { font-size: .85em; color: var(--fg-muted); }
+body > h1:first-child, body > h2:first-child { margin-top: 0; }
+
+p { margin: 0 0 16px; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+strong { font-weight: 600; }
+
+hr {
+    height: 1px;
+    margin: 28px 0;
+    border: 0;
+    background: var(--border);
+}
+
+/* ---------- Listy ---------- */
+ul, ol { margin: 0 0 16px; padding-left: 2em; }
+li { margin: .25em 0; }
+li > p { margin: 0 0 8px; }
+ul ul, ul ol, ol ol, ol ul { margin: 4px 0; }
+
+/* Task-listy GFM (pandoc renderuje jako <input type=checkbox disabled>) */
+ul.task-list, .task-list-item { list-style: none; }
+li.task-list-item { padding-left: 0; }
+ul li.task-list-item { list-style: none; margin-left: -1.4em; }
+input[type="checkbox"] {
+    margin: 0 .5em 0 0;
+    vertical-align: middle;
+    width: 14px; height: 14px;
+    accent-color: var(--success);
+}
+
+/* ---------- Code ---------- */
+code, pre, kbd, samp {
+    font-family: "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono",
+        Menlo, monospace;
+    font-size: .85em;
+}
+code {
+    padding: .2em .4em;
+    background: var(--neutral-muted);
+    border-radius: 6px;
+    white-space: break-spaces;
+}
+pre {
+    padding: 16px;
+    overflow: auto;
+    background: var(--canvas-subtle);
+    border: 1px solid var(--border-muted);
+    border-radius: 8px;
+    line-height: 1.45;
+    margin: 0 0 16px;
+}
+pre code {
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    white-space: pre;
+    font-size: 100%;
+}
+
+/* ---------- Blockquote ---------- */
+blockquote {
+    margin: 0 0 16px;
+    padding: .4em 1em;
+    color: var(--fg-muted);
+    border-left: .25em solid var(--border);
+    background: #f6f8fa80;
+    border-radius: 0 6px 6px 0;
+}
+blockquote > :last-child { margin-bottom: 0; }
+blockquote > :first-child { margin-top: 0; }
+
+/* ---------- Tabele ---------- */
+table {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow: auto;
+    border-collapse: collapse;
+    margin: 0 0 16px;
+    font-size: .95em;
+}
+table th, table td {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+}
+table th {
+    font-weight: 600;
+    background: var(--canvas-subtle);
+}
+table tr:nth-child(2n) td { background: #f6f8fa66; }
+
+/* Obrazy */
+img { max-width: 100%; }
+
+/* ---------- Druk / PDF ---------- */
+@media print {
+    body {
+        max-width: none;
+        padding: 0;
+        font-size: 11pt;
+        line-height: 1.5;
+    }
+    @page { margin: 16mm 14mm; }
+    a { color: var(--fg); }
+    h1, h2, h3, h4 { page-break-after: avoid; }
+    pre, blockquote, table, tr, img { page-break-inside: avoid; }
+    table { width: 100%; display: table; }
+    thead { display: table-header-group; }
+}

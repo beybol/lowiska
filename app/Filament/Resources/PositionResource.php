@@ -107,6 +107,12 @@ class PositionResource extends Resource
                             ->label(__('Is required')),
                     ])
                     ->label(__('Additional services'))
+                    // ⚠️ Bez tego Filament renderuje JEDNĄ pustą pozycję (domyślne
+                    // `defaultItems(1)`), a że wybór usługi jest `required()`,
+                    // stanowisko bez usług dodatkowych nie dawało się zapisać,
+                    // dopóki użytkownik ręcznie nie usunął pustego wiersza.
+                    // Usługi dodaje się przyciskiem niżej (zadanie 012).
+                    ->defaultItems(0)
                     ->addActionLabel(__('Add additional service')),
             ]);
     }

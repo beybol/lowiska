@@ -35,86 +35,109 @@ class CompanyResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Toggle::make('is_verified')
-                    ->hidden(fn () => Helper::isOwnerPanel())
-                    ->label(__('Verified')),
-                Select::make('user_id')
-                    ->required()
-                    ->hidden(fn () => Helper::isOwnerPanel())
-                    ->label(__('Company entered by'))
-                    ->disabled()
-                    ->relationship('user', 'name')
-                    ->getOptionLabelFromRecordUsing(function (User $user) {
-                        return $user->getFilamentName();
-                    })
-                    ->default(function (?Company $record) {
-                        return $record === null
-                            ? auth()->id()
-                            : $record->user_id;
-                    }),
-                Section::make(__('Get data from CSO'))
-                    ->schema([
-                        Placeholder::make('Enter CSO/RENAE number below.')
-                            ->content(__('Enter CSO/RENAE number below.')),
-                        TextInput::make('tin')
-                            ->label(__('TIN'))
-                            ->validationAttribute(__('TIN'))
-                            ->unique(ignoreRecord: true),
-                        TextInput::make('renae')
-                            ->label(__('RENAE'))
-                            ->validationAttribute(__('REGON'))
-                            ->unique(ignoreRecord: true),
-                        Actions::make([
-                            Action::make('fetch_cso_data')
-                                ->label(__('Get data from CSO'))
-                                ->action(Helper::fetchDataFromCSO(...)),
-                        ]),
-                        // ⚠️ Nazwa tego komponentu NIE MOŻE być równa kluczowi stanu,
-                        // który sam odczytuje (`error`, ustawiany przez
-                        // Helper::fetchDataFromCSO). Do Filamenta 3 nazywał się
-                        // `error` i działało; od Filamenta 4/5 (wspólny Schema)
-                        // `$get('error')` wewnątrz zawartości komponentu o tej samej
-                        // nazwie odpytuje sam siebie — rekurencja bez dna, która
-                        // zjadała ponad 6 GB i wywracała proces, a nie rzucała
-                        // czytelnym błędem (zadanie 009).
-                        Placeholder::make('cso_error_message')
-                            ->content(function (Get $get) {
-                                return new HtmlString(
-                                    '<div class="text-danger-600">'
-                                        .$get('error')
-                                        .'</div>'
-                                );
-                            })
-                            ->label(''),
-                        TextInput::make('cso_response')
-                            ->label(__('CSO response'))
-                            ->readonly(),
+        return $schema->components(static::formComponents());
+    }
+
+    /**
+     * Pola formularza firmy jako lista komponentów.
+     *
+     * Wydzielone z `form()`, żeby kreator zakładania łowiska
+     * (`FisheryResource\Pages\CreateFishery`) mógł osadzić ten sam formularz
+     * w swoim kroku „nowa firma", zamiast powielać definicje pól (zadanie 012).
+     *
+     * ⚠️ `unique()` na `tin`/`renae` MUSI mieć jawnie podaną tabelę — bez tego
+     * Filament wnioskuje ją z modelu formularza, a wewnątrz kreatora tym modelem
+     * jest `Fishery`, nie `Company`. Reguła sprawdzałaby wtedy nieistniejące
+     * kolumny w tabeli łowisk.
+     *
+     * @return array<int, mixed>
+     */
+    public static function formComponents(): array
+    {
+        return [
+            Toggle::make('is_verified')
+                ->hidden(fn () => Helper::isOwnerPanel())
+                ->label(__('Verified')),
+            Select::make('user_id')
+                ->required()
+                ->hidden(fn () => Helper::isOwnerPanel())
+                ->label(__('Company entered by'))
+                ->disabled()
+                ->relationship('user', 'name')
+                ->getOptionLabelFromRecordUsing(function (User $user) {
+                    return $user->getFilamentName();
+                })
+                ->default(function (?Company $record) {
+                    return $record === null
+                        ? auth()->id()
+                        : $record->user_id;
+                }),
+            Section::make(__('Get data from CSO'))
+                ->schema([
+                    Placeholder::make('Enter CSO/RENAE number below.')
+                        ->content(__('Enter CSO/RENAE number below.')),
+                    TextInput::make('tin')
+                        ->label(__('TIN'))
+                        ->validationAttribute(__('TIN'))
+                        ->unique(table: Company::class, ignoreRecord: true),
+                    TextInput::make('renae')
+                        ->label(__('RENAE'))
+                        ->validationAttribute(__('REGON'))
+                        ->unique(table: Company::class, ignoreRecord: true),
+                    Actions::make([
+                        Action::make('fetch_cso_data')
+                            ->label(__('Get data from CSO'))
+                            ->action(Helper::fetchDataFromCSO(...)),
                     ]),
-                TextInput::make('name')
-                    ->label(__('Company name'))
-                    ->required(),
-                TextInput::make('street')
-                    ->label(__('Street'))
-                    ->required(),
-                TextInput::make('house_number')
-                    ->label(__('House number'))
-                    ->required(),
-                TextInput::make('flat_number')
-                    ->label(__('Flat number')),
-                TextInput::make('postal_code')
-                    ->label(__('Postal code'))
-                    ->required(),
-                TextInput::make('city')
-                    ->label(__('City'))
-                    ->required(),
-                Select::make('state_id')
-                    ->label(__('State'))
-                    ->options(Helper::sortStates())
-                    ->searchable()
-                    ->required(),
-            ]);
+                    // ⚠️ Nazwa tego komponentu NIE MOŻE być równa kluczowi stanu,
+                    // który sam odczytuje (`error`, ustawiany przez
+                    // Helper::fetchDataFromCSO). Do Filamenta 3 nazywał się
+                    // `error` i działało; od Filamenta 4/5 (wspólny Schema)
+                    // `$get('error')` wewnątrz zawartości komponentu o tej samej
+                    // nazwie odpytuje sam siebie — rekurencja bez dna, która
+                    // zjadała ponad 6 GB i wywracała proces, a nie rzucała
+                    // czytelnym błędem (zadanie 009).
+                    // ⚠️ `->label('')` NIE ukrywa etykiety — Filament traktuje pusty ciąg jak
+                    // brak ustawienia i wypisuje nazwę komponentu („Cso error message").
+                    // Do ukrycia służy `hiddenLabel()`. Dodatkowo cały komunikat pokazuje
+                    // się dopiero, gdy jest co pokazać (zadanie 012).
+                    Placeholder::make('cso_error_message')
+                        ->content(function (Get $get) {
+                            return new HtmlString(
+                                '<div class="text-danger-600">'
+                                    .$get('error')
+                                    .'</div>'
+                            );
+                        })
+                        ->hiddenLabel()
+                        ->visible(fn (Get $get): bool => filled($get('error'))),
+                    TextInput::make('cso_response')
+                        ->label(__('CSO response'))
+                        ->readonly(),
+                ]),
+            TextInput::make('name')
+                ->label(__('Company name'))
+                ->required(),
+            TextInput::make('street')
+                ->label(__('Street'))
+                ->required(),
+            TextInput::make('house_number')
+                ->label(__('House number'))
+                ->required(),
+            TextInput::make('flat_number')
+                ->label(__('Flat number')),
+            TextInput::make('postal_code')
+                ->label(__('Postal code'))
+                ->required(),
+            TextInput::make('city')
+                ->label(__('City'))
+                ->required(),
+            Select::make('state_id')
+                ->label(__('State'))
+                ->options(Helper::sortStates())
+                ->searchable()
+                ->required(),
+        ];
     }
 
     public static function table(Table $table): Table
