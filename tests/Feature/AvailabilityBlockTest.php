@@ -1,0 +1,286 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\BlockEffect;
+use App\Enums\SelectionKind;
+use App\Filament\Resources\AvailabilityBlockResource;
+use App\Filament\Resources\AvailabilityBlockResource\Pages\CreateAvailabilityBlock;
+use App\Filament\Resources\AvailabilityBlockResource\Pages\EditAvailabilityBlock;
+use App\Filament\Resources\AvailabilityBlockResource\Pages\ListAvailabilityBlocks;
+use App\Filament\Resources\PositionResource\Pages\CreatePosition;
+use App\Helpers\Helper;
+use App\Models\AvailabilityBlock;
+use App\Models\Fishery;
+use App\Models\Position;
+use App\Models\PositionAttribute;
+use App\Models\PositionGroup;
+use App\Models\User;
+use App\Rules\AvailabilityBlockEffectMatchesAttribute;
+use App\Rules\PositionsBelongToFishery;
+use App\Services\AvailabilityBlockSelectionResolver;
+use Filament\Facades\Filament;
+use Livewire\Livewire;
+
+/**
+ * Wpisy o dostępności: reguły spójności, materializowanie zbioru, granice paneli
+ * i ostrzeżenie przy zakładaniu stanowiska w trakcie blokady całościowej.
+ */
+beforeEach(function () {
+    Filament::setCurrentPanel('owner');
+});
+
+function ownerWithFisheryForBlocks(): array
+{
+    $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
+    Helper::addOwnerRole($owner);
+
+    return [$owner, Fishery::factory()->forUser($owner)->create()];
+}
+
+function ruleFailures(callable $run): array
+{
+    $failures = [];
+    $run(function (string $message) use (&$failures): void {
+        $failures[] = $message;
+    });
+
+    return $failures;
+}
+
+test('a suspension without an attribute is rejected', function () {
+    $failures = ruleFailures(fn ($fail) => (new AvailabilityBlockEffectMatchesAttribute(BlockEffect::AttributeSuspended))
+        ->validate('position_attribute_id', null, $fail));
+
+    expect($failures)->toHaveCount(1);
+});
+
+test('a sale block pointing at an attribute is rejected', function () {
+    $attribute = PositionAttribute::factory()->create();
+
+    $failures = ruleFailures(fn ($fail) => (new AvailabilityBlockEffectMatchesAttribute(BlockEffect::SaleBlocked))
+        ->validate('position_attribute_id', $attribute->id, $fail));
+
+    expect($failures)->toHaveCount(1);
+});
+
+test('only a flag attribute can be suspended', function () {
+    $number = PositionAttribute::factory()->number('m')->create();
+    $choice = PositionAttribute::factory()->choice()->create();
+    $flag = PositionAttribute::factory()->create();
+    $rule = new AvailabilityBlockEffectMatchesAttribute(BlockEffect::AttributeSuspended);
+
+    expect(ruleFailures(fn ($fail) => $rule->validate('a', $number->id, $fail)))->toHaveCount(1)
+        ->and(ruleFailures(fn ($fail) => $rule->validate('a', $choice->id, $fail)))->toHaveCount(1)
+        ->and(ruleFailures(fn ($fail) => $rule->validate('a', $flag->id, $fail)))->toBe([]);
+});
+
+test('an empty set of positions is rejected', function () {
+    [, $fishery] = ownerWithFisheryForBlocks();
+
+    $failures = ruleFailures(fn ($fail) => (new PositionsBelongToFishery($fishery->id))->validate('positions', [], $fail));
+
+    expect($failures)->toHaveCount(1);
+});
+
+test('a position from another fishery is rejected', function () {
+    [, $fishery] = ownerWithFisheryForBlocks();
+    $own = Position::factory()->create(['fishery_id' => $fishery->id]);
+    $foreign = Position::factory()->create();
+
+    $rule = new PositionsBelongToFishery($fishery->id);
+
+    // Identyfikatory przychodzą od klienta — samo zawężenie opcji nie wystarcza.
+    expect(ruleFailures(fn ($fail) => $rule->validate('positions', [$own->id, $foreign->id], $fail)))->toHaveCount(1)
+        ->and(ruleFailures(fn ($fail) => $rule->validate('positions', [$own->id], $fail)))->toBe([]);
+});
+
+test('the resolver materializes the whole fishery as a list of positions', function () {
+    [, $fishery] = ownerWithFisheryForBlocks();
+    $positions = Position::factory()->count(3)->create(['fishery_id' => $fishery->id]);
+    Position::factory()->create(); // cudze łowisko
+
+    $ids = app(AvailabilityBlockSelectionResolver::class)->resolve($fishery, SelectionKind::Fishery, null);
+
+    expect($ids->all())->toEqualCanonicalizing($positions->pluck('id')->all());
+});
+
+test('the resolver follows a group and an attribute criterion', function () {
+    [, $fishery] = ownerWithFisheryForBlocks();
+    $inGroup = Position::factory()->create(['fishery_id' => $fishery->id]);
+    $withFlag = Position::factory()->create(['fishery_id' => $fishery->id]);
+    Position::factory()->create(['fishery_id' => $fishery->id]);
+
+    $group = PositionGroup::factory()->create(['fishery_id' => $fishery->id]);
+    $group->positions()->attach($inGroup->id);
+
+    $attribute = PositionAttribute::factory()->create();
+    $withFlag->attributeValues()->create(['position_attribute_id' => $attribute->id, 'value_flag' => true]);
+
+    $resolver = app(AvailabilityBlockSelectionResolver::class);
+
+    expect($resolver->resolve($fishery, SelectionKind::Group, $group->id)->all())->toBe([$inGroup->id])
+        ->and($resolver->resolve($fishery, SelectionKind::Attribute, $attribute->id)->all())->toBe([$withFlag->id])
+        ->and($resolver->resolve($fishery, SelectionKind::Manual, null))->toBeEmpty();
+});
+
+test('the resolver ignores a group belonging to another fishery', function () {
+    [, $fishery] = ownerWithFisheryForBlocks();
+    $foreignGroup = PositionGroup::factory()->create();
+    $foreignGroup->positions()->attach(Position::factory()->create(['fishery_id' => $foreignGroup->fishery_id])->id);
+
+    expect(app(AvailabilityBlockSelectionResolver::class)->resolve($fishery, SelectionKind::Group, $foreignGroup->id))
+        ->toBeEmpty();
+});
+
+test('a position added after a whole fishery block is not covered by it', function () {
+    [, $fishery] = ownerWithFisheryForBlocks();
+    $existing = Position::factory()->create(['fishery_id' => $fishery->id]);
+    $block = AvailabilityBlock::factory()->create([
+        'fishery_id' => $fishery->id,
+        'selection_kind' => SelectionKind::Fishery,
+    ]);
+    $block->positions()->sync(
+        app(AvailabilityBlockSelectionResolver::class)->resolve($fishery, SelectionKind::Fishery, null)->all(),
+    );
+
+    $later = Position::factory()->create(['fishery_id' => $fishery->id]);
+
+    // Zbiór jest zmaterializowany: nowe stanowisko NIE wchodzi do blokady samo.
+    expect($block->positions()->pluck('positions.id')->all())->toBe([$existing->id])
+        ->and($later->availabilityBlocks()->count())->toBe(0);
+});
+
+test('creating a position during a whole fishery block warns the operator', function () {
+    [$owner, $fishery] = ownerWithFisheryForBlocks();
+    AvailabilityBlock::factory()->openEnded()->create([
+        'fishery_id' => $fishery->id,
+        'selection_kind' => SelectionKind::Fishery,
+        'starts_on' => now()->subDay()->toDateString(),
+        'reason' => 'Zarybianie XYZ',
+    ]);
+
+    $this->actingAs($owner);
+
+    Livewire::withQueryParams(['fishery' => $fishery->id])
+        ->test(CreatePosition::class)
+        ->fillForm([
+            'name' => 'Stanowisko po blokadzie',
+            'fishery_id' => $fishery->id,
+            'max_anglers' => 2,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors()
+        ->assertNotified();
+});
+
+test('owner can create a block through the form with a materialized set', function () {
+    [$owner, $fishery] = ownerWithFisheryForBlocks();
+    $positions = Position::factory()->count(2)->create(['fishery_id' => $fishery->id]);
+
+    $this->actingAs($owner);
+
+    Livewire::withQueryParams(['fishery' => $fishery->id])
+        ->test(CreateAvailabilityBlock::class)
+        ->fillForm([
+            'fishery_id' => $fishery->id,
+            'effect' => BlockEffect::SaleBlocked->value,
+            'starts_on' => '2026-06-10',
+            'ends_on' => '2026-06-20',
+            'reason' => 'Zawody',
+            'reason_visible' => true,
+            'selection_kind' => SelectionKind::Manual->value,
+            'positions' => $positions->pluck('id')->all(),
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $block = AvailabilityBlock::where('fishery_id', $fishery->id)->firstOrFail();
+
+    expect($block->effect)->toBe(BlockEffect::SaleBlocked)
+        ->and($block->positions()->count())->toBe(2)
+        ->and($block->selection_label)->toBeNull();
+});
+
+test('a group criterion is stored as a readable label', function () {
+    [$owner, $fishery] = ownerWithFisheryForBlocks();
+    $position = Position::factory()->create(['fishery_id' => $fishery->id]);
+    $group = PositionGroup::factory()->create(['fishery_id' => $fishery->id, 'name' => 'Brzeg polnocny']);
+    $group->positions()->attach($position->id);
+
+    $this->actingAs($owner);
+
+    Livewire::withQueryParams(['fishery' => $fishery->id])
+        ->test(CreateAvailabilityBlock::class)
+        ->fillForm([
+            'fishery_id' => $fishery->id,
+            'effect' => BlockEffect::SaleBlocked->value,
+            'starts_on' => '2026-06-10',
+            'reason' => 'Remont',
+            'selection_kind' => SelectionKind::Group->value,
+            'position_group_id' => $group->id,
+            'positions' => [$position->id],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(AvailabilityBlock::where('fishery_id', $fishery->id)->value('selection_label'))->toBe('Brzeg polnocny');
+});
+
+test('the form rejects an empty set and an end before the start', function () {
+    [$owner, $fishery] = ownerWithFisheryForBlocks();
+
+    $this->actingAs($owner);
+
+    Livewire::withQueryParams(['fishery' => $fishery->id])
+        ->test(CreateAvailabilityBlock::class)
+        ->fillForm([
+            'fishery_id' => $fishery->id,
+            'effect' => BlockEffect::SaleBlocked->value,
+            'starts_on' => '2026-06-20',
+            'ends_on' => '2026-06-10',
+            'reason' => 'Odwrocone daty',
+            'selection_kind' => SelectionKind::Manual->value,
+            'positions' => [],
+        ])
+        ->call('create')
+        ->assertHasFormErrors(['positions', 'ends_on']);
+});
+
+test('owner does not see blocks of a fishery he does not own', function () {
+    [$owner] = ownerWithFisheryForBlocks();
+    $foreign = Fishery::factory()->forUser(User::factory()->create())->create();
+    $foreignBlock = AvailabilityBlock::factory()->create(['fishery_id' => $foreign->id]);
+
+    $this->actingAs($owner);
+
+    $this->get(AvailabilityBlockResource::getUrl('edit', ['record' => $foreignBlock]))->assertNotFound();
+
+    Livewire::withQueryParams(['fishery' => $foreign->id])
+        ->test(ListAvailabilityBlocks::class)
+        ->assertNotFound();
+});
+
+test('owner can not move his block under a fishery he does not own', function () {
+    [$owner, $fishery] = ownerWithFisheryForBlocks();
+    $foreign = Fishery::factory()->forUser(User::factory()->create())->create();
+    $block = AvailabilityBlock::factory()->create(['fishery_id' => $fishery->id]);
+    $block->positions()->attach(Position::factory()->create(['fishery_id' => $fishery->id])->id);
+
+    $this->actingAs($owner);
+
+    Livewire::test(EditAvailabilityBlock::class, ['record' => $block->getKey()])
+        ->fillForm(['fishery_id' => $foreign->id])
+        ->call('save');
+
+    expect($block->fresh()->fishery_id)->toBe($fishery->id);
+});
+
+test('deleting a fishery for good takes its blocks with it', function () {
+    [, $fishery] = ownerWithFisheryForBlocks();
+    AvailabilityBlock::factory()->create(['fishery_id' => $fishery->id]);
+
+    $fishery->forceDelete();
+
+    expect(AvailabilityBlock::withTrashed()->where('fishery_id', $fishery->id)->count())->toBe(0);
+});

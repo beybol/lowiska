@@ -167,4 +167,12 @@ class Fishery extends Model
     {
         return $this->hasMany(PositionGroup::class);
     }
+
+    /**
+     * @return HasMany<AvailabilityBlock, $this>
+     */
+    public function availabilityBlocks(): HasMany
+    {
+        return $this->hasMany(AvailabilityBlock::class);
+    }
 }

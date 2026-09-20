@@ -8,6 +8,7 @@ use App\Filament\Resources\FisheryResource\Pages\ListFisheries;
 use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleSettings;
 use App\Filament\Resources\FisheryResource\RelationManagers\AdditionalServicesRelationManager;
+use App\Filament\Resources\FisheryResource\RelationManagers\AvailabilityBlocksRelationManager;
 use App\Filament\Resources\FisheryResource\RelationManagers\LongTermPermitsRelationManager;
 use App\Filament\Resources\FisheryResource\RelationManagers\PositionGroupsRelationManager;
 use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
@@ -325,6 +326,7 @@ class FisheryResource extends Resource
             // ale adresy składa `Helper::fisheryHubUrl()` po KLASIE — nigdy nie wpisuj
             // tego numeru ręcznie (`panel-wlasciciela.md` §2).
             PositionGroupsRelationManager::class,
+            AvailabilityBlocksRelationManager::class,
         ];
     }
 

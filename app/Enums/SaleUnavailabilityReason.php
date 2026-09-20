@@ -26,6 +26,12 @@ enum SaleUnavailabilityReason: string
     /** Doba wypada między okresami sprzedaży albo przez granicę dwóch z nich. */
     case OutsideSalePeriod = 'outside_sale_period';
 
+    /** Stanowisko wycofane ze sprzedaży decyzją operatora — niezależnie od dat (zadanie 016). */
+    case PositionWithdrawn = 'position_withdrawn';
+
+    /** Doba przecina okno blokady sprzedaży na tym stanowisku (zadanie 016). */
+    case SaleBlocked = 'sale_blocked';
+
     public function label(): string
     {
         return match ($this) {
@@ -34,6 +40,8 @@ enum SaleUnavailabilityReason: string
             self::StartsBeforeSalePeriod => __('The fishing day starts before the sale period'),
             self::EndsAfterSalePeriod => __('The fishing day ends after the sale period'),
             self::OutsideSalePeriod => __('The fishing day is outside every sale period'),
+            self::PositionWithdrawn => __('The position is withdrawn from sale'),
+            self::SaleBlocked => __('Sale at this position is blocked on that day'),
         };
     }
 }

@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `app/Filament/Owner/**`,
 `app/Providers/Filament/OwnerPanelProvider.php` oraz w zasobach współdzielonych,
 gdy dotykasz ich zachowania **w panelu właściciela**.
 
-Zadania źródłowe: 012, 014, 015. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
+Zadania źródłowe: 012, 014, 015, 016. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
 i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 
 ---
@@ -228,41 +228,25 @@ Uzasadnienie i odrzucone warianty:
 
 ---
 
-## 7. Doba wędkarska i okresy sprzedaży
+## 7. Doba wędkarska, okresy sprzedaży i dostępność
 
-- **Doba jest PRZEDZIAŁEM DWÓCH MOMENTÓW, nie datą kalendarzową.** Trwa od `day_start_time`
-  dnia D do `day_end_time` dnia D+1, więc zawsze przechodzi przez północ, a przy zmianie czasu
-  trwa 23 albo 25 godzin i mimo to jest jedną dobą. Identyfikuje ją dzień rozpoczęcia.
-- **Wyliczenia biegną w strefie czasowej ŁOWISKA** (`fisheries.timezone`). Strefa aplikacji
-  (`config/app.php`) nie bierze w nich udziału. Momenty graniczne porównuj jako punkty w czasie,
-  nie jako daty lokalne — inaczej wynik zależy od kolejności rzutowania i rozjeżdża się dopiero
-  przy zmianie czasu.
-- ⚠️ **Dwie reguły dopasowania zakresu dat są CELOWO ASYMETRYCZNE** i nie wolno zastąpić jednej
-  drugą:
-  - **okres sprzedaży DOPUSZCZA** → wymaga **zawierania**: doba musi mieścić się w oknie
-    w całości (`FishingDay::isContainedIn()`);
-  - **ograniczenie i blokada WYŁĄCZAJĄ** → wystarczy **przecięcie**: doba jest objęta, gdy
-    jakakolwiek jej część wypada w oknie (`FishingDay::overlaps()`).
+Reguły sprzedaży **nie należą do panelu** — wiążą tak samo portal wędkarza, cennik i kalendarz.
+Mieszkają w [`dostepnosc.md`](dostepnosc.md): doba jako przedział, asymetria reguł granic, jedno
+źródło prawdy o dostępności (`PositionAvailability`) i blokady ze zmaterializowanym zbiorem.
+Tutaj zostaje wyłącznie to, co dotyczy ekranów panelu:
 
-  Pomyłka w którąkolwiek stronę kończy się sprzedażą doby, której nie wolno sprzedać.
-  Skutek praktyczny reguły zawierania, wart zapamiętania: **ostatnie pozwolenie jednodobowe
-  kupuje się na PRZEDOSTATNI dzień okresu.**
-- **Brak okresu sprzedaży oznacza brak sprzedaży**, nie sprzedaż bez ograniczeń. Reguła jest
-  odwrotna do intuicji „nic nie ustawiłem, więc sprzedaję normalnie" i myli się wyłącznie
-  w stronę odmowy.
-- **Odmowa sprzedaży niesie powód** (`SaleUnavailabilityReason`), nie samo „nie" — wędkarz musi
-  odróżnić „przed sezonem" od „za sezonem", a operator „nie skonfigurowałem" od „zamknąłem".
-- ⚠️ **Doby liczy wyłącznie [`FishingDayCalendar`](../../app/Services/FishingDayCalendar.php).**
-  Ani zasoby Filamenta, ani przyszłe zapytania o dostępność, cennik czy blokady nie liczą ich po
-  swojemu. Drugi kod liczący doby jest defektem: asymetria reguł przestaje wtedy obowiązywać
-  w jednym z dwóch miejsc i nic tego nie sygnalizuje.
-- **Pola doby żyją POZA `FisheryResource::fisheryDetailComponents()`**, bo ta metoda jest
-  współdzielona z krokiem „Fishery" kreatora. Łowisko powstaje niesprzedające i to jest stan
-  zamierzony. Pilnuje tego
-  [`tests/Feature/SaleSettingsPageTest.php`](../../tests/Feature/SaleSettingsPageTest.php).
-
-Uzasadnienie i odrzucone warianty:
-[ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
+- **Pola doby żyją POZA `FisheryResource::fisheryDetailComponents()`** — metoda jest współdzielona
+  z krokiem „Fishery" kreatora, a łowisko ma powstawać niesprzedające.
+- **Ekran „Sprzedaż i sezony" jest stroną ustawień** (sekcja 6), nie RelationManagerem.
+- **Blokady i ograniczenia są zakładką huba jako RelationManager** — to lista rekordów z własnymi
+  stronami. Formularz **prowadzi przez wybór zbioru**: sposób wyboru → kryterium → lista objętych
+  stanowisk z licznikiem i przyciskiem „Przelicz". Lista jest edytowalna po przeliczeniu.
+- ⚠️ **`CreatePosition` ostrzega, gdy nowe stanowisko nie wchodzi do trwającej blokady całościowej.**
+  To skutek materializowania zbioru, nie błąd — bez ostrzeżenia nowe stanowisko sprzedaje się
+  w środku zamknięcia całego łowiska.
+- ⚠️ **Pola kryterium (`position_group_id`, `selection_attribute_id`) NIE są kolumnami**, ale muszą
+  dojechać do `mutateFormDataBefore*` — z nich powstaje `selection_label`. Nie zdejmuj ich
+  `->dehydrated(false)`; klucze usuwa `AvailabilityBlockResource::withSelectionLabel()`.
 
 ---
 

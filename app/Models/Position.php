@@ -89,6 +89,14 @@ class Position extends Model
     }
 
     /**
+     * @return BelongsToMany<AvailabilityBlock, $this>
+     */
+    public function availabilityBlocks(): BelongsToMany
+    {
+        return $this->belongsToMany(AvailabilityBlock::class, 'availability_block_position');
+    }
+
+    /**
      * Stanowiska będące w sprzedaży — zastępuje dawny zakres `isActive()`.
      *
      * ⚠️ To jest stan WŁASNY stanowiska, decyzja operatora. Nie odpowiada na pytanie

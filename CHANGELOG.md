@@ -42,11 +42,25 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   i wszystko, czego nie da się zapisać jedną cechą.
 - Cechę da się ustawić wielu stanowiskom naraz: zaznacza się je na liście albo wywołuje działanie
   z poziomu grupy. Przed zapisem widać, ilu stanowisk dotyczy.
+- Właściciel łowiska może zablokować sprzedaż na wybranych stanowiskach w zadanym terminie —
+  na całym łowisku, w grupie, na stanowiskach z daną cechą albo wskazanych ręcznie — z powodem
+  i decyzją, czy wędkarz ten powód zobaczy. Termin może być otwarty, „do odwołania". Doba, która
+  wchodzi w blokadę choćby częścią, jest niesprzedawalna.
+- Osobno od blokady da się na czas określony zawiesić jedną cechę tak/nie stanowiska (np. pomost
+  albo wjazd) bez zmiany jej wartości — po upływie terminu wszystko wraca samo. Stanowisko
+  z zawieszoną cechą nadal się sprzedaje, tylko bez niej.
+- Lista stanowisk objętych wpisem jest przeliczana z wybranego kryterium i można ją poprawić
+  ręcznie przed zapisem. Zapisana lista nie zmienia się sama: stanowisko dodane później nie
+  wchodzi do istniejącej blokady, a panel ostrzega o tym przy jego zakładaniu, wskazując wpisy,
+  które go nie obejmują.
 
 ### Zmienione
 
 - Stanowisko ma teraz stan „w sprzedaży" albo „wycofane" zamiast przełącznika aktywności.
   Liczniki i listy liczą po nowym stanie.
+- Odmowa sprzedaży rozróżnia teraz także „stanowisko wycofane" i „sprzedaż w tym dniu
+  zablokowana". Gdy zachodzi kilka przyczyn naraz, wędkarz widzi tę najtrwalszą — wycofanie
+  stanowiska przed sezonem, sezon przed blokadą.
 - Nazwa stanowiska nie może się powtórzyć w obrębie jednego łowiska — także wtedy, gdy stanowisko
   o tej nazwie zostało wcześniej wycofane. Wcześniej wycofana nazwa wracała do obiegu i historia
   pozwoleń mogła wskazywać na dwa różne miejsca o tej samej etykiecie.

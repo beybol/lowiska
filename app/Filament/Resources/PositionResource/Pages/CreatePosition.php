@@ -5,8 +5,10 @@ namespace App\Filament\Resources\PositionResource\Pages;
 use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
 use App\Filament\Resources\PositionResource;
 use App\Helpers\Helper;
+use App\Models\AvailabilityBlock;
 use App\Models\Position;
 use App\Services\PositionAttributeWriter;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreatePosition extends CreateRecord
@@ -38,6 +40,44 @@ class CreatePosition extends CreateRecord
         assert($position instanceof Position);
 
         app(PositionAttributeWriter::class)->writeForPosition($position, $this->attributesToWrite);
+
+        $this->warnAboutBlocksNotCoveringNewPosition($position);
+    }
+
+    /**
+     * ⚠️ Skutek MATERIALIZOWANIA zbioru blokady: wpis „całe łowisko" trzyma listę
+     * konkretnych stanowisk, więc stanowisko założone później NIE wchodzi do niego
+     * samo. Operator musi się o tym dowiedzieć przy zapisie, ze wskazaniem, które
+     * wpisy go nie obejmują — inaczej nowe stanowisko sprzedaje się w środku
+     * zamknięcia całego łowiska (zadanie 016).
+     */
+    private function warnAboutBlocksNotCoveringNewPosition(Position $position): void
+    {
+        $blocks = AvailabilityBlock::query()
+            ->where('fishery_id', $position->fishery_id)
+            ->wholeFishery()
+            ->notEndedBefore(now())
+            ->get();
+
+        if ($blocks->isEmpty()) {
+            return;
+        }
+
+        $list = $blocks
+            ->map(fn (AvailabilityBlock $block): string => sprintf(
+                '%s (%s – %s)',
+                $block->reason,
+                $block->starts_on->format('d.m.Y'),
+                $block->ends_on?->format('d.m.Y') ?? __('until revoked'),
+            ))
+            ->implode('; ');
+
+        Notification::make()
+            ->warning()
+            ->title(__('The new position is not covered by existing whole-fishery entries'))
+            ->body(__('Add it by hand if it should be: :list', ['list' => $list]))
+            ->persistent()
+            ->send();
     }
 
     public function mount(): void

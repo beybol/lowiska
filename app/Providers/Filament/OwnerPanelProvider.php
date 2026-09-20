@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\Register;
 use App\Filament\Resources\AdditionalServiceResource;
+use App\Filament\Resources\AvailabilityBlockResource;
 use App\Filament\Resources\CompanyResource;
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\LongTermPermitResource;
@@ -53,6 +54,7 @@ class OwnerPanelProvider extends PanelProvider
                 // bez tego wpisu grupy stanowisk byłyby u właściciela niewidoczne,
                 // mimo że klasa zasobu istnieje (`panel-wlasciciela.md` §6).
                 PositionGroupResource::class,
+                AvailabilityBlockResource::class,
             ])
             ->discoverResources(in: app_path('Filament/Owner/Resources'), for: 'App\\Filament\\Owner\\Resources')
             ->discoverPages(in: app_path('Filament/Owner/Pages'), for: 'App\\Filament\\Owner\\Pages')

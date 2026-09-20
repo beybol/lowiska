@@ -114,6 +114,14 @@ abstract class TestCase extends BaseTestCase
         'delete:position_attribute',
     ];
 
+    private array $availabilityBlockPermissions = [
+        'view_any:availability_block',
+        'view:availability_block',
+        'create:availability_block',
+        'update:availability_block',
+        'delete:availability_block',
+    ];
+
     private array $positionGroupPermissions = [
         'view_any:position_group',
         'view:position_group',
@@ -193,6 +201,7 @@ abstract class TestCase extends BaseTestCase
             $this->conveniencePermissions,
             $this->positionAttributePermissions,
             $this->positionGroupPermissions,
+            $this->availabilityBlockPermissions,
             $this->countryPermissions,
             $this->currencyPermissions,
             $this->fishPermissions,
