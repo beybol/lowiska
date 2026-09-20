@@ -2,8 +2,6 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\FishingMethodResource\Pages\CreateFishingMethod;
-use App\Filament\Resources\FishingMethodResource\Pages\EditFishingMethod;
 use App\Filament\Resources\FishingMethodResource\Pages\ManageFishingMethods;
 use App\Models\FishingMethod;
 use Filament\Actions\BulkActionGroup;
@@ -59,8 +57,6 @@ class FishingMethodResource extends Resource
     {
         return [
             'index' => ManageFishingMethods::route('/'),
-            'create' => CreateFishingMethod::route('/create'),
-            'edit' => EditFishingMethod::route('/{record}/edit'),
         ];
     }
 

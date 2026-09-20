@@ -11,6 +11,8 @@ use App\Models\Position;
 use App\Models\PositionAttribute;
 use App\Models\SalePeriod;
 use App\Services\PositionAvailability;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 /**
  * Jedno źródło prawdy o dostępności (ADR-012): skład czterech warunków w stałej
@@ -231,4 +233,48 @@ test('the service relies on the calendar so a changed sale period changes its ve
 
     expect((new PositionAvailability($position->fresh()))->availability('2026-09-15')->reason)
         ->toBe(SaleUnavailabilityReason::OutsideSalePeriod);
+});
+
+/**
+ * ⚠️ Regresja z przeglądu implementacji (2026-09-20): ochrona stała na `assert()`,
+ * które w obrazie produkcyjnym jest wyłączone (`zend.assertions=-1`) — czyli nie
+ * działała dokładnie tam, gdzie miała. `positions.fishery_id` jest świadomie
+ * `nullable` z `set null` (`panel-wlasciciela.md` §8), więc taki rekord może istnieć.
+ */
+test('a position without a fishery is a programming error, not a refusal', function () {
+    $position = Position::factory()->create(['fishery_id' => null]);
+
+    expect(fn () => new PositionAvailability($position))
+        ->toThrow(InvalidArgumentException::class);
+});
+
+test('asking about a range costs a constant number of queries', function () {
+    $fishery = sellingFishery();
+
+    // ⚠️ `sellablePosition()`, NIE `Position::factory()` — fabryka domyślnie tworzy
+    // stanowisko `withdrawn`, przy którym `availability()` odmawia w kroku 1 i nie
+    // wykonuje ANI JEDNEGO zapytania. Napisany tak test spełniał próg pusto
+    // i przechodził także ze zdjętą memoizacją (wykryte mutacjami, 2026-09-20).
+    $position = sellablePosition($fishery);
+
+    $availability = new PositionAvailability($position);
+
+    // Rozgrzanie: pierwsze pytanie wczytuje okresy i blokady.
+    $availability->isSellable('2026-06-10');
+
+    DB::enableQueryLog();
+    DB::flushQueryLog();
+
+    $sellable = $availability->sellableDaysBetween('2026-06-10', '2026-07-10');
+
+    $queries = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    // Kontrola, że zakres w ogóle coś przerobił — bez niej próg niżej jest pusty.
+    expect($sellable)->toHaveCount(30);
+
+    // ⚠️ Liczba ma być STAŁA, nie proporcjonalna do długości zakresu. Przed poprawką
+    // było to jedno zapytanie na dobę (~61 dla trzydziestu dni). Próg jest z dużym
+    // zapasem — chodzi o wychwycenie powrotu N+1, nie o pomiar.
+    expect($queries)->toBeLessThan(10);
 });

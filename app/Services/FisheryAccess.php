@@ -46,6 +46,9 @@ final class FisheryAccess
         // domyślnie szerokim wyszukiwaniu `POST /livewire/update?fishery=<cudze>` zwracał
         // NAZWĘ cudzego łowiska i link do jego huba — jedyna ścieżka odczytu omijająca
         // wszystkie trzy warstwy z `docs/conventions/autoryzacja.md` §4.
+        // ⚠️ „Domyślnie zawężone" obowiązuje W PANELU. Poza panelem `isAdminPanel()`
+        // spada na panel domyślny (admin), więc domyślną wartością jest tu `false`
+        // — wołając to z kolejki albo z komendy, podaj `$scopedToCurrentUser` JAWNIE.
         $scopedToCurrentUser ??= ! self::isAdminPanel();
 
         if (! is_numeric($fisheryId)) {
@@ -128,10 +131,11 @@ final class FisheryAccess
      */
     public static function scopeToOwnedFisheries(Builder $query): void
     {
-        // ⚠️ Warunek jest fail-closed (`! isAdminPanel()`), a nie `isOwnerPanel()` —
-        // tak samo jak bramka `assertFisheryAccessOrAbort()`. Obie połowy tego samego
-        // niezmiennika muszą reagować identycznie na nierozpoznany kontekst panelu:
-        // przy `isOwnerPanel()` nieznany panel oznaczałby BRAK zawężenia.
+        // ⚠️ Warunek pyta `! isAdminPanel()`, a nie `isOwnerPanel()` — tak samo jak
+        // bramka `assertFisheryAccessOrAbort()`. Obie połowy tego samego niezmiennika
+        // muszą reagować identycznie na panel zarejestrowany, ale nie-adminowy: ten
+        // zapis wtedy ZAWĘŻA, `isOwnerPanel()` by nie zawęził.
+        // ⚠️ Poza kontekstem panelu to NIE zawęża — patrz `isAdminPanel()` niżej.
         if (self::isAdminPanel()) {
             return;
         }
@@ -176,7 +180,22 @@ final class FisheryAccess
         return $panel?->getId() === 'owner';
     }
 
-    private static function isAdminPanel(): bool
+    /**
+     * ⚠️ Publiczna, bo zawężenia danych pytają WŁAŚNIE o to, a nie o `isOwnerPanel()`:
+     * przy panelu zarejestrowanym, ale nie-adminowym, `! isAdminPanel()` zawęża,
+     * podczas gdy `isOwnerPanel()` by nie zawęził. `isOwnerPanel()` służy decyzjom
+     * o widoczności elementów interfejsu.
+     *
+     * ⚠️ To NIE jest fail-closed poza kontekstem panelu. `getCurrentOrDefaultPanel()`
+     * spada na panel DOMYŚLNY, a domyślny to admin (`AdminPanelProvider::panel()`
+     * woła `->default()`), więc w kolejce, komendzie konsolowej i na przyszłej stronie
+     * publicznej ta metoda zwraca `true` i zawężenie NIE działa. Zweryfikowane wprost:
+     * `getCurrentOrDefaultPanel()` daje wtedy `admin`, a `getCurrentPanel()` — `null`.
+     * Gdyby zawężenie miało obowiązywać także tam, trzeba pytać `getCurrentPanel()`
+     * bez fallbacku — to zmiana zachowania kolejek i komend, więc osobna decyzja,
+     * nie poprawka przy okazji.
+     */
+    public static function isAdminPanel(): bool
     {
         return Filament::getCurrentOrDefaultPanel()?->getId() === 'admin';
     }

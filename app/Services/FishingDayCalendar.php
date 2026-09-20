@@ -20,9 +20,21 @@ use Carbon\CarbonInterface;
  * Wszystkie wyliczenia biegną w strefie czasowej ŁOWISKA (`fisheries.timezone`).
  * Strefa aplikacji nie bierze w nich udziału.
  */
-final readonly class FishingDayCalendar
+final class FishingDayCalendar
 {
-    public function __construct(private Fishery $fishery) {}
+    /**
+     * Okresy sprzedaży wczytane RAZ na instancję.
+     *
+     * ⚠️ Klasa nie jest `readonly` WYŁĄCZNIE z tego powodu. `availability()` odpytuje
+     * okresy przy każdym pytaniu, a pytanie o zakres dat zadaje je raz na dobę —
+     * trzydziestodniowy zakres to było trzydzieści identycznych zapytań. Łowisko
+     * pozostaje niezmienne (`readonly` na właściwości).
+     *
+     * @var array<int, SalePeriod>|null
+     */
+    private ?array $salePeriods = null;
+
+    public function __construct(private readonly Fishery $fishery) {}
 
     /**
      * Doba rozpoczynająca się danego dnia — albo `null`, gdy łowisko nie ma
@@ -159,7 +171,7 @@ final readonly class FishingDayCalendar
      */
     private function salePeriods(): array
     {
-        return $this->fishery->salePeriods()->orderBy('starts_on')->get()->all();
+        return $this->salePeriods ??= $this->fishery->salePeriods()->orderBy('starts_on')->get()->all();
     }
 
     private function hasFishingDayConfigured(): bool

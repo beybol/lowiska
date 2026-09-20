@@ -4,7 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Enums\PositionAttributeType;
 use App\Filament\Resources\PositionAttributeResource\Pages\CreatePositionAttribute;
-use App\Filament\Resources\PositionAttributeResource\Pages\ManagePositionAttributes;
+use App\Filament\Resources\PositionAttributeResource\Pages\EditPositionAttribute;
+use App\Filament\Resources\PositionAttributeResource\Pages\ListPositionAttributes;
 use App\Models\PositionAttribute;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -111,8 +112,9 @@ class PositionAttributeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ManagePositionAttributes::route('/'),
+            'index' => ListPositionAttributes::route('/'),
             'create' => CreatePositionAttribute::route('/create'),
+            'edit' => EditPositionAttribute::route('/{record}/edit'),
         ];
     }
 

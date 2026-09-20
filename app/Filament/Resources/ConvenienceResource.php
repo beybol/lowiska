@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ConvenienceResource\Pages\CreateConvenience;
 use App\Filament\Resources\ConvenienceResource\Pages\ManageConveniences;
 use App\Models\Convenience;
 use Filament\Actions\BulkActionGroup;
@@ -58,7 +57,6 @@ class ConvenienceResource extends Resource
     {
         return [
             'index' => ManageConveniences::route('/'),
-            'create' => CreateConvenience::route('/create'),
         ];
     }
 

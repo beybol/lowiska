@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w `app/Filament/Resources/**`,
 `app/Providers/Filament/AdminPanelProvider.php`.
 
-Zadania źródłowe: 005, 009, 011, 013, 014. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
+Zadania źródłowe: 005, 009, 011, 013, 014, 022. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
 
 ---
 
@@ -145,6 +145,26 @@ i hub „Zarządzaj łowiskiem", ADR-006).
     zadanie 012 usunęło `VerifyCompany` i parametr `wizard`.
   - `LongTermPermitResource` — już zgodny z regułą od zanim reguła powstała; to on był wzorcem
     dla zasobów podrzędnych, zanim zadanie 012 przeniosło ich cel na zakładkę huba.
+- ⚠️ **Zasób z `ManageRecords` nie ma czego przekierowywać** — `ManageRecords` obsługuje
+  tworzenie i edycję w MODALU, więc zarejestrowana obok strona `create` jest nieosiągalna
+  i jej `getRedirectUrl()` nigdy się nie wykona. Reguła: albo `ManageRecords` **bez** stron
+  `create`/`edit`, albo `ListRecords` z pełnymi stronami — nie jedno i drugie naraz.
+  - **`PositionAttributeResource` stoi po stronie `ListRecords`** (od przeglądu z 2026-09-20):
+    formularz cechy niesie repeater opcji, który w modalu jest ściśnięty.
+  - **Słowniki o jednym–dwóch prostych polach zostają przy `ManageRecords` i modalu**:
+    `ConvenienceResource`, `FisheryTypeResource`, `FishResource`, `FishingMethodResource`
+    (zadanie 022) — ich formularze nie mają repeaterów ani sekcji, więc argument, który
+    przeniósł `PositionAttributeResource` na pełne strony, tutaj nie obowiązuje. Żaden z nich
+    nie rejestruje stron `create`/`edit` obok indeksu.
+  - ⚠️ **Testy tworzenia rekordu w słowniku na `ManageRecords` wołają akcję modalną, nie stronę:**
+    ```php
+    Livewire::test(ManageX::class)
+        ->callAction('create', data: ['name' => 'Wartość'])
+        ->assertHasNoActionErrors();
+    ```
+    `Livewire::test(CreateX::class)` na zasobie bez zarejestrowanej strony `create` testuje
+    kod, którego operator nigdy nie odwiedza — dokładnie ta luka pozwoliła czterem stronom
+    wyżej pozostać martwymi przez trzy zadania, mimo zielonych testów.
 - ⚠️ **`AdditionalServiceResource` i `PositionResource` nie mają osobnych klas per panel** —
   `OwnerPanelProvider` rejestruje wprost te same klasy z `app/Filament/Resources/`, które widzi
   panel admina. Zmiana `getRedirectUrl()` dla tych dwóch zasobów obejmuje **automatycznie oba
@@ -175,11 +195,32 @@ i hub „Zarządzaj łowiskiem", ADR-006).
   kolumn wartości jest właściwa. Jednostka należy wyłącznie do typu liczbowego, a opcje wyboru —
   wyłącznie do typu `choice` i edytuje się je `Repeaterem` w formularzu cechy.
 - ⚠️ **Reguła „wartość pasuje do typu" nie ma odpowiednika w schemacie** i jej jedynym domem jest
-  `app/Rules/PositionAttributeValueMatchesType`. Woła ją formularz stanowiska **i** akcja zbiorcza;
-  druga kopia warunku jest defektem, nie zabezpieczeniem.
+  `app/Rules/PositionAttributeValueMatchesType`. Druga kopia warunku jest defektem, nie
+  zabezpieczeniem.
+- ⚠️ **Bramką tej reguły jest `PositionAttributeWriter`, a NIE formularz.** Obie ścieżki zapisu
+  (formularz stanowiska i akcja zbiorcza) przechodzą przez writer, więc sprawdzenie w nim jest
+  jedynym, którego nie da się ominąć nowym wejściem.
+  ⚠️ **`CreatePosition`/`EditPosition` NIE wołają `assertValid()` w `mutateFormDataBefore*`**
+  (usunięte zadaniem 022) — sondy pokazały, że ta ścieżka jest **nieosiągalna**: Filament
+  przelicza schemat cech przy zapisie, więc wartość niezgodną z typem odrzuca własną walidacją
+  pola (`Select`/`TextInput` cechy), a klucz cechy usuniętej w międzyczasie ze słownika jest
+  wycinany ze stanu, zanim dotrze do jakiegokolwiek kodu zapisu. Wywołanie w formularzu nie dawało
+  nic ponad to, co i tak robi writer w `afterSave()`/`afterCreate()` — kosztowało tylko dodatkowe
+  zapytanie do słownika przy każdym zapisie stanowiska.
+  ⚠️ **Nie testuj tej reguły przez `callTableBulkAction()`** — pole opcji jest `Select` z zawężoną
+  listą, więc walidacja Filamenta odrzuca obcą opcję sama z siebie i taki test przechodzi na
+  zielono także z wyłączoną regułą. Testy celują w `applyAttributeAssignment()` i w writer
+  ([`BulkAttributeActionTest`](../../tests/Feature/BulkAttributeActionTest.php)).
 - **`is_filterable` jest znacznikiem na przyszłą wyszukiwarkę** — sam filtr nie powstaje tutaj.
 - **Cechy powstają wyłącznie dla rzeczy NIEKUPOWALNYCH.** Wszystko, co wędkarz dokupuje, jest usługą
   dodatkową i korzysta z mechanizmu cen i limitów, a nie ze słownika cech.
+- ⚠️ **Wartości cechy PRZEŻYWAJĄ jej miękkie usunięcie ze słownika — i tak ma zostać** (zadanie
+  022). `PositionAttribute` kasuje się miękko, a `position_attribute_values` kaskaduje wyłącznie
+  przy twardym usunięciu, więc wiersze wartości zostają w bazie. `PositionResource::getEloquentFormData()`
+  odfiltrowuje wartości bez definicji, żeby formularz edycji stanowiska nie wywracał się na
+  `->attribute->type` dla `null`. Miękkie usunięcie ma sens właśnie dlatego, że da się je cofnąć —
+  `restore()` cechy przywraca też jej wartości, bez żadnej dodatkowej akcji. **Nie kasuj tych
+  wartości "przy okazji porządków"** — to by odebrało `restore()` sens.
 
 Uzasadnienie kształtu wartości: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech-stanowiska.md).
 

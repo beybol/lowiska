@@ -284,3 +284,61 @@ test('deleting a fishery for good takes its blocks with it', function () {
 
     expect(AvailabilityBlock::withTrashed()->where('fishery_id', $fishery->id)->count())->toBe(0);
 });
+
+/**
+ * ⚠️ Regresje z przeglądu implementacji (2026-09-20). Oba testy wołają
+ * `withSelectionLabel()` WPROST, nie przez formularz — pole grupy jest `Select`
+ * z zawężoną listą, więc test przez `fillForm()` przechodziłby na zielono także
+ * z zepsutym zawężeniem (`autoryzacja.md` §4: weryfikuj te warstwy negatywnie).
+ */
+test('the selection label refuses a group from another fishery', function () {
+    [, $fishery] = ownerWithFisheryForBlocks();
+    [, $otherFishery] = ownerWithFisheryForBlocks();
+
+    $ownGroup = PositionGroup::factory()->create(['fishery_id' => $fishery->id, 'name' => 'Wlasna grupa']);
+    $foreignGroup = PositionGroup::factory()->create(['fishery_id' => $otherFishery->id, 'name' => 'Cudza grupa']);
+
+    // Kontrola pozytywna — bez niej test przechodziłby też wtedy, gdy etykieta
+    // nie powstaje w ogóle.
+    $own = AvailabilityBlockResource::withSelectionLabel([
+        'fishery_id' => $fishery->id,
+        'effect' => BlockEffect::SaleBlocked->value,
+        'selection_kind' => SelectionKind::Group->value,
+        'position_group_id' => $ownGroup->id,
+    ]);
+
+    expect($own['selection_label'])->toBe('Wlasna grupa');
+
+    $foreign = AvailabilityBlockResource::withSelectionLabel([
+        'fishery_id' => $fishery->id,
+        'effect' => BlockEffect::SaleBlocked->value,
+        'selection_kind' => SelectionKind::Group->value,
+        'position_group_id' => $foreignGroup->id,
+    ]);
+
+    // Ma być NULL, a nie „cokolwiek innego niż cudza nazwa".
+    expect($foreign['selection_label'])->toBeNull();
+});
+
+test('changing the effect away from a suspension clears the attribute', function () {
+    [, $fishery] = ownerWithFisheryForBlocks();
+    $attribute = PositionAttribute::factory()->create();
+
+    $kept = AvailabilityBlockResource::withSelectionLabel([
+        'fishery_id' => $fishery->id,
+        'effect' => BlockEffect::AttributeSuspended->value,
+        'position_attribute_id' => $attribute->id,
+        'selection_kind' => SelectionKind::Fishery->value,
+    ]);
+
+    expect($kept['position_attribute_id'])->toBe($attribute->id);
+
+    $cleared = AvailabilityBlockResource::withSelectionLabel([
+        'fishery_id' => $fishery->id,
+        'effect' => BlockEffect::SaleBlocked->value,
+        'position_attribute_id' => $attribute->id,
+        'selection_kind' => SelectionKind::Fishery->value,
+    ]);
+
+    expect($cleared['position_attribute_id'])->toBeNull();
+});

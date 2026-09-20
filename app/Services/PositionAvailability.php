@@ -11,6 +11,7 @@ use App\Models\PositionAttribute;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 
 /**
  * JEDYNE miejsce w projekcie odpowiadające na pytanie „czy tę dobę można sprzedać
@@ -31,12 +32,29 @@ use Illuminate\Support\Collection;
  * `where('status', 'available')` napisane obok niej jest defektem, nawet gdy dziś
  * zwraca to samo — przestanie, gdy dojdzie piąty warunek.
  */
-final readonly class PositionAvailability
+final class PositionAvailability
 {
-    public function __construct(private Position $position)
+    private ?FishingDayCalendar $calendar = null;
+
+    /**
+     * Wpisy o dostępności wczytane RAZ na instancję, kluczowane skutkiem.
+     *
+     * @var array<string, Collection<int, AvailabilityBlock>>
+     */
+    private array $blocksByEffect = [];
+
+    public function __construct(private readonly Position $position)
     {
-        // Bez łowiska nie ma doby ani okresów, więc nie ma o co pytać.
-        assert($position->fishery !== null);
+        // ⚠️ Jawny wyjątek, nie `assert()`: `positions.fishery_id` jest świadomie
+        // `nullable` z `set null` (`panel-wlasciciela.md` §8), a asercje są wyłączone
+        // w obrazie produkcyjnym (`zend.assertions=-1`) — tam `assert()` przepuszczał
+        // stanowisko bez łowiska do `new FishingDayCalendar(null)` i do `->timezone`
+        // na `null`. Bez łowiska nie ma doby ani okresów, więc nie ma o co pytać.
+        if ($position->fishery === null) {
+            throw new InvalidArgumentException(
+                "Position {$position->id} has no fishery, so its sale availability is undefined."
+            );
+        }
     }
 
     /**
@@ -117,10 +135,7 @@ final readonly class PositionAvailability
     {
         $timezone = $this->position->fishery->timezone ?: 'Europe/Warsaw';
 
-        return $this->position->availabilityBlocks()
-            ->withEffect($effect)
-            ->with('attribute')
-            ->get()
+        return $this->blocksWithEffect($effect)
             ->filter(function (AvailabilityBlock $block) use ($day, $timezone): bool {
                 $windowStart = CarbonImmutable::parse($block->starts_on->toDateString(), $timezone)->startOfDay();
 
@@ -137,8 +152,26 @@ final readonly class PositionAvailability
             ->values();
     }
 
+    /**
+     * Wpisy o danym skutku — jedno zapytanie na instancję i skutek.
+     *
+     * ⚠️ To NIE jest bufor dostępności zakazany przez `dostepnosc.md` §2. Tamten zakaz
+     * dotyczy kolumny przechowującej werdykt między żądaniami; tutaj odczyt żyje tyle,
+     * co instancja usługi, a pytanie o zakres dat (`sellableDaysBetween()`) wykonywało
+     * bez tego jedno zapytanie NA DOBĘ.
+     *
+     * @return Collection<int, AvailabilityBlock>
+     */
+    private function blocksWithEffect(BlockEffect $effect): Collection
+    {
+        return $this->blocksByEffect[$effect->value] ??= $this->position->availabilityBlocks()
+            ->withEffect($effect)
+            ->with('attribute')
+            ->get();
+    }
+
     private function calendar(): FishingDayCalendar
     {
-        return new FishingDayCalendar($this->position->fishery);
+        return $this->calendar ??= new FishingDayCalendar($this->position->fishery);
     }
 }

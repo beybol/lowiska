@@ -2,8 +2,6 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\FishResource\Pages\CreateFish;
-use App\Filament\Resources\FishResource\Pages\EditFish;
 use App\Filament\Resources\FishResource\Pages\ManageFish;
 use App\Models\Fish;
 use Filament\Actions\BulkActionGroup;
@@ -59,8 +57,6 @@ class FishResource extends Resource
     {
         return [
             'index' => ManageFish::route('/'),
-            'create' => CreateFish::route('/create'),
-            'edit' => EditFish::route('/{record}/edit'),
         ];
     }
 

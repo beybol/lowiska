@@ -452,6 +452,7 @@
     "Sort order": "Kolejność",
     "Add option": "Dodaj opcję",
     "Create position attribute": "Dodaj cechę stanowiska",
+    "Edit position attribute": "Edytuj cechę stanowiska",
     "Create and create another position attribute": "Zapisz i dodaj kolejną cechę",
     "Yes / no": "Tak / nie",
     "Number": "Liczba",
@@ -465,6 +466,7 @@
     "The value of a numeric attribute must be a number.": "Wartość cechy liczbowej musi być liczbą.",
     "The chosen option does not belong to this attribute.": "Wybrana opcja nie należy do tej cechy.",
     "The attribute will be set on :count position|The attribute will be set on :count positions": "Cecha zostanie ustawiona na :count stanowisku|Cecha zostanie ustawiona na :count stanowiskach",
+    "The attribute was not set": "Nie ustawiono cechy",
     "The attribute was set on :count position|The attribute was set on :count positions": "Ustawiono cechę na :count stanowisku|Ustawiono cechę na :count stanowiskach",
     "Availability blocks": "Blokady i ograniczenia",
     "availability block": "blokada lub ograniczenie",
@@ -499,5 +501,11 @@
     "The new position is not covered by existing whole-fishery entries": "Nowe stanowisko nie jest objęte istniejącymi wpisami na całe łowisko",
     "Add it by hand if it should be: :list": "Dodaj je ręcznie, jeśli powinno być objęte: :list",
     "Dictionaries": "Słowniki",
-    "Access": "Dostępy"
+    "Access": "Dostępy",
+    "Too many attempts. The code has been invalidated — request a new one.": "Zbyt wiele prób. Kod został unieważniony — poproś o nowy.",
+    "The provider did not return enough data to sign you in.": "Dostawca nie zwrócił danych wystarczających do zalogowania.",
+    "Confirm your address with the provider before signing in this way.": "Potwierdź adres u dostawcy, zanim zalogujesz się w ten sposób.",
+    "An account with this address already exists. Sign in with your password first.": "Konto z tym adresem już istnieje. Zaloguj się najpierw hasłem.",
+    "This address is linked to a different sign-in provider.": "Ten adres jest powiązany z innym dostawcą logowania.",
+    "Every selected record must belong to the same fishery.": "Każdy wybrany rekord musi należeć do tego samego łowiska."
 }

@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\FisheryTypeResource\Pages\CreateFisheryType;
 use App\Filament\Resources\FisheryTypeResource\Pages\ManageFisheryTypes;
 use App\Models\FisheryType;
 use Filament\Actions\BulkActionGroup;
@@ -58,7 +57,6 @@ class FisheryTypeResource extends Resource
     {
         return [
             'index' => ManageFisheryTypes::route('/'),
-            'create' => CreateFisheryType::route('/create'),
         ];
     }
 

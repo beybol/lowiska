@@ -7,6 +7,7 @@ use App\Filament\Resources\PositionGroupResource\Pages\EditPositionGroup;
 use App\Filament\Resources\PositionGroupResource\Pages\ListPositionGroups;
 use App\Models\Position;
 use App\Models\PositionGroup;
+use App\Rules\RecordsBelongToFishery;
 use App\Services\FisheryAccess;
 use App\Services\SharedFormComponents;
 use Filament\Actions\Action;
@@ -74,7 +75,17 @@ class PositionGroupResource extends Resource
                         FisheryAccess::scopeToOwnedFisheries($query);
 
                         return $query->pluck('name', 'id')->toArray();
-                    }),
+                    })
+                    // ⚠️ Reguła, NIE samo zawężenie opcji — Filament nie sprawdza, czy
+                    // przysłane identyfikatory pochodzą z wyrenderowanej listy. Bez tego
+                    // dało się podpiąć stanowiska cudzego łowiska do własnej grupy,
+                    // a potem akcją zbiorczą zapisać na nich wartości cech.
+                    ->rules([
+                        fn (Get $get): RecordsBelongToFishery => new RecordsBelongToFishery(
+                            Position::class,
+                            $get('fishery_id'),
+                        ),
+                    ]),
             ]);
     }
 

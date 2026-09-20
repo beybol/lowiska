@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -23,10 +22,10 @@ return new class extends Migration
             $table->string('timezone', 64)->default('Europe/Warsaw');
         });
 
-        // ⚠️ Wartość domyślna kolumny obsługuje wiersze zakładane później; istniejące
-        // uzupełniamy jawnie, bo kryterium akceptacji mówi o KAŻDYM łowisku, a nie
-        // o tych dodanych po migracji.
-        DB::table('fisheries')->whereNull('timezone')->update(['timezone' => 'Europe/Warsaw']);
+        // ⚠️ Kryterium akceptacji mówi o KAŻDYM łowisku, także istniejącym — i to
+        // załatwia samo `default()`: MySQL wypełnia nim wiersze już przy `ALTER TABLE`.
+        // Jawnego `UPDATE … whereNull('timezone')` tu NIE MA, bo nie miałby czego
+        // trafić; stał tu wcześniej razem z komentarzem twierdzącym coś przeciwnego.
     }
 
     public function down(): void

@@ -252,14 +252,32 @@ class AvailabilityBlockResource extends Resource
     {
         $kind = SelectionKind::tryFrom((string) ($data['selection_kind'] ?? ''));
 
+        // ⚠️ Identyfikator grupy przychodzi z pola `Select`, czyli od klienta. Opcje są
+        // zawężone, ale sama wartość nie — bez `where('fishery_id')` podmiana stanu
+        // zapisywała do etykiety NAZWĘ CUDZEJ GRUPY, którą panel potem renderuje
+        // (`autoryzacja.md` §4: nazwa cudzego rekordu też jest danymi).
+        // Cechy takiego zawężenia nie mają i mieć nie mogą — słownik cech jest wspólny
+        // dla całego portalu (zadanie 014).
         $data['selection_label'] = match ($kind) {
-            SelectionKind::Group => PositionGroup::find($data['position_group_id'] ?? null)?->name,
+            SelectionKind::Group => PositionGroup::query()
+                ->whereKey($data['position_group_id'] ?? null)
+                ->where('fishery_id', $data['fishery_id'] ?? null)
+                ->value('name'),
             SelectionKind::Attribute => PositionAttribute::find($data['selection_attribute_id'] ?? null)?->name,
             default => null,
         };
 
         // Pola kryterium nie są kolumnami — zostawione w tablicy trafiłyby do `fill()`.
         unset($data['position_group_id'], $data['selection_attribute_id']);
+
+        // ⚠️ Blokada sprzedaży nie wskazuje cechy. Pole jest wtedy UKRYTE, więc przy
+        // zmianie skutku z zawieszenia na blokadę reguła `AvailabilityBlockEffectMatchesAttribute`
+        // nie ma czego sprawdzić i stara wartość zostawała w kolumnie. Sprzedawalność
+        // liczy się po `effect`, więc to były dane-śmieci, nie błędny werdykt — ale
+        // kolumna ma mówić prawdę o wpisie.
+        if (BlockEffect::tryFrom((string) ($data['effect'] ?? '')) !== BlockEffect::AttributeSuspended) {
+            $data['position_attribute_id'] = null;
+        }
 
         return $data;
     }

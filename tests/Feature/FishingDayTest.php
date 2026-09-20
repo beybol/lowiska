@@ -6,6 +6,7 @@ use App\Enums\SaleMode;
 use App\Enums\SaleUnavailabilityReason;
 use App\Models\Fishery;
 use App\Models\SalePeriod;
+use App\Services\FishingDay;
 use App\Services\FishingDayCalendar;
 use Carbon\CarbonImmutable;
 
@@ -173,4 +174,74 @@ test('days listed for a range are the ones fully contained in it', function () {
     expect($days)->toHaveCount(4)
         ->and($days[0]->startsOn->toDateString())->toBe('2026-06-01')
         ->and(end($days)->startsOn->toDateString())->toBe('2026-06-04');
+});
+
+/**
+ * ⚠️ Testy mutacyjne (2026-09-20) pokazały, że RÓWNOŚĆ DOKŁADNA na granicy nie była
+ * sprawdzana w żadnym teście: mutanty `>=`→`>`, `<=`→`<` w `isContainedIn()` oraz
+ * `>`→`>=`, `<`→`<=` w `overlaps()` przeżywały cały pakiet. Testy stykowe, które
+ * istniały, szły przez `PositionAvailability`, gdzie okno kończy się na `endOfDay()`
+ * (23:59:59.999999), więc do równości co do mikrosekundy nigdy nie dochodziło.
+ *
+ * ⚠️ Te przypadki operują na `FishingDay` WPROST, bez kalendarza — inaczej nie da się
+ * ustawić granicy okna dokładnie na momencie granicznym doby.
+ */
+function dayFromTo(string $startsAt, string $endsAt): FishingDay
+{
+    return new FishingDay(
+        startsOn: CarbonImmutable::parse($startsAt, 'Europe/Warsaw')->startOfDay(),
+        startsAt: CarbonImmutable::parse($startsAt, 'Europe/Warsaw'),
+        endsAt: CarbonImmutable::parse($endsAt, 'Europe/Warsaw'),
+    );
+}
+
+test('a day starting exactly when the window opens is still contained', function () {
+    $day = dayFromTo('2026-06-10 15:00:00', '2026-06-11 15:00:00');
+
+    // Granica jest DOMKNIĘTA: początek doby równy otwarciu okna to nadal zawieranie.
+    expect($day->isContainedIn(
+        CarbonImmutable::parse('2026-06-10 15:00:00', 'Europe/Warsaw'),
+        CarbonImmutable::parse('2026-06-30 23:59:59', 'Europe/Warsaw'),
+    ))->toBeTrue();
+});
+
+test('a day ending exactly when the window closes is still contained', function () {
+    $day = dayFromTo('2026-06-10 15:00:00', '2026-06-11 15:00:00');
+
+    expect($day->isContainedIn(
+        CarbonImmutable::parse('2026-06-01 00:00:00', 'Europe/Warsaw'),
+        CarbonImmutable::parse('2026-06-11 15:00:00', 'Europe/Warsaw'),
+    ))->toBeTrue();
+});
+
+test('a day ending exactly when the window opens does not overlap it', function () {
+    $day = dayFromTo('2026-06-10 15:00:00', '2026-06-11 15:00:00');
+
+    // ⚠️ Granica jest OTWARTA w drugą stronę niż przy zawieraniu: samo zetknięcie
+    // końca doby z otwarciem blokady to jeszcze nie przecięcie. Ta asymetria jest
+    // sednem ADR-010 i to ją gubi pomyłka `>` kontra `>=`.
+    expect($day->overlaps(
+        CarbonImmutable::parse('2026-06-11 15:00:00', 'Europe/Warsaw'),
+        CarbonImmutable::parse('2026-06-20 15:00:00', 'Europe/Warsaw'),
+    ))->toBeFalse();
+});
+
+test('a day starting exactly when the window closes does not overlap it', function () {
+    $day = dayFromTo('2026-06-10 15:00:00', '2026-06-11 15:00:00');
+
+    expect($day->overlaps(
+        CarbonImmutable::parse('2026-06-01 15:00:00', 'Europe/Warsaw'),
+        CarbonImmutable::parse('2026-06-10 15:00:00', 'Europe/Warsaw'),
+    ))->toBeFalse();
+});
+
+test('a day overlapping the window by a single second is an overlap', function () {
+    $day = dayFromTo('2026-06-10 15:00:00', '2026-06-11 15:00:00');
+
+    // Kontrola po drugiej stronie granicy — bez niej cztery testy wyżej przeszłyby
+    // też przy implementacji, która NIGDY nie widzi przecięcia.
+    expect($day->overlaps(
+        CarbonImmutable::parse('2026-06-11 14:59:59', 'Europe/Warsaw'),
+        CarbonImmutable::parse('2026-06-20 15:00:00', 'Europe/Warsaw'),
+    ))->toBeTrue();
 });

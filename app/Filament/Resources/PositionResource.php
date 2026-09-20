@@ -12,6 +12,7 @@ use App\Models\LongTermPermit;
 use App\Models\Position;
 use App\Models\PositionAttribute;
 use App\Models\PositionGroup;
+use App\Rules\RecordsBelongToFishery;
 use App\Services\FisheryAccess;
 use App\Services\PositionAttributeWriter;
 use App\Services\SharedFormComponents;
@@ -34,6 +35,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Validation\ValidationException;
 
 class PositionResource extends Resource
 {
@@ -110,7 +112,16 @@ class PositionResource extends Resource
                         FisheryAccess::scopeToOwnedFisheries($query);
 
                         return $query->pluck('name', 'id')->toArray();
-                    }),
+                    })
+                    // ⚠️ Reguła, NIE samo zawężenie opcji — bez niej dało się wepchnąć
+                    // własne stanowisko do CUDZEJ grupy, a wtedy jej właściciel obejmuje
+                    // je swoimi akcjami zbiorczymi (security-review, 2026-09-20).
+                    ->rules([
+                        fn (Get $get): RecordsBelongToFishery => new RecordsBelongToFishery(
+                            PositionGroup::class,
+                            $get('fishery_id'),
+                        ),
+                    ]),
                 RichEditor::make('description')
                     ->label(__('Description'))
                     ->toolbarButtons(SharedFormComponents::getRichEditorOptions()),
@@ -157,7 +168,15 @@ class PositionResource extends Resource
                         FisheryAccess::scopeToOwnedFisheries($query);
 
                         return $query->exists();
-                    }),
+                    })
+                    // ⚠️ Reguła, NIE samo zawężenie opcji — identyfikatory pozwoleń
+                    // przychodzą od klienta jak każdy inny stan komponentu.
+                    ->rules([
+                        fn (callable $get): RecordsBelongToFishery => new RecordsBelongToFishery(
+                            LongTermPermit::class,
+                            $get('fishery_id'),
+                        ),
+                    ]),
                 Repeater::make('additionalServices')
                     ->statePath('additionalServices')
                     ->schema([
@@ -357,7 +376,20 @@ class PositionResource extends Resource
             PositionAttributeType::Choice => $data['position_attribute_option_id'] ?? null,
         };
 
-        $count = app(PositionAttributeWriter::class)->writeForMany($positions, $attribute, $rawValue);
+        try {
+            $count = app(PositionAttributeWriter::class)->writeForMany($positions, $attribute, $rawValue);
+        } catch (ValidationException $exception) {
+            // Reguła ADR-011 odrzuciła wartość. Akcja zbiorcza nie ma formularza, do
+            // którego dałoby się przypiąć błąd — stąd komunikat i ZERO zapisanych
+            // stanowisk zamiast częściowego przypisania.
+            Notification::make()
+                ->danger()
+                ->title(__('The attribute was not set'))
+                ->body(collect($exception->errors())->flatten()->first())
+                ->send();
+
+            return 0;
+        }
 
         Notification::make()
             ->success()
@@ -411,7 +443,12 @@ class PositionResource extends Resource
         // Cechy wracają do formularza pod tym samym kluczem, pod którym są zapisywane.
         // ⚠️ Brak wiersza NIE staje się tu fałszem — pole zostaje puste, bo „nikt się
         // nie wypowiedział" jest trzecim stanem, do którego trzeba móc wrócić.
+        // ⚠️ Cecha jest kasowana MIĘKKO, a `position_attribute_values` kaskaduje tylko
+        // przy twardym usunięciu — po usunięciu cechy ze słownika zostają wiersze bez
+        // definicji. Bez tego filtra `->attribute->type` wywracało formularz edycji
+        // każdego stanowiska, które miało tę cechę wypełnioną.
         $data['position_attributes'] = $record->attributeValues
+            ->filter(fn ($value): bool => $value->attribute !== null)
             ->mapWithKeys(fn ($value): array => [
                 $value->position_attribute_id => $value->typedValue($value->attribute->type),
             ])

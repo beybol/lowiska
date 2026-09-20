@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Enums\PositionAttributeType;
 use App\Filament\Resources\PositionAttributeResource;
 use App\Filament\Resources\PositionAttributeResource\Pages\CreatePositionAttribute;
-use App\Filament\Resources\PositionAttributeResource\Pages\ManagePositionAttributes;
+use App\Filament\Resources\PositionAttributeResource\Pages\EditPositionAttribute;
+use App\Filament\Resources\PositionAttributeResource\Pages\ListPositionAttributes;
+use App\Filament\Resources\PositionResource;
 use App\Filament\Resources\PositionResource\Pages\CreatePosition;
 use App\Models\Fishery;
 use App\Models\Position;
@@ -13,6 +15,7 @@ use App\Models\PositionAttribute;
 use App\Models\PositionAttributeOption;
 use App\Models\User;
 use App\Services\OwnerRoleProvisioner;
+use App\Services\PositionAttributeWriter;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
@@ -217,5 +220,72 @@ test('the dictionary list is reachable for an administrator', function () {
     Filament::setCurrentPanel('admin');
     $this->actingAs($admin);
 
-    Livewire::test(ManagePositionAttributes::class)->assertSuccessful();
+    Livewire::test(ListPositionAttributes::class)->assertSuccessful();
+});
+
+/**
+ * ⚠️ Regresja z przeglądu implementacji (2026-09-20): cecha kasuje się MIĘKKO, a
+ * `position_attribute_values` kaskaduje tylko przy twardym usunięciu — po usunięciu
+ * cechy ze słownika zostawał wiersz bez definicji i `->attribute->type` wywracało
+ * formularz edycji KAŻDEGO stanowiska, które miało tę cechę wypełnioną.
+ * Istniejący test usuwania używa `forceDelete()`, czyli innej ścieżki.
+ */
+test('soft deleting an attribute does not break the position form', function () {
+    $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
+    OwnerRoleProvisioner::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+
+    $kept = PositionAttribute::factory()->create(['name' => 'Pomost']);
+    $removed = PositionAttribute::factory()->create(['name' => 'Zadaszenie']);
+
+    $position = Position::factory()->create(['fishery_id' => $fishery->id]);
+    app(PositionAttributeWriter::class)->writeForPosition($position, [
+        $kept->id => 1,
+        $removed->id => 1,
+    ]);
+
+    $removed->delete();
+
+    $data = PositionResource::getEloquentFormData(
+        $position->fresh()->load('additionalServices', 'attributeValues.attribute', 'groups')
+    );
+
+    // Wartość usuniętej cechy wypada z formularza, wartość pozostałej zostaje.
+    expect($data['position_attributes'])->toHaveKey($kept->id)
+        ->and($data['position_attributes'])->not->toHaveKey($removed->id);
+
+    // Osierocony wiersz NADAL jest w bazie — filtr go ukrywa, nie sprząta.
+    // Sprzątanie to osobna decyzja (zadanie 022).
+    expect($position->attributeValues()->count())->toBe(2);
+});
+
+test('an administrator can edit an attribute and its options on a full page', function () {
+    $admin = $this->createSuperAdmin();
+    Filament::setCurrentPanel('admin');
+    $this->actingAs($admin);
+
+    $attribute = PositionAttribute::factory()->choice()->create(['name' => 'Rodzaj brzegu']);
+    PositionAttributeOption::factory()->create([
+        'position_attribute_id' => $attribute->id,
+        'name' => 'Trawiasty',
+        'sort_order' => 0,
+    ]);
+
+    // ⚠️ Cały powód przejścia z `ManageRecords` na `ListRecords` to repeater opcji,
+    // który w modalu jest ściśnięty — więc to właśnie on musi być pokryty.
+    Livewire::test(EditPositionAttribute::class, ['record' => $attribute->getKey()])
+        ->assertSuccessful()
+        ->fillForm([
+            'name' => 'Rodzaj brzegu',
+            'type' => PositionAttributeType::Choice->value,
+            'options' => [
+                ['name' => 'Trawiasty', 'sort_order' => 0],
+                ['name' => 'Kamienisty', 'sort_order' => 1],
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($attribute->fresh()->options()->pluck('name')->sort()->values()->all())
+        ->toBe(['Kamienisty', 'Trawiasty']);
 });

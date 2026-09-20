@@ -413,7 +413,11 @@ class FisheryResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (FisheryAccess::isOwnerPanel()) {
+        // ⚠️ `! isAdminPanel()`, a nie `isOwnerPanel()` — tak samo jak
+        // `FisheryAccess::scopeToOwnedFisheries()` i domyślne zawężenie `findFishery()`.
+        // Przy panelu zarejestrowanym, ale nie-adminowym ten zapis ZAWĘŻA, odwrotny nie.
+        // ⚠️ Poza kontekstem panelu żaden z nich nie zawęża — patrz `autoryzacja.md` §4.
+        if (! FisheryAccess::isAdminPanel()) {
             // ⚠️ Zawężenie typu TYLKO na potrzeby wywołania scope'u. Filament deklaruje
             // `Builder<Model>`, więc analiza statyczna nie widziała tu scope'ów modelu
             // (`forCurrentUser()` miało własny wpis w baseline). Zawężenia nie da się

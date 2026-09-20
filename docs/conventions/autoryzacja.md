@@ -2,7 +2,7 @@
 
 Obowiązuje przy zmianach w `app/Policies/**`, rolach i uprawnieniach Shielda, `User`.
 
-Zadania źródłowe: 008, 009, 013, 015.
+Zadania źródłowe: 008, 009, 012, 013, 015; security-review 2026-09-20.
 
 ---
 
@@ -74,6 +74,23 @@ i `isAdminPanel()` — **celowo razem z bramkami**, bo `scopeToOwnedFisheries()`
 (`! isAdminPanel()`) i obie połowy tego niezmiennika muszą reagować identycznie na nierozpoznany
 panel. Nie rozdzielaj ich między klasy.
 
+⚠️ **Zawężenie danych pyta `! isAdminPanel()`, nigdy `isOwnerPanel()`.** Obie metody są publiczne
+i łatwo je pomylić. Różnica ujawnia się przy panelu **zarejestrowanym, ale nie-adminowym**:
+`! isAdminPanel()` wtedy zawęża, `isOwnerPanel()` nie. `isOwnerPanel()` jest wyłącznie do decyzji
+o widoczności elementów interfejsu — `->hidden()`, gałąź kreatora, tytuł strony. Dotyczy to
+`getEloquentQuery()` każdego zasobu widzącego dane wielu właścicieli; dziś stosują to
+`FisheryResource` i `CompanyResource`.
+
+⚠️ **Żaden z tych zapisów NIE jest fail-closed poza kontekstem panelu — i nie udawaj, że jest.**
+`Filament::getCurrentOrDefaultPanel()` spada na panel **domyślny**, a domyślny to admin
+(`AdminPanelProvider::panel()` woła `->default()`). W kolejce, komendzie konsolowej i na
+przyszłej stronie publicznej `isAdminPanel()` zwraca więc `true` i **zawężenie nie działa**.
+Zweryfikowane wprost: poza panelem `getCurrentOrDefaultPanel()` daje `admin`, a
+`getCurrentPanel()` — `null`. Praktyczny skutek: `FisheryAccess::findFishery()` jest „domyślnie
+zawężone" **tylko w panelu**; wołając je spoza panelu, podaj `$scopedToCurrentUser` jawnie.
+Gdyby zawężenie miało obowiązywać także tam, trzeba pytać `getCurrentPanel()` bez fallbacku —
+to zmienia zachowanie kolejek i komend, więc jest osobną decyzją, nie poprawką przy okazji.
+
 Stanowiska, usługi dodatkowe i pozwolenia należą do łowiska, a ich polityki **przy tworzeniu nie
 widzą rekordu nadrzędnego** — `PositionPolicy::create()` dostaje sam typ i przepuszcza każdego
 z rolą `owner`. Dlatego przynależność do łowiska pilnują trzy warstwy naraz i **żadnej nie wolno
@@ -87,6 +104,11 @@ zdejmować pojedynczo** (zadanie 012, sekcje 15 i 16):
    Te liczą się z `$get('fishery_id')`, czyli z pola `Hidden` — danych od klienta — i muszą
    przejść przez `scopeToOwnedFisheries()` osobno, inaczej podmiana stanu wyświetli nazwy
    z cudzego łowiska. Zapis pozostaje bezpieczny, ale to i tak wyciek odczytowy.
+   ⚠️ **Dotyczy to także wartości wyliczanych z tych pól przy zapisie**, nie tylko list opcji.
+   `AvailabilityBlockResource::withSelectionLabel()` zapisuje do `selection_label` nazwę
+   wybranej grupy — wyszukanie tej grupy musi mieć `where('fishery_id', …)`, bo samo
+   zawężenie opcji nie obejmuje wartości przysłanej w żądaniu. Cechy stanowisk zawężeniu
+   **nie podlegają i podlegać nie mogą**: ich słownik jest wspólny dla całego portalu.
 2. **Bramka na każdym żądaniu listy** — `FisheryAccess::assertFisheryAccessOrAbort($this->fisheryId)`
    w `getTableQuery()`, nie tylko w `mount()`. ⚠️ `$fisheryId` jest publiczną właściwością
    komponentu wiązaną z query stringiem, więc kolejne żądanie Livewire może przynieść inną
@@ -117,6 +139,49 @@ a wariant nieograniczony trzeba wybrać świadomie. Nie odwracaj tej domyślnoś
 przeglądu kodu — wyłapał to dopiero audyt czytający oba providery obok siebie. Konfiguracja
 per panel nie dziedziczy się sama; przy każdej zmianie w `AdminPanelProvider` sprawdź
 `OwnerPanelProvider` i odwrotnie.
+
+### Warstwa 4 — relacje wiele-do-wielu mają regułę na WARTOŚCIACH, nie tylko zawężone opcje
+
+⚠️ **Zawężenie `options()` nie jest walidacją.** Wartość pola wielokrotnego wyboru (`Select
+->multiple()`, `CheckboxList`, repeater) jest stanem komponentu Livewire i da się ją podmienić
+w żądaniu; **Filament nie sprawdza, czy przysłane identyfikatory pochodzą z listy, którą
+wyrenderował**. Sprawdzone wprost, nie założone (security-review 2026-09-20): bez reguły
+właściciel podpinał stanowiska **cudzego** łowiska do własnej grupy, a stamtąd akcja zbiorcza
+„Ustaw cechę" zapisywała wiersze na tych stanowiskach.
+
+⚠️ To **nie dotyczy** pojedynczego `Select` z `options()` w akcji — tam Filament wartość
+odrzuca. Różnica jest w polu relacyjnym i łatwo się na niej przejechać: test przez
+`callTableBulkAction()` na zwykłym `Select` przechodzi na zielono nawet z wyłączoną regułą.
+
+Dom reguły: [`RecordsBelongToFishery`](../../app/Rules/RecordsBelongToFishery.php) — generyczna,
+pustą wartość przepuszcza. Gdy zbiór ma być **niepusty**, użyj
+[`PositionsBelongToFishery`](../../app/Rules/PositionsBelongToFishery.php), która dokłada ten
+warunek i deleguje samą przynależność do tej pierwszej. Dzisiejsze zastosowania:
+`PositionGroupResource::positions`, `PositionResource::groups`, `PositionResource::long_term_permit_id`,
+`AvailabilityBlockResource::positions`.
+
+⚠️ **Repeater nie ma pola, do którego dałoby się przypiąć błąd** — dla usług dodatkowych bramka
+stoi w [`AdditionalServiceSync`](../../app/Services/AdditionalServiceSync.php), czyli w jedynym
+wejściu zapisu tej relacji, i **pomija** pozycje spoza łowiska zamiast wywracać cały zapis.
+
+### Rola nadawana przy zakładaniu konta, uprawnienia definiowane osobno
+
+⚠️ **`OwnerRoleProvisioner::addOwnerRole()` NIE ustawia uprawnień roli.** Wołają je ścieżki
+rejestracji i logowania, czyli obsługa żądania nieuprzywilejowanego użytkownika — a wcześniej
+metoda kończyła się `syncPermissions()`. Skutkowało to tym, że dowolny użytkownik jednym
+żądaniem przywracał uprawnienia globalnej roli `owner` do literałów z kodu, kasując zmiany
+administratora, a rola odebrana komuś wracała przy następnym logowaniu przez Google.
+Uprawnienia ustawia `provisionRole()` — wołane z bootstrapu, gdy roli **jeszcze nie ma**.
+⚠️ **Logowanie społecznościowe nadaje rolę wyłącznie pod `wasRecentlyCreated`.**
+
+### Inline editable columns
+
+⚠️ `ToggleColumn`/`TextInputColumn` z `->hidden()` **są** chronione po stronie serwera —
+`HasColumns::updateTableColumnState()` sprawdza `isHidden()` i przerywa. Ale ta ścieżka **nie
+pyta polityki**: ochroną jest zawężenie zapytania tabeli plus `hidden()`. Filament ostrzega
+o tym we własnym źródle przy `callTableColumnMethod()` („Inline editable columns called through
+here bypass Model Policies"). Kolumna edytowalna inline, której widoczność nie jest zawężona
+zapytaniem, wymaga `->updateStateUsing()` z jawną autoryzacją.
 
 ⚠️ **Testy tych warstw weryfikuj negatywnie** — zepsuj bramkę i sprawdź, że test czerwienieje.
 Asercje typu „nie zawiera nazwy cudzego rekordu" łatwo przechodzą z niewłaściwego powodu: kolumny
@@ -159,3 +224,34 @@ Wzorzec: `tests/Feature/OwnerPanelTest.php`, przypadki „Owner can not…".
   więc wiązanie rekordu przechodzi przez `getEloquentQuery()` z `forCurrentUser()`, a
   `EditRecord::authorizeAccess()` pyta `FisheryPolicy::update()`. Cudze łowisko **nie istnieje**
   dla tej strony (404), nie „istnieje, ale zabronione".
+
+---
+
+## 6. Uwierzytelnianie: drugi składnik i logowanie społecznościowe
+
+⚠️ **Drugi składnik ma licznik prób, nie tylko `throttle`.** Kod jest sześciocyfrowy i żyje
+dziesięć minut, a sesja guarda `web` istnieje **już** w momencie wyzwania (Breeze uwierzytelnia
+przed przekierowaniem na `/verify`) — więc bez licznika napastnik z samym hasłem przechodził
+przez przestrzeń kodów w pętli. Obowiązują **obie** warstwy naraz i żadnej nie wolno zdjąć
+pojedynczo:
+
+1. `throttle` na `verify.store` **i** `verify.resend` (`routes/auth.php`) — bez tej drugiej
+   wyczerpanie licznika obchodziło się przez zamówienie nowego kodu;
+2. licznik nieudanych prób w `TwoFactorController` (`RateLimiter`, klucz per użytkownik), który
+   po pięciu pudłach **unieważnia kod**, a nie tylko odracza kolejną próbę.
+
+⚠️ **Logowanie społecznościowe wiąże konto po TOŻSAMOŚCI DOSTAWCY, nie po adresie e-mail.**
+`users.provider` + `users.provider_id` są kluczem tożsamości i mają **unikalny indeks**; nie ma
+ich w `$fillable` i mają tam nie trafić — to powierzchnia mass-assignment. Kontroler:
+
+- odrzuca payload bez `id` albo bez adresu;
+- wymaga `email_verified === true`, jeśli dostawca tę flagę podaje;
+- na adres należący do **konta hasłowego** nie loguje cicho, tylko odsyła do logowania hasłem —
+  inaczej ktokolwiek doprowadzi do potwierdzenia adresu równego adresowi cudzego konta (w tym
+  `is_admin`) dostaje do niego dostęp;
+- nadaje rolę `owner` wyłącznie przy zakładaniu konta.
+
+⚠️ **2FA obowiązuje na tej ścieżce tak samo jak przy haśle** — `TwoFactorMiddleware` nie wyłapie
+braku, bo pusty kod traktuje jako „brak oczekującego wyzwania".
+
+Zadania źródłowe: 012, security-review 2026-09-20.

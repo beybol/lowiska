@@ -21,7 +21,11 @@ class EditAvailabilityBlock extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        return FisheryAccess::forceVerifiedFishery(AvailabilityBlockResource::withSelectionLabel($data));
+        // ⚠️ Kolejność: NAJPIERW weryfikacja łowiska, potem etykieta. `withSelectionLabel()`
+        // wyszukuje grupę po `fishery_id`, więc musi dostać wartość już przepuszczoną
+        // przez bramkę — odwrotne zagnieżdżenie liczyło etykietę z danych od klienta
+        // i było bezpieczne wyłącznie dlatego, że bramka przerywa przez `abort()`.
+        return AvailabilityBlockResource::withSelectionLabel(FisheryAccess::forceVerifiedFishery($data));
     }
 
     public function mount(string|int $record): void

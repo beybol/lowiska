@@ -20,13 +20,11 @@ class PositionsBelongToFishery implements ValidationRule
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $ids = collect(is_array($value) ? $value : [])
-            ->filter(fn ($id): bool => is_numeric($id))
-            ->map(fn ($id): int => (int) $id)
-            ->unique()
-            ->values();
+        $ids = RecordsBelongToFishery::normalize($value);
 
-        if ($ids->isEmpty()) {
+        // Niepustość to warunek WŁASNY wpisu o dostępności: blokada bez stanowisk
+        // nie blokuje niczego. Sama przynależność ma jeden dom — `RecordsBelongToFishery`.
+        if ($ids === []) {
             $fail(__('Choose at least one position.'));
 
             return;
@@ -38,12 +36,7 @@ class PositionsBelongToFishery implements ValidationRule
             return;
         }
 
-        $owned = Position::query()
-            ->whereKey($ids->all())
-            ->where('fishery_id', (int) $this->fisheryId)
-            ->count();
-
-        if ($owned !== $ids->count()) {
+        if (! RecordsBelongToFishery::allBelongTo(Position::class, $ids, $this->fisheryId)) {
             $fail(__('Every position must belong to the same fishery as the entry.'));
         }
     }

@@ -63,9 +63,14 @@ Route::middleware('auth')->group(function () {
     Route::get('verify', [TwoFactorController::class, 'index'])
         ->name('verify.index');
 
+    // ⚠️ `throttle` na OBU trasach. Bez niego sam licznik prób w kontrolerze dawał się
+    // obejść: pudłowanie do wyczerpania limitu, potem `verify/resend` po nowy kod i od
+    // nowa. Odpowiednik `throttle:6,1` z `verification.verify` wyżej w tym pliku.
     Route::post('verify', [TwoFactorController::class, 'store'])
+        ->middleware('throttle:6,1')
         ->name('verify.store');
 
     Route::post('verify/resend', [TwoFactorController::class, 'resend'])
+        ->middleware('throttle:3,1')
         ->name('verify.resend');
 });

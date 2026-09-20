@@ -58,6 +58,12 @@ i [ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md).
   o **czasie** (doby, reguły granic), usługa dostępności o **stanowisku** (stan własny, blokady).
   Pytasz wyłącznie o doby sezonu, bez stanowiska → kalendarz. Pytasz o sprzedaż → **zawsze**
   usługa dostępności.
+- ⚠️ **Stanowisko bez łowiska to nie odmowa, tylko błąd wywołania** — `PositionAvailability`
+  rzuca wtedy `InvalidArgumentException` z konstruktora. `positions.fishery_id` jest świadomie
+  `nullable` z `set null` ([`panel-wlasciciela.md`](panel-wlasciciela.md) §8), więc taki rekord
+  może istnieć; bez łowiska nie ma jednak ani doby, ani okresów, więc nie ma o co pytać.
+  **Nie zastępuj tego `assert()`** — asercje są wyłączone w obrazie produkcyjnym
+  (`zend.assertions=-1`), czyli dokładnie tam, gdzie ochrona ma działać.
 - **Cztery warunki składane w STAŁEJ kolejności, wyrażającej trwałość przyczyny:**
   1. stan własny stanowiska (`withdrawn` → odmowa niezależnie od dat),
   2. konfiguracja doby i okres sprzedaży (przez kalendarz),
@@ -76,6 +82,13 @@ i [ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md).
 - **Dostępność wylicza się z rekordów przy każdym pytaniu — nie ma kolumny, która by ją
   buforowała.** Bufor, gdyby był kiedyś potrzebny, jest nową decyzją z własnym uzasadnieniem
   **pomiarowym**, nie rozwinięciem tej.
+  ⚠️ **To nie zakazuje pamiętania ODCZYTU w obrębie jednej instancji usługi.** `PositionAvailability`
+  wczytuje wpisy o dostępności raz na skutek, a `FishingDayCalendar` — okresy sprzedaży raz na
+  instancję; bez tego `sellableDaysBetween()` zadawało jedno zapytanie **na dobę** (zakres
+  trzydziestodniowy = ~61 zapytań zamiast 3). Zakaz dotyczy trwałego bufora werdyktu między
+  żądaniami, nie powtórzeń w jednym. Skutkiem ubocznym jest to, że **`FishingDayCalendar` i
+  `PositionAvailability` nie są klasami `readonly`** — instancja żyje tyle, co jedno pytanie,
+  więc nie trzymaj jej dłużej w polu innego obiektu.
 
 ---
 

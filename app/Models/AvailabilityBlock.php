@@ -80,26 +80,6 @@ class AvailabilityBlock extends Model
     }
 
     /**
-     * Wpisy, których okno dat obejmuje dany dzień kalendarzowy. Puste `ends_on`
-     * oznacza „do odwołania".
-     *
-     * ⚠️ To jest sprawdzenie po DNIACH, na potrzeby listy i ostrzeżeń w panelu. Regułę
-     * PRZECIĘCIA doby z oknem (ADR-010) stosuje `PositionAvailability` na momentach —
-     * nie zastępuj jej tym zakresem.
-     */
-    #[Scope]
-    protected function coveringDate(Builder $query, CarbonInterface|string $date): void
-    {
-        $day = $date instanceof CarbonInterface ? $date->toDateString() : $date;
-
-        $query
-            ->whereDate('starts_on', '<=', $day)
-            ->where(function (Builder $query) use ($day): void {
-                $query->whereNull('ends_on')->orWhereDate('ends_on', '>=', $day);
-            });
-    }
-
-    /**
      * Wpisy, które jeszcze się nie skończyły — obowiązujące dziś albo w przyszłości.
      */
     #[Scope]

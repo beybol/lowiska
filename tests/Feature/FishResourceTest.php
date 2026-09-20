@@ -2,24 +2,24 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\FishResource;
-use App\Filament\Resources\FishResource\Pages\CreateFish;
+use App\Filament\Resources\FishResource\Pages\ManageFish;
 use App\Models\Fish;
 use Livewire\Livewire;
 
 /**
- * Zadanie 011: po utworzeniu rekordu standardowy CRUD Filamenta ma przekierować
- * na listę zasobu, nie na widok edycji (domyślne zachowanie `CreateRecord`).
+ * ⚠️ Zadanie 022: `FishResource` stoi na `ManageRecords` — tworzenie i edycja biegną
+ * w MODALU akcji nagłówkowej / wierszowej, nie na osobnych stronach `Create*`/`Edit*`.
+ * Te strony były zarejestrowane obok, ale nieosiągalne z interfejsu (przegląd
+ * implementacji, 2026-09-20) — test woła teraz dokładnie tę ścieżkę, którą operator
+ * faktycznie używa: akcję `create` na stronie `Manage*`.
  */
-test('creating a fish redirects to the resource list', function () {
+test('creating a fish through the modal action adds it to the list', function () {
     $admin = $this->createSuperAdmin();
     $this->actingAs($admin);
 
-    Livewire::test(CreateFish::class)
-        ->fillForm(['name' => 'Karp'])
-        ->call('create')
-        ->assertHasNoFormErrors()
-        ->assertRedirect(FishResource::getUrl('index'));
+    Livewire::test(ManageFish::class)
+        ->callAction('create', data: ['name' => 'Karp'])
+        ->assertHasNoActionErrors();
 
     expect(Fish::where('name', 'Karp')->exists())->toBeTrue();
 });
