@@ -4,7 +4,8 @@ Obowiązuje przy zmianach w `app/Filament/Owner/**`,
 `app/Providers/Filament/OwnerPanelProvider.php` oraz w zasobach współdzielonych,
 gdy dotykasz ich zachowania **w panelu właściciela**.
 
-Zadania źródłowe: 012. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md).
+Zadania źródłowe: 012, 015. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
+i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 
 ---
 
@@ -193,3 +194,72 @@ Zadania źródłowe: 012. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-kompon
   statyczna. Pilnuje tego
   [`tests/Feature/FisheryWizardEntryPointsTest.php`](../../tests/Feature/FisheryWizardEntryPointsTest.php);
   przy sprzątaniu po refaktorze grepuj także po **trasach**, nie tylko po nazwach usuwanych klas.
+
+---
+
+## 6. Hub ma dwa rodzaje zakładek — lista i konfiguracja
+
+Reguła z sekcji 2 („zakładki huba budują RelationManagery") dotyczy zakładek pokazujących
+**listę rekordów podrzędnych** i w tym zakresie obowiązuje bez zmian. Obok niej żyje drugi
+rodzaj zakładki, wprowadzony zadaniem 015.
+
+- **Granica:** lista rekordów mających własne strony → **RelationManager**; konfiguracja
+  łowiska zapisywana jednym „Zapisz" → **strona ustawień**. Stanowiska, usługi dodatkowe
+  i pozwolenia zostają po pierwszej stronie tej granicy.
+- **Strona ustawień jest stroną zasobu `FisheryResource`** (`getPages()`), nie stroną panelu.
+  ⚠️ To nie jest szczegół: zasób jest zarejestrowany w obu panelach, więc strona trafia do obu
+  **bez dotykania providerów** — a providery paneli są pozycją z listy wyzwalaczy T3
+  w `CLAUDE.md`. Strona panelu wymagałaby wpisu w `OwnerPanelProvider` i podniosłaby tier
+  każdego zadania, które dokłada kolejny ekran konfiguracyjny.
+  Wzorzec: [`ManageSaleSettings`](../../app/Filament/Resources/FisheryResource/Pages/ManageSaleSettings.php).
+- **Rekordy podrzędne bez własnego życia renderuje `Repeater`, nie osobny zasób CRUD.**
+  Okres sprzedaży ma dwie daty i nazwę, więc trzy strony CRUD byłyby kosztem bez pokrycia.
+  Osobny zasób należy się rekordowi, do którego prowadzi deep-link albo który ma własne akcje.
+- **Wejście z huba to zwykła `Action` w `getHeaderActions()`**, nie akcja CRUD-owa — hub jest
+  `ViewRecord`, a tam autoryzacja odmawia **po klasie akcji** i robi to po cichu (sekcja 2).
+- **Okruszki i powrót po zapisie idą przez `Helper::fisheryBreadcrumbs()` i `Helper::fisheryHubUrl()`**,
+  tak samo jak na stronach zasobów podrzędnych.
+- ⚠️ **Strona ustawień nie jest hubem i hub nie jest stroną ustawień.** `ManageFishery` zostaje
+  `ViewRecord` bez formularza edycji łowiska — to jest istota ADR-006. Nowy ekran konfiguracyjny
+  zakłada się **obok** niego, nigdy przez dorobienie formularza do huba.
+
+Uzasadnienie i odrzucone warianty:
+[ADR-006, aktualizacja z zadania 015](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md).
+
+---
+
+## 7. Doba wędkarska i okresy sprzedaży
+
+- **Doba jest PRZEDZIAŁEM DWÓCH MOMENTÓW, nie datą kalendarzową.** Trwa od `day_start_time`
+  dnia D do `day_end_time` dnia D+1, więc zawsze przechodzi przez północ, a przy zmianie czasu
+  trwa 23 albo 25 godzin i mimo to jest jedną dobą. Identyfikuje ją dzień rozpoczęcia.
+- **Wyliczenia biegną w strefie czasowej ŁOWISKA** (`fisheries.timezone`). Strefa aplikacji
+  (`config/app.php`) nie bierze w nich udziału. Momenty graniczne porównuj jako punkty w czasie,
+  nie jako daty lokalne — inaczej wynik zależy od kolejności rzutowania i rozjeżdża się dopiero
+  przy zmianie czasu.
+- ⚠️ **Dwie reguły dopasowania zakresu dat są CELOWO ASYMETRYCZNE** i nie wolno zastąpić jednej
+  drugą:
+  - **okres sprzedaży DOPUSZCZA** → wymaga **zawierania**: doba musi mieścić się w oknie
+    w całości (`FishingDay::isContainedIn()`);
+  - **ograniczenie i blokada WYŁĄCZAJĄ** → wystarczy **przecięcie**: doba jest objęta, gdy
+    jakakolwiek jej część wypada w oknie (`FishingDay::overlaps()`).
+
+  Pomyłka w którąkolwiek stronę kończy się sprzedażą doby, której nie wolno sprzedać.
+  Skutek praktyczny reguły zawierania, wart zapamiętania: **ostatnie pozwolenie jednodobowe
+  kupuje się na PRZEDOSTATNI dzień okresu.**
+- **Brak okresu sprzedaży oznacza brak sprzedaży**, nie sprzedaż bez ograniczeń. Reguła jest
+  odwrotna do intuicji „nic nie ustawiłem, więc sprzedaję normalnie" i myli się wyłącznie
+  w stronę odmowy.
+- **Odmowa sprzedaży niesie powód** (`SaleUnavailabilityReason`), nie samo „nie" — wędkarz musi
+  odróżnić „przed sezonem" od „za sezonem", a operator „nie skonfigurowałem" od „zamknąłem".
+- ⚠️ **Doby liczy wyłącznie [`FishingDayCalendar`](../../app/Services/FishingDayCalendar.php).**
+  Ani zasoby Filamenta, ani przyszłe zapytania o dostępność, cennik czy blokady nie liczą ich po
+  swojemu. Drugi kod liczący doby jest defektem: asymetria reguł przestaje wtedy obowiązywać
+  w jednym z dwóch miejsc i nic tego nie sygnalizuje.
+- **Pola doby żyją POZA `FisheryResource::fisheryDetailComponents()`**, bo ta metoda jest
+  współdzielona z krokiem „Fishery" kreatora. Łowisko powstaje niesprzedające i to jest stan
+  zamierzony. Pilnuje tego
+  [`tests/Feature/SaleSettingsPageTest.php`](../../tests/Feature/SaleSettingsPageTest.php).
+
+Uzasadnienie i odrzucone warianty:
+[ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).

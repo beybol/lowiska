@@ -6,6 +6,7 @@ use App\Filament\Resources\FisheryResource\Pages\CreateFishery;
 use App\Filament\Resources\FisheryResource\Pages\EditFishery;
 use App\Filament\Resources\FisheryResource\Pages\ListFisheries;
 use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
+use App\Filament\Resources\FisheryResource\Pages\ManageSaleSettings;
 use App\Filament\Resources\FisheryResource\RelationManagers\AdditionalServicesRelationManager;
 use App\Filament\Resources\FisheryResource\RelationManagers\LongTermPermitsRelationManager;
 use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
@@ -328,6 +329,10 @@ class FisheryResource extends Resource
             'create' => CreateFishery::route('/create'),
             'edit' => EditFishery::route('/{record}/edit'),
             'manage' => ManageFishery::route('/{record}/manage'),
+            // Zakładka konfiguracyjna huba jest STRONĄ ZASOBU, nie stroną panelu:
+            // `FisheryResource` jest zarejestrowany w obu panelach, więc strona
+            // trafia do obu bez dotykania providerów (ADR-006, aktualizacja 015).
+            'sale-settings' => ManageSaleSettings::route('/{record}/sale-settings'),
         ];
     }
 

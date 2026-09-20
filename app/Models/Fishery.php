@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\SaleMode;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -38,9 +39,28 @@ class Fishery extends Model
         'gallery_images',
         'currency_id',
         'bank_account_number',
+        'sale_mode',
+        'day_start_time',
+        'day_end_time',
+        'timezone',
     ];
 
-    protected $casts = ['gallery_images' => 'array'];
+    protected $casts = [
+        'gallery_images' => 'array',
+        'sale_mode' => SaleMode::class,
+    ];
+
+    /**
+     * Domyślne lustro wartości z bazy, żeby świeżo utworzony model miał tryb
+     * sprzedaży także PRZED odświeżeniem z bazy — `create()` nie czyta z powrotem
+     * kolumn wypełnionych domyślną wartością po stronie MySQL-a.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'sale_mode' => 'daily_period',
+        'timezone' => 'Europe/Warsaw',
+    ];
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -130,5 +150,13 @@ class Fishery extends Model
     public function positions(): HasMany
     {
         return $this->hasMany(Position::class);
+    }
+
+    /**
+     * @return HasMany<SalePeriod, $this>
+     */
+    public function salePeriods(): HasMany
+    {
+        return $this->hasMany(SalePeriod::class);
     }
 }

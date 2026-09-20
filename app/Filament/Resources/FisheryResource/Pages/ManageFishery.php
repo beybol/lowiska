@@ -78,6 +78,15 @@ class ManageFishery extends ViewRecord
                 ->url(fn (): string => FisheryResource::getUrl('edit', [
                     'record' => $this->getRecord(),
                 ])),
+            // Wejście do zakładki konfiguracyjnej. Zwykła `Action`, nie akcja
+            // CRUD-owa: hub jest `ViewRecord`, a tam autoryzacja odmawia PO KLASIE
+            // akcji i robi to po cichu (`panel-wlasciciela.md` §2).
+            Action::make('saleSettings')
+                ->label(__('Sale and seasons'))
+                ->icon('heroicon-m-calendar-days')
+                ->url(fn (): string => FisheryResource::getUrl('sale-settings', [
+                    'record' => $this->getRecord(),
+                ])),
         ];
     }
 

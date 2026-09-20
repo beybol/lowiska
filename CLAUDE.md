@@ -43,7 +43,7 @@ Jedna aplikacja Laravel, **dwa panele Filament**:
 
 **Autoryzacja** stoi na dwóch warstwach naraz i obie trzeba respektować: `bezhansalleh/filament-shield`
 (role i uprawnienia, stąd `RolePolicy`) oraz czternaście polityk w [`app/Policies/`](app/Policies/) —
-po jednej na model. Pokrycie testowe granic paneli żyje w `tests/Feature/AdminPanelTest.php`
+po jednej na **zasób Filamenta**, nie na model (model bez zasobu autoryzuje się przez rodzica). Pokrycie testowe granic paneli żyje w `tests/Feature/AdminPanelTest.php`
 i `tests/Feature/OwnerPanelTest.php`.
 
 **Uwierzytelnianie** — Laravel Breeze (widoki i trasy w `routes/`) plus `laravel/socialite`.
@@ -277,7 +277,10 @@ docker run --rm dunglas/frankenphp:1-php8.4 php -r 'echo PHP_VERSION;' # obraz p
 
 - Kod i UI po angielsku; dokumentacja po polsku (patrz wyżej).
 - **Autoryzacja idzie przez polityki i Shielda, nie przez warunki w widoku ani w zasobie.** Nowy model
-  dostaje własną politykę; zasób Filamenta nie jest miejscem na regułę dostępu.
+  dostaje własną politykę **albo autoryzuje się przez rodzica, gdy nie ma własnego zasobu Filamenta**
+  — polityka odpowiada zasobowi, nie modelowi, bo `shield:generate` wyprowadza uprawnienia
+  z zarejestrowanych zasobów. Zasób Filamenta nie jest miejscem na regułę dostępu.
+  Niezmiennik i droga wyjścia: [`docs/conventions/autoryzacja.md`](docs/conventions/autoryzacja.md) §5.
 - **Każde ID i każda właściwość publiczna komponentu to dane od klienta.** Akcje na rekordach:
   pobranie z zakresem widoczności + jawna autoryzacja. Nigdy generyczny setter przyjmujący nazwę
   kolumny od klienta.

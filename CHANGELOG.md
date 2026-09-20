@@ -15,6 +15,22 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
      ### Dodane / ### Zmienione / ### Poprawione / ### Usunięte / ### Wycofane / ### Bezpieczeństwo
      Przy wydaniu sekcja `[unreleased]` zamienia się w `## [X.Y.Z] - RRRR-MM-DD`. -->
 
+### Dodane
+
+- Właściciel łowiska może teraz opisać, czym handluje: na nowym ekranie „Sprzedaż i sezony"
+  ustawia godzinę rozpoczęcia i zakończenia doby wędkarskiej oraz strefę czasową, w której ta
+  doba jest liczona. Doba trwa od godziny do godziny dnia następnego, więc przechodzi przez
+  północ — a w weekend zmiany czasu jest wciąż jedną dobą, choć trwa o godzinę krócej
+  albo dłużej.
+- Na tym samym ekranie właściciel wyznacza okresy, w których łowisko sprzedaje. Poza nimi nie
+  da się kupić nic, nawet gdy stanowisko jest wolne, a łowisko bez ani jednego okresu nie
+  sprzedaje wcale. Okresy nie mogą na siebie zachodzić ani kończyć się przed swoim początkiem —
+  sprzeczność wychodzi przy zapisie, a nie dopiero u wędkarza.
+- Odmowa sprzedaży mówi teraz, dlaczego termin jest niedostępny: czy wypada przed sezonem,
+  po nim, czy łowisko nie ma jeszcze ustawionej sprzedaży. Ostatnie pozwolenie na jedną dobę
+  kupuje się na przedostatni dzień okresu, bo doba rozpoczęta ostatniego dnia kończyłaby się
+  już po jego zamknięciu.
+
 ### Zmienione
 
 - Dodanie nowego rekordu w panelu administratora (m.in. udogodnienia, kraje, waluty, rodzaje

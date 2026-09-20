@@ -135,3 +135,38 @@ Co **nie** uległo zmianie i nadal wiąże:
 - Kolejność zakładek stawia dane łowiska jako pierwsze, żeby wejście w zarządzanie nie
   wrzucało od razu w jedną z trzech list — mechanizmem
   `hasCombinedRelationManagerTabsWithContent()`, wbudowanym w Filamenta.
+
+## Aktualizacja (zadanie 015, 2026-09-17)
+
+**Zakładka konfiguracyjna huba nie jest RelationManagerem — jest stroną ustawień.** Reguła
+z aktualizacji zadania 012 („zakładki huba budują RelationManagery") dotyczy zakładek pokazujących
+**listę rekordów podrzędnych** i w tym zakresie obowiązuje bez zmian. Pakiet 014–021 dokłada drugi
+rodzaj zakładki, którego wtedy nie było.
+
+Powód rozszerzenia: „Sprzedaż i sezony" trzyma **konfigurację jednego łowiska**, nie listę jego
+rekordów podrzędnych — tryb sprzedaży, godziny doby i okresy sprzedaży w jednym formularzu z jednym
+zapisem. Wtłoczone w RelationManager rozpadłoby się na dwa miejsca: pola doby wylądowałyby
+w formularzu edycji łowiska, a okresy w osobnej zakładce — mimo że operator nie potrafi ustawić
+jednego bez drugiego. Makieta zapowiada **pięć kolejnych** zakładek tego rodzaju (Cennik, Reguły
+sprzedaży, Usługi dodatkowe w części konfiguracyjnej, Zwroty, Regulamin), więc rozstrzygnięcie zapada
+raz, tutaj, a nie pięć razy przy okazji.
+
+Co wiąże przyszłe zakładki konfiguracyjne:
+
+- **Strona ustawień jest stroną zasobu `FisheryResource`** (`getPages()`), nie stroną panelu.
+  Zasób jest już zarejestrowany w obu panelach, więc strona nie wymaga dotykania
+  `AdminPanelProvider` ani `OwnerPanelProvider` — a to są pozycje z listy wyzwalaczy T3.
+- **Rekordy podrzędne bez własnego życia renderuje `Repeater`, nie osobny zasób CRUD.** Okres
+  sprzedaży ma dwie daty i nazwę, nie ma własnego ekranu, na który ktokolwiek wchodzi — trzy strony
+  CRUD dla takiego bytu są kosztem bez pokrycia. Zasób osobny należy się rekordowi, do którego
+  prowadzi deep-link albo który ma własne akcje.
+- **Okruszki i powrót po zapisie idą przez `Helper::fisheryBreadcrumbs()` i `Helper::fisheryHubUrl()`**,
+  tak samo jak strony list i tworzenia zasobów podrzędnych. Strona ustawień nie buduje tych tablic
+  ręcznie.
+- **Autoryzacja jest jawna.** Strona nie dziedziczy sprawdzeń z RelationManagera, więc pyta politykę
+  wprost (`Gate::allows('update', $fishery)`) i zawęża widoczność przez
+  `Helper::scopeToOwnedFisheries()`.
+
+⚠️ Granica między dwoma rodzajami zakładki: **lista rekordów, które mają własne strony → RelationManager;
+konfiguracja łowiska zapisywana jednym „Zapisz" → strona ustawień.** Stanowiska, usługi dodatkowe
+i pozwolenia zostają po pierwszej stronie tej granicy i nic się dla nich nie zmienia.
