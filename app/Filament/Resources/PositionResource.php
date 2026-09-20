@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\PositionAttributeType;
+use App\Enums\PositionStatus;
 use App\Filament\Resources\PositionResource\Pages\CreatePosition;
 use App\Filament\Resources\PositionResource\Pages\EditPosition;
 use App\Filament\Resources\PositionResource\Pages\ListPositions;
@@ -9,6 +11,10 @@ use App\Helpers\Helper;
 use App\Models\AdditionalService;
 use App\Models\LongTermPermit;
 use App\Models\Position;
+use App\Models\PositionAttribute;
+use App\Models\PositionGroup;
+use App\Services\PositionAttributeWriter;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -18,14 +24,15 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class PositionResource extends Resource
 {
@@ -43,12 +50,66 @@ class PositionResource extends Resource
         return $schema
             ->components([
                 ...Helper::getFisheryFields(),
-                Toggle::make('is_active')
-                    ->label(__('Is active')),
+                // ⚠️ Stan WŁASNY stanowiska, nie dostępność w terminie. Ta druga zależy
+                // od czasu i składa ją zadanie 016 z blokad i okresów sprzedaży.
+                Select::make('status')
+                    ->label(__('Status'))
+                    ->options(PositionStatus::options())
+                    ->default(PositionStatus::Available->value)
+                    ->selectablePlaceholder(false)
+                    ->required(),
                 TextInput::make('name')
                     ->required()
                     ->maxLength(255)
                     ->label(__('Position name')),
+                TextInput::make('max_anglers')
+                    ->label(__('Maximum anglers'))
+                    ->helperText(__('How many people may fish at this position.'))
+                    ->numeric()
+                    ->minValue(1)
+                    ->maxValue(255)
+                    ->required(),
+                TextInput::make('max_people')
+                    ->label(__('Maximum people'))
+                    ->helperText(__('Including people who do not fish.'))
+                    ->numeric()
+                    ->minValue(1)
+                    ->maxValue(255)
+                    ->rules([
+                        // ⚠️ Reguła porównawcza zamiast `gte:max_anglers` — pole bywa puste,
+                        // a wtedy porównanie ma się w ogóle nie odbyć.
+                        fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get): void {
+                            $maxAnglers = $get('max_anglers');
+
+                            if (blank($value) || blank($maxAnglers)) {
+                                return;
+                            }
+
+                            if ((int) $value < (int) $maxAnglers) {
+                                $fail(__('The maximum number of people can not be lower than the maximum number of anglers.'));
+                            }
+                        },
+                    ]),
+                Select::make('groups')
+                    ->label(__('Position groups'))
+                    ->relationship('groups', 'name')
+                    ->multiple()
+                    ->preload()
+                    // ⚠️ Lista grup liczy się z `fishery_id`, czyli z pola `Hidden` —
+                    // danych od klienta. Bez zawężenia podmiana stanu wyświetliłaby
+                    // nazwy grup CUDZEGO łowiska (`autoryzacja.md` §4).
+                    ->options(function (Get $get): array {
+                        $fisheryId = $get('fishery_id');
+
+                        if (! is_numeric($fisheryId)) {
+                            return [];
+                        }
+
+                        $query = PositionGroup::query()->where('fishery_id', (int) $fisheryId);
+                        Helper::scopeToOwnedFisheries($query);
+
+                        return $query->pluck('name', 'id')->toArray();
+                    }),
                 RichEditor::make('description')
                     ->label(__('Description'))
                     ->toolbarButtons(Helper::getRichEditorOptions()),
@@ -129,15 +190,64 @@ class PositionResource extends Resource
                     // Usługi dodaje się przyciskiem niżej (zadanie 012).
                     ->defaultItems(0)
                     ->addActionLabel(__('Add additional service')),
+                Section::make(__('Position attributes'))
+                    ->description(__('Attributes come from the shared dictionary managed by the administrator.'))
+                    ->schema(static::attributeComponents())
+                    ->visible(fn (): bool => PositionAttribute::query()->exists()),
             ]);
+    }
+
+    /**
+     * Komponenty cech GENEROWANE ZE SŁOWNIKA — dodanie wpisu w panelu administratora
+     * udostępnia cechę we wszystkich łowiskach bez zmiany kodu i bez migracji.
+     *
+     * ⚠️ Stan siedzi pod kluczem `position_attributes`, nie `attributes`: to drugie
+     * koliduje z magiczną właściwością Eloquenta i zapis nadpisywałby model.
+     *
+     * ⚠️ Pole puste to TRZECI STAN („nikt się nie wypowiedział"), nie „nie" — dlatego
+     * flaga jest `Select` z pustą opcją, a nie `Toggle`, który zawsze niesie fałsz.
+     *
+     * @return array<int, mixed>
+     */
+    public static function attributeComponents(): array
+    {
+        return PositionAttribute::query()
+            ->with('options')
+            ->orderBy('name')
+            ->get()
+            ->map(function (PositionAttribute $attribute) {
+                $statePath = 'position_attributes.'.$attribute->id;
+
+                return match ($attribute->type) {
+                    PositionAttributeType::Flag => Select::make($statePath)
+                        ->label($attribute->name)
+                        ->options([1 => __('Yes'), 0 => __('No')])
+                        ->placeholder(__('Not specified')),
+                    PositionAttributeType::Number => TextInput::make($statePath)
+                        ->label($attribute->name)
+                        ->numeric()
+                        ->suffix($attribute->unit)
+                        ->placeholder(__('Not specified')),
+                    PositionAttributeType::Choice => Select::make($statePath)
+                        ->label($attribute->name)
+                        ->options($attribute->options->pluck('name', 'id')->toArray())
+                        ->placeholder(__('Not specified')),
+                };
+            })
+            ->all();
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                ToggleColumn::make('is_active')
-                    ->label(__('Is active')),
+                TextColumn::make('status')
+                    ->label(__('Status'))
+                    ->badge()
+                    ->formatStateUsing(fn (PositionStatus $state): string => $state->label())
+                    ->color(fn (PositionStatus $state): string => $state === PositionStatus::Available ? 'success' : 'gray'),
+                TextColumn::make('max_anglers')
+                    ->label(__('Maximum anglers')),
                 TextColumn::make('name')
                     ->label(__('Position name'))
                     ->searchable(),
@@ -157,9 +267,116 @@ class PositionResource extends Resource
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    static::setAttributeBulkAction(),
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Akcja zbiorcza — ustawienie JEDNEJ cechy na zaznaczonych stanowiskach.
+     *
+     * ⚠️ To jest PRYMITYW, który zastępuje dziedziczenie po grupie: zapisuje wartość
+     * wprost na każdym stanowisku, więc po wykonaniu każde niesie własną i nic nie jest
+     * rozwiązywane przy odczycie. Akcja wywołana z poziomu grupy jest skrótem do tego
+     * samego kodu, z zaznaczeniem wypełnionym stanowiskami grupy.
+     *
+     * ⚠️ Nie ma wariantu „ustaw wszystkim" bez wskazania wartości — to byłoby
+     * dziedziczenie tylnymi drzwiami, tylko niewidoczne (zadanie 014).
+     */
+    public static function setAttributeBulkAction(): BulkAction
+    {
+        return BulkAction::make('setPositionAttribute')
+            ->label(__('Set an attribute'))
+            ->icon('heroicon-m-tag')
+            ->schema(static::attributeAssignmentSchema())
+            ->requiresConfirmation()
+            // Liczba objętych stanowisk PRZED zapisem — operator ma wiedzieć, w co klika.
+            ->modalDescription(fn (Collection $records): string => trans_choice(
+                'The attribute will be set on :count position|The attribute will be set on :count positions',
+                $records->count(),
+                ['count' => $records->count()],
+            ))
+            ->action(fn (Collection $records, array $data) => static::applyAttributeAssignment($records, $data))
+            ->deselectRecordsAfterCompletion();
+    }
+
+    /**
+     * Pola wyboru cechy i wartości — WSPÓLNE dla akcji zbiorczej na tabeli stanowisk
+     * i dla jej skrótu z poziomu grupy. Jeden schemat, dwa wejścia.
+     *
+     * @return array<int, mixed>
+     */
+    public static function attributeAssignmentSchema(): array
+    {
+        return [
+            Select::make('position_attribute_id')
+                ->label(__('Attribute'))
+                ->options(fn (): array => PositionAttribute::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                ->live()
+                ->required(),
+            // Trzy pola wartości, z których widoczne jest to pasujące do typu cechy —
+            // ten sam podział co w kolumnach tabeli wartości (ADR-011).
+            Select::make('value_flag')
+                ->label(__('Value'))
+                ->options([1 => __('Yes'), 0 => __('No')])
+                ->visible(fn (Get $get): bool => self::attributeTypeOf($get('position_attribute_id')) === PositionAttributeType::Flag)
+                ->required(),
+            TextInput::make('value_number')
+                ->label(__('Value'))
+                ->numeric()
+                ->visible(fn (Get $get): bool => self::attributeTypeOf($get('position_attribute_id')) === PositionAttributeType::Number)
+                ->required(),
+            Select::make('position_attribute_option_id')
+                ->label(__('Value'))
+                ->options(fn (Get $get): array => PositionAttribute::find($get('position_attribute_id'))
+                    ?->options->pluck('name', 'id')->toArray() ?? [])
+                ->visible(fn (Get $get): bool => self::attributeTypeOf($get('position_attribute_id')) === PositionAttributeType::Choice)
+                ->required(),
+        ];
+    }
+
+    /**
+     * Wykonanie przypisania — również wspólne dla obu wejść.
+     *
+     * @param  Collection<int, Position>  $positions
+     * @param  array<string, mixed>  $data
+     */
+    public static function applyAttributeAssignment(Collection $positions, array $data): int
+    {
+        $attribute = PositionAttribute::find($data['position_attribute_id'] ?? null);
+
+        if (! $attribute instanceof PositionAttribute) {
+            return 0;
+        }
+
+        $rawValue = match ($attribute->type) {
+            PositionAttributeType::Flag => $data['value_flag'] ?? null,
+            PositionAttributeType::Number => $data['value_number'] ?? null,
+            PositionAttributeType::Choice => $data['position_attribute_option_id'] ?? null,
+        };
+
+        $count = app(PositionAttributeWriter::class)->writeForMany($positions, $attribute, $rawValue);
+
+        Notification::make()
+            ->success()
+            ->title(trans_choice(
+                'The attribute was set on :count position|The attribute was set on :count positions',
+                $count,
+                ['count' => $count],
+            ))
+            ->send();
+
+        return $count;
+    }
+
+    private static function attributeTypeOf(mixed $attributeId): ?PositionAttributeType
+    {
+        if (! is_numeric($attributeId)) {
+            return null;
+        }
+
+        return PositionAttribute::find((int) $attributeId)?->type;
     }
 
     public static function getRelations(): array
@@ -189,6 +406,17 @@ class PositionResource extends Resource
             ])
             ->toArray();
         $data['additionalServices'] = array_values($data['additionalServices'] ?? []);
+
+        // Cechy wracają do formularza pod tym samym kluczem, pod którym są zapisywane.
+        // ⚠️ Brak wiersza NIE staje się tu fałszem — pole zostaje puste, bo „nikt się
+        // nie wypowiedział" jest trzecim stanem, do którego trzeba móc wrócić.
+        $data['position_attributes'] = $record->attributeValues
+            ->mapWithKeys(fn ($value): array => [
+                $value->position_attribute_id => $value->typedValue($value->attribute->type),
+            ])
+            ->toArray();
+
+        $data['groups'] = $record->groups->pluck('id')->toArray();
 
         return $data;
     }

@@ -2,7 +2,7 @@
 
 Obowiązuje przy zmianach w `app/Policies/**`, rolach i uprawnieniach Shielda, `User`.
 
-Zadania źródłowe: 008, 009.
+Zadania źródłowe: 008, 009, 015.
 
 ---
 
@@ -116,3 +116,40 @@ per panel nie dziedziczy się sama; przy każdej zmianie w `AdminPanelProvider` 
 Asercje typu „nie zawiera nazwy cudzego rekordu" łatwo przechodzą z niewłaściwego powodu: kolumny
 opisowe mają `limit(20)`, więc losowa treść z fabryki i tak nie trafia do HTML-a w całości.
 Wzorzec: `tests/Feature/OwnerPanelTest.php`, przypadki „Owner can not…".
+
+---
+
+## 5. Polityka odpowiada zasobowi Filamenta; model bez zasobu autoryzuje się przez rodzica
+
+- **Niezmiennik:** plik w `app/Policies/` istnieje dla modelu, który ma **zarejestrowany zasób
+  Filamenta**. Dziś czternaście polityk odpowiada trzynastu zasobom z `app/Filament/Resources/`
+  **plus zasobowi ról dostarczanemu przez Shielda** (stąd `RolePolicy` bez pliku w katalogu
+  zasobów) — licznik zgadza się dopiero z tym czternastym.
+- **Model bez własnego zasobu autoryzuje się przez rodzica.** `SalePeriod` istnieje wyłącznie
+  przez łowisko: edytuje się go `Repeaterem` na stronie ustawień, a dostępu pilnuje
+  `FisheryPolicy` — kto może edytować łowisko, ten edytuje jego sezony.
+- ⚠️ **Dlaczego nie „na wszelki wypadek własna polityka":** `shield:generate` wyprowadza
+  uprawnienia z **zarejestrowanych zasobów**, a `ShieldPermissionNamesTest` skanuje
+  `app/Policies/*.php` po literałach uprawnień i porównuje je z faktycznym wynikiem generatora.
+  Polityka pytająca o `'view_any:sale_period'` nazwałaby uprawnienie, którego generator nigdy
+  nie utworzy — i wywróciłaby ten test. To nie jest uproszczenie do posprzątania później, tylko
+  jedyny spójny kształt przy dzisiejszej konfiguracji Shielda.
+- **Co to znaczy dzisiaj, wprost:** kto może edytować łowisko, ten może zmienić jego sezony
+  sprzedaży. Rozróżnienia uprawnień nie ma, dopóki ktoś go świadomie nie wprowadzi.
+- **Droga wyjścia, gdy uprawnienia trzeba będzie zróżnicować** (np. pracownik łowiska zarządza
+  stanowiskami, ale nie rusza sezonów i cen) — decyzja NIE jest jednokierunkowa:
+  1. **Podstawowa:** dodać metodę do istniejącej polityki (`FisheryPolicy::updateSaleSettings()`)
+     i wołać ją ze strony ustawień. Jeśli reguła daje się wyrazić bez **nowego literału
+     uprawnienia** — rolą, istniejącym uprawnieniem, warunkiem na rekordzie — to cała robota:
+     zero zmian w Shieldzie, `ShieldPermissionNamesTest` nietknięty.
+  2. **Tylko gdy potrzebne jest nazwane uprawnienie Shielda** (żeby dało się je klikać przy roli):
+     dopisać klucz do `custom_permissions` w `config/filament-shield.php` (dziś pusta tablica)
+     i przegenerować. `shield:generate` tworzy uprawnienia **bez zasobu** —
+     robi to `generateCustomPermissions()` wołane z `GenerateCommand`. Dopiero wtedy polityka
+     może pytać o ten literał i nadal przechodzić test.
+- ⚠️ **Test czerwienieje TYLKO od nowego literału uprawnienia**, nie od nowej metody w polityce.
+  Sama metoda niczego nie wyzwala.
+- **Zawężenie widoczności bierze się z rodzica.** Strona ustawień jest stroną `FisheryResource`,
+  więc wiązanie rekordu przechodzi przez `getEloquentQuery()` z `forCurrentUser()`, a
+  `EditRecord::authorizeAccess()` pyta `FisheryPolicy::update()`. Cudze łowisko **nie istnieje**
+  dla tej strony (404), nie „istnieje, ale zabronione".

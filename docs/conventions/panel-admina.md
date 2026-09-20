@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w `app/Filament/Resources/**`,
 `app/Providers/Filament/AdminPanelProvider.php`.
 
-Zadania źródłowe: 005, 009, 011. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
+Zadania źródłowe: 005, 009, 011, 014. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
 
 ---
 
@@ -160,3 +160,25 @@ i hub „Zarządzaj łowiskiem", ADR-006).
     ([`OwnerPanelTest`](../../tests/Feature/OwnerPanelTest.php)). Zadanie 011 zapisało tu, że
     `withQueryParams()` nie dowozi query stringa do `mount()`; po upgrade z zadania 009 **dowozi**
     — strona montuje się bez 404 z `assertFisheryAccessOrAbort()` i widzi parametr.
+
+---
+
+## 5. Słownik cech stanowisk
+
+- **Cechy stanowisk (`position_attributes`) są słownikiem WSPÓLNYM dla całego portalu i wyłącznie
+  w rękach administratora.** Zasób nie trafia na listę `OwnerPanelProvider`.
+  ⚠️ To warunek, pod którym filtrowanie po cechach przez wszystkie łowiska ma sens — cecha musi
+  znaczyć to samo wszędzie. **Cechy własne łowiska są odrzucone co do zasady, nie odłożone**, więc
+  w tabeli nie ma nawet kolumny `fishery_id`: pusta furtka do czegoś, czego świadomie nie chcemy,
+  z czasem zostałaby użyta.
+- **Cecha ma jeden z trzech typów** (`flag`, `number`, `choice`), a typ decyduje, która z trzech
+  kolumn wartości jest właściwa. Jednostka należy wyłącznie do typu liczbowego, a opcje wyboru —
+  wyłącznie do typu `choice` i edytuje się je `Repeaterem` w formularzu cechy.
+- ⚠️ **Reguła „wartość pasuje do typu" nie ma odpowiednika w schemacie** i jej jedynym domem jest
+  `app/Rules/PositionAttributeValueMatchesType`. Woła ją formularz stanowiska **i** akcja zbiorcza;
+  druga kopia warunku jest defektem, nie zabezpieczeniem.
+- **`is_filterable` jest znacznikiem na przyszłą wyszukiwarkę** — sam filtr nie powstaje tutaj.
+- **Cechy powstają wyłącznie dla rzeczy NIEKUPOWALNYCH.** Wszystko, co wędkarz dokupuje, jest usługą
+  dodatkową i korzysta z mechanizmu cen i limitów, a nie ze słownika cech.
+
+Uzasadnienie kształtu wartości: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech-stanowiska.md).

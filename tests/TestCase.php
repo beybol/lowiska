@@ -100,6 +100,28 @@ abstract class TestCase extends BaseTestCase
         'delete:convenience',
     ];
 
+    /**
+     * ⚠️ Nowy zasób Filamenta MUSI dopisać tu swoje uprawnienia. Ta lista jest ręczna
+     * (`docs/conventions/autoryzacja.md` §2) i nic jej nie generuje — bez wpisu super
+     * admin dostaje 403 na stronie, która w przeglądarce działa, a objaw wygląda na
+     * błąd uprawnień produkcyjnych, nie na brak w teście.
+     */
+    private array $positionAttributePermissions = [
+        'view_any:position_attribute',
+        'view:position_attribute',
+        'create:position_attribute',
+        'update:position_attribute',
+        'delete:position_attribute',
+    ];
+
+    private array $positionGroupPermissions = [
+        'view_any:position_group',
+        'view:position_group',
+        'create:position_group',
+        'update:position_group',
+        'delete:position_group',
+    ];
+
     private array $countryPermissions = [
         'view_any:country',
         'view:country',
@@ -169,6 +191,8 @@ abstract class TestCase extends BaseTestCase
             $this->companyPermissions,
             $this->fisheryPermissions,
             $this->conveniencePermissions,
+            $this->positionAttributePermissions,
+            $this->positionGroupPermissions,
             $this->countryPermissions,
             $this->currencyPermissions,
             $this->fishPermissions,

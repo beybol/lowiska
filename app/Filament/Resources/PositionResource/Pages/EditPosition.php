@@ -5,6 +5,8 @@ namespace App\Filament\Resources\PositionResource\Pages;
 use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
 use App\Filament\Resources\PositionResource;
 use App\Helpers\Helper;
+use App\Models\Position;
+use App\Services\PositionAttributeWriter;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -14,9 +16,16 @@ class EditPosition extends EditRecord
 
     protected array $additionalServicesToSync = [];
 
+    /** @var array<int|string, mixed> */
+    protected array $attributesToWrite = [];
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $this->additionalServicesToSync = Helper::extractAdditionalServices($data);
+
+        // ⚠️ Jak przy tworzeniu — `position_attributes` nie jest kolumną.
+        $this->attributesToWrite = $data['position_attributes'] ?? [];
+        unset($data['position_attributes']);
 
         // ⚠️ Bramka MUSI działać także przy edycji, nie tylko przy tworzeniu.
         // `mount()` sprawdza łowisko rekordu SPRZED zmiany, a `fishery_id` jest
@@ -28,12 +37,17 @@ class EditPosition extends EditRecord
     protected function afterSave(): void
     {
         Helper::syncAdditionalServices($this->record, $this->additionalServicesToSync);
+
+        $position = $this->record;
+        assert($position instanceof Position);
+
+        app(PositionAttributeWriter::class)->writeForPosition($position, $this->attributesToWrite);
     }
 
     public function mount(string|int $record): void
     {
         parent::mount($record);
-        $this->record->load('additionalServices');
+        $this->record->load('additionalServices', 'attributeValues.attribute', 'groups');
         Helper::assertFisheryAccessOrAbort($this->record->fishery_id);
 
         $this->form->fill(

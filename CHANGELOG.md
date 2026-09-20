@@ -30,9 +30,26 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   po nim, czy łowisko nie ma jeszcze ustawionej sprzedaży. Ostatnie pozwolenie na jedną dobę
   kupuje się na przedostatni dzień okresu, bo doba rozpoczęta ostatniego dnia kończyłaby się
   już po jego zamknięciu.
+- Stanowisko ma teraz pojemność: maksymalną liczbę wędkujących i maksymalną liczbę osób
+  łącznie z niełowiącymi. Liczba wędkujących jest wymagana przy zapisie, a liczba osób nie może
+  być od niej mniejsza.
+- Administrator prowadzi wspólny dla całego portalu słownik cech stanowisk — tak/nie, liczba
+  z jednostką albo wybór z listy. Właściciel wypełnia te cechy na swoich stanowiskach, a formularz
+  sam pokazuje każdą cechę dopisaną do słownika. Cecha pozostawiona pusta znaczy „nie wiadomo",
+  a nie „nie ma".
+- Właściciel może zakładać grupy stanowisk i przypisywać do nich stanowiska — jedno stanowisko
+  może należeć do wielu grup naraz. Grupa nosi własny opis: dojazd, charakterystykę brzegu
+  i wszystko, czego nie da się zapisać jedną cechą.
+- Cechę da się ustawić wielu stanowiskom naraz: zaznacza się je na liście albo wywołuje działanie
+  z poziomu grupy. Przed zapisem widać, ilu stanowisk dotyczy.
 
 ### Zmienione
 
+- Stanowisko ma teraz stan „w sprzedaży" albo „wycofane" zamiast przełącznika aktywności.
+  Liczniki i listy liczą po nowym stanie.
+- Nazwa stanowiska nie może się powtórzyć w obrębie jednego łowiska — także wtedy, gdy stanowisko
+  o tej nazwie zostało wcześniej wycofane. Wcześniej wycofana nazwa wracała do obiegu i historia
+  pozwoleń mogła wskazywać na dwa różne miejsca o tej samej etykiecie.
 - Dodanie nowego rekordu w panelu administratora (m.in. udogodnienia, kraje, waluty, rodzaje
   i metody łowienia, ryby, stany, użytkownicy, usługi dodatkowe, stanowiska) wraca teraz od razu
   na listę zamiast przechodzić do widoku edycji dopiero co utworzonego rekordu.

@@ -159,4 +159,12 @@ class Fishery extends Model
     {
         return $this->hasMany(SalePeriod::class);
     }
+
+    /**
+     * @return HasMany<PositionGroup, $this>
+     */
+    public function positionGroups(): HasMany
+    {
+        return $this->hasMany(PositionGroup::class);
+    }
 }

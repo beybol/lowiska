@@ -8,6 +8,7 @@ use App\Filament\Resources\AdditionalServiceResource;
 use App\Filament\Resources\CompanyResource;
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\LongTermPermitResource;
+use App\Filament\Resources\PositionGroupResource;
 use App\Filament\Resources\PositionResource;
 use App\Http\Middleware\TwoFactorMiddleware;
 use Filament\Http\Middleware\Authenticate;
@@ -48,6 +49,10 @@ class OwnerPanelProvider extends PanelProvider
                 LongTermPermitResource::class,
                 AdditionalServiceResource::class,
                 PositionResource::class,
+                // ⚠️ Panel administratora odkrywa zasoby katalogiem, ten ma listę JAWNĄ —
+                // bez tego wpisu grupy stanowisk byłyby u właściciela niewidoczne,
+                // mimo że klasa zasobu istnieje (`panel-wlasciciela.md` §6).
+                PositionGroupResource::class,
             ])
             ->discoverResources(in: app_path('Filament/Owner/Resources'), for: 'App\\Filament\\Owner\\Resources')
             ->discoverPages(in: app_path('Filament/Owner/Pages'), for: 'App\\Filament\\Owner\\Pages')

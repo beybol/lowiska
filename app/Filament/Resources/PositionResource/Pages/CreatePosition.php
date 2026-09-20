@@ -5,6 +5,8 @@ namespace App\Filament\Resources\PositionResource\Pages;
 use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
 use App\Filament\Resources\PositionResource;
 use App\Helpers\Helper;
+use App\Models\Position;
+use App\Services\PositionAttributeWriter;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreatePosition extends CreateRecord
@@ -13,9 +15,17 @@ class CreatePosition extends CreateRecord
 
     protected array $additionalServicesToSync = [];
 
+    /** @var array<int|string, mixed> */
+    protected array $attributesToWrite = [];
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->additionalServicesToSync = Helper::extractAdditionalServices($data);
+
+        // ⚠️ Cechy MUSZĄ wypaść ze zbioru przed zapisem modelu: `position_attributes`
+        // nie jest kolumną, a zostawione w tablicy trafiłoby do `fill()`.
+        $this->attributesToWrite = $data['position_attributes'] ?? [];
+        unset($data['position_attributes']);
 
         return Helper::forceVerifiedFishery($data);
     }
@@ -23,6 +33,11 @@ class CreatePosition extends CreateRecord
     protected function afterCreate(): void
     {
         Helper::syncAdditionalServices($this->record, $this->additionalServicesToSync);
+
+        $position = $this->record;
+        assert($position instanceof Position);
+
+        app(PositionAttributeWriter::class)->writeForPosition($position, $this->attributesToWrite);
     }
 
     public function mount(): void

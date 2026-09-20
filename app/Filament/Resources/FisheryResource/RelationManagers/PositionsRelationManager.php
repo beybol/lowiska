@@ -41,14 +41,15 @@ class PositionsRelationManager extends RelationManager
     }
 
     /**
-     * Plakietka na zakładce liczy wyłącznie pozycje **aktywne** — tak samo jak
-     * licznik, który hub pokazywał przed przejściem na RelationManagery.
+     * Plakietka liczy stanowiska BĘDĄCE W SPRZEDAŻY (`status = available`).
+     * ⚠️ To stan własny stanowiska, nie dostępność w terminie — tę składa zadanie 016
+     * z blokad i okresów sprzedaży, więc plakietka celowo jej nie odzwierciedla.
      */
     public static function getBadge(Model $ownerRecord, string $pageClass): ?string
     {
         assert($ownerRecord instanceof Fishery);
 
-        $count = $ownerRecord->positions()->isActive()->count();
+        $count = $ownerRecord->positions()->available()->count();
 
         // Pusta zakladka nie dostaje plakietki - "0" niesie tyle samo co jej brak.
         return $count > 0 ? (string) $count : null;

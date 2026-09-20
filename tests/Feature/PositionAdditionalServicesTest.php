@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PositionStatus;
 use App\Filament\Resources\PositionResource\Pages\CreatePosition;
 use App\Helpers\Helper;
 use App\Models\Company;
@@ -58,7 +59,9 @@ test('a position without additional services saves successfully', function () {
         ->fillForm([
             'name' => $position->name,
             'fishery_id' => $fishery->id,
-            'is_active' => true,
+            'status' => PositionStatus::Available->value,
+            // Od zadania 014 pojemność jest wymagana przy zapisie stanowiska.
+            'max_anglers' => 2,
         ])
         ->call('create')
         ->assertHasNoFormErrors();

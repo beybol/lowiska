@@ -121,12 +121,6 @@ parameters:
 			path: app/Policies/LongTermPermitPolicy.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$user_id\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Policies/PositionPolicy.php
-
-		-
 			message: '#^Binary operation "\*" between non\-empty\-string and 2\|3\|4\|5\|6\|7 results in an error\.$#'
 			identifier: binaryOp.invalid
 			count: 1

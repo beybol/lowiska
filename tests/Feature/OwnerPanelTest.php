@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PositionStatus;
 use App\Filament\Resources\AdditionalServiceResource;
 use App\Filament\Resources\AdditionalServiceResource\Pages\CreateAdditionalService;
 use App\Filament\Resources\AdditionalServiceResource\Pages\EditAdditionalService;
@@ -28,6 +29,33 @@ use App\Models\Position;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
+
+/**
+ * ⚠️ Stan „w sprzedaży" NIE jest wspólny dla zasobów podrzędnych łowiska: od zadania
+ * 014 stanowisko ma enum `status`, a usługi dodatkowe i pozwolenia nadal `is_active`.
+ * Testy jadące po zbiorze modeli muszą to rozróżniać, inaczej fabryka stanowiska
+ * dostaje nieistniejącą kolumnę.
+ */
+function activeStateFor(string $model): array
+{
+    return $model === Position::class
+        ? ['status' => PositionStatus::Available]
+        : ['is_active' => true];
+}
+
+function inactiveFormDataFor(string $model): array
+{
+    return $model === Position::class
+        ? ['status' => PositionStatus::Withdrawn->value]
+        : ['is_active' => false];
+}
+
+function isInactive(string $model, $record): bool
+{
+    return $model === Position::class
+        ? $record->status === PositionStatus::Withdrawn
+        : ! $record->is_active;
+}
 
 test('Owner panel is accessible.', function () {
     // ⚠️ Nazwa użytkownika USTAWIONA WPROST, nie z fabryki. `faker_locale` to `pl_PL`,
@@ -163,7 +191,7 @@ test('Manage fishery tabs render sub-resource records inline.', function (
     // treść z fabryki nie trafiłaby do HTML-a w całości.
     $record = $model::factory()->create([
         ...$attributes,
-        'is_active' => true,
+        ...activeStateFor($model),
         'fishery_id' => $fishery->id,
     ]);
 
@@ -238,7 +266,7 @@ test('Saving a sub-resource returns to its tab in the fishery hub.', function (
     $this->actingAs($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
     $record = $model::factory()->create([
-        'is_active' => true,
+        ...activeStateFor($model),
         'fishery_id' => $fishery->id,
     ]);
 
@@ -338,12 +366,12 @@ test('Owner can see only active positions count on manage fishery page.', functi
     $fishery = Fishery::factory()->forUser($owner)->create();
     Position::factory()
         ->create([
-            'is_active' => true,
+            'status' => PositionStatus::Available,
             'fishery_id' => $fishery->id,
         ]);
     Position::factory()
         ->create([
-            'is_active' => false,
+            'status' => PositionStatus::Withdrawn,
             'fishery_id' => $fishery->id,
         ]);
 
@@ -461,7 +489,7 @@ test('Owner can not list sub-resources of a fishery he does not own by tampering
     // „nie zawiera": brak w HTML-u wynikałby z ucięcia, nie z bramki.
     $model::factory()->create([
         ...$attributes,
-        'is_active' => true,
+        ...activeStateFor($model),
         'fishery_id' => $foreignFishery->id,
     ]);
 
@@ -509,7 +537,7 @@ test('Owner can not move a sub-resource under a fishery he does not own by editi
     // na walidacji, a nie na tym, co miał sprawdzać.
     $record = $model::factory()->create([
         ...$attributes,
-        'is_active' => true,
+        ...activeStateFor($model),
         'fishery_id' => $ownFishery->id,
     ]);
 
@@ -526,11 +554,11 @@ test('Owner can not move a sub-resource under a fishery he does not own by editi
     // kontroli asercja wyżej przechodzi także wtedy, gdy zapis nie działa w ogóle
     // (np. ktoś dodał do formularza pole `required()`, którego test nie wypełnia).
     Livewire::test($editPage, ['record' => $record->getKey()])
-        ->fillForm(['fishery_id' => $ownFishery->id, 'is_active' => false])
+        ->fillForm(['fishery_id' => $ownFishery->id, ...inactiveFormDataFor($model)])
         ->call('save')
         ->assertHasNoFormErrors();
 
-    expect($record->fresh()->is_active)->toBeFalsy();
+    expect(isInactive($model, $record->fresh()))->toBeTrue();
 })->with([
     [EditPosition::class, Position::class, []],
     [EditAdditionalService::class, AdditionalService::class, []],
@@ -577,7 +605,9 @@ test('Owner can not create a sub-resource under a fishery he does not own.', fun
 
     expect($model::query()->where('fishery_id', $ownFishery->id)->exists())->toBeTrue();
 })->with([
-    [CreatePosition::class, Position::class, ['name' => 'Podmienione stanowisko', 'is_active' => true]],
+    // ⚠️ `max_anglers` jest od zadania 014 wymagane przy zapisie stanowiska — bez niego
+    // kontrola POZYTYWNA tego testu czerwienieje na walidacji, a nie na bramce.
+    [CreatePosition::class, Position::class, ['name' => 'Podmienione stanowisko', 'status' => 'available', 'max_anglers' => 2]],
     [CreateAdditionalService::class, AdditionalService::class, ['name' => 'Podmieniona usługa', 'is_active' => true, 'price' => '10']],
     [CreateLongTermPermit::class, LongTermPermit::class, ['description' => 'Podmienione pozwolenie', 'is_active' => true, 'price' => '10']],
 ]);

@@ -9,6 +9,7 @@ use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleSettings;
 use App\Filament\Resources\FisheryResource\RelationManagers\AdditionalServicesRelationManager;
 use App\Filament\Resources\FisheryResource\RelationManagers\LongTermPermitsRelationManager;
+use App\Filament\Resources\FisheryResource\RelationManagers\PositionGroupsRelationManager;
 use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
 use App\Helpers\Helper;
 use App\Models\Company;
@@ -319,6 +320,11 @@ class FisheryResource extends Resource
             LongTermPermitsRelationManager::class,
             AdditionalServicesRelationManager::class,
             PositionsRelationManager::class,
+            // Grupy po stanowiskach: grupa jest etykietą NA stanowiskach, więc bez
+            // nich nie ma czego grupować. ⚠️ Kolejność wyznacza parametr `?relation=`,
+            // ale adresy składa `Helper::fisheryHubUrl()` po KLASIE — nigdy nie wpisuj
+            // tego numeru ręcznie (`panel-wlasciciela.md` §2).
+            PositionGroupsRelationManager::class,
         ];
     }
 

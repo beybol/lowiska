@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `app/Filament/Owner/**`,
 `app/Providers/Filament/OwnerPanelProvider.php` oraz w zasobach współdzielonych,
 gdy dotykasz ich zachowania **w panelu właściciela**.
 
-Zadania źródłowe: 012, 015. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
+Zadania źródłowe: 012, 014, 015. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
 i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 
 ---
@@ -263,3 +263,43 @@ Uzasadnienie i odrzucone warianty:
 
 Uzasadnienie i odrzucone warianty:
 [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
+
+---
+
+## 8. Stanowiska: stan, pojemność, grupy i cechy
+
+- **Stanowisko ma STAN WŁASNY (`status`: `available` / `withdrawn`), nie przełącznik.** To decyzja
+  operatora, czy miejsce jest w sprzedaży.
+  ⚠️ **Nie mylić z dostępnością w terminie** — ta zależy od czasu, składa ją zadanie 016 z blokad
+  i okresów sprzedaży, i celowo NIE odzwierciedla jej ani plakietka zakładki, ani zakres
+  `Position::available()`. W `positions` nie ma żadnej kolumny dat ani przyczyn.
+- **Etykieta stanowiska jest unikalna w obrębie łowiska**, a indeks obejmuje także wiersze usunięte
+  miękko — etykieta wycofanego stanowiska **nie wraca do obiegu**. To cel, nie efekt uboczny:
+  historia pozwoleń nie ma zacząć wskazywać na „to samo" stanowisko.
+  ⚠️ Fabryka stanowisk musi generować etykiety unikalne, inaczej pakiet czerwienieje losowo
+  i wygląda to na awarię środowiska.
+- **Grupa stanowisk jest ETYKIETĄ w relacji wiele-do-wielu**, nie poziomem hierarchii. Nie niesie
+  cech, dojazdu ani stanu, więc nie ma dziedziczenia ani reguły „co wygrywa", a łowisko nieużywające
+  grup zachowuje się dokładnie jak przed ich wprowadzeniem. Grupa **nie jest jednostką sprzedaży** —
+  kupuje się stanowisko.
+- **Wygodę ustawiania cech hurtem daje AKCJA ZBIORCZA, nie dziedziczenie.** Zapisuje wartość wprost
+  na każdym stanowisku, więc po wykonaniu każde niesie własny wiersz i nic nie jest rozwiązywane
+  przy odczycie. Akcja z poziomu grupy jest **skrótem do tego samego kodu** z zaznaczeniem
+  wypełnionym stanowiskami grupy — jeden schemat pól, jedna metoda zapisu, dwa wejścia.
+  ⚠️ Nie dorabiaj wariantu „ustaw wszystkim" bez wskazania wartości: to dziedziczenie tylnymi
+  drzwiami, tylko niewidoczne.
+- **Dziennik zmian dostaje N wpisów, po jednym na stanowisko.** Wpis opisuje zmianę atrybutów
+  jednego rekordu i ten niezmiennik zostaje — pytanie „co się działo z TYM stanowiskiem" jest
+  zadawane najczęściej.
+- ⚠️ **Formularz cech GENERUJE SIĘ ZE SŁOWNIKA** (`position_attributes`), pod kluczem stanu
+  `position_attributes.{id}`. Nie `attributes` — to koliduje z magiczną właściwością Eloquenta
+  i zapis nadpisywałby model. Klucz musi wypaść z tablicy przed `fill()`, bo nie jest kolumną.
+- ⚠️ **Brak wiersza wartości to TRZECI STAN**, nie „nie". Cecha niewypełniona znaczy „nikt się nie
+  wypowiedział" i nie bierze udziału w filtrowaniu w żadną stronę — dlatego flaga jest `Select`
+  z pustą opcją, a nie `Toggle`, który zawsze niesie fałsz, a wyczyszczenie wartości **kasuje
+  wiersz** zamiast zapisywać fałsz.
+- **Klucz obcy do łowiska: grupa ma go WYMAGANY z kaskadą, stanowisko nadal `nullable` z `set null`.**
+  Różnica jest celowa — stanowisko po odcięciu wciąż wisi w tabelach pośrednich pozwoleń i usług,
+  więc coś znaczy; grupa po odcięciu nie znaczy nic.
+
+Uzasadnienie kształtu wartości cech: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech-stanowiska.md).
