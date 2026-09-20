@@ -109,6 +109,10 @@ zdejmować pojedynczo** (zadanie 012, sekcje 15 i 16):
    wybranej grupy — wyszukanie tej grupy musi mieć `where('fishery_id', …)`, bo samo
    zawężenie opcji nie obejmuje wartości przysłanej w żądaniu. Cechy stanowisk zawężeniu
    **nie podlegają i podlegać nie mogą**: ich słownik jest wspólny dla całego portalu.
+   ⚠️ **`scopeToOwnedFisheries()` zawęża WYŁĄCZNIE zasoby podrzędne** — dokłada warunek na
+   kolumnie `fishery_id`. Nałożone na `Fishery::query()` wywala zapytanie błędem SQL
+   („Unknown column 'fishery_id'"), czyli awarią, nie dziurą. Bramką dla samego łowiska jest
+   `FisheryAccess::findFishery()`, domyślnie zawężone do łowisk bieżącego użytkownika.
 2. **Bramka na każdym żądaniu listy** — `FisheryAccess::assertFisheryAccessOrAbort($this->fisheryId)`
    w `getTableQuery()`, nie tylko w `mount()`. ⚠️ `$fisheryId` jest publiczną właściwością
    komponentu wiązaną z query stringiem, więc kolejne żądanie Livewire może przynieść inną

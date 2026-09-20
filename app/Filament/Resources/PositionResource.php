@@ -447,11 +447,20 @@ class PositionResource extends Resource
         // przy twardym usunięciu — po usunięciu cechy ze słownika zostają wiersze bez
         // definicji. Bez tego filtra `->attribute->type` wywracało formularz edycji
         // każdego stanowiska, które miało tę cechę wypełnioną.
+        // ⚠️ Cecha „tak/nie" wraca z bazy jako `bool`, ale stanem pola musi być 1 albo 0.
+        // Filament dopasowuje stan do kluczy opcji po rzutowaniu na string, a
+        // `(string) false` to PUSTY łańcuch — czyli dokładnie to, czym jest brak wyboru.
+        // Pole pokazywało wtedy „nie określono" zamiast „nie", a ZAPIS takiego formularza
+        // KASOWAŁ wiersz, bo pusty stan znaczy „nikt się nie wypowiedział". „Tak" działało,
+        // bo `(string) true` to „1" — błąd dotyczył wyłącznie jednej z dwóch wartości.
+        // `null` zostaje `null`: trzeci stan ma pozostać trzecim stanem.
         $data['position_attributes'] = $record->attributeValues
             ->filter(fn ($value): bool => $value->attribute !== null)
-            ->mapWithKeys(fn ($value): array => [
-                $value->position_attribute_id => $value->typedValue($value->attribute->type),
-            ])
+            ->mapWithKeys(function ($value): array {
+                $typed = $value->typedValue($value->attribute->type);
+
+                return [$value->position_attribute_id => is_bool($typed) ? (int) $typed : $typed];
+            })
             ->toArray();
 
         $data['groups'] = $record->groups->pluck('id')->toArray();

@@ -106,6 +106,16 @@ i [ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md).
     obejmują.
   - Przeliczenie kryterium na listę ma jeden dom:
     [`AvailabilityBlockSelectionResolver`](../../app/Services/AvailabilityBlockSelectionResolver.php).
+- ⚠️ **Opcje zależne od cech znikają, dopóki słownik nie ma ani jednej cechy typu `flag`** —
+  skutek „zawieszenie cechy" i kryterium „stanowiska z cechą". Przy pustym słowniku obie są
+  ślepą uliczką: pierwszej nie przepuści `AvailabilityBlockEffectMatchesAttribute`, druga zawsze
+  daje pusty zbiór, którego nie przepuści `PositionsBelongToFishery`. Cecha typu liczba albo
+  wybór z listy ich **nie odblokowuje** — zawiesić da się tylko flagę.
+  - Pusty słownik jest stanem DOMYŚLNYM: `DatabaseSeeder` sieje `State`, `FishingMethod`
+    i `Currency`, ale nie cechy.
+  - **Wpis, który już zawiesza cechę, zachowuje swoją opcję** także po opróżnieniu słownika —
+    inaczej edycja dat albo powodu po cichu gubiłaby skutek wpisu. Bramka pyta więc o `$record`,
+    nie o stan pola.
 - **Zawiesić można wyłącznie cechę typu `flag`** — zawiesza się to, co stanowisko MA albo czego
   NIE MA. Zawieszenie liczby albo wyboru z listy byłoby **nadpisaniem**, czyli innym pojęciem.
   Pilnuje tego `app/Rules/AvailabilityBlockEffectMatchesAttribute`.

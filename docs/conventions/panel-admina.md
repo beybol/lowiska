@@ -62,6 +62,27 @@ i hub „Zarządzaj łowiskiem", ADR-006).
   **martwy, niekompilowalny plik** i wywraca `view:cache`, czyli **start obrazu produkcyjnego** —
   a lokalnie nie widać tego wcale, bo Blade kompiluje leniwie (diagnoza w zadaniu 009).
   Pilnuje tego [`tests/Feature/ViewCompilationTest.php`](../../tests/Feature/ViewCompilationTest.php).
+- ⚠️ **Wartość `bool` NIE JEST poprawnym stanem `Select`a z opcjami `1`/`0`.** Filament
+  dopasowuje stan do kluczy opcji po rzutowaniu na string, a `(string) false` to **pusty
+  łańcuch** — nie do odróżnienia od braku wyboru. Pole pokazuje wtedy placeholder zamiast
+  „nie", a zapis takiego formularza **kasuje wartość**, bo pusty stan znaczy „nikt się nie
+  wypowiedział". `true` działa, bo `(string) true` to `"1"`, więc **błąd widać wyłącznie
+  dla jednej z dwóch wartości** i test sprawdzający samo „tak" przechodzi na zielono.
+  Konwersję rób tam, gdzie powstaje stan formularza (`mutateFormDataBeforeFill`),
+  nie przez `formatStateUsing()` — ten dostaje stan już po rzutowaniu, czyli za późno.
+  Tak zgubiła się wartość „nie" cechy stanowiska ustawionej akcją zbiorczą.
+- ⚠️ **Akcja osadzona w schemacie przez `Actions` wymaga jawnego `->key()`.** `Actions` nie ma
+  ścieżki stanu, więc bez klucza komponent nie ma klucza w ogóle i Livewire nie odnajduje akcji
+  na powrotnym żądaniu — **przycisk się renderuje**, a klik kończy się
+  `ActionNotResolvableException` („Action [x] not found in schema at []"). Tak przestał działać
+  przycisk „Przelicz listę" w `AvailabilityBlockResource`. Test musi wołać akcję przez
+  `TestAction::make('x')->schemaComponent('<key>')` — wywołanie usługi pod spodem zieleni się
+  także wtedy, gdy przycisk jest zepsuty.
+- ⚠️ **Formularz zasobu ma domyślnie DWIE kolumny na najwyższym poziomie**, więc sekcje
+  ustawiają się w nim **obok siebie**, a samotne pole przed nimi zabiera pół wiersza. Formularz
+  zbudowany z sekcji-modułów deklaruje `->columns(1)` na schemacie i rozdaje kolumny wewnątrz
+  każdej sekcji — inaczej układ rozjeżdża się tym bardziej, im szersza jest zawartość sekcji
+  (lista `CheckboxList` w trzech kolumnach nie ma wtedy szerokości).
 - ⚠️ **Strony autoryzacji Filamenta konfiguruje się przez nadpisanie `form(Schema $schema)`**,
   nie przez `getForms()` + `makeForm()` (metoda nie istnieje od wersji 5). Pozostawiony
   `getForms()` **nie jest wołany i nie zgłasza błędu** — strona zwraca 200 i po cichu renderuje

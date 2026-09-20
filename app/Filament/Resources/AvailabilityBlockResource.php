@@ -29,6 +29,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -63,13 +64,26 @@ class AvailabilityBlockResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema
+            // ⚠️ Jedna kolumna na najwyższym poziomie, choć domyślny formularz zasobu
+            // ma dwie. Sekcje są tu MODUŁAMI (skutek + okres, wybór zbioru), a przy
+            // dwóch kolumnach lądowały obok siebie z polem łowiska jako sąsiadem —
+            // lista stanowisk w trzech kolumnach nie miała wtedy szerokości. Kolumny
+            // rozdaje każda sekcja u siebie.
+            ->columns(1)
             ->components([
                 ...SharedFormComponents::getFisheryFields(),
                 Section::make(__('Effect and period'))
                     ->schema([
                         Select::make('effect')
                             ->label(__('Effect'))
-                            ->options(BlockEffect::options())
+                            // ⚠️ Skutki zależne od cech znikają, gdy słownik nie ma ani
+                            // jednej cechy tak/nie — inaczej operator wybiera opcję,
+                            // której `AvailabilityBlockEffectMatchesAttribute` nie pozwoli
+                            // zapisać, i nie dowiaduje się dlaczego.
+                            ->options(fn (?AvailabilityBlock $record): array => self::effectOptions($record))
+                            ->helperText(fn (?AvailabilityBlock $record): ?string => self::flagAttributesMissing($record)
+                                ? __('Attribute suspension becomes available once the administrator adds a yes/no attribute to the shared dictionary.')
+                                : null)
                             ->default(BlockEffect::SaleBlocked->value)
                             ->selectablePlaceholder(false)
                             ->live()
@@ -78,24 +92,27 @@ class AvailabilityBlockResource extends Resource
                             ->label(__('Suspended attribute'))
                             // Wyłącznie cechy tak/nie — zawiesza się to, co stanowisko MA
                             // albo czego NIE MA (zadanie 016, „Rozstrzygnięcia").
-                            ->options(fn (): array => PositionAttribute::query()
-                                ->where('type', PositionAttributeType::Flag->value)
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->toArray())
+                            ->options(fn (): array => self::flagAttributeOptions())
                             ->visible(fn (Get $get): bool => $get('effect') === BlockEffect::AttributeSuspended->value)
                             ->rules([
                                 fn (Get $get): AvailabilityBlockEffectMatchesAttribute => new AvailabilityBlockEffectMatchesAttribute(
                                     BlockEffect::tryFrom((string) $get('effect')),
                                 ),
                             ]),
-                        DatePicker::make('starts_on')
-                            ->label(__('From'))
-                            ->required(),
-                        DatePicker::make('ends_on')
-                            ->label(__('To'))
-                            ->helperText(__('Leave empty for an entry valid until revoked.'))
-                            ->afterOrEqual('starts_on'),
+                        // ⚠️ Obie daty w jednym `Grid`, nie luzem w siatce sekcji — inaczej
+                        // „Od" dopełnia wiersz skutku, a „Do" zostaje samo w następnym.
+                        // Układ, nie reguła: pola zachowują się dokładnie jak wcześniej.
+                        Grid::make(2)
+                            ->schema([
+                                DatePicker::make('starts_on')
+                                    ->label(__('From'))
+                                    ->required(),
+                                DatePicker::make('ends_on')
+                                    ->label(__('To'))
+                                    ->helperText(__('Leave empty for an entry valid until revoked.'))
+                                    ->afterOrEqual('starts_on'),
+                            ])
+                            ->columnSpanFull(),
                         Textarea::make('reason')
                             ->label(__('Reason'))
                             ->rows(3)
@@ -111,7 +128,10 @@ class AvailabilityBlockResource extends Resource
                     ->schema([
                         Select::make('selection_kind')
                             ->label(__('How to choose'))
-                            ->options(SelectionKind::options())
+                            // ⚠️ Ta sama reguła co przy skutku: kryterium „stanowiska z cechą"
+                            // przy pustym słowniku daje pusty zbiór, którego
+                            // `PositionsBelongToFishery` i tak nie przepuści.
+                            ->options(fn (?AvailabilityBlock $record): array => self::selectionKindOptions($record))
                             ->default(SelectionKind::Fishery->value)
                             ->selectablePlaceholder(false)
                             ->live()
@@ -125,11 +145,7 @@ class AvailabilityBlockResource extends Resource
                             ->live(),
                         Select::make('selection_attribute_id')
                             ->label(__('Attribute'))
-                            ->options(fn (): array => PositionAttribute::query()
-                                ->where('type', PositionAttributeType::Flag->value)
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->toArray())
+                            ->options(fn (): array => self::flagAttributeOptions())
                             ->visible(fn (Get $get): bool => $get('selection_kind') === SelectionKind::Attribute->value)
                             // ⚠️ Pole NIE jest kolumną, ale musi dojechać do `mutateFormDataBefore*` —
                             // z niego powstaje `selection_label`. Klucz zdejmuje `withSelectionLabel()`.
@@ -142,7 +158,14 @@ class AvailabilityBlockResource extends Resource
                                 ->action(function (Get $get, Set $set): void {
                                     $set('positions', self::resolveSelection($get)->all());
                                 }),
-                        ]),
+                        ])
+                            // ⚠️ Klucz jest OBOWIĄZKOWY, nie kosmetyką. `Actions` nie ma
+                            // ścieżki stanu, więc bez `key()` komponent nie ma klucza,
+                            // a Livewire nie potrafi odnaleźć akcji na powrotnym żądaniu:
+                            // klik kończył się `ActionNotResolvableException`
+                            // („Action [recalculate] not found in schema at []").
+                            ->key('recalculateActions')
+                            ->columnSpanFull(),
                         CheckboxList::make('positions')
                             ->label(__('Positions'))
                             ->relationship('positions', 'name')
@@ -162,8 +185,10 @@ class AvailabilityBlockResource extends Resource
                             // zawężenie opcji, bo identyfikatory przychodzą od klienta.
                             ->rules([
                                 fn (Get $get): PositionsBelongToFishery => new PositionsBelongToFishery($get('fishery_id')),
-                            ]),
-                    ]),
+                            ])
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
             ]);
     }
 
@@ -293,9 +318,11 @@ class AvailabilityBlockResource extends Resource
             return collect();
         }
 
-        $query = Fishery::query()->whereKey((int) $fisheryId);
-        FisheryAccess::scopeToOwnedFisheries($query);
-        $fishery = $query->first();
+        // ⚠️ `scopeToOwnedFisheries()` zawęża zasoby PODRZĘDNE (po `fishery_id`)
+        // i użyte na `Fishery` wywalało zapytanie z „Unknown column 'fishery_id'".
+        // Bramką dla samego łowiska jest `findFishery()` — domyślnie zawężone
+        // do łowisk bieżącego użytkownika poza panelem admina (`autoryzacja.md` §4).
+        $fishery = FisheryAccess::findFishery($fisheryId);
 
         if (! $fishery instanceof Fishery) {
             return collect();
@@ -310,6 +337,65 @@ class AvailabilityBlockResource extends Resource
         };
 
         return app(AvailabilityBlockSelectionResolver::class)->resolve($fishery, $kind, $criterion);
+    }
+
+    /**
+     * Cechy, które da się zawiesić — WYŁĄCZNIE typu flaga. Jedno źródło dla obu list
+     * cech w formularzu i dla bramki na opcjach wyżej (`dostepnosc.md` §3: zawieszenie
+     * liczby albo wyboru z listy byłoby NADPISANIEM, czyli innym pojęciem).
+     *
+     * @return array<int, string>
+     */
+    private static function flagAttributeOptions(): array
+    {
+        return PositionAttribute::query()
+            ->where('type', PositionAttributeType::Flag->value)
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->toArray();
+    }
+
+    /**
+     * Czy opcje zależne od cech są dziś ślepą uliczką.
+     *
+     * ⚠️ Pyta o `$record`, a NIE o stan własnego pola przez `Get` — komponent
+     * odczytujący klucz stanu o swojej nazwie wpada w rekursję bez dna
+     * (`panel-admina.md` §2). Zapisany wpis zachowuje swoją opcję nawet po
+     * opróżnieniu słownika, żeby edycja nie gubiła wartości po cichu.
+     */
+    private static function flagAttributesMissing(?AvailabilityBlock $record): bool
+    {
+        return $record?->effect !== BlockEffect::AttributeSuspended
+            && $record?->selection_kind !== SelectionKind::Attribute
+            && self::flagAttributeOptions() === [];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function effectOptions(?AvailabilityBlock $record): array
+    {
+        $options = BlockEffect::options();
+
+        if (self::flagAttributesMissing($record)) {
+            unset($options[BlockEffect::AttributeSuspended->value]);
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function selectionKindOptions(?AvailabilityBlock $record): array
+    {
+        $options = SelectionKind::options();
+
+        if (self::flagAttributesMissing($record)) {
+            unset($options[SelectionKind::Attribute->value]);
+        }
+
+        return $options;
     }
 
     /**

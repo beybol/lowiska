@@ -19,7 +19,9 @@ use App\Rules\AvailabilityBlockEffectMatchesAttribute;
 use App\Rules\PositionsBelongToFishery;
 use App\Services\AvailabilityBlockSelectionResolver;
 use App\Services\OwnerRoleProvisioner;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
 use Livewire\Livewire;
 
 /**
@@ -341,4 +343,112 @@ test('changing the effect away from a suspension clears the attribute', function
     ]);
 
     expect($cleared['position_attribute_id'])->toBeNull();
+});
+
+/**
+ * ⚠️ Akcja „Przelicz listę" jest osadzona w schemacie przez `Actions`, czyli komponent
+ * BEZ ścieżki stanu. Bez jawnego `key()` Livewire nie odnajduje jej na powrotnym
+ * żądaniu i klik kończy się `ActionNotResolvableException`. Testy niżej wołają ją
+ * przez `TestAction`, bo tylko ta droga przechodzi przez rozwiązywanie akcji —
+ * samo wołanie `AvailabilityBlockSelectionResolver` zieleniło się mimo zepsutego
+ * przycisku.
+ */
+test('the recalculate action fills the list from a group criterion', function () {
+    [$owner, $fishery] = ownerWithFisheryForBlocks();
+    $inGroup = Position::factory()->create(['fishery_id' => $fishery->id]);
+    Position::factory()->create(['fishery_id' => $fishery->id]);
+
+    $group = PositionGroup::factory()->create(['fishery_id' => $fishery->id]);
+    $group->positions()->attach($inGroup->id);
+
+    $this->actingAs($owner);
+
+    Livewire::withQueryParams(['fishery' => $fishery->id])
+        ->test(CreateAvailabilityBlock::class)
+        ->fillForm([
+            'fishery_id' => $fishery->id,
+            'selection_kind' => SelectionKind::Group->value,
+            'position_group_id' => $group->id,
+        ])
+        ->callAction(TestAction::make('recalculate')->schemaComponent('recalculateActions'))
+        ->assertHasNoActionErrors()
+        ->assertFormSet(['positions' => [$inGroup->id]]);
+});
+
+test('the recalculate action fills the list with the whole fishery', function () {
+    [$owner, $fishery] = ownerWithFisheryForBlocks();
+    $positions = Position::factory()->count(3)->create(['fishery_id' => $fishery->id]);
+    Position::factory()->create(); // cudze łowisko
+
+    $this->actingAs($owner);
+
+    $component = Livewire::withQueryParams(['fishery' => $fishery->id])
+        ->test(CreateAvailabilityBlock::class)
+        ->fillForm([
+            'fishery_id' => $fishery->id,
+            'selection_kind' => SelectionKind::Fishery->value,
+        ])
+        ->callAction(TestAction::make('recalculate')->schemaComponent('recalculateActions'))
+        ->assertHasNoActionErrors();
+
+    expect($component->get('data')['positions'])
+        ->toEqualCanonicalizing($positions->pluck('id')->all());
+});
+
+/**
+ * ⚠️ Pusty słownik cech jest stanem DOMYŚLNYM świeżej instalacji — `DatabaseSeeder`
+ * sieje pozostałe słowniki, ale nie cechy. Opcje zależne od cech muszą wtedy zniknąć,
+ * inaczej operator wybiera skutek, którego `AvailabilityBlockEffectMatchesAttribute`
+ * nie pozwoli zapisać, albo kryterium, które zawsze daje pusty zbiór.
+ */
+test('attribute based options disappear while the dictionary has no flag attribute', function () {
+    [$owner, $fishery] = ownerWithFisheryForBlocks();
+
+    // Cecha liczbowa NIE odblokowuje tych opcji — zawiesić da się wyłącznie flagę.
+    PositionAttribute::factory()->number('m')->create();
+
+    $this->actingAs($owner);
+
+    Livewire::withQueryParams(['fishery' => $fishery->id])
+        ->test(CreateAvailabilityBlock::class)
+        ->assertFormFieldExists('effect', fn (Select $field): bool => array_keys($field->getOptions()) === [BlockEffect::SaleBlocked->value])
+        ->assertFormFieldExists('selection_kind', fn (Select $field): bool => ! array_key_exists(SelectionKind::Attribute->value, $field->getOptions()));
+});
+
+test('a flag attribute in the dictionary brings both options back', function () {
+    [$owner, $fishery] = ownerWithFisheryForBlocks();
+    PositionAttribute::factory()->create();
+
+    $this->actingAs($owner);
+
+    Livewire::withQueryParams(['fishery' => $fishery->id])
+        ->test(CreateAvailabilityBlock::class)
+        ->assertFormFieldExists('effect', fn (Select $field): bool => array_key_exists(BlockEffect::AttributeSuspended->value, $field->getOptions()))
+        ->assertFormFieldExists('selection_kind', fn (Select $field): bool => array_key_exists(SelectionKind::Attribute->value, $field->getOptions()));
+});
+
+/**
+ * ⚠️ Kontrola negatywna dla bramki wyżej: wpis, który JUŻ zawiesza cechę, nie może
+ * stracić swojej opcji po opróżnieniu słownika — inaczej edycja czegokolwiek innego
+ * (dat, powodu) po cichu gubiłaby skutek wpisu.
+ */
+test('an existing suspension keeps its option even with an empty dictionary', function () {
+    [$owner, $fishery] = ownerWithFisheryForBlocks();
+    $position = Position::factory()->create(['fishery_id' => $fishery->id]);
+    $attribute = PositionAttribute::factory()->create();
+
+    $block = AvailabilityBlock::factory()->create([
+        'fishery_id' => $fishery->id,
+        'effect' => BlockEffect::AttributeSuspended->value,
+        'position_attribute_id' => $attribute->id,
+        'selection_kind' => SelectionKind::Fishery->value,
+    ]);
+    $block->positions()->attach($position->id);
+
+    $attribute->delete();
+
+    $this->actingAs($owner);
+
+    Livewire::test(EditAvailabilityBlock::class, ['record' => $block->getRouteKey()])
+        ->assertFormFieldExists('effect', fn (Select $field): bool => array_key_exists(BlockEffect::AttributeSuspended->value, $field->getOptions()));
 });

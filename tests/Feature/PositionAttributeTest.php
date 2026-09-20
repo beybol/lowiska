@@ -9,6 +9,7 @@ use App\Filament\Resources\PositionAttributeResource\Pages\EditPositionAttribute
 use App\Filament\Resources\PositionAttributeResource\Pages\ListPositionAttributes;
 use App\Filament\Resources\PositionResource;
 use App\Filament\Resources\PositionResource\Pages\CreatePosition;
+use App\Filament\Resources\PositionResource\Pages\EditPosition;
 use App\Models\Fishery;
 use App\Models\Position;
 use App\Models\PositionAttribute;
@@ -288,4 +289,57 @@ test('an administrator can edit an attribute and its options on a full page', fu
 
     expect($attribute->fresh()->options()->pluck('name')->sort()->values()->all())
         ->toBe(['Kamienisty', 'Trawiasty']);
+});
+
+/**
+ * Wartości cechy tak/nie mają polskie etykiety.
+ *
+ * Klucze `Yes`/`No` długo nie istniały w `lang/pl.json`, więc obie opcje wyświetlały
+ * się po angielsku pośród przetłumaczonego formularza. Test jest tak płaski, bo nic
+ * innego nie pilnuje kompletności słownika tłumaczeń.
+ */
+test('the yes/no values are translated into Polish', function () {
+    app()->setLocale('pl');
+
+    expect(__('Yes'))->toBe('Tak')
+        ->and(__('No'))->toBe('Nie')
+        ->and(__('Not specified'))->toBe('Nie określono');
+});
+
+/**
+ * ⚠️ „Nie" na cesze tak/nie musi PRZEŻYĆ powrót do formularza.
+ *
+ * Wartość wraca z bazy jako `bool`, a Filament dopasowuje stan do kluczy opcji po
+ * rzutowaniu na string — `(string) false` to PUSTY łańcuch, czyli dokładnie to, czym
+ * jest brak wyboru. Pole pokazywało „nie określono" zamiast „nie", a ZAPIS takiego
+ * formularza kasował wiersz. Błąd dotyczył wyłącznie jednej z dwóch wartości, bo
+ * `(string) true` to „1" — dlatego „tak" jest tu kontrolą pozytywną, bez której
+ * test przechodziłby także na zepsutej hydratacji.
+ */
+test('a no value survives reopening and saving the position form', function () {
+    $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
+    OwnerRoleProvisioner::addOwnerRole($owner);
+    $fishery = Fishery::factory()->forUser($owner)->create();
+    $attribute = PositionAttribute::factory()->create(['name' => 'Pomost']);
+
+    Filament::setCurrentPanel('owner');
+    $this->actingAs($owner);
+
+    foreach ([['stored' => false, 'state' => '0'], ['stored' => true, 'state' => '1']] as $case) {
+        $position = Position::factory()->create(['fishery_id' => $fishery->id]);
+        app(PositionAttributeWriter::class)->writeForPosition($position, [$attribute->id => $case['stored']]);
+
+        $component = Livewire::test(EditPosition::class, ['record' => $position->getRouteKey()]);
+
+        // Stan pola ma dać się dopasować do klucza opcji. Pusty łańcuch — do którego
+        // Filament sprowadza `false` — jest nie do odróżnienia od braku wyboru.
+        expect($component->get('data')['position_attributes'][$attribute->id] ?? null)
+            ->toBe($case['state']);
+
+        // Zapis bez żadnej zmiany nie ma prawa ruszyć wartości.
+        $component->call('save')->assertHasNoFormErrors();
+
+        expect($position->attributeValues()->where('position_attribute_id', $attribute->id)->value('value_flag'))
+            ->toBe($case['stored']);
+    }
 });

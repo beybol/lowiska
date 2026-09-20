@@ -1,8 +1,18 @@
-# Instrukcja obsługi — zarządzanie łowiskiem
+# Instrukcja obsługi
+
+Portal składa się z dwóch paneli. **Panel właściciela** jest dla operatora łowiska: tutaj konfiguruje
+się obiekt, stanowiska, sprzedaż i ograniczenia. **Panel administratora** jest dla prowadzących
+portal: tutaj powstają słowniki, z których korzystają wszystkie łowiska, oraz konta i uprawnienia.
+
+Część I opisuje panel właściciela, część II — panel administratora.
+
+---
+
+# Część I — Łowisko (panel właściciela)
 
 ## 1. Wprowadzenie
 
-Ten dokument opisuje panel właściciela łowiska: co robi się w każdej z zakładek widocznych po lewej
+Ten rozdział opisuje panel właściciela łowiska: co robi się w każdej z zakładek widocznych po lewej
 stronie, gdy wejdziesz w swoje łowisko. Jest przewodnikiem dla osoby, która loguje się pierwszy raz
 i chce wiedzieć, od czego zacząć i gdzie czego szukać.
 
@@ -31,6 +41,12 @@ Jest to również strona startowa łowiska — stąd wchodzisz we wszystkie pozo
 
 Żeby zmienić którąkolwiek z tych informacji, użyj przycisku **Edytuj** w prawym górnym rogu.
 
+Część pól na tym formularzu to **wybór ze słownika prowadzonego przez administratora**: rodzaj
+łowiska, metody łowienia, udogodnienia, występujące ryby, waluta rozliczenia, kraj i województwo.
+Nie dopisujesz do nich własnych pozycji — zaznaczasz te, które pasują do Twojego obiektu. Jeśli
+któregoś z tych pól w ogóle nie widzisz, znaczy to, że odpowiedni słownik jest jeszcze pusty
+(patrz [Słowniki](#12-słowniki--wspólne-dla-całego-portalu)).
+
 ## 4. Sprzedaż i sezony
 
 Tutaj ustawiasz, czym dokładnie handlujesz: o której godzinie zaczyna się i kończy doba wędkarska
@@ -51,6 +67,9 @@ parkingu).
 Na tym samym formularzu przypisujesz stanowisko do grup, do pozwoleń długoterminowych i do usług
 dodatkowych. Jeśli tę samą cechę chcesz ustawić wielu miejscom naraz, zaznacz je na liście i użyj
 działania **Ustaw cechę** — przed zapisem zobaczysz, ilu stanowisk dotyczy.
+
+Sekcja z cechami pojawia się dopiero wtedy, gdy administrator dopisał do słownika choć jedną cechę
+(patrz [Cechy stanowisk](#13-cechy-stanowisk)).
 
 ## 6. Grupy stanowisk
 
@@ -89,3 +108,119 @@ czy wędkarz go zobaczy. Zbiór stanowisk wskazujesz dowolnie — całe łowisko
 cechą albo ręczne zaznaczenie — a po przeliczeniu listy możesz ją jeszcze poprawić. Zapisana lista już
 się nie zmienia: stanowisko założone później nie wejdzie do istniejącego wpisu, o czym system ostrzeże
 przy jego zakładaniu.
+
+Skutek „zawieszenie cechy" i kryterium „stanowiska z cechą" widać tylko wtedy, gdy w słowniku jest
+choć jedna cecha typu **tak/nie** — tylko taka da się zawiesić. Przy pustym słowniku obie opcje są
+ukryte, bo nie miałyby czego dotyczyć.
+
+---
+
+# Część II — Admin (panel administratora)
+
+## 10. Do czego służy panel administratora
+
+Panel administratora jest narzędziem **prowadzących portal**, nie operatorów łowisk. Odpowiada za
+trzy rzeczy:
+
+- **słowniki** — wspólne listy, z których wybierają wszystkie łowiska;
+- **rejestr podmiotów i obiektów** — firmy i łowiska założone w portalu;
+- **dostępy** — konta użytkowników i ich uprawnienia.
+
+Właściciel łowiska nie ma tu wstępu i nie edytuje niczego z tej listy. Odwrotnie też: administrator
+nie ustawia za niego cen, sezonów ani stanowisk — to należy do panelu właściciela.
+
+## 11. Firmy i łowiska
+
+**Firmy** to podmioty gospodarcze prowadzące łowiska. Dane adresowe da się pobrać automatycznie
+z rejestru GUS po numerze NIP albo REGON, zamiast przepisywać je ręcznie. Numer rachunku bankowego
+jest sprawdzany jako IBAN — błędny nie przejdzie zapisu.
+
+**Łowiska** to widok wszystkich obiektów w portalu, niezależnie od tego, kto je założył. Służy do
+przeglądu i do interwencji; codzienna konfiguracja obiektu odbywa się po stronie właściciela.
+
+## 12. Słowniki — wspólne dla całego portalu
+
+Grupa **Słowniki** w menu zbiera listy, z których korzystają formularze właścicieli. Zasada jest
+jedna i ważna: **słownik jest wspólny dla całego portalu, a właściciel tylko z niego wybiera**.
+To warunek, pod którym wyszukiwanie i porównywanie łowisk między sobą ma sens — gdyby każdy operator
+dopisywał własne pozycje, ta sama rzecz nazywałaby się w portalu na kilkanaście sposobów.
+
+| Słownik | Czego dotyczy | Gdzie widzi to właściciel |
+|---|---|---|
+| **Udogodnienia** | całego obiektu | formularz łowiska |
+| **Rodzaje łowisk** | całego obiektu | formularz łowiska |
+| **Metody łowienia** | całego obiektu | formularz łowiska |
+| **Ryby** | całego obiektu | formularz łowiska (występujące ryby, ryba dominująca) |
+| **Cechy stanowisk** | pojedynczego stanowiska | formularz stanowiska |
+| **Kraje**, **Województwa** | adresów | formularze firmy i łowiska |
+| **Waluty** | rozliczeń | formularz łowiska |
+
+⚠️ **Pusty słownik znika z formularza właściciela.** Pole nie pokazuje się jako puste — nie ma go
+wcale. Właściciel nie dostaje żadnego komunikatu i nie ma jak się domyślić, że dana możliwość
+w ogóle istnieje. Dlatego każdy słownik, który ma być używany, wymaga zestawu startowego wpisanego
+przez administratora.
+
+## 13. Cechy stanowisk
+
+Najmłodsza i najbogatsza pozycja słownikowa. Cecha opisuje **pojedyncze stanowisko**, a nie cały
+obiekt: pomost, zadaszenie, wjazd samochodem, odległość do parkingu, rodzaj dna.
+
+Każda cecha ma **typ**, który przesądza o tym, jak wygląda pole na formularzu stanowiska:
+
+| Typ | Co wpisuje właściciel | Uwagi |
+|---|---|---|
+| **Tak / nie** | jedną z dwóch wartości | jedyny typ, który da się czasowo **zawiesić** blokadą |
+| **Liczba** | liczbę w zadanej jednostce | jednostkę (m, min) podaje się przy definicji cechy |
+| **Wybór z listy** | jedną z opcji | opcje definiuje administrator przy cesze |
+
+Dodatkowo:
+
+- **Do filtrowania** — znacznik dla przyszłej wyszukiwarki portalu. Sama wyszukiwarka jeszcze nie
+  istnieje; znacznik mówi, które cechy mają się w niej znaleźć.
+- **Puste pole na stanowisku znaczy „nie wiadomo", a nie „nie ma".** To trzeci stan i jest zamierzony
+  — nowa cecha dopisana do słownika pojawia się na wszystkich stanowiskach jako niewypełniona,
+  zamiast kłamać, że żadne stanowisko jej nie ma.
+- Dopisanie cechy do słownika udostępnia ją **we wszystkich łowiskach naraz**, bez żadnej dodatkowej
+  czynności po stronie właścicieli.
+- Tylko cecha typu **tak/nie** da się zawiesić wpisem w „Blokadach i ograniczeniach". Zawieszenie
+  liczby albo wyboru z listy byłoby nadpisaniem wartości, czyli czymś innym niż czasowe wyłączenie.
+
+## 14. Udogodnienia a cechy stanowisk — gdzie przebiega granica
+
+Oba słowniki opisują „co tu jest", więc łatwo je pomylić. Różni je **przedmiot opisu**:
+
+- **udogodnienie** dotyczy **całego łowiska** — parking, toaleta, sklep, restauracja, całodobowy
+  dozór;
+- **cecha** dotyczy **jednego stanowiska** — pomost, zadaszenie, wjazd samochodem, odległość do
+  parkingu.
+
+**Test rozstrzygający:** czy to samo zdanie może być prawdziwe dla jednego stanowiska i fałszywe dla
+sąsiedniego w tym samym łowisku? Jeśli tak — to cecha. Jeśli dotyczy obiektu jako całości — to
+udogodnienie.
+
+Przy tak postawionej granicy **oba słowniki zostają i się nie pokrywają**. Warto jednak wiedzieć, że
+nie są równoważne technicznie: udogodnienie to **sama nazwa**, którą łowisko ma albo nie ma. Cecha
+niesie typ, jednostkę, listę opcji, trzeci stan „nie wiadomo", znacznik do wyszukiwarki, ustawianie
+hurtem i możliwość czasowego zawieszenia. Cecha jest więc nadzbiorem udogodnienia.
+
+⚠️ **Realne ryzyko to nie duplikat modeli, tylko duplikat NAZW.** „Prąd", „parking" czy „zadaszenie"
+da się w dobrej wierze wpisać do obu słowników i dopiero wtedy portal zaczyna się rozjeżdżać. Przed
+dopisaniem pozycji zadaj pytanie z testu wyżej.
+
+Gdyby kiedyś przyszła decyzja o połączeniu obu słowników w jeden, kierunek jest tylko jeden:
+udogodnienia stają się cechami na poziomie łowiska, nie odwrotnie. Jest to jednak osobna decyzja
+wymagająca migracji danych, a nie porządek do zrobienia przy okazji.
+
+## 15. Dostępy: użytkownicy i role
+
+Grupa **Dostępy** zbiera konta i uprawnienia.
+
+- **Użytkownicy** — konta w portalu. Konto oznaczone jako administracyjne dostaje wstęp do panelu
+  administratora; pozostałe logują się do panelu właściciela.
+- **Role** — zestawy uprawnień. To rola, a nie sam znacznik konta, przesądza o tym, co użytkownik
+  widzi w panelu i co może w nim zrobić. Konto administracyjne bez roli wejdzie do panelu, ale nie
+  zobaczy w nim żadnej pozycji menu.
+
+⚠️ Uprawnienia są **wyprowadzane z listy elementów panelu**, nie wpisywane ręcznie. Po dołożeniu
+nowego elementu trzeba je przegenerować — inaczej nowa pozycja nie pojawi się w menu **nikomu**,
+łącznie z administratorem mającym komplet uprawnień sprzed zmiany.

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\PositionGroupResource\Pages\ListPositionGroups;
 use App\Filament\Resources\PositionResource;
+use App\Filament\Resources\PositionResource\Pages\EditPosition;
 use App\Filament\Resources\PositionResource\Pages\ListPositions;
 use App\Models\Fishery;
 use App\Models\Position;
@@ -14,6 +15,7 @@ use App\Models\PositionGroup;
 use App\Models\User;
 use App\Services\OwnerRoleProvisioner;
 use App\Services\PositionAttributeWriter;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -214,4 +216,35 @@ test('the single position write path is guarded by the same rule', function () {
     ))->toThrow(ValidationException::class);
 
     expect(PositionAttributeValue::count())->toBe(0);
+});
+
+/**
+ * ⚠️ Pełna ścieżka zgłoszenia: akcja zbiorcza ustawia „nie", a formularz stanowiska
+ * ma to „nie" POKAZAĆ. Sam zapis do bazy był poprawny od początku — wartość gubiła
+ * się dopiero przy hydratacji formularza, więc test sprawdzający wyłącznie kolumnę
+ * `value_flag` zielenił się mimo błędu widocznego dla użytkownika.
+ */
+test('a bulk set no is visible as no on the position form', function () {
+    [$owner, $fishery, $positions] = ownerFisheryAndPositions(2);
+    $attribute = PositionAttribute::factory()->create(['name' => 'Pomost']);
+
+    $this->actingAs($owner);
+
+    Livewire::withQueryParams(['fishery' => $fishery->id])
+        ->test(ListPositions::class)
+        ->set('selectedTableRecords', $positions->pluck('id')->map(fn ($id): string => (string) $id)->all())
+        ->callAction(
+            TestAction::make('setPositionAttribute')->table()->bulk(),
+            data: ['position_attribute_id' => $attribute->id, 'value_flag' => 0],
+        )
+        ->assertHasNoActionErrors();
+
+    foreach ($positions as $position) {
+        expect($position->attributeValues()->where('position_attribute_id', $attribute->id)->value('value_flag'))
+            ->toBeFalse();
+
+        expect(Livewire::test(EditPosition::class, ['record' => $position->getRouteKey()])
+            ->get('data')['position_attributes'][$attribute->id] ?? null)
+            ->toBe('0');
+    }
 });
