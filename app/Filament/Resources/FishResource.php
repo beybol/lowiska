@@ -64,6 +64,16 @@ class FishResource extends Resource
         ];
     }
 
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return __('Dictionaries');
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 4;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('Fish');

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\PositionGroupResource\Pages;
 
-use App\Filament\Resources\FisheryResource\RelationManagers\PositionGroupsRelationManager;
+use App\Filament\Resources\FisheryResource\Pages\ManagePositionGroups;
 use App\Filament\Resources\PositionGroupResource;
 use App\Helpers\Helper;
 use App\Models\PositionGroup;
@@ -68,7 +68,7 @@ class EditPositionGroup extends EditRecord
     {
         return Helper::fisherySectionUrl(
             PositionGroupResource::class,
-            PositionGroupsRelationManager::class,
+            ManagePositionGroups::class,
             $fisheryId,
         );
     }

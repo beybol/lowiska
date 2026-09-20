@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-08-16
-- **Zadanie:** [012 — Poprawki panelu właściciela po upgrade do Laravel 13](../tasks/012-poprawki-panelu-wlasciciela-po-laravel-13.md)
+- **Zadanie:** [012 — Poprawki panelu właściciela po upgrade do Laravel 13](../tasks/implemented/012-poprawki-panelu-wlasciciela-po-laravel-13.md)
 
 ## Kontekst
 
@@ -170,3 +170,50 @@ Co wiąże przyszłe zakładki konfiguracyjne:
 ⚠️ Granica między dwoma rodzajami zakładki: **lista rekordów, które mają własne strony → RelationManager;
 konfiguracja łowiska zapisywana jednym „Zapisz" → strona ustawień.** Stanowiska, usługi dodatkowe
 i pozwolenia zostają po pierwszej stronie tej granicy i nic się dla nich nie zmienia.
+
+## Aktualizacja (zadanie 016, 2026-09-20) — sub-nawigacja rekordu zamiast huba z zakładkami
+
+**Hub z zakładkami RelationManagerów zostaje zastąpiony natywną SUB-NAWIGACJĄ REKORDU.**
+Ta aktualizacja **unieważnia** regułę „zakładki huba budują RelationManagery" z aktualizacji
+zadania 012 oraz podział „lista → RelationManager, konfiguracja → strona ustawień" z aktualizacji
+zadania 015. Obie były poprawne wobec kształtu, który wtedy istniał; poniższa je zastępuje.
+
+Powód zmiany jest empiryczny i ujawnił się dopiero przy trzecim ekranie. Pasek zakładek huba buduje
+`HasRelationManagers::getRelationManagersContentComponent()`, a zawartość każdej zakładki powstaje
+jako `Livewire::make($relationManagerClass, …)` — **osadzony komponent, nie trasa**. Ekran
+konfiguracyjny („Sprzedaż i sezony") jest stroną z własnym adresem, okruszkami i przyciskiem
+„Zapisz", więc do tego paska wstawić się nie da. Dostał więc akcję nagłówka obok „Edytuj" — i tu
+wyszedł problem: makieta zapowiada **pięć kolejnych** ekranów konfiguracyjnych (Cennik, Reguły
+sprzedaży, Zwroty, Regulamin, konfiguracyjna część Usług). Sześć przycisków w nagłówku nie jest
+stanem docelowym, a makieta od początku pokazuje wszystkie ekrany w **jednej** nawigacji, bez
+rozróżnienia na listy i ustawienia.
+
+Rozróżnienie, które wprowadziła aktualizacja 015, było więc artefaktem ograniczenia frameworka,
+a nie właściwością produktu — i to jest dokładnie ten rodzaj kompromisu, któremu ten ADR ma
+zapobiegać.
+
+**Co obowiązuje od teraz:**
+
+- **Ekrany jednego łowiska są STRONAMI zasobu `FisheryResource`**, wypisanymi w
+  `getRecordSubNavigation()`, z pozycją z `getSubNavigationPosition()`. Nawigacja jest jedna
+  i obejmuje **zarówno listy, jak i ustawienia** — bez rozróżnienia widocznego dla operatora.
+- **Listę rekordów podrzędnych renderuje `ManageRelatedRecords`** (strona rekordu z `$relationship`),
+  nie `RelationManager`. Tabela i formularz nadal **DELEGUJĄ** do właściwego zasobu, więc definicja
+  kolumn i pól zostaje w jednym miejscu.
+- **Liczniki przetrwały**: pozycje sub-nawigacji to `NavigationItem` budowane w
+  `Page::getNavigationItems()` z `->badge(static::getNavigationBadge(), …)`, więc plakietka jest
+  metodą strony, nie ręcznym znacznikiem.
+- **Adresy składa się po KLASIE STRONY**, przez `Page::getRouteName()`. ⚠️ Znika parametr
+  `?relation=N` i razem z nim cała pułapka „przestawienie kolejności zakładek przekierowuje na
+  cudzą listę i nic nie pęka". To jest samodzielna korzyść tej zmiany.
+- **`ManageFishery` zostaje `ViewRecord` z samym podglądem danych łowiska** — pierwsza pozycja
+  sub-nawigacji. Nadal **NIE jest formularzem edycji**; ta część decyzji A jest nietknięta.
+
+**Co przestaje obowiązywać:** `FisheryResource::getRelations()` jest puste, RelationManagery
+łowiska nie istnieją, a akcje w listach nie muszą już omijać `RelationManager::isReadOnly()`.
+
+⚠️ **Akcje wiersza i nagłówka NADAL prowadzą na pełne strony tworzenia i edycji**, zwykłą `Action`
+z `url()`, choć na `ManageRelatedRecords` działałyby też akcje CRUD-owe z modalami. Powód zmienił
+się z technicznego na świadomy: pełne strony niosą bramkę `Helper::assertFisheryAccessOrAbort()`,
+`Helper::forceVerifiedFishery()` przy zapisie i własne przekierowania — modal omijałby te trzy
+warstwy (`docs/conventions/autoryzacja.md` §4).

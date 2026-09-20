@@ -34,6 +34,19 @@ class AdminPanelProvider extends PanelProvider
             ->login(Login::class)
             ->registration(Register::class)
             ->emailVerification()
+            // ⚠️ Pasek boczny panelu administratora da się zwinąć, bo sub-nawigacja
+            // rekordu (`FisheryResource::getSubNavigationPosition()`) jest po lewej —
+            // bez tego przy edycji łowiska dwa paski zjadały szerokość formularza.
+            // Panel właściciela tego nie potrzebuje: ma `topNavigation()`, więc paska
+            // bocznego w ogóle nie renderuje.
+            // ⚠️ Kolejność GRUP ustawia się tutaj, a nie sortowaniem na zasobach —
+            // `getNavigationSort()` porządkuje wyłącznie pozycje WEWNĄTRZ grupy.
+            // Bez tego wpisu grupy idą alfabetycznie („Dostępy" przed „Słownikami").
+            ->navigationGroups([
+                __('Dictionaries'),
+                __('Access'),
+            ])
+            ->sidebarCollapsibleOnDesktop()
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -60,7 +73,13 @@ class AdminPanelProvider extends PanelProvider
                 TwoFactorMiddleware::class,
             ])
             ->plugins([
-                FilamentShieldPlugin::make(),
+                // Role trafiają do grupy „Dostępy" razem z użytkownikami. Zasób jest
+                // dostarczany przez wtyczkę, więc nawigację ustawia się na wtyczce,
+                // a nie nadpisaniem metod na klasie zasobu.
+                FilamentShieldPlugin::make()
+                    ->navigationGroup(__('Access'))
+                    ->navigationLabel(__('Roles'))
+                    ->navigationSort(2),
             ])
             ->authMiddleware([
                 Authenticate::class,

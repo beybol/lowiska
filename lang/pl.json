@@ -497,5 +497,7 @@
     "The position is withdrawn from sale": "Stanowisko jest wycofane ze sprzedaży",
     "Sale at this position is blocked on that day": "Sprzedaż na tym stanowisku jest w tym dniu zablokowana",
     "The new position is not covered by existing whole-fishery entries": "Nowe stanowisko nie jest objęte istniejącymi wpisami na całe łowisko",
-    "Add it by hand if it should be: :list": "Dodaj je ręcznie, jeśli powinno być objęte: :list"
+    "Add it by hand if it should be: :list": "Dodaj je ręcznie, jeśli powinno być objęte: :list",
+    "Dictionaries": "Słowniki",
+    "Access": "Dostępy"
 }

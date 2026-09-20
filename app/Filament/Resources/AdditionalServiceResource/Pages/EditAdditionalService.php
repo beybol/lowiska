@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\AdditionalServiceResource\Pages;
 
 use App\Filament\Resources\AdditionalServiceResource;
-use App\Filament\Resources\FisheryResource\RelationManagers\AdditionalServicesRelationManager;
+use App\Filament\Resources\FisheryResource\Pages\ManageAdditionalServices;
 use App\Helpers\Helper;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -57,7 +57,7 @@ class EditAdditionalService extends EditRecord
     {
         return Helper::fisherySectionUrl(
             AdditionalServiceResource::class,
-            AdditionalServicesRelationManager::class,
+            ManageAdditionalServices::class,
             $fisheryId,
         );
     }

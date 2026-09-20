@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\PositionResource\Pages;
 
-use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
+use App\Filament\Resources\FisheryResource\Pages\ManagePositions;
 use App\Filament\Resources\PositionResource;
 use App\Helpers\Helper;
 use App\Models\Position;
@@ -92,7 +92,7 @@ class EditPosition extends EditRecord
     {
         return Helper::fisherySectionUrl(
             PositionResource::class,
-            PositionsRelationManager::class,
+            ManagePositions::class,
             $fisheryId,
         );
     }

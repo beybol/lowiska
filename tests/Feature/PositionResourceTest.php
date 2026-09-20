@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\FisheryResource;
-use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
 use App\Filament\Resources\PositionResource\Pages\CreatePosition;
 use App\Models\Company;
 use App\Models\Fishery;
@@ -36,8 +35,8 @@ test('creating a position redirects to its tab in the fishery hub', function () 
     $page = new CreatePosition;
     $page->record = $position;
 
-    expect($page->getRedirectUrl())->toBe(FisheryResource::getUrl('manage', [
-        'record' => $fishery,
-        'relation' => array_search(PositionsRelationManager::class, FisheryResource::getRelations(), true),
-    ]));
+    // Adres sekcji budowany po KLASIE STRONY — parametr `?relation=N` zniknął razem
+    // z zakładkami huba (ADR-006, aktualizacja z zadania 016).
+    expect($page->getRedirectUrl())
+        ->toBe(FisheryResource::getUrl('positions', ['record' => $fishery]));
 });

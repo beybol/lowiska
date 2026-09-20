@@ -64,6 +64,16 @@ class FishingMethodResource extends Resource
         ];
     }
 
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return __('Dictionaries');
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 3;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('Fishing methods');

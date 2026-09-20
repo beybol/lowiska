@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\AdditionalServiceResource\Pages;
 
 use App\Filament\Resources\AdditionalServiceResource;
-use App\Filament\Resources\FisheryResource\RelationManagers\AdditionalServicesRelationManager;
+use App\Filament\Resources\FisheryResource\Pages\ManageAdditionalServices;
 use App\Helpers\Helper;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -62,7 +62,7 @@ class CreateAdditionalService extends CreateRecord
     {
         return Helper::fisherySectionUrl(
             AdditionalServiceResource::class,
-            AdditionalServicesRelationManager::class,
+            ManageAdditionalServices::class,
             $fisheryId,
         );
     }

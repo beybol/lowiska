@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\AvailabilityBlockResource\Pages;
 
 use App\Filament\Resources\AvailabilityBlockResource;
-use App\Filament\Resources\FisheryResource\RelationManagers\AvailabilityBlocksRelationManager;
+use App\Filament\Resources\FisheryResource\Pages\ManageAvailabilityBlocks;
 use App\Helpers\Helper;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -55,7 +55,7 @@ class CreateAvailabilityBlock extends CreateRecord
     {
         return Helper::fisherySectionUrl(
             AvailabilityBlockResource::class,
-            AvailabilityBlocksRelationManager::class,
+            ManageAvailabilityBlocks::class,
             $fisheryId,
         );
     }

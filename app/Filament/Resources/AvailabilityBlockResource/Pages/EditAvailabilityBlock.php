@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\AvailabilityBlockResource\Pages;
 
 use App\Filament\Resources\AvailabilityBlockResource;
-use App\Filament\Resources\FisheryResource\RelationManagers\AvailabilityBlocksRelationManager;
+use App\Filament\Resources\FisheryResource\Pages\ManageAvailabilityBlocks;
 use App\Helpers\Helper;
 use App\Models\AvailabilityBlock;
 use Filament\Actions\DeleteAction;
@@ -68,7 +68,7 @@ class EditAvailabilityBlock extends EditRecord
     {
         return Helper::fisherySectionUrl(
             AvailabilityBlockResource::class,
-            AvailabilityBlocksRelationManager::class,
+            ManageAvailabilityBlocks::class,
             $fisheryId,
         );
     }

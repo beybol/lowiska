@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\AdditionalServiceResource\Pages\CreateAdditionalService;
 use App\Filament\Resources\FisheryResource;
-use App\Filament\Resources\FisheryResource\RelationManagers\AdditionalServicesRelationManager;
 use App\Models\AdditionalService;
 use App\Models\Company;
 use App\Models\Fishery;
@@ -27,8 +26,8 @@ test('creating an additional service redirects to its tab in the fishery hub', f
     $page = new CreateAdditionalService;
     $page->record = $additionalService;
 
-    expect($page->getRedirectUrl())->toBe(FisheryResource::getUrl('manage', [
-        'record' => $fishery,
-        'relation' => array_search(AdditionalServicesRelationManager::class, FisheryResource::getRelations(), true),
-    ]));
+    // Adres sekcji budowany po KLASIE STRONY — parametr `?relation=N` zniknął razem
+    // z zakładkami huba (ADR-006, aktualizacja z zadania 016).
+    expect($page->getRedirectUrl())
+        ->toBe(FisheryResource::getUrl('additional-services', ['record' => $fishery]));
 });

@@ -44,64 +44,67 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
   ręcznej naprawy przy **dwóch kolejnych** upgrade'ach Filamenta, zanim zostały przepisane
   na komponenty natywne.
 
-## 2. Strona zarządzania zasobami podrzędnymi to hub, nie ekran edycji
+## 2. Ekrany jednego łowiska to STRONY w sub-nawigacji rekordu
 
-- **`ManageFishery` celowo NIE zawiera formularza edycji łowiska.** Jest `ViewRecord`:
-  pierwsza zakładka „Dane łowiska" to podgląd (`infolist`) z akcją nagłówka „Edytuj",
-  prowadzącą do osobnego formularza. ⚠️ **Nie zamieniaj tego na `EditRecord`** — hub
-  przestanie być hubem, a to odwrócenie decyzji z
+- **Wszystkie ekrany jednego łowiska — listy i ustawienia — są stronami `FisheryResource`**,
+  wypisanymi w `getRecordSubNavigation()`. Operator dostaje **jedną** nawigację, bez
+  rozróżnienia na „listy" i „konfigurację".
+  ⚠️ Kolejność w `getRecordSubNavigation()` jest jedyną definicją kolejności w interfejsie.
+  Idzie od tego, co operator ustawia najpierw i najrzadziej zmienia, do tego, co dokłada
+  w trakcie sezonu; blokady są ostatnie, bo są reakcją na zdarzenie, nie konfiguracją.
+- **Pozycja sub-nawigacji to `Start`, nie `Top`** — decyzja o skalowaniu, nie o guście.
+  ⚠️ Zakładki u góry (`.fi-tabs`) to `display:flex; overflow-x:auto` **bez zawijania**,
+  a Filament nie ma przełącznika, który by to zmienił; zawijanie wymagałoby własnego CSS-u
+  na wewnętrzne klasy frameworka, a projekt nie rejestruje `viteTheme()` w żadnym panelu.
+  Siedem polskich etykiet już się nie mieściło, a makieta zapowiada około dziesięciu sekcji.
+  Lista pionowa rośnie w dół i tego ograniczenia nie ma.
+- ⚠️ **Panel właściciela NIE MA paska bocznego** — `OwnerPanelProvider` ustawia
+  `topNavigation()`, a układ pomija gałąź paska, gdy `hasTopNavigation()` jest prawdą.
+  Sub-nawigacja jest tam więc jedynym paskiem, nie drugim.
+  Panel administratora ma własny pasek, dlatego dostał `sidebarCollapsibleOnDesktop()`:
+  bez tego przy edycji łowiska dwa paski zjadały szerokość formularza.
+- **`ManageFishery` celowo NIE zawiera formularza edycji łowiska.** Jest `ViewRecord`
+  z podglądem (`infolist`) i akcją nagłówka „Edytuj" prowadzącą do osobnego formularza.
+  ⚠️ **Nie zamieniaj tego na `EditRecord`** — to odwrócenie decyzji z
   [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md).
-- **Zakładki z zasobami podrzędnymi budują RelationManagery** z
-  `app/Filament/Resources/FisheryResource/RelationManagers/`, a kolejność (dane łowiska jako
-  pierwsze, potem trzy listy) daje wbudowane
-  `hasCombinedRelationManagerTabsWithContent()` + `getContentTabLabel()` — nie własne `Tabs`
-  ani Alpine.
-- **Tabela i formularz RelationManagera DELEGUJĄ do właściwego zasobu**
-  (`PositionResource::table($table)`), zamiast powielać kolumny i pola. Dzięki temu zakładka
-  i samodzielna strona listy pokazują to samo. Zasoby podrzędne zachowują własne strony list
-  i tworzenia filtrowane przez `?fishery=` — RelationManagery ich **nie** zastępują.
-  ⚠️ Uwaga: po zadaniu 012 **nic już nie linkuje do samodzielnych stron list** — hub pokazuje
-  tabele wprost, a okruszki i przekierowania po zapisie prowadzą na zakładkę huba. Te strony
-  zostały jako cel deep-linku i jako fallback w `Helper::fisherySectionUrl()`, gdy łowiska
-  nie da się ustalić. Nie usuwaj ich w ramach „sprzątania martwego kodu" bez świadomej decyzji.
-- ⚠️ **W zakładkach huba akcje CRUD-owe Filamenta NIE DZIAŁAJĄ — używaj zwykłych `Action`.**
-  `RelationManager::isReadOnly()` zwraca prawdę na stronie `ViewRecord` (a hub nią jest,
-  bo taki jest domyślny tryb panelu dla RelationManagerów na stronach podglądu), a autoryzacja
-  odmawia **po klasie akcji**: `CreateAction`, `EditAction`, `DeleteAction`, `AttachAction`
-  i pokrewne. Efekt jest cichy — akcja wypada z HTML-a bez błędu i bez wpisu w logu, więc
-  „nie ma przycisku" wygląda jak problem ze stylami. Zwykła `Action` nie jest na tej liście,
-  więc przechodzi. Widoczność sprawdzaj wtedy jawnie (`Gate::allows('create', Model::class)`,
-  `Gate::allows('update', $record)`), a `url()` kieruj na pełną stronę tworzenia/edycji.
+- **Listę rekordów podrzędnych renderuje `ManageRelatedRecords`** ze statycznym
+  `$relationship`, nie `RelationManager`. ⚠️ `FisheryResource::getRelations()` jest **puste
+  i takie ma zostać**.
+- **Tabela i formularz strony DELEGUJĄ do właściwego zasobu** (`PositionResource::table($table)`),
+  zamiast powielać kolumny i pola. Zasoby podrzędne zachowują własne strony list i tworzenia
+  filtrowane przez `?fishery=`.
+  ⚠️ **Nic nie linkuje do samodzielnych stron list** — zostały jako cel deep-linku i jako
+  fallback w `Helper::fisherySectionUrl()`, gdy łowiska nie da się ustalić. Nie usuwaj ich
+  w ramach „sprzątania martwego kodu" bez świadomej decyzji.
+- ⚠️ **Akcje prowadzą na PEŁNE strony tworzenia i edycji, zwykłą `Action` z `url()`** — nie na
+  modale, choć na `ManageRelatedRecords` akcje CRUD-owe działałyby. Powód jest świadomy, nie
+  techniczny: pełne strony niosą `Helper::assertFisheryAccessOrAbort()`,
+  `Helper::forceVerifiedFishery()` przy zapisie i własne przekierowania — modal omijałby te
+  trzy warstwy ([`autoryzacja.md`](autoryzacja.md) §4). Widoczność sprawdzaj jawnie
+  (`Gate::allows('create', Model::class)`, `Gate::allows('update', $record)`).
   ⚠️ Dotyczy to także akcji **odziedziczonych z delegowanego zasobu** — `recordActions()`
-  z `PositionResource` niesie `EditAction`, więc RelationManager musi je nadpisać, inaczej
-  z zakładki nie da się wejść w edycję.
-- ⚠️ **`Resource::getRelations()` obowiązuje WSZYSTKIE strony zasobu**, więc bez
-  `canViewForRecord()` zwracającego `$pageClass === ManageFishery::class` listy doklejają się
-  także do formularza edycji łowiska.
-- **Liczniki aktywnych pozycji niesie `getBadge()` RelationManagera**, nie ręczne `Tab::badge()`.
-- ⚠️ **Eager-load w RelationManagerze trzeba dołożyć osobno.** RelationManager jedzie po relacji
-  `ownerRecord`, więc **nie** przechodzi przez `getEloquentQuery()` zasobu i nie dziedziczy
-  stamtąd `with()`. Ponieważ `visible()` akcji wiersza pyta politykę, a ta sięga po
-  `$record->fishery`, brak `->modifyQueryUsing(fn ($q) => $q->with('fishery'))` to N+1 na całą
-  tabelę — dokładnie ten przypadek, przed którym ostrzega `CLAUDE.md`.
-- **Z zakładki nie da się usunąć rekordu i to jest stan zamierzony.** `DeleteAction`
-  i `DeleteBulkAction` przepadają w trybie read-only tak samo jak edycja; Filament ukrywa wtedy
-  całą grupę akcji masowych razem z kolumną zaznaczeń, więc nie zostaje nieklikalny element.
-  Kasowanie żyje na stronie edycji. Przeniesienie go do zakładki wymaga zwykłej `Action`
-  z `requiresConfirmation()` i jawnym `Gate::allows('delete', $record)`.
-- **Zapis i okruszki stron podrzędnych wracają na zakładkę huba, nie na samotną listę** —
-  adres składa `Helper::fisheryHubUrl($fisheryId, XRelationManager::class)`.
-  ⚠️ Filament identyfikuje zakładkę **pozycją** w `FisheryResource::getRelations()`
-  (parametr `?relation=`), nie nazwą klasy. Nigdy nie wpisuj tego numeru ręcznie:
-  przestawienie kolejności zakładek przekierowywałoby po zapisie na cudzą listę i **nic by
-  nie pękło**. Ta reguła zastępuje wcześniejszy powrót na `getUrl('index', ['fishery' => …])`
-  z zadania 011 — dotyczy stanowisk, usług dodatkowych i pozwoleń w **obu** panelach, bo
-  zasoby są współdzielone.
-- **Ścieżkę okruszków stron podrzędnych składa `Helper::fisheryBreadcrumbs()`** — jedno źródło
-  dla wszystkich dziewięciu stron (List/Create/Edit × stanowiska, usługi, pozwolenia). Daje
-  `Łowiska › {łowisko} › {sekcja}` z klikalnymi dwoma pierwszymi elementami. Nie buduj tej
-  tablicy ręcznie w stronie: `getBreadcrumbs()` bez łowiska w środku gubi drogę powrotną
-  do huba, a tego nie widać w żadnym teście sprawdzającym tylko status odpowiedzi.
+  z `PositionResource` niesie `EditAction`, więc strona musi je nadpisać.
+- **Licznik niesie plakietka pozycji sub-nawigacji.** ⚠️ `Page::getNavigationBadge()` nie
+  dostaje żadnych parametrów, więc rekordu **nie da się** z niego odczytać inaczej niż
+  z `request()->route()` — czego nie da się przetestować. Dlatego strony nadpisują
+  `getNavigationItems(array $urlParameters)` i liczą plakietkę z `$urlParameters['record']`,
+  a samo liczenie siedzi w publicznej `badgeFor(Fishery $fishery)`, którą woła test.
+- ⚠️ **Eager-load trzeba dołożyć osobno.** Strona jedzie po relacji `ownerRecord`, więc **nie**
+  przechodzi przez `getEloquentQuery()` zasobu i nie dziedziczy stamtąd `with()`. Ponieważ
+  `visible()` akcji wiersza pyta politykę, a ta sięga po `$record->fishery`, brak
+  `->modifyQueryUsing(fn ($q) => $q->with('fishery'))` to N+1 na całą tabelę.
+- **Zapis i okruszki stron podrzędnych wracają na stronę sekcji, nie na samotną listę** —
+  adres składa `Helper::fisheryHubUrl($fisheryId, ManageXxx::class)`, czyli **po klasie
+  strony** (`Page::getRouteName()`).
+  ⚠️ Zniknął parametr `?relation=N` i razem z nim pułapka „przestawienie kolejności zakładek
+  przekierowuje zapis na cudzą listę i nic nie pęka". Nie wracaj do adresowania po pozycji.
+- **Sub-nawigacja jest na KAŻDEJ stronie rekordu**, także na formularzu edycji łowiska — i to
+  jest zamierzone: operator nie wypada z nawigacji łowiska, wchodząc w edycję.
+- **Ścieżkę okruszków składa `Helper::fisheryBreadcrumbs()`** — jedno źródło dla wszystkich
+  stron List/Create/Edit zasobów podrzędnych. Daje `Łowiska › {łowisko} › {sekcja}`
+  z klikalnymi dwoma pierwszymi elementami. Nie buduj tej tablicy ręcznie w stronie:
+  `getBreadcrumbs()` bez łowiska w środku gubi drogę powrotną, a tego nie widać w żadnym
+  teście sprawdzającym tylko status odpowiedzi.
 
 ## 3. Formularze współdzielone między panelami
 
@@ -165,10 +168,8 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
   Bez jawnego `Filament::setCurrentPanel('owner')` testujesz wariant administratora, myśląc,
   że sprawdzasz panel właściciela — i test przechodzi, nie sprawdzając niczego z tego, co miał.
   Wzorzec: [`tests/Feature/FisheryWizardTest.php`](../../tests/Feature/FisheryWizardTest.php).
-- ⚠️ **Zawartości zakładek huba NIE zobaczysz w GET-cie strony.** Przy zakładkach połączonych
-  z treścią pierwsze żądanie renderuje tylko zakładkę „Dane łowiska", a listy dociąga Livewire
-  po kliknięciu (`isTableLoaded: false`). Testuj RelationManagery przez
-  `Livewire::test($manager, ['ownerRecord' => …, 'pageClass' => ManageFishery::class])`;
+- ⚠️ **Strony sekcji testuj przez `Livewire::test($sectionPage, ['record' => $fishery->getKey()])`** —
+  to strony REKORDU (`ManageRelatedRecords`), a nie osadzone komponenty relacji.
   `assertCanSeeTableRecords()` samo wymusza doładowanie tabeli, ale surowy `->html()` **nie** —
   wtedy potrzebne jest `->call('loadTable')`. Bez tego probe pokazuje „brak przycisku"
   i „brak wierszy" tam, gdzie w przeglądarce wszystko jest.
@@ -197,34 +198,30 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 
 ---
 
-## 6. Hub ma dwa rodzaje zakładek — lista i konfiguracja
+## 6. Ekran ustawień jednego łowiska
 
-Reguła z sekcji 2 („zakładki huba budują RelationManagery") dotyczy zakładek pokazujących
-**listę rekordów podrzędnych** i w tym zakresie obowiązuje bez zmian. Obok niej żyje drugi
-rodzaj zakładki, wprowadzony zadaniem 015.
+Obok stron listowych (`ManageRelatedRecords`) w sub-nawigacji żyją **strony ustawień** —
+formularze konfiguracji łowiska zapisywane jednym „Zapisz". Dziś jest to „Sprzedaż i sezony";
+makieta zapowiada kolejne (Cennik, Reguły sprzedaży, Zwroty, Regulamin).
 
-- **Granica:** lista rekordów mających własne strony → **RelationManager**; konfiguracja
-  łowiska zapisywana jednym „Zapisz" → **strona ustawień**. Stanowiska, usługi dodatkowe
-  i pozwolenia zostają po pierwszej stronie tej granicy.
-- **Strona ustawień jest stroną zasobu `FisheryResource`** (`getPages()`), nie stroną panelu.
-  ⚠️ To nie jest szczegół: zasób jest zarejestrowany w obu panelach, więc strona trafia do obu
-  **bez dotykania providerów** — a providery paneli są pozycją z listy wyzwalaczy T3
-  w `CLAUDE.md`. Strona panelu wymagałaby wpisu w `OwnerPanelProvider` i podniosłaby tier
-  każdego zadania, które dokłada kolejny ekran konfiguracyjny.
-  Wzorzec: [`ManageSaleSettings`](../../app/Filament/Resources/FisheryResource/Pages/ManageSaleSettings.php).
+- **Strona ustawień to `EditRecord` zasobu `FisheryResource`** z własną pozycją w
+  `getRecordSubNavigation()`. Nie jest RelationManagerem i nie jest stroną panelu.
 - **Rekordy podrzędne bez własnego życia renderuje `Repeater`, nie osobny zasób CRUD.**
   Okres sprzedaży ma dwie daty i nazwę, więc trzy strony CRUD byłyby kosztem bez pokrycia.
   Osobny zasób należy się rekordowi, do którego prowadzi deep-link albo który ma własne akcje.
-- **Wejście z huba to zwykła `Action` w `getHeaderActions()`**, nie akcja CRUD-owa — hub jest
-  `ViewRecord`, a tam autoryzacja odmawia **po klasie akcji** i robi to po cichu (sekcja 2).
-- **Okruszki i powrót po zapisie idą przez `Helper::fisheryBreadcrumbs()` i `Helper::fisheryHubUrl()`**,
-  tak samo jak na stronach zasobów podrzędnych.
-- ⚠️ **Strona ustawień nie jest hubem i hub nie jest stroną ustawień.** `ManageFishery` zostaje
-  `ViewRecord` bez formularza edycji łowiska — to jest istota ADR-006. Nowy ekran konfiguracyjny
-  zakłada się **obok** niego, nigdy przez dorobienie formularza do huba.
+- ⚠️ **Zadeklaruj `->columns(1)` na schemacie, jeśli sekcje mają iść jedna pod drugą.**
+  `EditRecord::defaultForm()` narzuca `columns(2)`, o ile schemat sam nie zadeklaruje kolumn —
+  bez tego dwie sekcje stają obok siebie, a repeater ze swoimi kolumnami dostaje połowę
+  szerokości i jest ściśnięty.
+- ⚠️ **Pole kryterium, które nie jest kolumną, musi mimo to dojechać do
+  `mutateFormDataBefore*`.** Nie zdejmuj go `->dehydrated(false)` — klucz usuwa się jawnie
+  w metodzie mutującej. Inaczej wartość wyliczana z tego pola (np. `selection_label`) zapisuje
+  się cicho jako `null`, a formularz nie zgłasza żadnego błędu.
+- **Autoryzacja jest jawna.** `EditRecord::authorizeAccess()` pyta `FisheryPolicy::update()`,
+  a wiązanie rekordu przechodzi przez `FisheryResource::getEloquentQuery()` z `forCurrentUser()`.
 
 Uzasadnienie i odrzucone warianty:
-[ADR-006, aktualizacja z zadania 015](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md).
+[ADR-006, aktualizacja z zadania 016](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md).
 
 ---
 
@@ -238,9 +235,9 @@ Tutaj zostaje wyłącznie to, co dotyczy ekranów panelu:
 - **Pola doby żyją POZA `FisheryResource::fisheryDetailComponents()`** — metoda jest współdzielona
   z krokiem „Fishery" kreatora, a łowisko ma powstawać niesprzedające.
 - **Ekran „Sprzedaż i sezony" jest stroną ustawień** (sekcja 6), nie RelationManagerem.
-- **Blokady i ograniczenia są zakładką huba jako RelationManager** — to lista rekordów z własnymi
-  stronami. Formularz **prowadzi przez wybór zbioru**: sposób wyboru → kryterium → lista objętych
-  stanowisk z licznikiem i przyciskiem „Przelicz". Lista jest edytowalna po przeliczeniu.
+- **Blokady i ograniczenia są stroną sekcji** (lista rekordów z własnymi stronami). Formularz
+  **prowadzi przez wybór zbioru**: sposób wyboru → kryterium → lista objętych stanowisk
+  z licznikiem i przyciskiem „Przelicz". Lista jest edytowalna po przeliczeniu.
 - ⚠️ **`CreatePosition` ostrzega, gdy nowe stanowisko nie wchodzi do trwającej blokady całościowej.**
   To skutek materializowania zbioru, nie błąd — bez ostrzeżenia nowe stanowisko sprzedaje się
   w środku zamknięcia całego łowiska.

@@ -131,17 +131,11 @@ class Helper
     }
 
     /**
-     * Adres konkretnej zakładki huba „Zarządzaj łowiskiem".
+     * Adres konkretnej sekcji łowiska — strony z sub-nawigacji rekordu.
      *
-     * Filament identyfikuje aktywny RelationManager **pozycją w tablicy**
-     * `FisheryResource::getRelations()` (parametr `?relation=`), a nie nazwą klasy.
-     * ⚠️ Dlatego klucza nie wolno zaszywać liczbą w stronach — przestawienie kolejności
-     * zakładek przekierowywałoby po zapisie na cudzą listę i nic by nie pękło. Tu jest
-     * wyliczany z tej samej tablicy, którą renderuje hub (zadanie 012).
-     *
-     * @param  class-string  $relationManager
+     * @param  class-string  $pageClass  strona zasobu `FisheryResource`
      */
-    public static function fisheryHubUrl(int|string|null $fisheryId, string $relationManager): ?string
+    public static function fisheryHubUrl(int|string|null $fisheryId, string $pageClass): ?string
     {
         $fishery = self::findFishery($fisheryId);
 
@@ -149,31 +143,30 @@ class Helper
             return null;
         }
 
-        $relation = array_search($relationManager, FisheryResource::getRelations(), true);
-
-        return FisheryResource::getUrl('manage', array_filter([
-            'record' => $fishery,
-            'relation' => $relation === false ? null : $relation,
-        ], fn ($value): bool => $value !== null));
+        // ⚠️ Adres składa się po KLASIE STRONY, nie po numerze zakładki. Do zadania 016
+        // sekcję wskazywał parametr `?relation=N` liczony z pozycji w `getRelations()`,
+        // więc przestawienie zakładek cicho przekierowywało zapis na cudzą listę.
+        // Sub-nawigacja zniosła tę pułapkę razem z parametrem.
+        return route($pageClass::getRouteName(), ['record' => $fishery]);
     }
 
     /**
-     * Adres listy zasobu podrzędnego: zakładka huba, a gdy łowiska nie da się ustalić —
-     * samodzielna strona listy jako fallback.
+     * Adres sekcji łowiska: strona z sub-nawigacji rekordu, a gdy łowiska nie da się
+     * ustalić — samodzielna strona listy zasobu jako fallback.
      *
      * Jedna implementacja dla wszystkich sześciu stron Create/Edit zasobów podrzędnych.
      * ⚠️ Wcześniej ta sama metoda była skopiowana sześć razy jako prywatna `sectionUrl()`,
      * więc zmiana reguły fallbacku wymagała edycji sześciu plików.
      *
      * @param  class-string  $resourceClass
-     * @param  class-string  $relationManager
+     * @param  class-string  $pageClass  strona sekcji w `FisheryResource`
      */
     public static function fisherySectionUrl(
         string $resourceClass,
-        string $relationManager,
+        string $pageClass,
         int|string|null $fisheryId,
     ): string {
-        return self::fisheryHubUrl($fisheryId, $relationManager)
+        return self::fisheryHubUrl($fisheryId, $pageClass)
             ?? $resourceClass::getUrl('index', ['fishery' => $fisheryId]);
     }
 

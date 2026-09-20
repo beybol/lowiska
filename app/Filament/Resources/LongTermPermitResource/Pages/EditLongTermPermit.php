@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\LongTermPermitResource\Pages;
 
-use App\Filament\Resources\FisheryResource\RelationManagers\LongTermPermitsRelationManager;
+use App\Filament\Resources\FisheryResource\Pages\ManageLongTermPermits;
 use App\Filament\Resources\LongTermPermitResource;
 use App\Helpers\Helper;
 use Filament\Actions\DeleteAction;
@@ -66,7 +66,7 @@ class EditLongTermPermit extends EditRecord
     {
         return Helper::fisherySectionUrl(
             LongTermPermitResource::class,
-            LongTermPermitsRelationManager::class,
+            ManageLongTermPermits::class,
             $fisheryId,
         );
     }

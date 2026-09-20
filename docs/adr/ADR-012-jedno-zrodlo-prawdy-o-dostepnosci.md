@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-09-20
-- **Zadanie:** [016 — Blokady, ograniczenia i wyliczanie dostępności](../tasks/016-blokady-ograniczenia-i-dostepnosc.md)
+- **Zadanie:** [016 — Blokady, ograniczenia i wyliczanie dostępności](../tasks/implemented/016-blokady-ograniczenia-i-dostepnosc.md)
 
 ## Kontekst
 

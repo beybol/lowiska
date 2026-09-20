@@ -1,16 +1,21 @@
 # 012 — Poprawki panelu właściciela po upgrade do Laravel 13 (refaktor na natywny Filament)
 
+> ⚠️ **Część tego zadania została później odwrócona.** Hub z zakładkami RelationManagerów
+> zastąpiła sub-nawigacja rekordu (zadanie 016) — patrz adnotacja przy kryteriach akceptacji
+> i [ADR-006](../../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md),
+> sekcja „Aktualizacja (zadanie 016)". Reszta zadania obowiązuje bez zmian.
+
 ## Opis problemu
 
 Po upgrade do Laravel 13 i Filament 5
-([009](implemented/009-upgrade-laravel-13-filament-5-php-84.md)) rozsypało się kilka formularzy
+([009](009-upgrade-laravel-13-filament-5-php-84.md)) rozsypało się kilka formularzy
 i widoków w panelu właściciela (`/owner`):
 
 1. **Kreator tworzenia łowiska, krok 3** — podgląd mapy Google Maps nie działa. Przycisk
    „Pokaż mapę" nic nie robi.
    Pole: `ViewField::make('map_preview')` w
-   [`FisheryResource.php:108-110`](../../app/Filament/Resources/FisheryResource.php),
-   widok [`resources/views/filament/forms/map-preview.blade.php`](../../resources/views/filament/forms/map-preview.blade.php).
+   [`FisheryResource.php:108-110`](../../../app/Filament/Resources/FisheryResource.php),
+   widok [`resources/views/filament/forms/map-preview.blade.php`](../../../resources/views/filament/forms/map-preview.blade.php).
    Obsługa kliknięcia jest spięta przez `document.addEventListener('DOMContentLoaded', ...)`
    (linia ok. 160), które wiąże się z `#showMapButton` tylko raz, przy pierwszym twardym
    załadowaniu strony. Filament v5 nawiguje przez Livewire/`wire:navigate` i przerenderowuje
@@ -27,26 +32,26 @@ i widoków w panelu właściciela (`/owner`):
    (linie 20-34) renderuje zwykły `<select wire:model="companyId">` zamiast komponentu
    Filament `Select` — stąd brak stylowania motywu Filament v5.
    Łańcuch przenoszenia wartości: `CreateCompany::selectCompany()`
-   ([`CompanyResource/Pages/CreateCompany.php:94-108`](../../app/Filament/Resources/CompanyResource/Pages/CreateCompany.php))
+   ([`CompanyResource/Pages/CreateCompany.php:94-108`](../../../app/Filament/Resources/CompanyResource/Pages/CreateCompany.php))
    przekierowuje na `filament.owner.pages.verify-company?company=...` →
    [`verify-company.blade.php:10-13`](../../resources/views/filament/owner/pages/verify-company.blade.php)
    przekazuje `company` + `wizard=1` dalej do
    `filament.owner.resources.fisheries.create` → `CreateFishery::mount()`
-   ([`FisheryResource/Pages/CreateFishery.php:32-37`](../../app/Filament/Resources/FisheryResource/Pages/CreateFishery.php))
+   ([`FisheryResource/Pages/CreateFishery.php:32-37`](../../../app/Filament/Resources/FisheryResource/Pages/CreateFishery.php))
    czyta `request()->query('company')` do `$this->companyId`, a
    `mutateFormDataBeforeCreate` (linie 19-30) wstrzykuje to jako `company_id`. Jednocześnie
    `FisheryResource.php:65-80` **ukrywa** pole `company_id` typu Select, gdy
    `Helper::isWizard($livewire)` zwraca `true` — więc każde pęknięcie w łańcuchu parametrów
    URL (albo utrata `$companyId` przy ponownym mountowaniu komponentu Livewire) cicho gubi
    firmę, bez widocznego pola, które by to wychwyciło. Do zweryfikowania:
-   `App\Helpers\Helper::isWizard()` ([`Helper.php:150-165`](../../app/Helpers/Helper.php)).
+   `App\Helpers\Helper::isWizard()` ([`Helper.php:150-165`](../../../app/Helpers/Helper.php)).
 
 3. **Widok „Zarządzaj łowiskiem"** (zakładki: Pozwolenia długoterminowe, Usługi dodatkowe,
    Stanowiska) — nawigacja pomiędzy zakładkami jest rozsypana, a przyciski dodawania/edycji
    renderują się jako gigantyczne, niestylowane ikony zamiast normalnych małych przycisków.
    Ten sam problem z gigantycznymi ikonami występuje też po wejściu w którąkolwiek z tych
    sekcji (widoki list).
-   Strona: [`FisheryResource/Pages/ManageFishery.php`](../../app/Filament/Resources/FisheryResource/Pages/ManageFishery.php),
+   Strona: [`FisheryResource/Pages/ManageFishery.php`](../../../app/Filament/Resources/FisheryResource/Pages/ManageFishery.php),
    widok [`resources/views/filament/resources/fisheries/pages/manage.blade.php`](../../resources/views/filament/resources/fisheries/pages/manage.blade.php)
    (Alpine `x-data="{activeTab:'permits'}"`, komponenty `x-tab-button`, `x-management-tab`,
    linie 9-56). Komponenty ikon
@@ -57,7 +62,7 @@ i widoków w panelu właściciela (`/owner`):
    i [`components/tab-button.blade.php`](../../resources/views/components/tab-button.blade.php).
 
 **Podejrzewana wspólna przyczyna punktów 2 i 3:**
-[`app/Providers/Filament/OwnerPanelProvider.php`](../../app/Providers/Filament/OwnerPanelProvider.php)
+[`app/Providers/Filament/OwnerPanelProvider.php`](../../../app/Providers/Filament/OwnerPanelProvider.php)
 nie rejestruje `->viteTheme(...)` — panel właściciela ładuje wyłącznie domyślne, prebuildowane
 CSS Filamentu, nigdy nie dołącza projektowego builda Tailwind (`tailwind.config.js` obejmuje
 `resources/views/**/*.blade.php`, ale ten bundle nie jest ładowany na stronach Filamentu). Stąd
@@ -181,6 +186,12 @@ komponenty Filamenta), nie dodawać nowego zachowania.
 - [x] Strona „Zarządzaj łowiskiem" pozostaje hubem z trzema zakładkami, licznikami
       (natywne `Tab::badge()`) i linkami „Utwórz"/„Lista", **bez** formularza edycji łowiska.
       Zakładki to `Tabs`/`Tab` ze schematu, przyciski to `Action::make()->icon(...)`.
+      ⚠️ **To kryterium zostało spełnione w sierpniu 2026 i ODWRÓCONE przez zadanie 016.**
+      Zakładek RelationManagerów już nie ma: ekrany jednego łowiska są stronami
+      w `FisheryResource::getRecordSubNavigation()`. Powód i to, co przestało obowiązywać:
+      [ADR-006, aktualizacja z zadania 016](../../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md).
+      Bez zmiany została połowa decyzji, która obowiązuje dalej: `ManageFishery` jest
+      `ViewRecord` z podglądem, **nie** formularzem edycji łowiska.
 - [x] Przyciski mają rozmiar i styl pilnowany przez framework — surowe `<svg>`
       (`x-icons.plus`, `x-icons.view`) zniknęły razem z komponentami, które ich używały.
       ⚠️ W listach zasobów podrzędnych nie było czego naprawiać: korzystają z natywnych
@@ -481,7 +492,7 @@ Zrobione:
   do `PositionResource` / `AdditionalServiceResource` / `LongTermPermitResource` — zero
   powielonych kolumn. Kolejność i zakładka „Dane łowiska" jako pierwsza: wbudowane
   `hasCombinedRelationManagerTabsWithContent()` + `getContentTabLabel()`. Zapis decyzji:
-  sekcja „Aktualizacja" w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md).
+  sekcja „Aktualizacja" w [ADR-006](../../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md).
 - **`ManageFishery` jako `ViewRecord`** z `infolist` (dane + adres) i akcją nagłówka „Edytuj".
 - **`Helper::fisheryBreadcrumbs()`** — jedno źródło okruszków dla dziewięciu stron podrzędnych.
 - **`canViewForRecord()`** w każdym RelationManagerze. Bez tego `getRelations()` wstrzyknął
@@ -634,7 +645,7 @@ Naprawa: `Helper::forceVerifiedFishery()` również w `mutateFormDataBeforeSave(
 trzech stron edycji. Trzy nowe testy, zweryfikowane negatywnie (po zdjęciu bramki czerwienieją).
 
 Reguła — trzy warstwy, żadnej nie zdejmować pojedynczo — trafiła do
-[`docs/conventions/autoryzacja.md`](../conventions/autoryzacja.md) §4.
+[`docs/conventions/autoryzacja.md`](../../conventions/autoryzacja.md) §4.
 
 **Wniosek procesowy:** obie tury przeglądu znalazły luki tej samej klasy, a trzecią znalazło
 dopiero ręczne prześledzenie ścieżki zapisu. Zasoby podrzędne łowiska są w tym projekcie
@@ -713,7 +724,7 @@ paska Filamenta, nazwy firm i łowisk do tabel. Nazwisko **„Krajewski"** zawie
 **45 kolizji na 5000 losowań** (~0,9%), co odpowiada obserwowanej częstotliwości.
 
 Naprawa: nazwy ustawiane wprost w tych testach. Reguła w
-[`panel-wlasciciela.md`](../conventions/panel-wlasciciela.md) §5. Po poprawce **trzy pełne
+[`panel-wlasciciela.md`](../../conventions/panel-wlasciciela.md) §5. Po poprawce **trzy pełne
 przebiegi z rzędu na zielono** (130 testów, 445 asercji).
 
 ### 19. Testy mutacyjne — jedna klasa domknięta, druga odłożona z pomiarem
@@ -868,7 +879,7 @@ przepuścić ją milcząco.
 ## Powiązane ADR-y
 
 - [**ADR-006 — Natywne komponenty Filamenta zamiast ręcznych przepływów; hub podrzędnych
-  zasobów zamiast RelationManagerów**](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
+  zasobów zamiast RelationManagerów**](../../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
   — utworzony przy `/review-task`. Kandydat zgłoszony w treści zadania okazał się spełniać
   **wszystkie trzy** warunki kryterium z `CLAUDE.md`:
   1. **Zasięg poza zadaniem** — ustala wzorzec dla każdego przyszłego kreatora wieloetapowego

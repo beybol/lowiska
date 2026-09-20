@@ -108,8 +108,9 @@ i hub „Zarządzaj łowiskiem", ADR-006).
       return XResource::getUrl('index');
   }
   ```
-  a dla zasobów zagnieżdżonych pod łowiskiem (stanowiska, usługi dodatkowe, pozwolenia)
-  celem jest **zakładka huba „Zarządzaj łowiskiem"**, nie samotna strona listy (zadanie 012):
+  a dla zasobów zagnieżdżonych pod łowiskiem (stanowiska, grupy, usługi dodatkowe, pozwolenia,
+  blokady) celem jest **strona sekcji w sub-nawigacji łowiska**, nie samotna strona listy
+  (zadanie 012, kształt zmieniony w zadaniu 016):
   ```php
   public function getRedirectUrl(): string
   {
@@ -124,14 +125,13 @@ i hub „Zarządzaj łowiskiem", ADR-006).
   {
       return Helper::fisherySectionUrl(
           XResource::class,
-          XRelationManager::class,
+          ManageXxx::class,
           $fisheryId,
       );
   }
   ```
   Ta sama metoda obsługuje też `getBreadcrumbs()` i stronę `Edit*`, żeby zapis i okruszki
-  prowadziły w to samo miejsce. Szczegóły — w tym dlaczego numeru zakładki nie wolno wpisywać
-  ręcznie — w [`panel-wlasciciela.md`](panel-wlasciciela.md).
+  prowadziły w to samo miejsce. Szczegóły w [`panel-wlasciciela.md`](panel-wlasciciela.md) §2.
 - **Dzisiejsze wyjątki od tej reguły:**
   - **`CompanyResource` — świadomie wyłączony.** To jedna klasa współdzielona między panelami
     (patrz niżej), a panel właściciela ma pozostać bez zmian. Wprowadzenie rozgałęzienia
@@ -182,3 +182,29 @@ i hub „Zarządzaj łowiskiem", ADR-006).
   dodatkową i korzysta z mechanizmu cen i limitów, a nie ze słownika cech.
 
 Uzasadnienie kształtu wartości: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech-stanowiska.md).
+
+---
+
+## 6. Nawigacja panelu: grupy i kolejność
+
+- **Pozycje bez grupy są pierwsze i są celowo nieliczne**: Panel, Firmy, Łowiska. To są ekrany
+  codziennej pracy; reszta jest konfiguracją albo administracją i idzie do grup.
+- **Grupa „Słowniki"** zbiera słowniki wspólne dla portalu (udogodnienia, rodzaje łowisk, metody
+  łowienia, ryby, cechy stanowisk, kraje, województwa, waluty). **Grupa „Dostępy"** — użytkowników
+  i role.
+- ⚠️ **Kolejność GRUP ustawia `Panel::navigationGroups()` w `AdminPanelProvider`**, a nie
+  sortowanie na zasobach. `Resource::getNavigationSort()` porządkuje wyłącznie pozycje **wewnątrz**
+  grupy; bez wpisu w providerze grupy ustawiają się alfabetycznie, czyli „Dostępy" przed
+  „Słownikami".
+- ⚠️ **Nawigację zasobu ról ustawia się na WTYCZCE, nie na klasie zasobu.** `RoleResource`
+  pochodzi z `bezhansalleh/filament-shield`, więc nadpisanie metod wymagałoby własnej klasy
+  dziedziczącej. Wtyczka daje fluent API:
+  `FilamentShieldPlugin::make()->navigationGroup(…)->navigationLabel(…)->navigationSort(…)`.
+- **Pasek boczny jest zwijany** (`sidebarCollapsibleOnDesktop()`), bo sub-nawigacja rekordu
+  łowiska jest po lewej — bez tego przy edycji dwa paski zjadały szerokość formularza.
+  ⚠️ **Filament nie ma opcji „domyślnie zwinięty".** Stan paska to
+  `Alpine.$persist(true).as('isOpen')` w `localStorage`, więc domyślnie jest OTWARTY, a wybór
+  użytkownika zapamiętuje się per przeglądarka. Wymuszenie stanu początkowego wymagałoby
+  podrzucenia klucza `localStorage` przed startem Alpine — czyli kodu opartego na szczególe
+  implementacyjnym `$persist`, dokładnie tej klasy, która wywróciła podgląd mapy
+  ([`panel-wlasciciela.md`](panel-wlasciciela.md) §4). Nie wprowadzaj tego bez świadomej decyzji.

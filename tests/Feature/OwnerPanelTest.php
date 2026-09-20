@@ -7,11 +7,9 @@ use App\Filament\Resources\AdditionalServiceResource;
 use App\Filament\Resources\AdditionalServiceResource\Pages\CreateAdditionalService;
 use App\Filament\Resources\AdditionalServiceResource\Pages\EditAdditionalService;
 use App\Filament\Resources\AdditionalServiceResource\Pages\ListAdditionalServices;
-use App\Filament\Resources\FisheryResource;
-use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
-use App\Filament\Resources\FisheryResource\RelationManagers\AdditionalServicesRelationManager;
-use App\Filament\Resources\FisheryResource\RelationManagers\LongTermPermitsRelationManager;
-use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
+use App\Filament\Resources\FisheryResource\Pages\ManageAdditionalServices;
+use App\Filament\Resources\FisheryResource\Pages\ManageLongTermPermits;
+use App\Filament\Resources\FisheryResource\Pages\ManagePositions;
 use App\Filament\Resources\LongTermPermitResource;
 use App\Filament\Resources\LongTermPermitResource\Pages\CreateLongTermPermit;
 use App\Filament\Resources\LongTermPermitResource\Pages\EditLongTermPermit;
@@ -157,28 +155,29 @@ test('Owner can view manage fishery page.', function () {
     $this->actingAs($owner)
         ->get("/owner/fisheries/{$fishery->id}/manage")
         ->assertSee(__('Manage fishery').' '.$fishery->name)
-        // Zakładka z danymi łowiska jest PIERWSZA — wejście w hub nie ma wrzucać
-        // od razu w jedną z trzech list (zadanie 012).
+        // ⚠️ Sub-nawigacja rekordu wypisuje WSZYSTKIE ekrany łowiska — listy i ustawienia
+        // obok siebie, bez rozróżnienia (ADR-006, aktualizacja z zadania 016). Dane
+        // łowiska są pierwsze, żeby wejście nie wrzucało od razu w jedną z list.
         ->assertSee(__('Fishery data'))
-        ->assertSee(__('Long term permits'))
-        ->assertSee(__('Additional services'))
         ->assertSee(__('Positions'))
-        // ⚠️ Listy renderują RelationManagery wprost w zakładce. Przycisk „Lista",
-        // za którym były wcześniej schowane, ma już nie istnieć.
+        ->assertSee(__('Position groups'))
+        ->assertSee(__('Sale and seasons'))
+        ->assertSee(__('Availability blocks'))
+        ->assertSee(__('Additional services'))
+        ->assertSee(__('Long term permits'))
         ->assertDontSee(__('List'))
         ->assertStatus(200);
 });
 
-test('Manage fishery tabs render sub-resource records inline.', function (
-    string $relationManager,
+test('Section pages render sub-resource records inline.', function (
+    string $sectionPage,
     string $model,
     string $createPath,
     array $attributes,
     string $label,
 ) {
-    // ⚠️ RelationManagery trzeba testować przez `Livewire::test`, nie przez GET strony huba:
-    // przy zakładkach połączonych z treścią pierwsze żądanie renderuje tylko zakładkę
-    // z danymi łowiska, a listy dociąga Livewire po kliknięciu (zadanie 012).
+    // ⚠️ Strony sekcji testuje się przez `Livewire::test` z parametrem `record`, bo to
+    // strony REKORDU (`ManageRelatedRecords`), a nie osadzone komponenty relacji.
     Filament::setCurrentPanel('owner');
 
     $owner = User::factory()->create();
@@ -195,31 +194,27 @@ test('Manage fishery tabs render sub-resource records inline.', function (
         'fishery_id' => $fishery->id,
     ]);
 
-    Livewire::test($relationManager, [
-        'ownerRecord' => $fishery,
-        'pageClass' => ManageFishery::class,
-    ])
+    Livewire::test($sectionPage, ['record' => $fishery->getKey()])
         ->assertSuccessful()
         ->assertCanSeeTableRecords([$record])
         ->assertSee($label)
-        // ⚠️ Przyciski dodawania i edycji muszą być zwykłymi `Action`, nie
-        // `CreateAction`/`EditAction`: `RelationManager::isReadOnly()` jest prawdą na
-        // stronie `ViewRecord` (czyli w hubie) i odmawia PO KLASIE akcji, przez co
-        // znikają z HTML-a bez błędu. Te dwie asercje są jedynym, co to wychwytuje.
+        // ⚠️ Akcje prowadzą na PEŁNE strony tworzenia i edycji, nie na modale. Pełne
+        // strony niosą bramkę dostępu do łowiska, wymuszenie `fishery_id` przy zapisie
+        // i własne przekierowania — modal omijałby te trzy warstwy. Te dwie asercje są
+        // jedynym, co to wychwytuje.
         ->assertSee("/owner/{$createPath}/create?fishery={$fishery->id}")
         ->call('loadTable')
         ->assertSee("/owner/{$createPath}/{$record->getKey()}/edit");
 })->with([
-    [PositionsRelationManager::class, Position::class, 'positions', ['name' => 'Stanowisko ABC'], 'Stanowisko ABC'],
-    [AdditionalServicesRelationManager::class, AdditionalService::class, 'additional-services', ['name' => 'Usluga ABC'], 'Usluga ABC'],
-    [LongTermPermitsRelationManager::class, LongTermPermit::class, 'long-term-permits', ['description' => 'Pozwolenie ABC'], 'Pozwolenie ABC'],
+    [ManagePositions::class, Position::class, 'positions', ['name' => 'Stanowisko ABC'], 'Stanowisko ABC'],
+    [ManageAdditionalServices::class, AdditionalService::class, 'additional-services', ['name' => 'Usluga ABC'], 'Usluga ABC'],
+    [ManageLongTermPermits::class, LongTermPermit::class, 'long-term-permits', ['description' => 'Pozwolenie ABC'], 'Pozwolenie ABC'],
 ]);
 
-test('Hub tab URL built by the helper actually activates that tab.', function () {
-    // ⚠️ Test przekierowań niżej liczy oczekiwany adres tą samą konwencją co kod,
-    // więc pilnuje wyłącznie INDEKSU. Ten test sprawdza rzecz, której tamten nie
-    // widzi: że parametr zapytania, którego używa `Helper::fisheryHubUrl()`, jest
-    // faktycznie tym, po którym Filament aktywuje zakładkę.
+test('Section URL built by the helper opens that section.', function () {
+    // ⚠️ Test przekierowań niżej liczy oczekiwany adres tą samą konwencją co kod.
+    // Ten sprawdza rzecz, której tamten nie widzi: że adres z `Helper::fisheryHubUrl()`
+    // naprawdę otwiera właściwą sekcję, a nie tylko zgadza się jako napis.
     Filament::setCurrentPanel('owner');
 
     $owner = User::factory()->create();
@@ -227,16 +222,11 @@ test('Hub tab URL built by the helper actually activates that tab.', function ()
     $this->actingAs($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
 
-    $url = Helper::fisheryHubUrl($fishery->id, PositionsRelationManager::class);
-    parse_str((string) parse_url((string) $url, PHP_URL_QUERY), $query);
+    $url = Helper::fisheryHubUrl($fishery->id, ManagePositions::class);
 
-    Livewire::withQueryParams($query)
-        ->test(ManageFishery::class, ['record' => $fishery->getKey()])
-        ->assertSet('activeRelationManager', (string) array_search(
-            PositionsRelationManager::class,
-            FisheryResource::getRelations(),
-            true,
-        ));
+    $this->get((string) $url)
+        ->assertStatus(200)
+        ->assertSee(__('Positions'));
 });
 
 test('Manage fishery data tab links to the fishery edit form.', function () {
@@ -257,7 +247,7 @@ test('Saving a sub-resource returns to its tab in the fishery hub.', function (
     string $createPage,
     string $editPage,
     string $model,
-    string $relationManager,
+    string $sectionPage,
 ) {
     Filament::setCurrentPanel('owner');
 
@@ -270,14 +260,10 @@ test('Saving a sub-resource returns to its tab in the fishery hub.', function (
         'fishery_id' => $fishery->id,
     ]);
 
-    // ⚠️ Filament identyfikuje zakładkę POZYCJĄ w `FisheryResource::getRelations()`,
-    // nie nazwą klasy. Oczekiwany adres liczymy tu z tej samej tablicy — inaczej test
-    // przyklepałby zaszyty numer i przestawienie zakładek przeszłoby niezauważone.
-    $relation = array_search($relationManager, FisheryResource::getRelations(), true);
-    $expected = FisheryResource::getUrl('manage', [
-        'record' => $fishery,
-        'relation' => $relation,
-    ]);
+    // Adres sekcji liczony po KLASIE STRONY — tą samą drogą co kod produkcyjny.
+    // Osobny test niżej sprawdza, że ten adres naprawdę otwiera właściwą sekcję;
+    // ten pilnuje wyłącznie tego, że zapis i edycja wracają w to samo miejsce.
+    $expected = route($sectionPage::getRouteName(), ['record' => $fishery]);
 
     $afterCreate = Livewire::withQueryParams(['fishery' => $fishery->id])
         ->test($createPage)
@@ -291,15 +277,16 @@ test('Saving a sub-resource returns to its tab in the fishery hub.', function (
     expect($afterCreate)->toBe($expected)
         ->and($afterEdit)->toBe($expected);
 })->with([
-    [CreatePosition::class, EditPosition::class, Position::class, PositionsRelationManager::class],
-    [CreateAdditionalService::class, EditAdditionalService::class, AdditionalService::class, AdditionalServicesRelationManager::class],
-    [CreateLongTermPermit::class, EditLongTermPermit::class, LongTermPermit::class, LongTermPermitsRelationManager::class],
+    [CreatePosition::class, EditPosition::class, Position::class, ManagePositions::class],
+    [CreateAdditionalService::class, EditAdditionalService::class, AdditionalService::class, ManageAdditionalServices::class],
+    [CreateLongTermPermit::class, EditLongTermPermit::class, LongTermPermit::class, ManageLongTermPermits::class],
 ]);
 
-test('Fishery edit page does not render sub-resource tabs.', function () {
-    // ⚠️ `FisheryResource::getRelations()` obowiązuje wszystkie strony zasobu. Bez
-    // `canViewForRecord()` w RelationManagerach listy doklejają się do formularza
-    // edycji łowiska — ten test pilnuje, żeby należały wyłącznie do huba.
+test('Fishery edit page keeps the record sub-navigation.', function () {
+    // ⚠️ Do zadania 016 ten test pilnował czegoś ODWROTNEGO: listy nie miały doklejać
+    // się do formularza edycji, bo zakładki należały wyłącznie do huba. Sub-nawigacja
+    // rekordu jest z założenia na KAŻDEJ stronie rekordu — operator nie wypada
+    // z nawigacji łowiska, wchodząc w edycję (ADR-006, aktualizacja z zadania 016).
     $owner = User::factory()->create();
     Helper::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
@@ -307,8 +294,8 @@ test('Fishery edit page does not render sub-resource tabs.', function () {
     $this->actingAs($owner)
         ->get("/owner/fisheries/{$fishery->id}/edit")
         ->assertStatus(200)
-        ->assertDontSee(__('Long term permits'))
-        ->assertDontSee(__('Positions'));
+        ->assertSee(__('Positions'))
+        ->assertSee(__('Sale and seasons'));
 });
 
 test('Owner can see only active long term permits count on manage fishery page.', function () {
@@ -333,7 +320,7 @@ test('Owner can see only active long term permits count on manage fishery page.'
     // ⚠️ Licznik sprawdzamy u źródła, nie przez `assertSee('1')` na całej stronie —
     // jedynka trafia się w losowym miejscu HTML-a i taka asercja przechodziła
     // nawet wtedy, gdy plakietki w ogóle nie było (zadanie 012).
-    expect(LongTermPermitsRelationManager::getBadge($fishery, ManageFishery::class))
+    expect(ManageLongTermPermits::badgeFor($fishery))
         ->toBe('1');
 });
 
@@ -356,7 +343,7 @@ test('Owner can see only active additional services count on manage fishery page
         ->get("/owner/fisheries/{$fishery->id}/manage")
         ->assertStatus(200);
 
-    expect(AdditionalServicesRelationManager::getBadge($fishery, ManageFishery::class))
+    expect(ManageAdditionalServices::badgeFor($fishery))
         ->toBe('1');
 });
 
@@ -379,7 +366,7 @@ test('Owner can see only active positions count on manage fishery page.', functi
         ->get("/owner/fisheries/{$fishery->id}/manage")
         ->assertStatus(200);
 
-    expect(PositionsRelationManager::getBadge($fishery, ManageFishery::class))
+    expect(ManagePositions::badgeFor($fishery))
         ->toBe('1');
 });
 

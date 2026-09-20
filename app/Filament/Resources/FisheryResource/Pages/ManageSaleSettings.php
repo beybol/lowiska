@@ -38,6 +38,13 @@ class ManageSaleSettings extends EditRecord
 {
     protected static string $resource = FisheryResource::class;
 
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-calendar-days';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Sale and seasons');
+    }
+
     public function getTitle(): string
     {
         return __('Sale and seasons').': '.$this->fishery()->name;
@@ -67,7 +74,10 @@ class ManageSaleSettings extends EditRecord
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
+        // ⚠️ `EditRecord::defaultForm()` narzuca `columns(2)`, o ile schemat sam nie
+        // zadeklaruje kolumn. Bez tego obie sekcje stoją obok siebie, a repeater okresów
+        // ze swoimi trzema kolumnami dostaje połowę szerokości i jest ściśnięty.
+        return $schema->columns(1)->components([
             Section::make(__('How you sell time at a position'))
                 ->description(__('Changing the hour applies from today and does not affect reservations already sold.'))
                 ->schema([

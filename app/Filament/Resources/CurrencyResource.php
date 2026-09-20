@@ -69,6 +69,16 @@ class CurrencyResource extends Resource
         ];
     }
 
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return __('Dictionaries');
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 8;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('Currencies');

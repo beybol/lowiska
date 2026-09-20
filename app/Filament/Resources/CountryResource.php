@@ -94,6 +94,16 @@ class CountryResource extends Resource
         ];
     }
 
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return __('Dictionaries');
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 6;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('Countries');

@@ -17,7 +17,7 @@ nie".** Dopóki go nie ma, poprzednie zadania da się sprawdzić wyłącznie po 
 zachowaniu, a każde kolejne będzie kuszone, żeby dorobić własne wyliczenie.
 
 Zadanie realizuje **M2** w części blokad wraz z punktem elastyczności **F3** i mechanizmami **G8**
-i **G11** z [Wymagań konfiguracji sprzedaży krótkoterminowej](../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md),
+i **G11** z [Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md),
 a przy okazji wnosi pierwsze wcielenie zasady **Z3** i mechanizmu **G5** — jednego źródła prawdy
 o dostępności.
 
@@ -69,7 +69,7 @@ pytanie **dla łowiska** (doba mieści się w okresie sprzedaży, albo nie). Now
 **komponuje** kalendarz, a nie zastępuje go ani nie powtarza jego reguł: kalendarz wie o **czasie**,
 nowa usługa o **stanowisku**. Enum `SaleUnavailabilityReason` zostaje **rozszerzony** o powody z tego
 zadania, nie duplikowany — jeden słownik komunikatów dla całej sprzedaży. Uzasadnienie:
-[ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md).
+[ADR-012](../../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md).
 Wołają je panel, przyszły portal wędkarza, sprzedaż wpisywana ręcznie oraz zadania 017, 018 i 019 —
 żadne z nich nie buduje własnego wariantu.
 
@@ -194,7 +194,7 @@ Komunikat odmowy widzi wędkarz, więc jest częścią interfejsu, a nie treści
   administratora odkrywa je katalogiem (`discoverResources`), więc widzi nowy zasób sam i jego
   providera zadanie nie dotyka. Filtr obejmuje `AdminPanelTest` i `OwnerPanelTest`, czyli dokładnie
   to, co chroni tę zmianę. Odstępstwo jest **pakietowe, nie punktowe**: rozdział 14.2
-  [wymagań](../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) ustala T2 dla zadań 014–021 i pełny
+  [wymagań](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) ustala T2 dla zadań 014–021 i pełny
   pakiet na trzech punktach kontrolnych; to zadanie **domyka punkt A**, więc pełny pakiet biegnie
   bezpośrednio po nim.
   ⚠️ Nazwy dwóch pierwszych klas w filtrze są **propozycją** — jeśli implementacja nazwie je inaczej,
@@ -237,7 +237,7 @@ Komunikat odmowy widzi wędkarz, więc jest częścią interfejsu, a nie treści
 - Laravel 13, Filament 5, PHP 8.4.
 - **Zadanie idzie po 015 i po 014** — potrzebuje pojęcia doby, okresów sprzedaży, stanu stanowiska
   i słownika cech. Domyka punkt kontrolny A. Reguły granic dat pochodzą z
-  [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md) i nie są tu ustalane na nowo.
+  [ADR-010](../../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md) i nie są tu ustalane na nowo.
 - **Osobny plik migracji na każdą tabelę**: `availability_blocks` i `availability_block_position`.
 - Wyliczenia dat idą przez pojęcie doby z zadania 015 i w strefie czasowej łowiska — to zadanie
   **nie liczy dób po swojemu**.
@@ -269,6 +269,19 @@ Komunikat odmowy widzi wędkarz, więc jest częścią interfejsu, a nie treści
   historycznej ani ścieżki dostępu poza łowiskiem. Wyłamuje się wyłącznie `positions`, bo wisi
   w tabelach pośrednich pozwoleń i usług, więc po odcięciu wciąż coś znaczy.
 
+- **Hub z zakładkami zastąpiony sub-nawigacją rekordu — decyzja podjęta PO implementacji.**
+  Ekran „Sprzedaż i sezony" z zadania 015 dostał akcję nagłówka zamiast zakładki, bo pasek
+  zakładek buduje `Livewire::make($relationManagerClass, …)` i strony z własną trasą nie
+  przyjmuje. Przy trzecim ekranie wyszło, że to nie skaluje się: makieta zapowiada pięć
+  kolejnych ekranów konfiguracyjnych, czyli pięć kolejnych przycisków obok „Edytuj".
+  Rozróżnienie na listy i ustawienia okazało się artefaktem ograniczenia frameworka,
+  a nie właściwością produktu. Wszystkie ekrany łowiska są teraz stronami
+  w `FisheryResource::getRecordSubNavigation()` — jedna nawigacja, jak w makiecie.
+  Uzasadnienie i to, co przestało obowiązywać:
+  [ADR-006, aktualizacja z zadania 016](../../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md).
+  ⚠️ Skutek uboczny wart odnotowania: zniknął parametr `?relation=N`, a z nim pułapka
+  „przestawienie kolejności zakładek przekierowuje zapis na cudzą listę i nic nie pęka".
+
 - **Niezmiennik o dostępności ląduje w NOWYM pliku `docs/conventions/dostepnosc.md`**, nie w pliku
   o panelu. Reguła nie należy do żadnej powierzchni panelu — wiążą się nią portal wędkarza, cennik
   i kalendarz. Przy okazji przenosi się tam sekcja o dobie i okresach sprzedaży, dziś zaparkowana
@@ -276,19 +289,19 @@ Komunikat odmowy widzi wędkarz, więc jest częścią interfejsu, a nie treści
 
 ## Powiązane ADR-y
 
-- [ADR-012 — Jedno źródło prawdy o dostępności: skład warunków i kształt odmowy](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md)
+- [ADR-012 — Jedno źródło prawdy o dostępności: skład warunków i kształt odmowy](../../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md)
   — **Decyzja do wypełnienia przez autora.** Obejmuje trzy rzeczy naraz, bo każda osobno nie ma
   sensu: gdzie usługa mieszka wobec `FishingDayCalendar`, w jakiej kolejności składa warunki
   i co zwraca przy odmowie.
-- [ADR-010 — Doba wędkarska jako przedział czasu](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md)
+- [ADR-010 — Doba wędkarska jako przedział czasu](../../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md)
   — to zadanie **korzysta** z reguły przecięcia dla blokad, nie ustala jej na nowo. ADR-010 zostaje
   nietknięty: jego zakres to doby i granice, nie skład dostępności.
-- [ADR-006, aktualizacja z zadania 015](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
+- [ADR-006, aktualizacja z zadania 015](../../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
   — wpisy o dostępności są **listą rekordów**, więc idą RelationManagerem, a nie stroną ustawień.
 
 ## Otwarte pytania dla `/review-task` — zamknięte
 
-1. **Jedno źródło prawdy o dostępności** → [ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md).
+1. **Jedno źródło prawdy o dostępności** → [ADR-012](../../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md).
    Spełnia wszystkie trzy warunki; przesądził **koszt odwrócenia** — odwrócenie oznacza przepisanie
    każdego miejsca, które pyta o dostępność, a takich miejsc przybywa z każdym kolejnym zadaniem
    pakietu. ADR objął też kolejność składania warunków i kształt odmowy, bo oderwane od pytania

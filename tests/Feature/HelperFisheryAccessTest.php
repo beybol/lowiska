@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\FisheryResource;
-use App\Filament\Resources\FisheryResource\RelationManagers\AdditionalServicesRelationManager;
-use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
+use App\Filament\Resources\FisheryResource\Pages\ManageAdditionalServices;
+use App\Filament\Resources\FisheryResource\Pages\ManagePositions;
 use App\Filament\Resources\PositionResource;
 use App\Helpers\Helper;
 use App\Models\Company;
@@ -107,19 +107,20 @@ test('scopeToOwnedFisheries does not narrow anything in the admin panel', functi
     expect($query->pluck('id')->all())->toContain($foreign->id);
 });
 
-test('hub url carries the tab index matching the relation manager position', function () {
+test('section url points at the page of that section', function () {
     $owner = User::factory()->create();
     Helper::addOwnerRole($owner);
     $this->actingAs($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
 
-    $expectedIndex = array_search(PositionsRelationManager::class, FisheryResource::getRelations(), true);
-
-    expect(Helper::fisheryHubUrl($fishery->id, PositionsRelationManager::class))
-        ->toBe(FisheryResource::getUrl('manage', ['record' => $fishery, 'relation' => $expectedIndex]))
-        // różne managery muszą dawać różne zakładki — inaczej „liczony indeks"
-        // byłby tylko pozorem i zapis wracałby zawsze w to samo miejsce
-        ->not->toBe(Helper::fisheryHubUrl($fishery->id, AdditionalServicesRelationManager::class));
+    // ⚠️ Adres składa się po KLASIE STRONY. Do zadania 016 wskazywał go parametr
+    // `?relation=N` liczony z pozycji w `getRelations()`, więc przestawienie zakładek
+    // cicho przekierowywało zapis na cudzą listę. Sub-nawigacja zniosła tę pułapkę.
+    expect(Helper::fisheryHubUrl($fishery->id, ManagePositions::class))
+        ->toBe(FisheryResource::getUrl('positions', ['record' => $fishery]))
+        // różne sekcje muszą dawać różne adresy — inaczej zapis wracałby zawsze
+        // w to samo miejsce, a test przechodziłby z niewłaściwego powodu
+        ->not->toBe(Helper::fisheryHubUrl($fishery->id, ManageAdditionalServices::class));
 });
 
 test('hub url is null when the fishery cannot be resolved', function (mixed $value) {
@@ -127,7 +128,7 @@ test('hub url is null when the fishery cannot be resolved', function (mixed $val
     Helper::addOwnerRole($owner);
     $this->actingAs($owner);
 
-    expect(Helper::fisheryHubUrl($value, PositionsRelationManager::class))->toBeNull();
+    expect(Helper::fisheryHubUrl($value, ManagePositions::class))->toBeNull();
 })->with([[null], ['abc'], ['999999']]);
 
 test('section url falls back to the standalone list when there is no fishery', function () {
@@ -135,7 +136,7 @@ test('section url falls back to the standalone list when there is no fishery', f
     Helper::addOwnerRole($owner);
     $this->actingAs($owner);
 
-    expect(Helper::fisherySectionUrl(PositionResource::class, PositionsRelationManager::class, null))
+    expect(Helper::fisherySectionUrl(PositionResource::class, ManagePositions::class, null))
         ->toBe(PositionResource::getUrl('index', ['fishery' => null]));
 });
 

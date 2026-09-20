@@ -12,21 +12,26 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 /**
- * Hub zarządzania łowiskiem: zakładka z danymi łowiska + po jednej zakładce na
- * każdy zasób podrzędny (pozwolenia, usługi dodatkowe, stanowiska).
+ * Dane łowiska — pierwsza pozycja sub-nawigacji rekordu.
  *
- * ⚠️ Strona celowo **nie** zawiera formularza edycji łowiska — pierwsza zakładka
- * to podgląd (infolist), nie formularz. Ta granica jest istotą decyzji z ADR-006;
- * nie zamieniaj `ViewRecord` na `EditRecord`, bo hub przestanie być hubem.
+ * ⚠️ Strona celowo **nie** zawiera formularza edycji łowiska: to podgląd (infolist)
+ * z akcją nagłówka „Edytuj" prowadzącą do osobnego formularza. Ta granica jest istotą
+ * decyzji z ADR-006 i obowiązuje dalej — nie zamieniaj `ViewRecord` na `EditRecord`.
  *
- * Listy zasobów podrzędnych renderują RelationManagery, więc widać je od razu po
- * wejściu w zakładkę — wcześniej były schowane za przyciskiem „Lista" (zadanie 012).
- * Zakładki i ich układ daje wbudowany mechanizm Filamenta
- * (`hasCombinedRelationManagerTabsWithContent()`), nie własny Alpine ani `Tabs`.
+ * ⚠️ Strona nie ma już zakładek. Od zadania 016 listy zasobów podrzędnych i ekrany
+ * konfiguracyjne są osobnymi stronami w `FisheryResource::getRecordSubNavigation()`
+ * (ADR-006, aktualizacja z zadania 016).
  */
 class ManageFishery extends ViewRecord
 {
     protected static string $resource = FisheryResource::class;
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-information-circle';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Fishery data');
+    }
 
     public function getTitle(): string
     {
@@ -60,12 +65,8 @@ class ManageFishery extends ViewRecord
     }
 
     /**
-     * Zakładka z danymi łowiska ma być PIERWSZA, żeby wejście w zarządzanie nie
-     * wrzucało od razu w jedną z trzech list.
-     */
-    /**
-     * Zakładka z danymi łowiska jest podglądem, więc edycja musi mieć własne wejście —
-     * inaczej z huba nie da się przejść do formularza łowiska (zadanie 012).
+     * Strona jest podglądem, więc edycja musi mieć własne wejście — inaczej nie da się
+     * przejść do formularza łowiska (zadanie 012).
      *
      * @return array<int, Action>
      */
@@ -78,26 +79,7 @@ class ManageFishery extends ViewRecord
                 ->url(fn (): string => FisheryResource::getUrl('edit', [
                     'record' => $this->getRecord(),
                 ])),
-            // Wejście do zakładki konfiguracyjnej. Zwykła `Action`, nie akcja
-            // CRUD-owa: hub jest `ViewRecord`, a tam autoryzacja odmawia PO KLASIE
-            // akcji i robi to po cichu (`panel-wlasciciela.md` §2).
-            Action::make('saleSettings')
-                ->label(__('Sale and seasons'))
-                ->icon('heroicon-m-calendar-days')
-                ->url(fn (): string => FisheryResource::getUrl('sale-settings', [
-                    'record' => $this->getRecord(),
-                ])),
         ];
-    }
-
-    public function hasCombinedRelationManagerTabsWithContent(): bool
-    {
-        return true;
-    }
-
-    public function getContentTabLabel(): ?string
-    {
-        return __('Fishery data');
     }
 
     public function infolist(Schema $schema): Schema

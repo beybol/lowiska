@@ -61,6 +61,14 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - Odmowa sprzedaży rozróżnia teraz także „stanowisko wycofane" i „sprzedaż w tym dniu
   zablokowana". Gdy zachodzi kilka przyczyn naraz, wędkarz widzi tę najtrwalszą — wycofanie
   stanowiska przed sezonem, sezon przed blokadą.
+- Zarządzanie łowiskiem ma teraz jedno, wspólne menu boczne zamiast zakładek: dane łowiska,
+  stanowiska, grupy, sprzedaż i sezony, blokady, usługi dodatkowe i pozwolenia są w nim obok
+  siebie, każde z własnym adresem. Menu towarzyszy właścicielowi także na formularzu edycji
+  łowiska, więc nie trzeba się z niego cofać. Liczniki przy pozycjach zostały bez zmian.
+- Menu panelu administratora jest uporządkowane: na wierzchu zostały Panel, Firmy i Łowiska,
+  a pozostałe pozycje trafiły do dwóch grup — „Słowniki" (udogodnienia, rodzaje łowisk, metody
+  łowienia, ryby, cechy stanowisk, kraje, województwa, waluty) i „Dostępy" (użytkownicy, role).
+  Boczne menu da się zwinąć, żeby zrobić miejsce formularzom.
 - Nazwa stanowiska nie może się powtórzyć w obrębie jednego łowiska — także wtedy, gdy stanowisko
   o tej nazwie zostało wcześniej wycofane. Wcześniej wycofana nazwa wracała do obiegu i historia
   pozwoleń mogła wskazywać na dwa różne miejsca o tej samej etykiecie.

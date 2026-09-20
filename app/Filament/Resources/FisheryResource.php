@@ -5,13 +5,13 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\FisheryResource\Pages\CreateFishery;
 use App\Filament\Resources\FisheryResource\Pages\EditFishery;
 use App\Filament\Resources\FisheryResource\Pages\ListFisheries;
+use App\Filament\Resources\FisheryResource\Pages\ManageAdditionalServices;
+use App\Filament\Resources\FisheryResource\Pages\ManageAvailabilityBlocks;
 use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
+use App\Filament\Resources\FisheryResource\Pages\ManageLongTermPermits;
+use App\Filament\Resources\FisheryResource\Pages\ManagePositionGroups;
+use App\Filament\Resources\FisheryResource\Pages\ManagePositions;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleSettings;
-use App\Filament\Resources\FisheryResource\RelationManagers\AdditionalServicesRelationManager;
-use App\Filament\Resources\FisheryResource\RelationManagers\AvailabilityBlocksRelationManager;
-use App\Filament\Resources\FisheryResource\RelationManagers\LongTermPermitsRelationManager;
-use App\Filament\Resources\FisheryResource\RelationManagers\PositionGroupsRelationManager;
-use App\Filament\Resources\FisheryResource\RelationManagers\PositionsRelationManager;
 use App\Helpers\Helper;
 use App\Models\Company;
 use App\Models\Convenience;
@@ -33,6 +33,9 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ViewField;
+use Filament\Navigation\NavigationItem;
+use Filament\Pages\Enums\SubNavigationPosition;
+use Filament\Resources\Pages\Page;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -311,23 +314,58 @@ class FisheryResource extends Resource
     }
 
     /**
-     * Zasoby podrzędne łowiska, renderowane jako zakładki huba `ManageFishery`.
-     * Tabele delegują do właściwych zasobów, więc lista w zakładce i samodzielna
-     * strona listy pokazują to samo (zadanie 012).
+     * ⚠️ PUSTE i takie ma zostać. Ekrany podrzędne łowiska są od zadania 016 STRONAMI
+     * w sub-nawigacji rekordu, nie zakładkami RelationManagerów — patrz
+     * `getRecordSubNavigation()` i ADR-006 (aktualizacja z zadania 016).
      */
     public static function getRelations(): array
     {
-        return [
-            LongTermPermitsRelationManager::class,
-            AdditionalServicesRelationManager::class,
-            PositionsRelationManager::class,
-            // Grupy po stanowiskach: grupa jest etykietą NA stanowiskach, więc bez
-            // nich nie ma czego grupować. ⚠️ Kolejność wyznacza parametr `?relation=`,
-            // ale adresy składa `Helper::fisheryHubUrl()` po KLASIE — nigdy nie wpisuj
-            // tego numeru ręcznie (`panel-wlasciciela.md` §2).
-            PositionGroupsRelationManager::class,
-            AvailabilityBlocksRelationManager::class,
-        ];
+        return [];
+    }
+
+    /**
+     * Jedna nawigacja dla wszystkich ekranów jednego łowiska — listy i ustawienia
+     * obok siebie, bez rozróżnienia widocznego dla operatora.
+     *
+     * ⚠️ Kolejność jest tu jedyną definicją kolejności w interfejsie. Adresy składa się
+     * po KLASIE STRONY (`Page::getRouteName()`), więc przestawienie tej listy nie może
+     * już przekierować zapisu na cudzą sekcję — inaczej niż dawny parametr `?relation=N`.
+     *
+     * @return array<int, NavigationItem>
+     */
+    public static function getRecordSubNavigation(Page $page): array
+    {
+        return $page->generateNavigationItems([
+            // Kolejność idzie od tego, co operator ustawia NAJPIERW i najrzadziej zmienia,
+            // do tego, co dokłada w trakcie sezonu. Blokady są ostatnie, bo są reakcją
+            // na zdarzenie, a nie częścią konfiguracji zakładanej na starcie.
+            ManageFishery::class,
+            ManageSaleSettings::class,
+            ManagePositions::class,
+            ManagePositionGroups::class,
+            ManageAdditionalServices::class,
+            ManageLongTermPermits::class,
+            ManageAvailabilityBlocks::class,
+        ]);
+    }
+
+    /**
+     * ⚠️ `Start`, nie `Top` — i to jest decyzja o SKALOWANIU, nie o guście.
+     *
+     * Zakładki u góry (`.fi-tabs`) to `display:flex; overflow-x:auto` bez zawijania,
+     * a Filament nie ma przełącznika, który by to zmienił. Siedem polskich etykiet już
+     * się nie mieściło i pojawiał się przewijak; makieta zapowiada docelowo około
+     * dziesięciu sekcji, więc problem tylko by narastał. Lista pionowa rośnie w dół
+     * i nie ma tego ograniczenia.
+     *
+     * ⚠️ Panel właściciela **nie ma** paska bocznego (`OwnerPanelProvider` ustawia
+     * `topNavigation()`), więc sub-nawigacja jest tam jedynym paskiem. Panel
+     * administratora ma własny — dlatego dostał `sidebarCollapsibleOnDesktop()`,
+     * żeby dało się go zwinąć i oddać szerokość formularzom.
+     */
+    public static function getSubNavigationPosition(): SubNavigationPosition
+    {
+        return SubNavigationPosition::Start;
     }
 
     public static function getPages(): array
@@ -341,7 +379,17 @@ class FisheryResource extends Resource
             // `FisheryResource` jest zarejestrowany w obu panelach, więc strona
             // trafia do obu bez dotykania providerów (ADR-006, aktualizacja 015).
             'sale-settings' => ManageSaleSettings::route('/{record}/sale-settings'),
+            'positions' => ManagePositions::route('/{record}/positions'),
+            'position-groups' => ManagePositionGroups::route('/{record}/position-groups'),
+            'availability-blocks' => ManageAvailabilityBlocks::route('/{record}/availability-blocks'),
+            'additional-services' => ManageAdditionalServices::route('/{record}/additional-services'),
+            'long-term-permits' => ManageLongTermPermits::route('/{record}/long-term-permits'),
         ];
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 3;
     }
 
     public static function getNavigationLabel(): string

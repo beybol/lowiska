@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\PositionGroupResource\Pages;
 
-use App\Filament\Resources\FisheryResource\RelationManagers\PositionGroupsRelationManager;
+use App\Filament\Resources\FisheryResource\Pages\ManagePositionGroups;
 use App\Filament\Resources\PositionGroupResource;
 use App\Helpers\Helper;
 use Filament\Resources\Pages\CreateRecord;
@@ -55,7 +55,7 @@ class CreatePositionGroup extends CreateRecord
     {
         return Helper::fisherySectionUrl(
             PositionGroupResource::class,
-            PositionGroupsRelationManager::class,
+            ManagePositionGroups::class,
             $fisheryId,
         );
     }

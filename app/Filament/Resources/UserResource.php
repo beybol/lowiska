@@ -119,6 +119,16 @@ class UserResource extends Resource
         ];
     }
 
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return __('Access');
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('Users');

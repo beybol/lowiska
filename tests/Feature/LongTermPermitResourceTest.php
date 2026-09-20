@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\FisheryResource;
-use App\Filament\Resources\FisheryResource\RelationManagers\LongTermPermitsRelationManager;
 use App\Filament\Resources\LongTermPermitResource\Pages\CreateLongTermPermit;
 use App\Models\Company;
 use App\Models\Fishery;
@@ -29,8 +28,8 @@ test('creating a long term permit redirects to its tab in the fishery hub', func
     $page = new CreateLongTermPermit;
     $page->record = $permit;
 
-    expect($page->getRedirectUrl())->toBe(FisheryResource::getUrl('manage', [
-        'record' => $fishery,
-        'relation' => array_search(LongTermPermitsRelationManager::class, FisheryResource::getRelations(), true),
-    ]));
+    // Adres sekcji budowany po KLASIE STRONY — parametr `?relation=N` zniknął razem
+    // z zakładkami huba (ADR-006, aktualizacja z zadania 016).
+    expect($page->getRedirectUrl())
+        ->toBe(FisheryResource::getUrl('long-term-permits', ['record' => $fishery]));
 });
