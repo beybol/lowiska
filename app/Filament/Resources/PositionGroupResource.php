@@ -5,9 +5,10 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PositionGroupResource\Pages\CreatePositionGroup;
 use App\Filament\Resources\PositionGroupResource\Pages\EditPositionGroup;
 use App\Filament\Resources\PositionGroupResource\Pages\ListPositionGroups;
-use App\Helpers\Helper;
 use App\Models\Position;
 use App\Models\PositionGroup;
+use App\Services\FisheryAccess;
+use App\Services\SharedFormComponents;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -45,7 +46,7 @@ class PositionGroupResource extends Resource
     {
         return $schema
             ->components([
-                ...Helper::getFisheryFields(),
+                ...SharedFormComponents::getFisheryFields(),
                 TextInput::make('name')
                     ->label(__('Group name'))
                     ->required()
@@ -53,7 +54,7 @@ class PositionGroupResource extends Resource
                 RichEditor::make('description')
                     ->label(__('Description'))
                     ->helperText(__('Everything a flag can not carry: directions, the character of the bank.'))
-                    ->toolbarButtons(Helper::getRichEditorOptions()),
+                    ->toolbarButtons(SharedFormComponents::getRichEditorOptions()),
                 Select::make('positions')
                     ->label(__('Positions'))
                     ->relationship('positions', 'name')
@@ -70,7 +71,7 @@ class PositionGroupResource extends Resource
                         }
 
                         $query = Position::query()->where('fishery_id', (int) $fisheryId);
-                        Helper::scopeToOwnedFisheries($query);
+                        FisheryAccess::scopeToOwnedFisheries($query);
 
                         return $query->pluck('name', 'id')->toArray();
                     }),
@@ -154,7 +155,7 @@ class PositionGroupResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        Helper::scopeToOwnedFisheries($query);
+        FisheryAccess::scopeToOwnedFisheries($query);
 
         // Eager-load wymagany: `visible()` akcji wiersza pyta politykę, a ta sięga
         // po `$record->fishery->user_id` — bez tego N+1 na całą tabelę.

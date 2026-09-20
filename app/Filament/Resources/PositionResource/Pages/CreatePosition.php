@@ -4,9 +4,11 @@ namespace App\Filament\Resources\PositionResource\Pages;
 
 use App\Filament\Resources\FisheryResource\Pages\ManagePositions;
 use App\Filament\Resources\PositionResource;
-use App\Helpers\Helper;
 use App\Models\AvailabilityBlock;
 use App\Models\Position;
+use App\Services\AdditionalServiceSync;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use App\Services\PositionAttributeWriter;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -22,19 +24,19 @@ class CreatePosition extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $this->additionalServicesToSync = Helper::extractAdditionalServices($data);
+        $this->additionalServicesToSync = AdditionalServiceSync::extractAdditionalServices($data);
 
         // ⚠️ Cechy MUSZĄ wypaść ze zbioru przed zapisem modelu: `position_attributes`
         // nie jest kolumną, a zostawione w tablicy trafiłoby do `fill()`.
         $this->attributesToWrite = $data['position_attributes'] ?? [];
         unset($data['position_attributes']);
 
-        return Helper::forceVerifiedFishery($data);
+        return FisheryAccess::forceVerifiedFishery($data);
     }
 
     protected function afterCreate(): void
     {
-        Helper::syncAdditionalServices($this->record, $this->additionalServicesToSync);
+        AdditionalServiceSync::syncAdditionalServices($this->record, $this->additionalServicesToSync);
 
         $position = $this->record;
         assert($position instanceof Position);
@@ -82,7 +84,7 @@ class CreatePosition extends CreateRecord
 
     public function mount(): void
     {
-        Helper::assertFisheryAccessOrAbort();
+        FisheryAccess::assertFisheryAccessOrAbort();
         parent::mount();
     }
 
@@ -95,7 +97,7 @@ class CreatePosition extends CreateRecord
     {
         $fisheryId = request()->get('fishery');
 
-        return Helper::fisheryBreadcrumbs(
+        return FisheryNavigation::fisheryBreadcrumbs(
             $fisheryId,
             __('Positions'),
             self::sectionUrl($fisheryId),
@@ -114,7 +116,7 @@ class CreatePosition extends CreateRecord
 
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisherySectionUrl(
+        return FisheryNavigation::fisherySectionUrl(
             PositionResource::class,
             ManagePositions::class,
             $fisheryId,

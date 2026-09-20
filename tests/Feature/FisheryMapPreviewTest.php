@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\FisheryResource\Pages\CreateFishery;
-use App\Helpers\Helper;
 use App\Models\State;
 use App\Models\User;
+use App\Services\OwnerRoleProvisioner;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 
@@ -42,7 +42,7 @@ beforeEach(function () {
 
 test('map preview stays empty until the address is complete', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $this->actingAs($owner);
 
     $html = Livewire::test(CreateFishery::class)->html();
@@ -53,7 +53,7 @@ test('map preview stays empty until the address is complete', function () {
 
 test('map preview embeds the address assembled from live form fields', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $this->actingAs($owner);
 
     $state = State::factory()->create(['name' => 'Mazowieckie']);

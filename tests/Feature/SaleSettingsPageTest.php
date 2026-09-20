@@ -6,10 +6,10 @@ use App\Enums\SaleMode;
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\FisheryResource\Pages\CreateFishery;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleSettings;
-use App\Helpers\Helper;
 use App\Models\Fishery;
 use App\Models\SalePeriod;
 use App\Models\User;
+use App\Services\OwnerRoleProvisioner;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 
@@ -24,7 +24,7 @@ beforeEach(function () {
 function ownerWithFishery(): array
 {
     $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
 
     return [$owner, Fishery::factory()->forUser($owner)->create()];
 }

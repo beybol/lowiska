@@ -5,8 +5,9 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\LongTermPermitResource\Pages\CreateLongTermPermit;
 use App\Filament\Resources\LongTermPermitResource\Pages\EditLongTermPermit;
 use App\Filament\Resources\LongTermPermitResource\Pages\ListLongTermPermits;
-use App\Helpers\Helper;
 use App\Models\LongTermPermit;
+use App\Services\FisheryAccess;
+use App\Services\SharedFormComponents;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -36,13 +37,13 @@ class LongTermPermitResource extends Resource
     {
         return $schema
             ->components([
-                ...Helper::getFisheryFields(),
+                ...SharedFormComponents::getFisheryFields(),
                 Toggle::make('is_active')
                     ->label(__('Is active')),
                 RichEditor::make('description')
                     ->label(__('Description'))
                     ->required()
-                    ->toolbarButtons(Helper::getRichEditorOptions()),
+                    ->toolbarButtons(SharedFormComponents::getRichEditorOptions()),
                 DatePicker::make('valid_from')
                     ->label(__('Valid from'))
                     ->reactive(),
@@ -50,7 +51,7 @@ class LongTermPermitResource extends Resource
                     ->label(__('Valid to'))
                     ->reactive()
                     ->minDate(fn (callable $get) => $get('valid_from')),
-                Helper::getPriceInput(),
+                SharedFormComponents::getPriceInput(),
                 TextInput::make('sales_limit')
                     ->label(__('Sales limit'))
                     ->numeric()
@@ -126,7 +127,7 @@ class LongTermPermitResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        Helper::scopeToOwnedFisheries($query);
+        FisheryAccess::scopeToOwnedFisheries($query);
 
         // ⚠️ Eager-load jest tu WYMAGANY, nie kosmetyczny: `visible()` akcji wiersza
         // pyta politykę, a ta dla właściciela sięga po `$record->fishery->user_id` —

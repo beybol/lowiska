@@ -4,8 +4,9 @@ namespace App\Filament\Resources\FisheryResource\Pages;
 
 use App\Filament\Resources\CompanyResource;
 use App\Filament\Resources\FisheryResource;
-use App\Helpers\Helper;
 use App\Models\Company;
+use App\Services\DictionaryOptions;
+use App\Services\FisheryAccess;
 use Filament\Forms\Components\Radio;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Schemas\Components\Grid;
@@ -47,7 +48,7 @@ class CreateFishery extends CreateRecord
 
     public function form(Schema $schema): Schema
     {
-        if (! Helper::isOwnerPanel()) {
+        if (! FisheryAccess::isOwnerPanel()) {
             return parent::form($schema);
         }
 
@@ -82,7 +83,7 @@ class CreateFishery extends CreateRecord
      */
     protected function getFormActions(): array
     {
-        if (Helper::isOwnerPanel()) {
+        if (FisheryAccess::isOwnerPanel()) {
             return [$this->getCancelFormAction()];
         }
 
@@ -132,7 +133,7 @@ class CreateFishery extends CreateRecord
      */
     private function companyChoiceStep(): Step
     {
-        $companies = Helper::sortedCompanies($this->ownerCompaniesQuery());
+        $companies = DictionaryOptions::sortedCompanies($this->ownerCompaniesQuery());
 
         return Step::make(__('Company'))
             ->schema([
@@ -231,7 +232,7 @@ class CreateFishery extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        if (Helper::isOwnerPanel()) {
+        if (FisheryAccess::isOwnerPanel()) {
             $data['user_id'] = auth()->id();
         }
 
@@ -249,7 +250,7 @@ class CreateFishery extends CreateRecord
      */
     public function getRedirectUrl(): string
     {
-        if (Helper::isOwnerPanel()) {
+        if (FisheryAccess::isOwnerPanel()) {
             return FisheryResource::getUrl('manage', ['record' => $this->getRecord()]);
         }
 
@@ -258,7 +259,7 @@ class CreateFishery extends CreateRecord
 
     public function getTitle(): string
     {
-        return Helper::isOwnerPanel()
+        return FisheryAccess::isOwnerPanel()
             ? __('Create fishery wizard')
             : __('Create fishery');
     }

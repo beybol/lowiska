@@ -2,7 +2,7 @@
 
 Obowiązuje przy zmianach w `app/Policies/**`, rolach i uprawnieniach Shielda, `User`.
 
-Zadania źródłowe: 008, 009, 015.
+Zadania źródłowe: 008, 009, 013, 015.
 
 ---
 
@@ -17,7 +17,7 @@ Zadania źródłowe: 008, 009, 015.
 - ⚠️ **Uprawnienia trzeba najpierw wygenerować, dopiero potem przypisać.** `shield:generate`
   nigdzie w tym projekcie nie uruchamia się samo (nie ma go w seederze ani w pipeline'u
   wdrożeniowym) — na świeżej bazie `Permission::all()` zwraca pustkę albo tylko uprawnienia
-  nadane ręcznie gdzie indziej (`Helper::addOwnerRole()`). `php artisan MakeAdmin` woła
+  nadane ręcznie gdzie indziej (`OwnerRoleProvisioner::addOwnerRole()`). `php artisan MakeAdmin` woła
   `shield:generate` dla obu paneli (`--option=permissions --silent`, bez nadpisywania istniejących
   polityk) **przed** synchronizacją roli — nie wracaj do samego `syncPermissions(Permission::all())`
   bez tego kroku.
@@ -46,7 +46,7 @@ Zadania źródłowe: 008, 009, 015.
 - ⚠️ **Zwykły pakiet testów tego rozjazdu NIE wykryje** — `tests/TestCase.php::createSuperAdmin()`
   zakłada uprawnienia ręcznie, z własnej listy literałów, więc panele świecą na zielono nawet przy
   całkowicie błędnym formacie. Zmieniając `permissions.separator`/`case`, zmieniasz **naraz**:
-  konfigurację, wszystkie polityki, `Helper::addOwnerRole()` i listy w `tests/TestCase.php`.
+  konfigurację, wszystkie polityki, `OwnerRoleProvisioner::addOwnerRole()` i listy w `tests/TestCase.php`.
 - Format zmienił się przy Shieldzie 4 (`view_any_fishery::type` → `view_any:fishery_type`) i
   **nie da się odtworzyć zapisu z 3.x** — separator `_` jest zabroniony przy case'ach snake.
   Szczegóły w zadaniu 009.
@@ -68,12 +68,18 @@ Zadania źródłowe: 008, 009, 015.
 
 ## 4. Zasoby podrzędne łowiska — polityka NIE wystarcza
 
+⚠️ **Wszystkie trzy warstwy niesie [`App\Services\FisheryAccess`](../../app/Services/FisheryAccess.php)**
+(od zadania 013; wcześniej `App\Helpers\Helper`). Tam mieszkają też `isOwnerPanel()`
+i `isAdminPanel()` — **celowo razem z bramkami**, bo `scopeToOwnedFisheries()` jest fail-closed
+(`! isAdminPanel()`) i obie połowy tego niezmiennika muszą reagować identycznie na nierozpoznany
+panel. Nie rozdzielaj ich między klasy.
+
 Stanowiska, usługi dodatkowe i pozwolenia należą do łowiska, a ich polityki **przy tworzeniu nie
 widzą rekordu nadrzędnego** — `PositionPolicy::create()` dostaje sam typ i przepuszcza każdego
 z rolą `owner`. Dlatego przynależność do łowiska pilnują trzy warstwy naraz i **żadnej nie wolno
 zdejmować pojedynczo** (zadanie 012, sekcje 15 i 16):
 
-1. **Zawężenie zapytania zasobu** — `Helper::scopeToOwnedFisheries($query)` w `getEloquentQuery()`.
+1. **Zawężenie zapytania zasobu** — `FisheryAccess::scopeToOwnedFisheries($query)` w `getEloquentQuery()`.
    To jedyna warstwa działająca na **odczycie pojedynczego rekordu** (`resolveRecordRouteBinding()`
    na stronie edycji), więc bez niej da się wejść na cudzy rekord wprost z URL-a. Nowy zasób
    podrzędny wobec łowiska dostaje ją jedną linijką — **nie przeklejaj warunku**.
@@ -81,11 +87,11 @@ zdejmować pojedynczo** (zadanie 012, sekcje 15 i 16):
    Te liczą się z `$get('fishery_id')`, czyli z pola `Hidden` — danych od klienta — i muszą
    przejść przez `scopeToOwnedFisheries()` osobno, inaczej podmiana stanu wyświetli nazwy
    z cudzego łowiska. Zapis pozostaje bezpieczny, ale to i tak wyciek odczytowy.
-2. **Bramka na każdym żądaniu listy** — `Helper::assertFisheryAccessOrAbort($this->fisheryId)`
+2. **Bramka na każdym żądaniu listy** — `FisheryAccess::assertFisheryAccessOrAbort($this->fisheryId)`
    w `getTableQuery()`, nie tylko w `mount()`. ⚠️ `$fisheryId` jest publiczną właściwością
    komponentu wiązaną z query stringiem, więc kolejne żądanie Livewire może przynieść inną
    wartość — albo `null`, przy którym warunkowy filtr nie dokładał **żadnego** ograniczenia.
-3. **Bramka przy zapisie** — `Helper::forceVerifiedFishery($data)` w
+3. **Bramka przy zapisie** — `FisheryAccess::forceVerifiedFishery($data)` w
    `mutateFormDataBeforeCreate()` **oraz** `mutateFormDataBeforeSave()`. ⚠️ Obie, nie jedna:
    `mount()` strony edycji sprawdza łowisko rekordu **sprzed** zmiany, a `fishery_id` jest
    w formularzu polem `Hidden`, więc bez tego dało się przenieść własny rekord pod cudze łowisko.
@@ -96,14 +102,14 @@ leci na `/livewire/update` i nie niesie ani `?fishery`, ani niczego z `protected
 tej poprawki właśnie tak wyglądała i przerywała zapis błędem 404 — złapały to testy, nie przegląd.
 
 ⚠️ **Polityka bez sprawdzenia właściciela na rekordzie jest zerową warstwą, nie pierwszą.**
-`Helper::addOwnerRole()` nadaje roli `owner` **pełny** zestaw `*:fishery` i `*:company`, więc
+`OwnerRoleProvisioner::addOwnerRole()` nadaje roli `owner` **pełny** zestaw `*:fishery` i `*:company`, więc
 samo `$user->can('update:fishery')` zwraca `true` dla cudzego rekordu. Polityka zasobu należącego
 do właściciela musi porównać `user_id` — wzorzec w `FisheryPolicy`/`CompanyPolicy`/`PositionPolicy`.
 Administrator (`is_admin`) zostaje poza zawężeniem także wtedy, gdy ma dodatkowo rolę `owner`.
 
 ⚠️ **Nazwa cudzego rekordu też jest danymi.** Okruszki i tytuły stron `Create*` czytają `?fishery`
 wprost z żądania, a Filament przelicza je przy **każdym** renderze Livewire — bramka z `mount()`
-biegnie tylko przy pierwszym GET-cie. Dlatego `Helper::findFishery()` jest **domyślnie zawężone**,
+biegnie tylko przy pierwszym GET-cie. Dlatego `FisheryAccess::findFishery()` jest **domyślnie zawężone**,
 a wariant nieograniczony trzeba wybrać świadomie. Nie odwracaj tej domyślności.
 
 ⚠️ **Ustawienie bezpieczeństwa dodane do jednego panelu trzeba dodać do drugiego.**

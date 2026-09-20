@@ -4,8 +4,9 @@ namespace App\Filament\Resources\PositionGroupResource\Pages;
 
 use App\Filament\Resources\FisheryResource\Pages\ManagePositionGroups;
 use App\Filament\Resources\PositionGroupResource;
-use App\Helpers\Helper;
 use App\Models\PositionGroup;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -20,13 +21,13 @@ class EditPositionGroup extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        return Helper::forceVerifiedFishery($data);
+        return FisheryAccess::forceVerifiedFishery($data);
     }
 
     public function mount(string|int $record): void
     {
         parent::mount($record);
-        Helper::assertFisheryAccessOrAbort($this->positionGroup()->fishery_id);
+        FisheryAccess::assertFisheryAccessOrAbort($this->positionGroup()->fishery_id);
     }
 
     public function getTitle(): string
@@ -38,7 +39,7 @@ class EditPositionGroup extends EditRecord
     {
         $fisheryId = $this->positionGroup()->fishery_id;
 
-        return Helper::fisheryBreadcrumbs(
+        return FisheryNavigation::fisheryBreadcrumbs(
             $fisheryId,
             __('Position groups'),
             self::sectionUrl($fisheryId),
@@ -66,7 +67,7 @@ class EditPositionGroup extends EditRecord
 
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisherySectionUrl(
+        return FisheryNavigation::fisherySectionUrl(
             PositionGroupResource::class,
             ManagePositionGroups::class,
             $fisheryId,
@@ -82,7 +83,7 @@ class EditPositionGroup extends EditRecord
 
     protected function getFormActions(): array
     {
-        return Helper::getEditFormActionsForFishery(
+        return FisheryNavigation::getEditFormActionsForFishery(
             $this->record,
             $this->getSaveFormAction(),
             $this->getCancelFormAction(),

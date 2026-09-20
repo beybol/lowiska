@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\FisheryResource\Pages;
 
 use App\Filament\Resources\FisheryResource;
-use App\Helpers\Helper;
+use App\Services\FisheryAccess;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
@@ -21,7 +21,7 @@ class ListFisheries extends ListRecords
      */
     protected function getHeaderActions(): array
     {
-        if (Helper::isOwnerPanel()) {
+        if (FisheryAccess::isOwnerPanel()) {
             return [
                 CreateAction::make()->label(__('Create fishery')),
             ];

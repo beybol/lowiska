@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\Helper;
 use App\Models\User;
 use App\Notifications\SendTwoFactorCode;
+use App\Services\OwnerRoleProvisioner;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,7 +43,7 @@ class SocialAuthController extends Controller
                 'password' => bcrypt(str()->random(16)),
             ]
         );
-        Helper::addOwnerRole($user);
+        OwnerRoleProvisioner::addOwnerRole($user);
 
         if ($user->wasRecentlyCreated) {
             $user->forceFill(['email_verified_at' => now()])->save();

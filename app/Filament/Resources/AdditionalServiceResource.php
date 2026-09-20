@@ -5,8 +5,9 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\AdditionalServiceResource\Pages\CreateAdditionalService;
 use App\Filament\Resources\AdditionalServiceResource\Pages\EditAdditionalService;
 use App\Filament\Resources\AdditionalServiceResource\Pages\ListAdditionalServices;
-use App\Helpers\Helper;
 use App\Models\AdditionalService;
+use App\Services\FisheryAccess;
+use App\Services\SharedFormComponents;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -30,7 +31,7 @@ class AdditionalServiceResource extends Resource
     {
         return $schema
             ->components([
-                ...Helper::getFisheryFields(),
+                ...SharedFormComponents::getFisheryFields(),
                 TextInput::make('name')
                     ->label(__('Additional service name'))
                     ->required()
@@ -39,8 +40,8 @@ class AdditionalServiceResource extends Resource
                     ->label(__('Is additional service active')),
                 RichEditor::make('description')
                     ->label(__('Description'))
-                    ->toolbarButtons(Helper::getRichEditorOptions()),
-                Helper::getPriceInput(),
+                    ->toolbarButtons(SharedFormComponents::getRichEditorOptions()),
+                SharedFormComponents::getPriceInput(),
                 TextInput::make('available_count')
                     ->label(__('Available count'))
                     ->numeric()
@@ -113,7 +114,7 @@ class AdditionalServiceResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        Helper::scopeToOwnedFisheries($query);
+        FisheryAccess::scopeToOwnedFisheries($query);
 
         // ⚠️ Eager-load jest tu WYMAGANY, nie kosmetyczny: `visible()` akcji wiersza
         // pyta politykę, a ta dla właściciela sięga po `$record->fishery->user_id` —

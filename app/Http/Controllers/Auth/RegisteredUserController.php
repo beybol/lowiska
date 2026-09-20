@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\DictionaryOptions;
+use App\Services\OwnerRoleProvisioner;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        $countries = Helper::getSortedCountries();
+        $countries = DictionaryOptions::getSortedCountries();
 
         return view('auth.register', compact('countries'));
     }
@@ -48,7 +49,7 @@ class RegisteredUserController extends Controller
             'country_id' => $request->country_id,
         ]);
 
-        Helper::addOwnerRole($user);
+        OwnerRoleProvisioner::addOwnerRole($user);
         event(new Registered($user));
 
         Auth::login($user);

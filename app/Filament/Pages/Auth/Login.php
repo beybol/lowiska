@@ -2,8 +2,8 @@
 
 namespace App\Filament\Pages\Auth;
 
-use App\Helpers\Helper;
 use App\Notifications\SendTwoFactorCode;
+use App\Services\SharedFormComponents;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse;
 use Filament\Facades\Filament;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -15,7 +15,7 @@ class Login extends \Filament\Auth\Pages\Login
     {
         return [
             ...parent::getFormActions(),
-            ...Helper::getSocialAuthActions('login'),
+            ...SharedFormComponents::getSocialAuthActions('login'),
         ];
     }
 

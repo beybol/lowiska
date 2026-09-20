@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Company;
 use App\Models\User;
+use App\Services\OwnerRoleProvisioner;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CompanyPolicy
@@ -23,7 +24,7 @@ class CompanyPolicy
      */
     public function view(User $user, Company $company): bool
     {
-        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `Helper::addOwnerRole()` nadaje roli
+        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `OwnerRoleProvisioner::addOwnerRole()` nadaje roli
         // `owner` PEŁNY zestaw `*:company`, więc `can()` zwracało `true` także dla
         // CUDZEGO rekordu — jedyną ochroną było zawężenie zapytania w zasobie,
         // czyli jedna warstwa zamiast dwóch. Administrator (`is_admin`) widzi
@@ -53,7 +54,7 @@ class CompanyPolicy
      */
     public function update(User $user, Company $company): bool
     {
-        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `Helper::addOwnerRole()` nadaje roli
+        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `OwnerRoleProvisioner::addOwnerRole()` nadaje roli
         // `owner` PEŁNY zestaw `*:company`, więc `can()` zwracało `true` także dla
         // CUDZEGO rekordu — jedyną ochroną było zawężenie zapytania w zasobie,
         // czyli jedna warstwa zamiast dwóch. Administrator (`is_admin`) widzi
@@ -75,7 +76,7 @@ class CompanyPolicy
      */
     public function delete(User $user, Company $company): bool
     {
-        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `Helper::addOwnerRole()` nadaje roli
+        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `OwnerRoleProvisioner::addOwnerRole()` nadaje roli
         // `owner` PEŁNY zestaw `*:company`, więc `can()` zwracało `true` także dla
         // CUDZEGO rekordu — jedyną ochroną było zawężenie zapytania w zasobie,
         // czyli jedna warstwa zamiast dwóch. Administrator (`is_admin`) widzi

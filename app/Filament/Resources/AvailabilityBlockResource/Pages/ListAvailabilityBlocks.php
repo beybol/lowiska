@@ -3,7 +3,8 @@
 namespace App\Filament\Resources\AvailabilityBlockResource\Pages;
 
 use App\Filament\Resources\AvailabilityBlockResource;
-use App\Helpers\Helper;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -20,13 +21,13 @@ class ListAvailabilityBlocks extends ListRecords
 
     public function mount(): void
     {
-        $this->fisheryId = Helper::assertFisheryAccessOrAbort(request()->get('fishery'));
+        $this->fisheryId = FisheryAccess::assertFisheryAccessOrAbort(request()->get('fishery'));
         parent::mount();
     }
 
     protected function getHeaderActions(): array
     {
-        return Helper::getListHeaderActionsForFishery(
+        return FisheryNavigation::getListHeaderActionsForFishery(
             static::$resource,
             $this->fisheryId,
         );
@@ -41,17 +42,17 @@ class ListAvailabilityBlocks extends ListRecords
     {
         return parent::getTableQuery()->where(
             'fishery_id',
-            Helper::assertFisheryAccessOrAbort($this->fisheryId),
+            FisheryAccess::assertFisheryAccessOrAbort($this->fisheryId),
         );
     }
 
     public function getBreadcrumbs(): array
     {
-        return Helper::fisheryBreadcrumbs($this->fisheryId, __('Availability blocks'));
+        return FisheryNavigation::fisheryBreadcrumbs($this->fisheryId, __('Availability blocks'));
     }
 
     public function getTitle(): string
     {
-        return Helper::getFisheryTitle($this->fisheryId, 'Availability blocks');
+        return FisheryNavigation::getFisheryTitle($this->fisheryId, 'Availability blocks');
     }
 }

@@ -7,13 +7,14 @@ use App\Enums\PositionStatus;
 use App\Filament\Resources\PositionResource\Pages\CreatePosition;
 use App\Filament\Resources\PositionResource\Pages\EditPosition;
 use App\Filament\Resources\PositionResource\Pages\ListPositions;
-use App\Helpers\Helper;
 use App\Models\AdditionalService;
 use App\Models\LongTermPermit;
 use App\Models\Position;
 use App\Models\PositionAttribute;
 use App\Models\PositionGroup;
+use App\Services\FisheryAccess;
 use App\Services\PositionAttributeWriter;
+use App\Services\SharedFormComponents;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -49,7 +50,7 @@ class PositionResource extends Resource
     {
         return $schema
             ->components([
-                ...Helper::getFisheryFields(),
+                ...SharedFormComponents::getFisheryFields(),
                 // ⚠️ Stan WŁASNY stanowiska, nie dostępność w terminie. Ta druga zależy
                 // od czasu i składa ją zadanie 016 z blokad i okresów sprzedaży.
                 Select::make('status')
@@ -106,13 +107,13 @@ class PositionResource extends Resource
                         }
 
                         $query = PositionGroup::query()->where('fishery_id', (int) $fisheryId);
-                        Helper::scopeToOwnedFisheries($query);
+                        FisheryAccess::scopeToOwnedFisheries($query);
 
                         return $query->pluck('name', 'id')->toArray();
                     }),
                 RichEditor::make('description')
                     ->label(__('Description'))
-                    ->toolbarButtons(Helper::getRichEditorOptions()),
+                    ->toolbarButtons(SharedFormComponents::getRichEditorOptions()),
                 CheckboxList::make('long_term_permit_id')
                     ->relationship('longTermPermits', 'description')
                     ->label(__('Long term permits'))
@@ -132,7 +133,7 @@ class PositionResource extends Resource
                         $query = LongTermPermit::query()
                             ->forFishery($fisheryId)
                             ->isActive();
-                        Helper::scopeToOwnedFisheries($query);
+                        FisheryAccess::scopeToOwnedFisheries($query);
 
                         return $query
                             ->get()
@@ -153,7 +154,7 @@ class PositionResource extends Resource
                         $query = LongTermPermit::query()
                             ->forFishery($fisheryId)
                             ->isActive();
-                        Helper::scopeToOwnedFisheries($query);
+                        FisheryAccess::scopeToOwnedFisheries($query);
 
                         return $query->exists();
                     }),
@@ -173,7 +174,7 @@ class PositionResource extends Resource
                                 // usług cudzego łowiska.
                                 $query = AdditionalService::forFishery($fisheryId)
                                     ->isActive();
-                                Helper::scopeToOwnedFisheries($query);
+                                FisheryAccess::scopeToOwnedFisheries($query);
 
                                 return $query->pluck('name', 'id')->toArray();
                             })
@@ -433,7 +434,7 @@ class PositionResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        Helper::scopeToOwnedFisheries($query);
+        FisheryAccess::scopeToOwnedFisheries($query);
 
         // ⚠️ Eager-load jest tu WYMAGANY, nie kosmetyczny: `visible()` akcji wiersza
         // pyta politykę, a ta dla właściciela sięga po `$record->fishery->user_id` —

@@ -4,7 +4,8 @@ namespace App\Filament\Resources\LongTermPermitResource\Pages;
 
 use App\Filament\Resources\FisheryResource\Pages\ManageLongTermPermits;
 use App\Filament\Resources\LongTermPermitResource;
-use App\Helpers\Helper;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateLongTermPermit extends CreateRecord
@@ -13,7 +14,7 @@ class CreateLongTermPermit extends CreateRecord
 
     public function mount(): void
     {
-        Helper::assertFisheryAccessOrAbort();
+        FisheryAccess::assertFisheryAccessOrAbort();
         parent::mount();
     }
 
@@ -26,7 +27,7 @@ class CreateLongTermPermit extends CreateRecord
     {
         $fisheryId = request()->get('fishery');
 
-        return Helper::fisheryBreadcrumbs(
+        return FisheryNavigation::fisheryBreadcrumbs(
             $fisheryId,
             __('Long term permits'),
             self::sectionUrl($fisheryId),
@@ -39,7 +40,7 @@ class CreateLongTermPermit extends CreateRecord
         // ⚠️ Wcześniej nadpisanie było warunkowe (`if ($fisheryId)`), więc w żądaniu
         // zapisu — które nie niesie `?fishery` — wracała nietknięta wartość z pola
         // `Hidden`, czyli od klienta. Teraz każda wartość przechodzi przez bramkę.
-        return Helper::forceVerifiedFishery($data);
+        return FisheryAccess::forceVerifiedFishery($data);
     }
 
     protected function getFormActions(): array
@@ -63,7 +64,7 @@ class CreateLongTermPermit extends CreateRecord
 
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisherySectionUrl(
+        return FisheryNavigation::fisherySectionUrl(
             LongTermPermitResource::class,
             ManageLongTermPermits::class,
             $fisheryId,

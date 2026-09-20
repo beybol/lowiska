@@ -5,9 +5,11 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CompanyResource\Pages\CreateCompany;
 use App\Filament\Resources\CompanyResource\Pages\EditCompany;
 use App\Filament\Resources\CompanyResource\Pages\ListCompanies;
-use App\Helpers\Helper;
 use App\Models\Company;
 use App\Models\User;
+use App\Services\DictionaryOptions;
+use App\Services\FisheryAccess;
+use App\Services\SharedFormComponents;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -55,11 +57,11 @@ class CompanyResource extends Resource
     {
         return [
             Toggle::make('is_verified')
-                ->hidden(fn () => Helper::isOwnerPanel())
+                ->hidden(fn () => FisheryAccess::isOwnerPanel())
                 ->label(__('Verified')),
             Select::make('user_id')
                 ->required()
-                ->hidden(fn () => Helper::isOwnerPanel())
+                ->hidden(fn () => FisheryAccess::isOwnerPanel())
                 ->label(__('Company entered by'))
                 ->disabled()
                 ->relationship('user', 'name')
@@ -86,11 +88,11 @@ class CompanyResource extends Resource
                     Actions::make([
                         Action::make('fetch_cso_data')
                             ->label(__('Get data from CSO'))
-                            ->action(Helper::fetchDataFromCSO(...)),
+                            ->action(SharedFormComponents::fetchDataFromCSO(...)),
                     ]),
                     // ⚠️ Nazwa tego komponentu NIE MOŻE być równa kluczowi stanu,
                     // który sam odczytuje (`error`, ustawiany przez
-                    // Helper::fetchDataFromCSO). Do Filamenta 3 nazywał się
+                    // SharedFormComponents::fetchDataFromCSO). Do Filamenta 3 nazywał się
                     // `error` i działało; od Filamenta 4/5 (wspólny Schema)
                     // `$get('error')` wewnątrz zawartości komponentu o tej samej
                     // nazwie odpytuje sam siebie — rekurencja bez dna, która
@@ -132,7 +134,7 @@ class CompanyResource extends Resource
                 ->required(),
             Select::make('state_id')
                 ->label(__('State'))
-                ->options(Helper::sortStates())
+                ->options(DictionaryOptions::sortStates())
                 ->searchable()
                 ->required(),
         ];
@@ -144,7 +146,7 @@ class CompanyResource extends Resource
             ->columns([
                 ToggleColumn::make('is_verified')
                     ->label(__('Verified'))
-                    ->hidden(fn () => Helper::isOwnerPanel()),
+                    ->hidden(fn () => FisheryAccess::isOwnerPanel()),
                 TextColumn::make('name')
                     ->label(__('Company name'))
                     ->sortable()
@@ -207,7 +209,7 @@ class CompanyResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (Helper::isOwnerPanel()) {
+        if (FisheryAccess::isOwnerPanel()) {
             // ⚠️ Zawężenie typu TYLKO na potrzeby wywołania scope'u. Filament deklaruje
             // `Builder<Model>`, więc analiza statyczna nie widziała tu scope'ów modelu
             // (`forCurrentUser()` miało własny wpis w baseline). Zawężenia nie da się

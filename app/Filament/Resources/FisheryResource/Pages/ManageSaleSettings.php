@@ -4,9 +4,9 @@ namespace App\Filament\Resources\FisheryResource\Pages;
 
 use App\Enums\SaleMode;
 use App\Filament\Resources\FisheryResource;
-use App\Helpers\Helper;
 use App\Models\Fishery;
 use App\Rules\SalePeriodsDoNotOverlap;
+use App\Services\FisheryNavigation;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -60,7 +60,7 @@ class ManageSaleSettings extends EditRecord
      */
     public function getBreadcrumbs(): array
     {
-        return Helper::fisheryBreadcrumbs($this->fishery()->id, __('Sale and seasons'));
+        return FisheryNavigation::fisheryBreadcrumbs($this->fishery()->id, __('Sale and seasons'));
     }
 
     /**

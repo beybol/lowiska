@@ -18,13 +18,15 @@ use App\Filament\Resources\PositionResource;
 use App\Filament\Resources\PositionResource\Pages\CreatePosition;
 use App\Filament\Resources\PositionResource\Pages\EditPosition;
 use App\Filament\Resources\PositionResource\Pages\ListPositions;
-use App\Helpers\Helper;
 use App\Models\AdditionalService;
 use App\Models\Company;
 use App\Models\Fishery;
 use App\Models\LongTermPermit;
 use App\Models\Position;
 use App\Models\User;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
+use App\Services\OwnerRoleProvisioner;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 
@@ -63,7 +65,7 @@ test('Owner panel is accessible.', function () {
     // na 5000 losowań. Ten sam wzorzec dotyczy każdej asercji „nie widać" na krótkim
     // polskim słowie (zadanie 012).
     $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
 
     // ⚠️ Zadanie 009: usunięto `assertSee(__('Panel'))` — patrz komentarz
     // w tests/Feature/AdminPanelTest.php.
@@ -108,7 +110,7 @@ test('Admin has access to owner panel.', function () {
 
 test('Owner can view only his company.', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     // Nazwy wprost — losowe bywają swoimi podciągami, a asercja „nie widać" jest
     // wtedy zielona albo czerwona zależnie od losowania.
     $company = Company::factory()->forUser($owner)->create(['name' => 'Firma Wlasna XYZ']);
@@ -124,7 +126,7 @@ test('Owner can view only his company.', function () {
 
 test('Owner can view only his fishery.', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create(['name' => 'Lowisko Wlasne XYZ']);
     $otherUser = User::factory()->create();
     $otherFishery = Fishery::factory()->forUser($otherUser)->create(['name' => 'Lowisko Obce QWE']);
@@ -138,7 +140,7 @@ test('Owner can view only his fishery.', function () {
 
 test('Owner see management fishery button on fisheries list.', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
 
     $this->actingAs($owner)
@@ -149,7 +151,7 @@ test('Owner see management fishery button on fisheries list.', function () {
 
 test('Owner can view manage fishery page.', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
 
     $this->actingAs($owner)
@@ -181,7 +183,7 @@ test('Section pages render sub-resource records inline.', function (
     Filament::setCurrentPanel('owner');
 
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $this->actingAs($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
     // ⚠️ Etykieta jest KRÓTKA i ustawiana wprost. `LongTermPermit` nie ma kolumny
@@ -213,16 +215,16 @@ test('Section pages render sub-resource records inline.', function (
 
 test('Section URL built by the helper opens that section.', function () {
     // ⚠️ Test przekierowań niżej liczy oczekiwany adres tą samą konwencją co kod.
-    // Ten sprawdza rzecz, której tamten nie widzi: że adres z `Helper::fisheryHubUrl()`
+    // Ten sprawdza rzecz, której tamten nie widzi: że adres z `FisheryNavigation::fisheryHubUrl()`
     // naprawdę otwiera właściwą sekcję, a nie tylko zgadza się jako napis.
     Filament::setCurrentPanel('owner');
 
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $this->actingAs($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
 
-    $url = Helper::fisheryHubUrl($fishery->id, ManagePositions::class);
+    $url = FisheryNavigation::fisheryHubUrl($fishery->id, ManagePositions::class);
 
     $this->get((string) $url)
         ->assertStatus(200)
@@ -231,7 +233,7 @@ test('Section URL built by the helper opens that section.', function () {
 
 test('Manage fishery data tab links to the fishery edit form.', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
 
     // Zakładka z danymi łowiska jest podglądem, więc bez tego przycisku z huba
@@ -252,7 +254,7 @@ test('Saving a sub-resource returns to its tab in the fishery hub.', function (
     Filament::setCurrentPanel('owner');
 
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $this->actingAs($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
     $record = $model::factory()->create([
@@ -288,7 +290,7 @@ test('Fishery edit page keeps the record sub-navigation.', function () {
     // rekordu jest z założenia na KAŻDEJ stronie rekordu — operator nie wypada
     // z nawigacji łowiska, wchodząc w edycję (ADR-006, aktualizacja z zadania 016).
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
 
     $this->actingAs($owner)
@@ -300,7 +302,7 @@ test('Fishery edit page keeps the record sub-navigation.', function () {
 
 test('Owner can see only active long term permits count on manage fishery page.', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
     LongTermPermit::factory()
         ->create([
@@ -326,7 +328,7 @@ test('Owner can see only active long term permits count on manage fishery page.'
 
 test('Owner can see only active additional services count on manage fishery page.', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
     AdditionalService::factory()
         ->create([
@@ -349,7 +351,7 @@ test('Owner can see only active additional services count on manage fishery page
 
 test('Owner can see only active positions count on manage fishery page.', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
     Position::factory()
         ->create([
@@ -376,7 +378,7 @@ test('Owner can not view position create page for fishery he does not own.', fun
     // 404 przychodziło z routingu i test przeszedłby tak samo dla WŁASNEGO łowiska.
     // Stąd para przypadków: cudze → 404, własne → 200.
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $otherUser = User::factory()->create();
     $foreignFishery = Fishery::factory()->forUser($otherUser)->create();
     $ownFishery = Fishery::factory()->forUser($owner)->create();
@@ -394,7 +396,7 @@ test('Sub-resource queries exclude fisheries the owner does not own.', function 
     string $resource,
     string $model,
 ) {
-    // ⚠️ Ten test izoluje WARSTWĘ 1 (`Helper::scopeToOwnedFisheries()` w `getEloquentQuery()`).
+    // ⚠️ Ten test izoluje WARSTWĘ 1 (`FisheryAccess::scopeToOwnedFisheries()` w `getEloquentQuery()`).
     // Testy „przez podmianę właściwości" niżej kończą się na warstwie 2 (bramka w
     // `getTableQuery()`), więc przechodziłyby także wtedy, gdyby warstwa 1 w ogóle nie
     // istniała — a to ona jako jedyna chroni ODCZYT POJEDYNCZEGO REKORDU
@@ -402,7 +404,7 @@ test('Sub-resource queries exclude fisheries the owner does not own.', function 
     Filament::setCurrentPanel('owner');
 
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $otherUser = User::factory()->create();
     $this->actingAs($owner);
 
@@ -427,7 +429,7 @@ test('Owner can not open the edit page of a sub-resource he does not own.', func
 ) {
     // Skutek warstwy 1 widziany od strony HTTP: cudzy rekord nie rozwiązuje się z trasy.
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $otherUser = User::factory()->create();
     $foreignRecord = $model::factory()->create([
         'fishery_id' => Fishery::factory()->forUser($otherUser)->create()->id,
@@ -447,7 +449,7 @@ test('Non-numeric fishery parameter gives 404, not a server error.', function (s
     // przed poprawką `?fishery=abc` wywalało TypeError (500) zanim bramka zdążyła
     // odpowiedzieć 404.
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
 
     $this->actingAs($owner)
         ->get("/owner/{$path}?fishery=abc")
@@ -467,7 +469,7 @@ test('Owner can not list sub-resources of a fishery he does not own by tampering
     Filament::setCurrentPanel('owner');
 
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $otherUser = User::factory()->create();
     $ownFishery = Fishery::factory()->forUser($owner)->create();
     $foreignFishery = Fishery::factory()->forUser($otherUser)->create();
@@ -515,7 +517,7 @@ test('Owner can not move a sub-resource under a fishery he does not own by editi
     Filament::setCurrentPanel('owner');
 
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $otherUser = User::factory()->create();
     $ownFishery = Fishery::factory()->forUser($owner)->create();
     $foreignFishery = Fishery::factory()->forUser($otherUser)->create();
@@ -562,13 +564,13 @@ test('Owner can not create a sub-resource under a fishery he does not own.', fun
 ) {
     // ⚠️ `fishery_id` jest w formularzu polem `Hidden`, czyli danymi od klienta,
     // a polityka przy tworzeniu nie widzi rekordu nadrzędnego i przepuszcza każdego
-    // właściciela. Bramką jest `Helper::forceVerifiedFishery()` w
+    // właściciela. Bramką jest `FisheryAccess::forceVerifiedFishery()` w
     // `mutateFormDataBeforeCreate()` — bezstanowa, bo żądanie zapisu leci na
     // `/livewire/update` i nie niesie ani `?fishery`, ani niczego z `mount()`.
     Filament::setCurrentPanel('owner');
 
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $otherUser = User::factory()->create();
     $ownFishery = Fishery::factory()->forUser($owner)->create();
     $foreignFishery = Fishery::factory()->forUser($otherUser)->create();

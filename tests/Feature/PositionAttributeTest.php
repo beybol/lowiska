@@ -7,12 +7,12 @@ use App\Filament\Resources\PositionAttributeResource;
 use App\Filament\Resources\PositionAttributeResource\Pages\CreatePositionAttribute;
 use App\Filament\Resources\PositionAttributeResource\Pages\ManagePositionAttributes;
 use App\Filament\Resources\PositionResource\Pages\CreatePosition;
-use App\Helpers\Helper;
 use App\Models\Fishery;
 use App\Models\Position;
 use App\Models\PositionAttribute;
 use App\Models\PositionAttributeOption;
 use App\Models\User;
+use App\Services\OwnerRoleProvisioner;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
@@ -56,7 +56,7 @@ test('creating an attribute redirects to the list, not to the edit view', functi
 
 test('an owner can not manage the shared dictionary', function () {
     $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     Filament::setCurrentPanel('admin');
 
     // ⚠️ Słownik jest wspólny dla portalu i to jest warunek, pod którym filtrowanie
@@ -108,7 +108,7 @@ test('deleting an attribute takes its options with it', function () {
 
 test('a new dictionary entry shows up in the position form without any code change', function () {
     $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
     $attribute = PositionAttribute::factory()->create(['name' => 'Pomost']);
 
@@ -124,7 +124,7 @@ test('a new dictionary entry shows up in the position form without any code chan
 
 test('a position saves with its attribute values from the form', function () {
     $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
     $flag = PositionAttribute::factory()->create(['name' => 'Pomost']);
     $number = PositionAttribute::factory()->number('m')->create(['name' => 'Do parkingu']);
@@ -155,7 +155,7 @@ test('a position saves with its attribute values from the form', function () {
 
 test('a position without max anglers is rejected', function () {
     $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
 
     Filament::setCurrentPanel('owner');
@@ -173,7 +173,7 @@ test('a position without max anglers is rejected', function () {
 
 test('max people lower than max anglers is rejected', function () {
     $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
 
     Filament::setCurrentPanel('owner');
@@ -193,7 +193,7 @@ test('max people lower than max anglers is rejected', function () {
 
 test('max people may be left empty', function () {
     $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
 
     Filament::setCurrentPanel('owner');

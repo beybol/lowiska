@@ -27,10 +27,10 @@ Zasada przewodnia przy projektowaniu: **łowiska bardzo się od siebie różnią
 - **Pozwolenie długookresowe**: Pozwolenie na sezon lub kilka miesięcy. Pozwala na korzystanie z Łowiska w okresie, który obejmuje. Nie gwarantuje wolnego Stanowiska.
 - **Pozwolenie jednorazowe**: Pozwolenie na godziny lub dni, zawsze powiązane z konkretnym Stanowiskiem.
 - **Rezerwacja**: zamówienie konkretnego Stanowiska — element nierozłączny dla Pozwoleń jednorazowych. Może być też tworzona za opłatą lub bez w przypadku korzystania z Łowiska w oparciu o Pozwolenie długookresowe — Wędkarz ma prawo łowienia na danym Łowisku, ale rezerwuje sobie konkretny dzień i konkretne Stanowisko.
-- **Okres sprzedaży** (dawniej: jednostka czasu): definiowany przez Operatora sposób sprzedaży czasu na Stanowisku — doba wędkarska od stałej godziny, przedział godzinowy, turnus o stałych ramach. Jedno Łowisko może mieć kilka typów naraz.
+- **Okres sprzedaży** (dawniej: jednostka czasu): definiowany przez Operatora sposób sprzedaży czasu na Stanowisku — doba wędkarska od stałej godziny, przedział godzinowy, turnus o stałych ramach. ⚠️ **Stan na dziś (zrealizowane zadanie 015):** Łowisko ma **jeden** tryb sprzedaży — dobę od stałej godziny, liczoną w strefie czasowej Łowiska. Kilka typów naraz pozostaje kierunkiem rozwoju, nie stanem systemu.
 - **Uczestnik**: osoba objęta Rezerwacją, w roli **łowiącego** lub **osoby towarzyszącej**. Rola wpływa na cenę.
 - **Usługa dodatkowa**: każda usługa, która może uzupełniać ofertę Łowiska i która może być dosprzedana do Pozwolenia lub Rezerwacji. Przykłady: namiot, łódka, grill.
-- **Blokada**: wpis Operatora zajmujący Stanowisko lub całe Łowisko bez sprzedaży (zawody, zarybianie, konserwacja, urlop).
+- **Blokada**: wpis Operatora zajmujący Stanowisko lub całe Łowisko bez sprzedaży (zawody, zarybianie, konserwacja, urlop). ⚠️ **Stan na dziś (zrealizowane zadanie 016):** blokada i ograniczenie to **jeden wpis z polem skutku** — wyłączenie sprzedaży albo zawieszenie jednej cechy typu tak/nie. Wskazuje dowolny zbiór Stanowisk (całe Łowisko, grupa, wybór po cesze, ręczne zaznaczenie), zapisany jako lista konkretnych Stanowisk, niesie powód i decyzję, czy Wędkarz ten powód widzi. Data końcowa jest opcjonalna.
 - **Rezerwacja offline**: Rezerwacja wprowadzona ręcznie przez Operatora dla klienta spoza systemu (telefon, gotówka na miejscu). Nie generuje prowizji.
 - **Administrator**: pracownik Fisherya.com zarządzający portalem.
 
@@ -123,6 +123,10 @@ Model sprzedaży jest **konfigurowany per Łowisko**. Operator definiuje jeden l
 - **doba wędkarska** — od stałej godziny do stałej godziny (np. 7:00–7:00), sprzedawana w wielokrotnościach;
 - **przedział godzinowy** — wędkarz wybiera zakres godzin (typowe dla łowisk pstrągowych);
 - **turnus** — gotowe sloty wystawiane przez Operatora (np. pt 16:00 – nd 12:00).
+
+⚠️ **Stan na dziś (zrealizowane zadanie 015):** zbudowana jest wyłącznie **doba wędkarska**, a tryb
+sprzedaży jest polem Łowiska — pozostałe typy dokłada się wartością, nie przebudową. Sprzedaż
+w wielokrotnościach (reguły długości pobytu) jest osobnym zakresem i jeszcze nie powstała.
 
 Cena jest naliczana **za każdą osobę**, przy czym:
 

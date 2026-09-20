@@ -4,7 +4,8 @@ namespace App\Filament\Resources\AdditionalServiceResource\Pages;
 
 use App\Filament\Resources\AdditionalServiceResource;
 use App\Filament\Resources\FisheryResource\Pages\ManageAdditionalServices;
-use App\Helpers\Helper;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -15,7 +16,7 @@ class EditAdditionalService extends EditRecord
     public function mount(string|int $record): void
     {
         parent::mount($record);
-        Helper::assertFisheryAccessOrAbort($this->record->fishery_id);
+        FisheryAccess::assertFisheryAccessOrAbort($this->record->fishery_id);
     }
 
     protected function getHeaderActions(): array
@@ -34,7 +35,7 @@ class EditAdditionalService extends EditRecord
     {
         $fisheryId = $this->record->fishery_id ?? null;
 
-        return Helper::fisheryBreadcrumbs(
+        return FisheryNavigation::fisheryBreadcrumbs(
             $fisheryId,
             __('Additional services'),
             self::sectionUrl($fisheryId),
@@ -45,7 +46,7 @@ class EditAdditionalService extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         // ⚠️ Bramka MUSI działać także przy edycji — patrz komentarz w `EditPosition`.
-        return Helper::forceVerifiedFishery($data);
+        return FisheryAccess::forceVerifiedFishery($data);
     }
 
     public function getRedirectUrl(): string
@@ -55,7 +56,7 @@ class EditAdditionalService extends EditRecord
 
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisherySectionUrl(
+        return FisheryNavigation::fisherySectionUrl(
             AdditionalServiceResource::class,
             ManageAdditionalServices::class,
             $fisheryId,
@@ -64,7 +65,7 @@ class EditAdditionalService extends EditRecord
 
     protected function getFormActions(): array
     {
-        return Helper::getEditFormActionsForFishery(
+        return FisheryNavigation::getEditFormActionsForFishery(
             $this->record,
             $this->getSaveFormAction(),
             $this->getCancelFormAction(),

@@ -2,8 +2,10 @@
 
 namespace App\Filament\Pages\Auth;
 
-use App\Helpers\Helper;
 use App\Models\User;
+use App\Services\DictionaryOptions;
+use App\Services\OwnerRoleProvisioner;
+use App\Services\SharedFormComponents;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
@@ -15,7 +17,7 @@ class Register extends \Filament\Auth\Pages\Register
     protected function handleRegistration(array $data): Model
     {
         $user = parent::handleRegistration($data);
-        Helper::addOwnerRole($user);
+        OwnerRoleProvisioner::addOwnerRole($user);
 
         return $user;
     }
@@ -65,7 +67,7 @@ class Register extends \Filament\Auth\Pages\Register
     {
         return Select::make('country_id')
             ->label(__('Country prefix'))
-            ->options(Helper::getCountryPrefixes());
+            ->options(DictionaryOptions::getCountryPrefixes());
     }
 
     protected function getPhoneFormComponent(): Component
@@ -78,7 +80,7 @@ class Register extends \Filament\Auth\Pages\Register
     {
         return [
             ...parent::getFormActions(),
-            ...Helper::getSocialAuthActions('register'),
+            ...SharedFormComponents::getSocialAuthActions('register'),
         ];
     }
 }

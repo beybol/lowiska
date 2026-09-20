@@ -4,16 +4,18 @@ namespace App\Policies;
 
 use App\Models\PositionGroup;
 use App\Models\User;
+use App\Services\FisheryAccess;
+use App\Services\OwnerRoleProvisioner;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 /**
  * Grupa stanowisk należy do łowiska, więc widoczność zawęża się po właścicielu —
  * wzorzec identyczny jak w `PositionPolicy`.
  *
- * ⚠️ Sama polityka jest ZEROWĄ warstwą, nie pierwszą: `Helper::addOwnerRole()` nadaje
+ * ⚠️ Sama polityka jest ZEROWĄ warstwą, nie pierwszą: `OwnerRoleProvisioner::addOwnerRole()` nadaje
  * roli `owner` pełny zestaw uprawnień, więc `$user->can('update:position_group')` jest
  * prawdą także dla cudzego rekordu. Dlatego metody na rekordzie porównują `user_id`,
- * a zasób dokłada `Helper::scopeToOwnedFisheries()` (`autoryzacja.md` §4).
+ * a zasób dokłada `FisheryAccess::scopeToOwnedFisheries()` (`autoryzacja.md` §4).
  */
 class PositionGroupPolicy
 {

@@ -6,13 +6,13 @@ use App\Enums\PositionStatus;
 use App\Filament\Resources\PositionGroupResource;
 use App\Filament\Resources\PositionGroupResource\Pages\EditPositionGroup;
 use App\Filament\Resources\PositionGroupResource\Pages\ListPositionGroups;
-use App\Helpers\Helper;
 use App\Models\AdditionalService;
 use App\Models\Fishery;
 use App\Models\LongTermPermit;
 use App\Models\Position;
 use App\Models\PositionGroup;
 use App\Models\User;
+use App\Services\OwnerRoleProvisioner;
 use App\Services\PositionLabelDuplicateGuard;
 use Filament\Facades\Filament;
 use Illuminate\Database\QueryException;
@@ -30,7 +30,7 @@ beforeEach(function () {
 function ownerWithFisheryForGroups(): array
 {
     $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
 
     return [$owner, Fishery::factory()->forUser($owner)->create()];
 }

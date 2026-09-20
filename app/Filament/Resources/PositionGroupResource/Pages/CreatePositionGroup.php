@@ -4,7 +4,8 @@ namespace App\Filament\Resources\PositionGroupResource\Pages;
 
 use App\Filament\Resources\FisheryResource\Pages\ManagePositionGroups;
 use App\Filament\Resources\PositionGroupResource;
-use App\Helpers\Helper;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreatePositionGroup extends CreateRecord
@@ -17,12 +18,12 @@ class CreatePositionGroup extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return Helper::forceVerifiedFishery($data);
+        return FisheryAccess::forceVerifiedFishery($data);
     }
 
     public function mount(): void
     {
-        Helper::assertFisheryAccessOrAbort();
+        FisheryAccess::assertFisheryAccessOrAbort();
         parent::mount();
     }
 
@@ -35,7 +36,7 @@ class CreatePositionGroup extends CreateRecord
     {
         $fisheryId = request()->get('fishery');
 
-        return Helper::fisheryBreadcrumbs(
+        return FisheryNavigation::fisheryBreadcrumbs(
             $fisheryId,
             __('Position groups'),
             self::sectionUrl($fisheryId),
@@ -53,7 +54,7 @@ class CreatePositionGroup extends CreateRecord
 
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisherySectionUrl(
+        return FisheryNavigation::fisherySectionUrl(
             PositionGroupResource::class,
             ManagePositionGroups::class,
             $fisheryId,

@@ -4,7 +4,8 @@ namespace App\Filament\Resources\AdditionalServiceResource\Pages;
 
 use App\Filament\Resources\AdditionalServiceResource;
 use App\Filament\Resources\FisheryResource\Pages\ManageAdditionalServices;
-use App\Helpers\Helper;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateAdditionalService extends CreateRecord
@@ -13,13 +14,13 @@ class CreateAdditionalService extends CreateRecord
 
     public function mount(): void
     {
-        Helper::assertFisheryAccessOrAbort();
+        FisheryAccess::assertFisheryAccessOrAbort();
         parent::mount();
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return Helper::forceVerifiedFishery($data);
+        return FisheryAccess::forceVerifiedFishery($data);
     }
 
     public function getTitle(): string
@@ -41,7 +42,7 @@ class CreateAdditionalService extends CreateRecord
     {
         $fisheryId = request()->get('fishery');
 
-        return Helper::fisheryBreadcrumbs(
+        return FisheryNavigation::fisheryBreadcrumbs(
             $fisheryId,
             __('Additional services'),
             self::sectionUrl($fisheryId),
@@ -60,7 +61,7 @@ class CreateAdditionalService extends CreateRecord
 
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisherySectionUrl(
+        return FisheryNavigation::fisherySectionUrl(
             AdditionalServiceResource::class,
             ManageAdditionalServices::class,
             $fisheryId,

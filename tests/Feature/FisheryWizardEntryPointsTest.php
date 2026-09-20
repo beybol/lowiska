@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Helpers\Helper;
 use App\Models\User;
+use App\Services\OwnerRoleProvisioner;
 
 /**
  * Regresja dla zadania 012: wejścia do kreatora zakładania łowiska.
@@ -20,7 +20,7 @@ use App\Models\User;
  */
 test('no view links to the retired wizard entry point', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
 
     $pages = [
         '/owner/fisheries',
@@ -39,7 +39,7 @@ test('no view links to the retired wizard entry point', function () {
 
 test('the create button on the fisheries list opens the wizard', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
 
     $html = $this->actingAs($owner)->get('/owner/fisheries')->getContent();
 

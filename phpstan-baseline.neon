@@ -1,7 +1,7 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Parameter \#1 \$user of static method App\\Helpers\\Helper\:\:addOwnerRole\(\) expects App\\Models\\User, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			message: '#^Parameter \#1 \$user of static method App\\Services\\OwnerRoleProvisioner\:\:addOwnerRole\(\) expects App\\Models\\User, Illuminate\\Database\\Eloquent\\Model given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Filament/Pages/Auth/Register.php
@@ -70,19 +70,19 @@ parameters:
 			message: '#^Result of && is always false\.$#'
 			identifier: booleanAnd.alwaysFalse
 			count: 1
-			path: app/Helpers/Helper.php
+			path: app/Services/FisheryNavigation.php
 
 		-
 			message: '#^Undefined variable\: \$this$#'
 			identifier: variable.undefined
-			count: 4
-			path: app/Helpers/Helper.php
+			count: 1
+			path: app/Services/FisheryNavigation.php
 
 		-
 			message: '#^Variable \$this in isset\(\) is never defined\.$#'
 			identifier: isset.variable
 			count: 1
-			path: app/Helpers/Helper.php
+			path: app/Services/FisheryNavigation.php
 
 		-
 			message: '#^Access to an undefined property Laravel\\Socialite\\Contracts\\User\:\:\$user\.$#'

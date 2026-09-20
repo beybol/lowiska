@@ -4,8 +4,9 @@ namespace App\Filament\Resources\AvailabilityBlockResource\Pages;
 
 use App\Filament\Resources\AvailabilityBlockResource;
 use App\Filament\Resources\FisheryResource\Pages\ManageAvailabilityBlocks;
-use App\Helpers\Helper;
 use App\Models\AvailabilityBlock;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -20,13 +21,13 @@ class EditAvailabilityBlock extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        return Helper::forceVerifiedFishery(AvailabilityBlockResource::withSelectionLabel($data));
+        return FisheryAccess::forceVerifiedFishery(AvailabilityBlockResource::withSelectionLabel($data));
     }
 
     public function mount(string|int $record): void
     {
         parent::mount($record);
-        Helper::assertFisheryAccessOrAbort($this->availabilityBlock()->fishery_id);
+        FisheryAccess::assertFisheryAccessOrAbort($this->availabilityBlock()->fishery_id);
     }
 
     public function getTitle(): string
@@ -38,7 +39,7 @@ class EditAvailabilityBlock extends EditRecord
     {
         $fisheryId = $this->availabilityBlock()->fishery_id;
 
-        return Helper::fisheryBreadcrumbs(
+        return FisheryNavigation::fisheryBreadcrumbs(
             $fisheryId,
             __('Availability blocks'),
             self::sectionUrl($fisheryId),
@@ -66,7 +67,7 @@ class EditAvailabilityBlock extends EditRecord
 
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisherySectionUrl(
+        return FisheryNavigation::fisherySectionUrl(
             AvailabilityBlockResource::class,
             ManageAvailabilityBlocks::class,
             $fisheryId,
@@ -82,7 +83,7 @@ class EditAvailabilityBlock extends EditRecord
 
     protected function getFormActions(): array
     {
-        return Helper::getEditFormActionsForFishery(
+        return FisheryNavigation::getEditFormActionsForFishery(
             $this->record,
             $this->getSaveFormAction(),
             $this->getCancelFormAction(),

@@ -8,7 +8,6 @@ use App\Enums\SelectionKind;
 use App\Filament\Resources\AvailabilityBlockResource\Pages\CreateAvailabilityBlock;
 use App\Filament\Resources\AvailabilityBlockResource\Pages\EditAvailabilityBlock;
 use App\Filament\Resources\AvailabilityBlockResource\Pages\ListAvailabilityBlocks;
-use App\Helpers\Helper;
 use App\Models\AvailabilityBlock;
 use App\Models\Fishery;
 use App\Models\Position;
@@ -17,6 +16,8 @@ use App\Models\PositionGroup;
 use App\Rules\AvailabilityBlockEffectMatchesAttribute;
 use App\Rules\PositionsBelongToFishery;
 use App\Services\AvailabilityBlockSelectionResolver;
+use App\Services\FisheryAccess;
+use App\Services\SharedFormComponents;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -63,7 +64,7 @@ class AvailabilityBlockResource extends Resource
     {
         return $schema
             ->components([
-                ...Helper::getFisheryFields(),
+                ...SharedFormComponents::getFisheryFields(),
                 Section::make(__('Effect and period'))
                     ->schema([
                         Select::make('effect')
@@ -235,7 +236,7 @@ class AvailabilityBlockResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        Helper::scopeToOwnedFisheries($query);
+        FisheryAccess::scopeToOwnedFisheries($query);
 
         return $query->with('fishery');
     }
@@ -275,7 +276,7 @@ class AvailabilityBlockResource extends Resource
         }
 
         $query = Fishery::query()->whereKey((int) $fisheryId);
-        Helper::scopeToOwnedFisheries($query);
+        FisheryAccess::scopeToOwnedFisheries($query);
         $fishery = $query->first();
 
         if (! $fishery instanceof Fishery) {
@@ -303,7 +304,7 @@ class AvailabilityBlockResource extends Resource
         }
 
         $query = Position::query()->where('fishery_id', (int) $fisheryId)->orderBy('name');
-        Helper::scopeToOwnedFisheries($query);
+        FisheryAccess::scopeToOwnedFisheries($query);
 
         return $query->pluck('name', 'id')->toArray();
     }
@@ -318,7 +319,7 @@ class AvailabilityBlockResource extends Resource
         }
 
         $query = PositionGroup::query()->where('fishery_id', (int) $fisheryId)->orderBy('name');
-        Helper::scopeToOwnedFisheries($query);
+        FisheryAccess::scopeToOwnedFisheries($query);
 
         return $query->pluck('name', 'id')->toArray();
     }

@@ -4,7 +4,8 @@ namespace App\Filament\Resources\LongTermPermitResource\Pages;
 
 use App\Filament\Resources\FisheryResource\Pages\ManageLongTermPermits;
 use App\Filament\Resources\LongTermPermitResource;
-use App\Helpers\Helper;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -15,7 +16,7 @@ class EditLongTermPermit extends EditRecord
     public function mount(string|int $record): void
     {
         parent::mount($record);
-        Helper::assertFisheryAccessOrAbort($this->record->fishery_id);
+        FisheryAccess::assertFisheryAccessOrAbort($this->record->fishery_id);
     }
 
     protected function getHeaderActions(): array
@@ -32,7 +33,7 @@ class EditLongTermPermit extends EditRecord
 
     protected function getFormActions(): array
     {
-        return Helper::getEditFormActionsForFishery(
+        return FisheryNavigation::getEditFormActionsForFishery(
             $this->record,
             $this->getSaveFormAction(),
             $this->getCancelFormAction(),
@@ -43,7 +44,7 @@ class EditLongTermPermit extends EditRecord
     {
         $fisheryId = $this->record->fishery_id ?? null;
 
-        return Helper::fisheryBreadcrumbs(
+        return FisheryNavigation::fisheryBreadcrumbs(
             $fisheryId,
             __('Long term permits'),
             self::sectionUrl($fisheryId),
@@ -54,7 +55,7 @@ class EditLongTermPermit extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         // ⚠️ Bramka MUSI działać także przy edycji — patrz komentarz w `EditPosition`.
-        return Helper::forceVerifiedFishery($data);
+        return FisheryAccess::forceVerifiedFishery($data);
     }
 
     public function getRedirectUrl(): string
@@ -64,7 +65,7 @@ class EditLongTermPermit extends EditRecord
 
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisherySectionUrl(
+        return FisheryNavigation::fisherySectionUrl(
             LongTermPermitResource::class,
             ManageLongTermPermits::class,
             $fisheryId,

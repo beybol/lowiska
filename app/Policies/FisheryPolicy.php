@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Fishery;
 use App\Models\User;
+use App\Services\OwnerRoleProvisioner;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class FisheryPolicy
@@ -23,7 +24,7 @@ class FisheryPolicy
      */
     public function view(User $user, Fishery $fishery): bool
     {
-        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `Helper::addOwnerRole()` nadaje roli
+        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `OwnerRoleProvisioner::addOwnerRole()` nadaje roli
         // `owner` PEŁNY zestaw `*:fishery`, więc `can()` zwracało `true` także dla
         // CUDZEGO rekordu — jedyną ochroną było zawężenie zapytania w zasobie,
         // czyli jedna warstwa zamiast dwóch. Administrator (`is_admin`) widzi
@@ -53,7 +54,7 @@ class FisheryPolicy
      */
     public function update(User $user, Fishery $fishery): bool
     {
-        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `Helper::addOwnerRole()` nadaje roli
+        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `OwnerRoleProvisioner::addOwnerRole()` nadaje roli
         // `owner` PEŁNY zestaw `*:fishery`, więc `can()` zwracało `true` także dla
         // CUDZEGO rekordu — jedyną ochroną było zawężenie zapytania w zasobie,
         // czyli jedna warstwa zamiast dwóch. Administrator (`is_admin`) widzi
@@ -75,7 +76,7 @@ class FisheryPolicy
      */
     public function delete(User $user, Fishery $fishery): bool
     {
-        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `Helper::addOwnerRole()` nadaje roli
+        // ⚠️ Samo uprawnienie NIE WYSTARCZA. `OwnerRoleProvisioner::addOwnerRole()` nadaje roli
         // `owner` PEŁNY zestaw `*:fishery`, więc `can()` zwracało `true` także dla
         // CUDZEGO rekordu — jedyną ochroną było zawężenie zapytania w zasobie,
         // czyli jedna warstwa zamiast dwóch. Administrator (`is_admin`) widzi

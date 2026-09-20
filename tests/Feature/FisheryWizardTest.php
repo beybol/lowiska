@@ -4,11 +4,12 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\FisheryResource\Pages\CreateFishery;
-use App\Helpers\Helper;
 use App\Models\Company;
 use App\Models\Fishery;
 use App\Models\State;
 use App\Models\User;
+use App\Services\FisheryAccess;
+use App\Services\OwnerRoleProvisioner;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 
@@ -23,14 +24,14 @@ use Livewire\Livewire;
  *
  * ⚠️ `Livewire::test()` montuje komponent POZA kontekstem panelu, więc
  * `Filament::getCurrentOrDefaultPanel()` zwraca panel domyślny (`admin`)
- * i `Helper::isOwnerPanel()` jest wtedy fałszem — kreator by się nie pokazał.
+ * i `FisheryAccess::isOwnerPanel()` jest wtedy fałszem — kreator by się nie pokazał.
  * Stąd jawne `Filament::setCurrentPanel('owner')` w każdym teście; bez tego
  * testowalibyśmy płaski formularz administratora, myśląc, że to kreator.
  */
 function wizardOwner(): User
 {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     test()->actingAs($owner);
     Filament::setCurrentPanel('owner');
 

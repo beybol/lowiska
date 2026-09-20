@@ -4,13 +4,13 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\PositionGroupResource\Pages\ListPositionGroups;
 use App\Filament\Resources\PositionResource\Pages\ListPositions;
-use App\Helpers\Helper;
 use App\Models\Fishery;
 use App\Models\Position;
 use App\Models\PositionAttribute;
 use App\Models\PositionAttributeValue;
 use App\Models\PositionGroup;
 use App\Models\User;
+use App\Services\OwnerRoleProvisioner;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 
@@ -29,7 +29,7 @@ beforeEach(function () {
 function ownerFisheryAndPositions(int $count = 3): array
 {
     $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $fishery = Fishery::factory()->forUser($owner)->create();
 
     $positions = collect(range(1, $count))->map(

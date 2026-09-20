@@ -184,8 +184,9 @@ tu wprowadzać.
    → **Uruchom** / **Pomiń**. Pominąć → zapamiętaj `mutacje: pominięte`, przejdź do Kroku 3B.
 2. **Miękki gate — sprawdź warunki, bez przerywania całości:**
    - **Sterownik pokrycia:** `docker compose exec -T app php -m | grep -iE 'pcov|xdebug'`.
-     ⚠️ **Obraz deweloperski nie ma dziś ani PCOV, ani Xdebuga** — bez nich silnik mutacji nie
-     ruszy. Brak sterownika → poinformuj o tym wprost, zapamiętaj
+     ⚠️ **Obraz deweloperski MA PCOV** — zweryfikowane przez `php -m` w zadaniach 012 i 013.
+     Wcześniejsza notatka mówiąca, że sterownika nie ma, była nieprawdziwa i blokowała mutacje
+     bez powodu. Gdyby sterownik jednak zniknął z obrazu → poinformuj wprost, zapamiętaj
      `mutacje: pominięte (brak sterownika pokrycia)` i zaproponuj **osobne zadanie** dodające PCOV
      do `Dockerfile.dev`. Nie instaluj niczego w locie.
    - Zawęź zestaw do plików źródłowych: `grep -E '^app/.*\.php$'`. Brak takich → „nic do
@@ -197,7 +198,7 @@ tu wprowadzać.
    zaznaczając, że to rząd wielkości, nie pomiar.
 4. **Rekomendacja per plik** — kryterium to **wartość mutacji, nie sam czas**:
    - **Kluczowa → TAK, nawet przy długim czasie:** klasy **liczące i walidujące**
-     (`app/Rules/`, `app/Services/`, `app/Helpers/`) oraz **bramkujące** (`app/Policies/`, role
+     (`app/Rules/`, `app/Services/`) oraz **bramkujące** (`app/Policies/`, role
      i uprawnienia). Ocalały mutant to realna luka w regule domenowej albo w dostępie.
    - **Mechaniczna → raczej NIE:** deklaratywny szkielet — zasoby i strony Filamenta, providery,
      proste modele bez logiki. Niska wartość mutacji, a pokrycie idzie wolnymi testami Feature.

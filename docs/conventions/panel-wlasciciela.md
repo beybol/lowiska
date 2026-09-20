@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `app/Filament/Owner/**`,
 `app/Providers/Filament/OwnerPanelProvider.php` oraz w zasobach współdzielonych,
 gdy dotykasz ich zachowania **w panelu właściciela**.
 
-Zadania źródłowe: 012, 014, 015, 016. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
+Zadania źródłowe: 012, 013, 014, 015, 016. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
 i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 
 ---
@@ -74,12 +74,12 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
   zamiast powielać kolumny i pola. Zasoby podrzędne zachowują własne strony list i tworzenia
   filtrowane przez `?fishery=`.
   ⚠️ **Nic nie linkuje do samodzielnych stron list** — zostały jako cel deep-linku i jako
-  fallback w `Helper::fisherySectionUrl()`, gdy łowiska nie da się ustalić. Nie usuwaj ich
+  fallback w `FisheryNavigation::fisherySectionUrl()`, gdy łowiska nie da się ustalić. Nie usuwaj ich
   w ramach „sprzątania martwego kodu" bez świadomej decyzji.
 - ⚠️ **Akcje prowadzą na PEŁNE strony tworzenia i edycji, zwykłą `Action` z `url()`** — nie na
   modale, choć na `ManageRelatedRecords` akcje CRUD-owe działałyby. Powód jest świadomy, nie
-  techniczny: pełne strony niosą `Helper::assertFisheryAccessOrAbort()`,
-  `Helper::forceVerifiedFishery()` przy zapisie i własne przekierowania — modal omijałby te
+  techniczny: pełne strony niosą `FisheryAccess::assertFisheryAccessOrAbort()`,
+  `FisheryAccess::forceVerifiedFishery()` przy zapisie i własne przekierowania — modal omijałby te
   trzy warstwy ([`autoryzacja.md`](autoryzacja.md) §4). Widoczność sprawdzaj jawnie
   (`Gate::allows('create', Model::class)`, `Gate::allows('update', $record)`).
   ⚠️ Dotyczy to także akcji **odziedziczonych z delegowanego zasobu** — `recordActions()`
@@ -94,13 +94,13 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
   `visible()` akcji wiersza pyta politykę, a ta sięga po `$record->fishery`, brak
   `->modifyQueryUsing(fn ($q) => $q->with('fishery'))` to N+1 na całą tabelę.
 - **Zapis i okruszki stron podrzędnych wracają na stronę sekcji, nie na samotną listę** —
-  adres składa `Helper::fisheryHubUrl($fisheryId, ManageXxx::class)`, czyli **po klasie
+  adres składa `FisheryNavigation::fisheryHubUrl($fisheryId, ManageXxx::class)`, czyli **po klasie
   strony** (`Page::getRouteName()`).
   ⚠️ Zniknął parametr `?relation=N` i razem z nim pułapka „przestawienie kolejności zakładek
   przekierowuje zapis na cudzą listę i nic nie pęka". Nie wracaj do adresowania po pozycji.
 - **Sub-nawigacja jest na KAŻDEJ stronie rekordu**, także na formularzu edycji łowiska — i to
   jest zamierzone: operator nie wypada z nawigacji łowiska, wchodząc w edycję.
-- **Ścieżkę okruszków składa `Helper::fisheryBreadcrumbs()`** — jedno źródło dla wszystkich
+- **Ścieżkę okruszków składa `FisheryNavigation::fisheryBreadcrumbs()`** — jedno źródło dla wszystkich
   stron List/Create/Edit zasobów podrzędnych. Daje `Łowiska › {łowisko} › {sekcja}`
   z klikalnymi dwoma pierwszymi elementami. Nie buduj tej tablicy ręcznie w stronie:
   `getBreadcrumbs()` bez łowiska w środku gubi drogę powrotną, a tego nie widać w żadnym
@@ -110,7 +110,7 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 
 - **Zasoby są współdzielone**: `OwnerPanelProvider` rejestruje te same klasy z
   `app/Filament/Resources/` co panel administratora. Różnicę zachowania robi się przez
-  `Helper::isOwnerPanel()`, **nie** przez flagi w query stringu.
+  `FisheryAccess::isOwnerPanel()`, **nie** przez flagi w query stringu.
 - **Gdy formularz ma wyglądać inaczej w każdym panelu, rozgałęziaj na poziomie strony**, nie
   duplikując pól. Wzorzec: `CreateFishery::form()` zwraca `parent::form()` poza panelem
   właściciela, a kreator tylko w nim; pola pochodzą ze wspólnych metod
@@ -148,7 +148,7 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
       },
   ])
   ```
-  Wzorzec: `Helper::getPriceInput()`, pilnowany przez
+  Wzorzec: `SharedFormComponents::getPriceInput()`, pilnowany przez
   [`tests/Feature/AdditionalServicePriceTest.php`](../../tests/Feature/AdditionalServicePriceTest.php).
 - ⚠️ **Testując zapisane wartości, uważaj na akcesory formatujące.** `AdditionalService::price`
   ma akcesor zamieniający kropkę na przecinek przy locale `pl`, a Eloquentowy `value()`
@@ -164,7 +164,7 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 ## 5. Testy kreatora i stron panelu właściciela
 
 - ⚠️ **`Livewire::test()` montuje komponent POZA kontekstem panelu** — `Filament::getCurrentOrDefaultPanel()`
-  zwraca wtedy panel **domyślny** (`admin`), więc `Helper::isOwnerPanel()` jest fałszem.
+  zwraca wtedy panel **domyślny** (`admin`), więc `FisheryAccess::isOwnerPanel()` jest fałszem.
   Bez jawnego `Filament::setCurrentPanel('owner')` testujesz wariant administratora, myśląc,
   że sprawdzasz panel właściciela — i test przechodzi, nie sprawdzając niczego z tego, co miał.
   Wzorzec: [`tests/Feature/FisheryWizardTest.php`](../../tests/Feature/FisheryWizardTest.php).

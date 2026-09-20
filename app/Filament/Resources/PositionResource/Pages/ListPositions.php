@@ -3,7 +3,8 @@
 namespace App\Filament\Resources\PositionResource\Pages;
 
 use App\Filament\Resources\PositionResource;
-use App\Helpers\Helper;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -23,13 +24,13 @@ class ListPositions extends ListRecords
         // a `request()->get()` daje string — `?fishery=abc` wywalało `TypeError`
         // (500) jeszcze zanim bramka zdążyła zwrócić 404. Bramka normalizuje
         // wartość i zwraca zweryfikowany `int`.
-        $this->fisheryId = Helper::assertFisheryAccessOrAbort(request()->get('fishery'));
+        $this->fisheryId = FisheryAccess::assertFisheryAccessOrAbort(request()->get('fishery'));
         parent::mount();
     }
 
     protected function getHeaderActions(): array
     {
-        return Helper::getListHeaderActionsForFishery(
+        return FisheryNavigation::getListHeaderActionsForFishery(
             static::$resource,
             $this->fisheryId,
         );
@@ -45,13 +46,13 @@ class ListPositions extends ListRecords
 
         return $query->where(
             'fishery_id',
-            Helper::assertFisheryAccessOrAbort($this->fisheryId),
+            FisheryAccess::assertFisheryAccessOrAbort($this->fisheryId),
         );
     }
 
     public function getBreadcrumbs(): array
     {
-        return Helper::fisheryBreadcrumbs(
+        return FisheryNavigation::fisheryBreadcrumbs(
             $this->fisheryId,
             __('Positions'),
         );
@@ -59,6 +60,6 @@ class ListPositions extends ListRecords
 
     public function getTitle(): string
     {
-        return Helper::getFisheryTitle($this->fisheryId, 'Positions');
+        return FisheryNavigation::getFisheryTitle($this->fisheryId, 'Positions');
     }
 }

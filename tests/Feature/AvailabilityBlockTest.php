@@ -9,7 +9,6 @@ use App\Filament\Resources\AvailabilityBlockResource\Pages\CreateAvailabilityBlo
 use App\Filament\Resources\AvailabilityBlockResource\Pages\EditAvailabilityBlock;
 use App\Filament\Resources\AvailabilityBlockResource\Pages\ListAvailabilityBlocks;
 use App\Filament\Resources\PositionResource\Pages\CreatePosition;
-use App\Helpers\Helper;
 use App\Models\AvailabilityBlock;
 use App\Models\Fishery;
 use App\Models\Position;
@@ -19,6 +18,7 @@ use App\Models\User;
 use App\Rules\AvailabilityBlockEffectMatchesAttribute;
 use App\Rules\PositionsBelongToFishery;
 use App\Services\AvailabilityBlockSelectionResolver;
+use App\Services\OwnerRoleProvisioner;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 
@@ -33,7 +33,7 @@ beforeEach(function () {
 function ownerWithFisheryForBlocks(): array
 {
     $owner = User::factory()->create(['name' => 'Wlasciciel Testowy']);
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
 
     return [$owner, Fishery::factory()->forUser($owner)->create()];
 }

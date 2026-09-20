@@ -12,7 +12,6 @@ use App\Filament\Resources\FisheryResource\Pages\ManageLongTermPermits;
 use App\Filament\Resources\FisheryResource\Pages\ManagePositionGroups;
 use App\Filament\Resources\FisheryResource\Pages\ManagePositions;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleSettings;
-use App\Helpers\Helper;
 use App\Models\Company;
 use App\Models\Convenience;
 use App\Models\Fish;
@@ -22,6 +21,9 @@ use App\Models\FishingMethod;
 use App\Models\State;
 use App\Models\User;
 use App\Rules\IbanValidation;
+use App\Services\DictionaryOptions;
+use App\Services\FisheryAccess;
+use App\Services\SharedFormComponents;
 use Collator;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -69,13 +71,13 @@ class FisheryResource extends Resource
             ->required()
             ->label(__('Company'))
             ->options(function () {
-                if (Helper::isOwnerPanel()) {
+                if (FisheryAccess::isOwnerPanel()) {
                     $query = Company::query()->forCurrentUser();
 
-                    return Helper::sortedCompanies($query);
+                    return DictionaryOptions::sortedCompanies($query);
                 }
 
-                return Helper::sortedCompanies();
+                return DictionaryOptions::sortedCompanies();
             });
     }
 
@@ -96,7 +98,7 @@ class FisheryResource extends Resource
                 ->maxLength(255),
             Select::make('user_id')
                 ->required()
-                ->hidden(fn () => Helper::isOwnerPanel())
+                ->hidden(fn () => FisheryAccess::isOwnerPanel())
                 ->label(__('Fishery entered by'))
                 ->disabled()
                 ->relationship('user', 'name')
@@ -116,7 +118,7 @@ class FisheryResource extends Resource
                     // Bez tego podgląd pokazywałby adres sprzed edycji (zadanie 012).
                     Select::make('state_id')
                         ->label(__('State'))
-                        ->options(Helper::sortStates())
+                        ->options(DictionaryOptions::sortStates())
                         ->searchable()
                         ->required()
                         ->live(),
@@ -142,7 +144,7 @@ class FisheryResource extends Resource
                         ->live(onBlur: true),
                     RichEditor::make('directions')
                         ->label(__('Directions'))
-                        ->toolbarButtons(Helper::getRichEditorOptions())
+                        ->toolbarButtons(SharedFormComponents::getRichEditorOptions())
                         ->maxLength(255),
                     ViewField::make('map_preview')
                         ->label(__('Map Preview'))
@@ -196,7 +198,7 @@ class FisheryResource extends Resource
                 ]),
             RichEditor::make('description')
                 ->label(__('Description'))
-                ->toolbarButtons(Helper::getRichEditorOptions())
+                ->toolbarButtons(SharedFormComponents::getRichEditorOptions())
                 ->columnSpanFull(),
             Section::make(__('Fishery data'))
                 ->schema([
@@ -239,7 +241,7 @@ class FisheryResource extends Resource
                         ->relationship('dominantFish', 'name'),
                     RichEditor::make('records')
                         ->label(__('Fishery records'))
-                        ->toolbarButtons(Helper::getRichEditorOptions()),
+                        ->toolbarButtons(SharedFormComponents::getRichEditorOptions()),
                     Select::make('currency_id')
                         ->label(__('Currency for settlement'))
                         ->relationship('currency', 'name'),
@@ -411,7 +413,7 @@ class FisheryResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (Helper::isOwnerPanel()) {
+        if (FisheryAccess::isOwnerPanel()) {
             // ⚠️ Zawężenie typu TYLKO na potrzeby wywołania scope'u. Filament deklaruje
             // `Builder<Model>`, więc analiza statyczna nie widziała tu scope'ów modelu
             // (`forCurrentUser()` miało własny wpis w baseline). Zawężenia nie da się

@@ -4,8 +4,10 @@ namespace App\Filament\Resources\PositionResource\Pages;
 
 use App\Filament\Resources\FisheryResource\Pages\ManagePositions;
 use App\Filament\Resources\PositionResource;
-use App\Helpers\Helper;
 use App\Models\Position;
+use App\Services\AdditionalServiceSync;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use App\Services\PositionAttributeWriter;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -21,7 +23,7 @@ class EditPosition extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $this->additionalServicesToSync = Helper::extractAdditionalServices($data);
+        $this->additionalServicesToSync = AdditionalServiceSync::extractAdditionalServices($data);
 
         // ⚠️ Jak przy tworzeniu — `position_attributes` nie jest kolumną.
         $this->attributesToWrite = $data['position_attributes'] ?? [];
@@ -31,12 +33,12 @@ class EditPosition extends EditRecord
         // `mount()` sprawdza łowisko rekordu SPRZED zmiany, a `fishery_id` jest
         // w formularzu polem `Hidden` — bez tego dało się przenieść własny rekord
         // pod cudze łowisko, podmieniając wartość w żądaniu zapisu.
-        return Helper::forceVerifiedFishery($data);
+        return FisheryAccess::forceVerifiedFishery($data);
     }
 
     protected function afterSave(): void
     {
-        Helper::syncAdditionalServices($this->record, $this->additionalServicesToSync);
+        AdditionalServiceSync::syncAdditionalServices($this->record, $this->additionalServicesToSync);
 
         $position = $this->record;
         assert($position instanceof Position);
@@ -48,7 +50,7 @@ class EditPosition extends EditRecord
     {
         parent::mount($record);
         $this->record->load('additionalServices', 'attributeValues.attribute', 'groups');
-        Helper::assertFisheryAccessOrAbort($this->record->fishery_id);
+        FisheryAccess::assertFisheryAccessOrAbort($this->record->fishery_id);
 
         $this->form->fill(
             PositionResource::getEloquentFormData($this->record)
@@ -64,7 +66,7 @@ class EditPosition extends EditRecord
 
     protected function getFormActions(): array
     {
-        return Helper::getEditFormActionsForFishery(
+        return FisheryNavigation::getEditFormActionsForFishery(
             $this->record,
             $this->getSaveFormAction(),
             $this->getCancelFormAction(),
@@ -75,7 +77,7 @@ class EditPosition extends EditRecord
     {
         $fisheryId = $this->record->fishery_id ?? null;
 
-        return Helper::fisheryBreadcrumbs(
+        return FisheryNavigation::fisheryBreadcrumbs(
             $fisheryId,
             __('Positions'),
             self::sectionUrl($fisheryId),
@@ -90,7 +92,7 @@ class EditPosition extends EditRecord
 
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisherySectionUrl(
+        return FisheryNavigation::fisherySectionUrl(
             PositionResource::class,
             ManagePositions::class,
             $fisheryId,

@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w `app/Filament/Resources/**`,
 `app/Providers/Filament/AdminPanelProvider.php`.
 
-Zadania źródłowe: 005, 009, 011, 014. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
+Zadania źródłowe: 005, 009, 011, 013, 014. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
 
 ---
 
@@ -36,7 +36,7 @@ wydziel wspólny plik o storage'u).
 
 ℹ️ **Zasoby z `app/Filament/Resources/**` są współdzielone z panelem właściciela** — zanim
 zmienisz zachowanie zasobu, sprawdź [`panel-wlasciciela.md`](panel-wlasciciela.md), bo część
-z nich rozgałęzia się przez `Helper::isOwnerPanel()` (m.in. kreator zakładania łowiska
+z nich rozgałęzia się przez `FisheryAccess::isOwnerPanel()` (m.in. kreator zakładania łowiska
 i hub „Zarządzaj łowiskiem", ADR-006).
 
 ---
@@ -123,7 +123,7 @@ i hub „Zarządzaj łowiskiem", ADR-006).
 
   private static function sectionUrl(int|string|null $fisheryId): string
   {
-      return Helper::fisherySectionUrl(
+      return FisheryNavigation::fisherySectionUrl(
           XResource::class,
           ManageXxx::class,
           $fisheryId,
@@ -135,7 +135,7 @@ i hub „Zarządzaj łowiskiem", ADR-006).
 - **Dzisiejsze wyjątki od tej reguły:**
   - **`CompanyResource` — świadomie wyłączony.** To jedna klasa współdzielona między panelami
     (patrz niżej), a panel właściciela ma pozostać bez zmian. Wprowadzenie rozgałęzienia
-    `Helper::isOwnerPanel()` tylko po to, żeby admin zachowywał się inaczej niż owner, uznano
+    `FisheryAccess::isOwnerPanel()` tylko po to, żeby admin zachowywał się inaczej niż owner, uznano
     za nieproporcjonalny koszt (zadanie 011, „Rozstrzygnięcia").
   - **`FisheryResource` — zgodny w adminie, odstępstwo tylko w panelu właściciela.**
     `CreateFishery::getRedirectUrl()` rozgałęzia jawnie: admin wraca na listę (czyli spełnia

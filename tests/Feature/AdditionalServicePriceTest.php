@@ -3,11 +3,12 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\AdditionalServiceResource\Pages\CreateAdditionalService;
-use App\Helpers\Helper;
 use App\Models\AdditionalService;
 use App\Models\Company;
 use App\Models\Fishery;
 use App\Models\User;
+use App\Services\OwnerRoleProvisioner;
+use App\Services\SharedFormComponents;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
@@ -16,7 +17,7 @@ use Livewire\Livewire;
  * Regresja dla zadania 012: zapis usługi dodatkowej kończył się błędem 500
  * (`BindingResolutionException: [$attribute] was unresolvable`).
  *
- * ⚠️ Przyczyna: reguła walidacyjna w `Helper::getPriceInput()` była przekazana do
+ * ⚠️ Przyczyna: reguła walidacyjna w `SharedFormComponents::getPriceInput()` była przekazana do
  * `rules()` jako domknięcie Laravela `fn (string $attribute, $value, Closure $fail)`.
  * Filament woła `evaluate()` na KAŻDYM elemencie `rules()` i wstrzykuje argumenty
  * po nazwie, więc próbował rozwiązać `$attribute` z kontenera. Reguła-domknięcie
@@ -39,7 +40,7 @@ function rawPrice(string $serviceName): ?string
 function priceTestFishery(): Fishery
 {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     test()->actingAs($owner);
     Filament::setCurrentPanel('owner');
 

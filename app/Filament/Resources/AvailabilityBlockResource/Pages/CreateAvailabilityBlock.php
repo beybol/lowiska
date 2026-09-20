@@ -4,7 +4,8 @@ namespace App\Filament\Resources\AvailabilityBlockResource\Pages;
 
 use App\Filament\Resources\AvailabilityBlockResource;
 use App\Filament\Resources\FisheryResource\Pages\ManageAvailabilityBlocks;
-use App\Helpers\Helper;
+use App\Services\FisheryAccess;
+use App\Services\FisheryNavigation;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateAvailabilityBlock extends CreateRecord
@@ -17,12 +18,12 @@ class CreateAvailabilityBlock extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return Helper::forceVerifiedFishery(AvailabilityBlockResource::withSelectionLabel($data));
+        return FisheryAccess::forceVerifiedFishery(AvailabilityBlockResource::withSelectionLabel($data));
     }
 
     public function mount(): void
     {
-        Helper::assertFisheryAccessOrAbort();
+        FisheryAccess::assertFisheryAccessOrAbort();
         parent::mount();
     }
 
@@ -35,7 +36,7 @@ class CreateAvailabilityBlock extends CreateRecord
     {
         $fisheryId = request()->get('fishery');
 
-        return Helper::fisheryBreadcrumbs(
+        return FisheryNavigation::fisheryBreadcrumbs(
             $fisheryId,
             __('Availability blocks'),
             self::sectionUrl($fisheryId),
@@ -53,7 +54,7 @@ class CreateAvailabilityBlock extends CreateRecord
 
     private static function sectionUrl(int|string|null $fisheryId): string
     {
-        return Helper::fisherySectionUrl(
+        return FisheryNavigation::fisherySectionUrl(
             AvailabilityBlockResource::class,
             ManageAvailabilityBlocks::class,
             $fisheryId,

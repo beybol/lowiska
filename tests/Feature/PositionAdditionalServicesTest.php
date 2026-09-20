@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Enums\PositionStatus;
 use App\Filament\Resources\PositionResource\Pages\CreatePosition;
-use App\Helpers\Helper;
 use App\Models\Company;
 use App\Models\Fishery;
 use App\Models\Position;
 use App\Models\User;
+use App\Services\OwnerRoleProvisioner;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 
@@ -23,7 +23,7 @@ use Livewire\Livewire;
  */
 test('the additional services list starts empty so a position can be saved without any', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $this->actingAs($owner);
     Filament::setCurrentPanel('owner');
 
@@ -42,7 +42,7 @@ test('the additional services list starts empty so a position can be saved witho
 
 test('a position without additional services saves successfully', function () {
     $owner = User::factory()->create();
-    Helper::addOwnerRole($owner);
+    OwnerRoleProvisioner::addOwnerRole($owner);
     $this->actingAs($owner);
     Filament::setCurrentPanel('owner');
 
