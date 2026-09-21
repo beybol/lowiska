@@ -11,6 +11,7 @@ use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
 use App\Filament\Resources\FisheryResource\Pages\ManageLongTermPermits;
 use App\Filament\Resources\FisheryResource\Pages\ManagePositionGroups;
 use App\Filament\Resources\FisheryResource\Pages\ManagePositions;
+use App\Filament\Resources\FisheryResource\Pages\ManageSaleRules;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleSettings;
 use App\Models\Company;
 use App\Models\Convenience;
@@ -343,6 +344,7 @@ class FisheryResource extends Resource
             // na zdarzenie, a nie częścią konfiguracji zakładanej na starcie.
             ManageFishery::class,
             ManageSaleSettings::class,
+            ManageSaleRules::class,
             ManagePositions::class,
             ManagePositionGroups::class,
             ManageAdditionalServices::class,
@@ -381,6 +383,7 @@ class FisheryResource extends Resource
             // `FisheryResource` jest zarejestrowany w obu panelach, więc strona
             // trafia do obu bez dotykania providerów (ADR-006, aktualizacja 015).
             'sale-settings' => ManageSaleSettings::route('/{record}/sale-settings'),
+            'sale-rules' => ManageSaleRules::route('/{record}/sale-rules'),
             'positions' => ManagePositions::route('/{record}/positions'),
             'position-groups' => ManagePositionGroups::route('/{record}/position-groups'),
             'availability-blocks' => ManageAvailabilityBlocks::route('/{record}/availability-blocks'),

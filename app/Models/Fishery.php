@@ -43,11 +43,18 @@ class Fishery extends Model
         'day_start_time',
         'day_end_time',
         'timezone',
+        'min_nights',
+        'max_nights',
+        'weekend_days',
+        'sale_horizon_days',
     ];
 
     protected $casts = [
         'gallery_images' => 'array',
         'sale_mode' => SaleMode::class,
+        // Zbiór dni ISO-8601 rozpoczęcia dób składających się na weekend sprzedawany
+        // w całości. Kolumna JSON, nie tabela — uzasadnienie w migracji (zadanie 017).
+        'weekend_days' => 'array',
     ];
 
     /**
@@ -174,5 +181,15 @@ class Fishery extends Model
     public function availabilityBlocks(): HasMany
     {
         return $this->hasMany(AvailabilityBlock::class);
+    }
+
+    /**
+     * Święta sprzedawane wyłącznie w całości (zadanie 017).
+     *
+     * @return HasMany<WholeTermPeriod, $this>
+     */
+    public function wholeTermPeriods(): HasMany
+    {
+        return $this->hasMany(WholeTermPeriod::class);
     }
 }

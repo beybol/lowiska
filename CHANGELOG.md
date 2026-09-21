@@ -53,8 +53,43 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   ręcznie przed zapisem. Zapisana lista nie zmienia się sama: stanowisko dodane później nie
   wchodzi do istniejącej blokady, a panel ostrzega o tym przy jego zakładaniu, wskazując wpisy,
   które go nie obejmują.
+- Właściciel łowiska może ograniczyć, **jaki pobyt** wolno u niego kupić. Na nowym ekranie
+  „Reguły sprzedaży" ustawia najkrótszy i najdłuższy pobyt liczony w dobach; puste pole znaczy
+  „bez granicy". Łowisko bez żadnej z tych reguł sprzedaje pobyty dowolnej długości.
+- Weekend można sprzedawać wyłącznie w całości. Właściciel zaznacza doby, które idą razem — każda
+  pokazana jako pobyt od godziny do godziny („pt 15:00 → sob 15:00"), więc widać, że weekend od
+  piątku do niedzieli to dwie doby, a nie trzy dni. Wędkarz nie kupi samej soboty: musi wziąć cały
+  weekend, sam albo z dobami przed nim i po nim. Doba niedzielna sprzedaje się jak zwykły dzień.
+- Terminy świąteczne z konkretnymi datami też można sprzedawać wyłącznie w całości. Przy każdym
+  widać wyliczony pobyt („czw 30.04 15:00 → nd 3.05 15:00 · 3 doby"), żeby nie pomylić ostatniej
+  doby z dniem wyjazdu. Święta mogą na siebie zachodzić i zachodzić na weekend — zlewają się wtedy
+  w jeden większy pakiet, który również sprzedaje się w całości.
+- Pobyt obejmujący święto nie podlega najkrótszej długości pobytu: trzydobowa majówka sprzedaje się
+  także tam, gdzie zwykle wymagane jest pięć dób. Sam weekend takiego wyjątku nie daje.
+- Gdy blokada wyłączy część dób pakietu, resztę nadal można kupić — wyłączone doby po prostu z niego
+  wypadają, zamiast unieważniać cały weekend czy całe święto.
+- Każdy okres sprzedaży może mieć własną przedsprzedaż: okno, w którym wolno kupować doby tego
+  sezonu, zanim wejdzie on w normalną sprzedaż. Właściciel może wymagać, żeby zakup w oknie obejmował
+  co najmniej zadaną liczbę dób — wymaganie dotyczy każdego zakupu dób tego sezonu w czasie otwartego
+  okna, więc pojedynczej doby wtedy nie kupi. Osobny przełącznik decyduje, czy święta sprzedawane
+  w całości są z tego wymagania wyjęte; domyślnie są.
+- Właściciel ustawia horyzont sprzedaży — jak daleko w przód wędkarz może kupować. Doba
+  rozpoczynająca się dokładnie tyle dni od dziś jeszcze się sprzedaje. Okno przedsprzedaży jest
+  wyjątkiem właśnie od horyzontu: pozwala kupić doby dalej, niż on sięga.
+- Odmowa sprzedaży pobytu mówi wprost, co jest nie tak: pobyt za krótki, za długi, przerwany
+  weekend, przerwane święto, data poza horyzontem albo zakup poniżej minimum przedsprzedaży.
+  Przy przerwanym pakiecie wędkarz widzi pełny zakres dób, które musi objąć.
+- Panel ostrzega przy zapisie o konfiguracji, której nie da się kupić albo która prawie na pewno
+  jest pomyłką: najkrótszy pobyt dłuższy niż weekend, najdłuższy pobyt krótszy niż pakiet
+  sprzedawany w całości, okno przedsprzedaży otwierające się po starcie sezonu, przedsprzedaż
+  na łowisku bez horyzontu oraz święto, które po skróceniu sezonu wypadło poza sprzedaż. Zapis
+  przechodzi — porządkowanie sezonu w dowolnej kolejności zostaje możliwe.
 
 ### Zmienione
+
+- Ekran „Sprzedaż i sezony" odpowiada teraz na pytanie, **kiedy** łowisko sprzedaje: doszły do niego
+  przedsprzedaż przy każdym okresie oraz horyzont sprzedaży. Reguły mówiące, **jaki pobyt** wolno
+  kupić, mieszkają na osobnym ekranie „Reguły sprzedaży" — jedno pytanie na ekran.
 
 - Stanowisko ma teraz stan „w sprzedaży" albo „wycofane" zamiast przełącznika aktywności.
   Liczniki i listy liczą po nowym stanie.

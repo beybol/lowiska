@@ -3,11 +3,21 @@
 namespace App\Enums;
 
 /**
- * Powód, dla którego doby nie da się sprzedać.
+ * Powód, dla którego doby ALBO POBYTU nie da się sprzedać.
  *
  * Istnieje, bo odmowa ma nieść powód, a nie samo „nie" — wędkarz musi wiedzieć,
  * czy trafił przed sezon, za sezon, czy w łowisko bez skonfigurowanej sprzedaży
  * (zadanie 015, kryteria akceptacji).
+ *
+ * ⚠️ Enum jest JEDEN dla całej sprzedaży (`docs/conventions/dostepnosc.md` §2).
+ * Pierwsze siedem wartości dotyczy pojedynczej DOBY (`PositionAvailability`),
+ * sześć ostatnich — POBYTU, czyli ciągu dób kupowanego razem (`StaySellability`,
+ * zadanie 017, ADR-013). Nowy warunek dokłada wartość tutaj, nie zakłada własnego
+ * słownika komunikatów.
+ *
+ * ⚠️ Każda nowa wartość wymaga DWÓCH zmian: gałęzi w wyczerpującym `match`
+ * w `label()` — brak którejkolwiek to `UnhandledMatchError` dopiero w chwili
+ * odmowy — oraz wpisu w `lang/pl.json`, bo komunikat widzi wędkarz.
  */
 enum SaleUnavailabilityReason: string
 {
@@ -32,6 +42,34 @@ enum SaleUnavailabilityReason: string
     /** Doba przecina okno blokady sprzedaży na tym stanowisku (zadanie 016). */
     case SaleBlocked = 'sale_blocked';
 
+    /** Pobyt jest krótszy niż `min_nights` łowiska (zadanie 017). */
+    case StayTooShort = 'stay_too_short';
+
+    /** Pobyt jest dłuższy niż `max_nights` łowiska (zadanie 017). */
+    case StayTooLong = 'stay_too_long';
+
+    /**
+     * Pobyt przecina weekend sprzedawany w całości, nie obejmując go cały
+     * (zadanie 017). Werdykt niesie PEŁNY zakres pakietu, który trzeba objąć.
+     */
+    case WeekendBroken = 'weekend_broken';
+
+    /**
+     * Pobyt przecina święto sprzedawane w całości, nie obejmując całego pakietu
+     * (zadanie 017). ⚠️ Ten powód niesie także pakiet ZLANY ze weekendem, o ile
+     * jest w nim choć jedna doba święta — rozstrzygnięcie 22 zadania 017.
+     */
+    case WholeTermBroken = 'whole_term_broken';
+
+    /** Któraś doba pobytu leży dalej niż `sale_horizon_days` łowiska (zadanie 017). */
+    case BeyondSaleHorizon = 'beyond_sale_horizon';
+
+    /**
+     * Pobyt jest krótszy niż `presale_min_nights` okresu, którego okno przedsprzedaży
+     * jest właśnie otwarte (zadanie 017). Przedsprzedaż jest ofertą hurtową.
+     */
+    case BelowPresaleMinimum = 'below_presale_minimum';
+
     public function label(): string
     {
         return match ($this) {
@@ -42,6 +80,12 @@ enum SaleUnavailabilityReason: string
             self::OutsideSalePeriod => __('The fishing day is outside every sale period'),
             self::PositionWithdrawn => __('The position is withdrawn from sale'),
             self::SaleBlocked => __('Sale at this position is blocked on that day'),
+            self::StayTooShort => __('The stay is shorter than this fishery allows'),
+            self::StayTooLong => __('The stay is longer than this fishery allows'),
+            self::WeekendBroken => __('This weekend is sold whole — take all of its nights or none'),
+            self::WholeTermBroken => __('This term is sold whole — take all of its nights or none'),
+            self::BeyondSaleHorizon => __('That date is further ahead than this fishery sells'),
+            self::BelowPresaleMinimum => __('The presale of this season requires a longer stay'),
         };
     }
 }

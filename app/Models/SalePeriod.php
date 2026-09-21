@@ -26,11 +26,29 @@ class SalePeriod extends Model
         'name',
         'starts_on',
         'ends_on',
+        'presale_opens_on',
+        'presale_closes_on',
+        'presale_min_nights',
+        'presale_whole_terms_bypass_min_nights',
     ];
 
     protected $casts = [
         'starts_on' => 'date',
         'ends_on' => 'date',
+        'presale_opens_on' => 'date',
+        'presale_closes_on' => 'date',
+        'presale_whole_terms_bypass_min_nights' => 'boolean',
+    ];
+
+    /**
+     * Domyślne lustro wartości z bazy, tym samym zabiegiem co w `Fishery`: `create()`
+     * nie czyta z powrotem kolumn wypełnionych domyślną wartością po stronie MySQL-a,
+     * więc bez tego świeżo utworzony okres miał flagę `null` zamiast `true`.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'presale_whole_terms_bypass_min_nights' => true,
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -44,5 +62,16 @@ class SalePeriod extends Model
     public function fishery(): BelongsTo
     {
         return $this->belongsTo(Fishery::class);
+    }
+
+    /**
+     * Czy przedsprzedaż tego okresu jest WŁĄCZONA — czyli obie daty wypełnione.
+     *
+     * ⚠️ Nie ma osobnej kolumny-przełącznika: stan wynika z danych, a przełącznik
+     * w formularzu jest polem, nie kolumną (`panel-wlasciciela.md` §6).
+     */
+    public function hasPresale(): bool
+    {
+        return $this->presale_opens_on !== null && $this->presale_closes_on !== null;
     }
 }

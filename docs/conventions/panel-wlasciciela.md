@@ -201,8 +201,14 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 ## 6. Ekran ustawień jednego łowiska
 
 Obok stron listowych (`ManageRelatedRecords`) w sub-nawigacji żyją **strony ustawień** —
-formularze konfiguracji łowiska zapisywane jednym „Zapisz". Dziś jest to „Sprzedaż i sezony";
-makieta zapowiada kolejne (Cennik, Reguły sprzedaży, Zwroty, Regulamin).
+formularze konfiguracji łowiska zapisywane jednym „Zapisz". Dziś są to „Sprzedaż i sezony"
+oraz „Reguły sprzedaży"; makieta zapowiada kolejne (Cennik, Zwroty, Regulamin).
+
+- **Jedno pytanie na ekran** — i to jest kryterium podziału, nie objętość formularza.
+  „Sprzedaż i sezony" odpowiada **KIEDY** sprzedajesz (doba, strefa, okresy sprzedaży
+  z przedsprzedażą, horyzont), „Reguły sprzedaży" — **JAKI POBYT** wolno kupić (długość, weekend
+  i święta sprzedawane w całości). Kolejność w `getRecordSubNavigation()`: reguły **za** sezonami,
+  bo reguły odwołują się do godzin doby i do okresów, a nie odwrotnie.
 
 - **Strona ustawień to `EditRecord` zasobu `FisheryResource`** z własną pozycją w
   `getRecordSubNavigation()`. Nie jest RelationManagerem i nie jest stroną panelu.
@@ -217,6 +223,27 @@ makieta zapowiada kolejne (Cennik, Reguły sprzedaży, Zwroty, Regulamin).
   `mutateFormDataBefore*`.** Nie zdejmuj go `->dehydrated(false)` — klucz usuwa się jawnie
   w metodzie mutującej. Inaczej wartość wyliczana z tego pola (np. `selection_label`) zapisuje
   się cicho jako `null`, a formularz nie zgłasza żadnego błędu.
+- ⚠️ **Przełącznik, który NIE jest kolumną: stan wynika z danych, wyłączenie czyści dane.**
+  Dotyczy dziś przełącznika weekendu (`weekend_days` niepuste) i przedsprzedaży okresu (obie daty
+  okna wypełnione). Osobnej kolumny `*_enabled` nie ma i mieć nie ma — dwie prawdy o tym samym
+  rozjeżdżają się przy pierwszym zapisie z pominięciem formularza. Wyłączenie **musi wyczyścić**
+  pola, inaczej wartość zostaje w bazie i dalej działa, a formularz pokazuje ją jako wyłączoną.
+- ⚠️ **Repeater po relacji NIE przechodzi przez `mutateFormDataBefore*` strony.** Filament zapisuje
+  go w `saveRelationships()` z własnego stanu, więc pole-przełącznik w wierszu repeatera dokłada się
+  i zdejmuje w **hookach repeatera** (`mutateRelationshipDataBeforeFill/Create/SaveUsing`), nie
+  w metodach strony. Wzorzec: przedsprzedaż w `ManageSaleSettings`.
+  Skutek dla testów: `fillForm(['salePeriods' => [[...]]])` z listą pod kluczem `0` **nie trafia**
+  w istniejący wiersz (Filament dopasowuje je po kluczach stanu, `record-<id>`) — test podmieniający
+  całą listę zostawia stary rekord nietknięty i zielenieje na zepsutym kodzie. Przestawiaj pole po
+  kluczu wiersza.
+- ⚠️ **Sekcja zależna od innego ekranu jest WYŁĄCZONA, dopóki tamten nie jest wypełniony.**
+  Bez godzin doby nie ma z czego policzyć przedziałów dób ani podpowiedzi „czyli pobyt", a walidacja
+  zwróciłaby mylący powód — dlatego na „Regułach sprzedaży" przełącznik weekendu i sekcja świąt
+  są wtedy nieaktywne, z podpowiedzią gdzie to ustawić.
+- ⚠️ **Doby pokazuj jako PRZEDZIAŁY liczone z godzin doby łowiska** („pt → sob · 15:00 → 15:00"),
+  nigdy jako same nazwy dni. To zabezpieczenie, nie ozdoba: przy nazwach dni operator zaznacza
+  „piątek, sobotę i niedzielę" dla weekendu, który składa się z **dwóch** dób. Ten sam zabieg przy
+  świętach (`Placeholder` „czyli pobyt"), liczony przez `FishingDayCalendar`, nigdy różnicą dat.
 - **Autoryzacja jest jawna.** `EditRecord::authorizeAccess()` pyta `FisheryPolicy::update()`,
   a wiązanie rekordu przechodzi przez `FisheryResource::getEloquentQuery()` z `forCurrentUser()`.
 
@@ -229,12 +256,19 @@ Uzasadnienie i odrzucone warianty:
 
 Reguły sprzedaży **nie należą do panelu** — wiążą tak samo portal wędkarza, cennik i kalendarz.
 Mieszkają w [`dostepnosc.md`](dostepnosc.md): doba jako przedział, asymetria reguł granic, jedno
-źródło prawdy o dostępności (`PositionAvailability`) i blokady ze zmaterializowanym zbiorem.
+źródło prawdy o dostępności (`PositionAvailability`), blokady ze zmaterializowanym zbiorem oraz
+pojęcie **pobytu** ze spoiwem dób (`StaySellability`, §4 tamtego pliku).
 Tutaj zostaje wyłącznie to, co dotyczy ekranów panelu:
 
 - **Pola doby żyją POZA `FisheryResource::fisheryDetailComponents()`** — metoda jest współdzielona
   z krokiem „Fishery" kreatora, a łowisko ma powstawać niesprzedające.
-- **Ekran „Sprzedaż i sezony" jest stroną ustawień** (sekcja 6), nie RelationManagerem.
+- **Ekrany „Sprzedaż i sezony" oraz „Reguły sprzedaży" są stronami ustawień** (sekcja 6), nie
+  RelationManagerami. Przedsprzedaż jest **polem w wierszu repeatera okresów**, nie osobną sekcją
+  ani osobnym ekranem — bo jest właściwością okresu.
+- ⚠️ **Ekran reguł nie liczy sprzedawalności.** Ostrzeżenia przy zapisie („minimum dłuższe niż
+  weekend", „maksimum krótsze niż pakiet", „przedsprzedaż bez horyzontu") są jedynym miejscem,
+  w którym panel wypowiada się o regułach — i są **ostrzeżeniami**, nie błędami, bo operator
+  porządkuje sezon w dowolnej kolejności. Werdykt liczy `StaySellability`.
 - **Blokady i ograniczenia są stroną sekcji** (lista rekordów z własnymi stronami). Formularz
   **prowadzi przez wybór zbioru**: sposób wyboru → kryterium → lista objętych stanowisk
   z licznikiem i przyciskiem „Przelicz". Lista jest edytowalna po przeliczeniu.
