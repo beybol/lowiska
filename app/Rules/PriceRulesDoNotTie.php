@@ -44,7 +44,7 @@ class PriceRulesDoNotTie implements ValidationRule
             if (is_array($row)) {
                 // Hydratacja modelu, żeby szczegółowość liczyła się **jedną** metodą —
                 // tą samą, której używa rozstrzyganie cennika.
-                $rules[] = (new PriceRule)->forceFill($row);
+                $rules[] = (new PriceRule)->forceFill(self::withoutBlankConditions($row));
             }
         }
 
@@ -67,5 +67,34 @@ class PriceRulesDoNotTie implements ValidationRule
                 }
             }
         }
+    }
+
+    /**
+     * Puste warunki z formularza sprowadzone do `null`.
+     *
+     * ⚠️ **Pusty `Select` przysyła PUSTY ŁAŃCUCH, nie `null`** — i to jest stan normalny, bo
+     * stawka bazowa nie ma ani warunku roli, ani obsady. Bez tej normalizacji dzieją się dwie
+     * złe rzeczy naraz:
+     *
+     * 1. rzutowanie enuma na `''` rzuca `ValueError` i wywraca **cały zapis** formularza
+     *    (zgłoszenie z 2026-09-22);
+     * 2. `''` nie jest `null`, więc `specificity()` policzyłaby pustą oś jako warunek —
+     *    stawka bazowa udawałaby regułę warunkową i wygrywałaby remisy, których nie powinna.
+     *
+     * Normalizacja siedzi TUTAJ, a nie tylko w formularzu, bo ta reguła jest jedynym domem
+     * sprawdzenia remisu i musi znosić dane z każdej ścieżki zapisu.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    public static function withoutBlankConditions(array $row): array
+    {
+        foreach (['weekdays', 'first_day_on', 'last_day_on', 'anglers_count', 'participant_role', 'effective_from', 'effective_to'] as $axis) {
+            if (array_key_exists($axis, $row) && blank($row[$axis])) {
+                $row[$axis] = null;
+            }
+        }
+
+        return $row;
     }
 }

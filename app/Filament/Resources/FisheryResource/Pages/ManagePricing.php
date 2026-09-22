@@ -92,8 +92,14 @@ class ManagePricing extends EditRecord
                         // ⚠️ Relacja jest zawężona po `kind`, a Eloquent NIE wypełnia wartości
                         // z `where()` przy tworzeniu przez relację — bez tego nowy wiersz
                         // zapisałby się bez rodzaju i zniknąłby z obu list.
+                        // ⚠️ Rodzaj ustawia hook, bo relacja zawężona po `kind` NIE wypełnia go
+                        // przy tworzeniu. Puste warunki sprowadzamy tu do `null` — pusty `Select`
+                        // przysyła pusty łańcuch, na którym rzut enuma wywracał zapis.
                         ->mutateRelationshipDataBeforeCreateUsing(
-                            fn (array $data): array => $data + ['kind' => PriceRuleKind::Rate->value],
+                            fn (array $data): array => self::ruleData($data, PriceRuleKind::Rate),
+                        )
+                        ->mutateRelationshipDataBeforeSaveUsing(
+                            fn (array $data): array => self::ruleData($data, PriceRuleKind::Rate),
                         )
                         // ⚠️ Reguły siedzą na CAŁYM repeaterze: remis jest własnością ZBIORU,
                         // więc walidacja pojedynczego wiersza nigdy by go nie zobaczyła.
@@ -112,7 +118,10 @@ class ManagePricing extends EditRecord
                         ->addActionLabel(__('Add surcharge'))
                         ->itemLabel(fn (array $state): ?string => $this->ruleItemLabel($state))
                         ->mutateRelationshipDataBeforeCreateUsing(
-                            fn (array $data): array => $data + ['kind' => PriceRuleKind::Surcharge->value],
+                            fn (array $data): array => self::ruleData($data, PriceRuleKind::Surcharge),
+                        )
+                        ->mutateRelationshipDataBeforeSaveUsing(
+                            fn (array $data): array => self::ruleData($data, PriceRuleKind::Surcharge),
                         )
                         ->rules([new PriceRuleDatesAreOrdered]),
                 ]),
@@ -184,12 +193,8 @@ class ManagePricing extends EditRecord
         if ($gap !== null) {
             Notification::make()
                 ->warning()
-                ->title(__('A night in the open season has no price'))
-                ->body(__('No rate matches :date for :role with :anglers angler(s). Checked against today\'s price list — a rule expiring later can open another gap.', [
-                    'date' => $gap['night']->toDateString(),
-                    'role' => $gap['role']->label(),
-                    'anglers' => $gap['anglers'],
-                ]))
+                ->title(__('Some nights have no price — anglers can not buy them'))
+                ->body($this->pricingGapBody($gap))
                 ->send();
         }
 
@@ -264,6 +269,55 @@ class ManagePricing extends EditRecord
         }
 
         return $amount.$suffix;
+    }
+
+    /**
+     * Treść ostrzeżenia o dziurze w cenniku.
+     *
+     * ⚠️ Komunikat ma **nazwać dzień tygodnia**, a nie samą datę. Najczęstszą przyczyną dziury
+     * jest warunek dób tygodnia na stawce, więc „piątek, 25.09.2026" prowadzi operatora prosto
+     * do pola, które trzeba poprawić; sama data każe mu to zgadywać (zgłoszenie z 2026-09-22).
+     *
+     * ⚠️ Rolę i obsadę wymieniamy **tylko wtedy, gdy są istotne**. W zwykłym przypadku (łowiący,
+     * jedna osoba) zdanie „dla roli Łowiący przy 1 łowiących" jest szumem, który przykrywa jedyną
+     * użyteczną informację — którą dobę poprawić.
+     *
+     * ⚠️ Zastrzeżenie o dzisiejszym stanie cennika ZOSTAJE, bo sprawdzenie nie analizuje osi
+     * czasu — ale jest jednym krótkim zdaniem. Wcześniejsza wersja rozwijała je w wykład
+     * o „regule wygasającej później" i podsuwała operatorowi trop `effective_*` nawet wtedy,
+     * gdy żadna jego reguła nie miała dat obowiązywania.
+     *
+     * @param  array{night: CarbonImmutable, role: ParticipantRole, anglers: int}  $gap
+     */
+    private function pricingGapBody(array $gap): string
+    {
+        $body = __('The first one is :night. None of your rates covers it — check the conditions on your rates: nights of the week, date range, number of anglers, role.', [
+            'night' => $gap['night']->locale(app()->getLocale())->isoFormat('dddd, D.MM.YYYY'),
+        ]);
+
+        if ($gap['role'] !== ParticipantRole::Angler || $gap['anglers'] > 1) {
+            $body .= ' '.__('It concerns :role at a position taken by :anglers angler(s).', [
+                'role' => mb_strtolower($gap['role']->label()),
+                'anglers' => $gap['anglers'],
+            ]);
+        }
+
+        return $body.' '.__('Checked against the price list as it stands today.');
+    }
+
+    /**
+     * Wiersz repeatera gotowy do zapisu: rodzaj reguły plus puste warunki sprowadzone do `null`.
+     *
+     * ⚠️ Normalizacja pustych wartości ma jeden dom — `PriceRulesDoNotTie::withoutBlankConditions()`
+     * — bo tę samą operację musi wykonać walidacja remisu, która hydratuje z wiersza model.
+     * Dwie kopie rozjechałyby się przy pierwszej nowej osi warunku.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private static function ruleData(array $data, PriceRuleKind $kind): array
+    {
+        return PriceRulesDoNotTie::withoutBlankConditions($data) + ['kind' => $kind->value];
     }
 
     /**

@@ -598,11 +598,13 @@
     "A price rule can not stop being effective before it starts.": "Reguła cenowa nie może przestać obowiązywać przed swoim początkiem.",
     "The last night of a price rule can not come before its first night.": "Ostatnia doba reguły cenowej nie może być wcześniejsza niż pierwsza.",
     "A presale discount has to be a percentage between 0 and 100.": "Obniżka w przedsprzedaży musi być procentem od 0 do 100.",
-    "A night in the open season has no price": "Doba w otwartym sezonie nie ma ceny",
-    "No rate matches :date for :role with :anglers angler(s). Checked against today's price list — a rule expiring later can open another gap.": "Do doby :date nie pasuje żadna stawka dla roli :role przy :anglers łowiących. Sprawdzono dzisiejszy stan cennika — reguła wygasająca później może otworzyć kolejną dziurę.",
     "A rate without a role condition outranks the companion rate": "Stawka bez warunku roli ma wyższy priorytet niż stawka osoby towarzyszącej",
     "On the nights it applies, a companion will pay it. Add a role condition to that rate, or raise the priority of the companion rate.": "W dniach, w których obowiązuje, osoba towarzysząca zapłaci tę stawkę. Dodaj do niej warunek roli albo podnieś priorytet stawki osoby towarzyszącej.",
     "Price discount (%)": "Obniżka ceny (%)",
     "Taken off each night separately, from the rate together with its surcharges.": "Zdejmowana od każdej doby osobno, od stawki wraz z dopłatami.",
-    "This fishery has no price for that night": "To łowisko nie ma ceny na tę dobę"
+    "This fishery has no price for that night": "To łowisko nie ma ceny na tę dobę",
+    "Some nights have no price — anglers can not buy them": "Są doby bez ceny — wędkarz ich nie kupi",
+    "The first one is :night. None of your rates covers it — check the conditions on your rates: nights of the week, date range, number of anglers, role.": "Pierwsza to :night. Nie obejmuje jej żadna z Twoich stawek — sprawdź warunki stawek: doby tygodnia, zakres dat, liczbę łowiących, rolę.",
+    "It concerns :role at a position taken by :anglers angler(s).": "Dotyczy roli „:role” przy :anglers łowiących na stanowisku.",
+    "Checked against the price list as it stands today.": "Sprawdzono cennik w dzisiejszym kształcie."
 }

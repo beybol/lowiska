@@ -9,7 +9,11 @@ use App\Filament\Resources\FisheryResource\Pages\ManagePricing;
 use App\Models\PriceRule;
 use App\Models\User;
 use App\Services\OwnerRoleProvisioner;
+use App\Services\PricingConfigurationAudit;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\Support\StayFixtures;
@@ -196,4 +200,77 @@ test('an owner can not open the pricing of a fishery he does not own', function 
 test('the price rule model does not get a policy of its own', function () {
     expect(file_exists(base_path('app/Policies/PriceRulePolicy.php')))->toBeFalse()
         ->and(count(glob(base_path('app/Policies/*.php'))))->toBe(17);
+});
+
+/**
+ * ⚠️ Pusty `Select` w formularzu przysyła PUSTY ŁAŃCUCH, nie `null` — i to jest stan NORMALNY,
+ * bo stawka bazowa nie ma warunku roli ani obsady. Reguła remisu hydratowała z tego model,
+ * więc rzut enuma wywracał CAŁY zapis (`ValueError: "" is not a valid backing value`).
+ * Fixture z jawnym `null` tego nie widziała — dlatego ten test podaje dokładnie to, co wysyła
+ * przeglądarka.
+ */
+test('empty selects in the form are treated as no condition', function () {
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    $this->actingAs($owner);
+
+    Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
+        ->fillForm([
+            'rateRules' => [
+                pricingRow(['amount' => '70.00', 'participant_role' => '', 'anglers_count' => '', 'weekdays' => []]),
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $rate = PriceRule::where('fishery_id', $fishery->id)->firstOrFail();
+
+    expect($rate->participant_role)->toBeNull()
+        ->and($rate->anglers_count)->toBeNull()
+        // ⚠️ Pusta oś NIE liczy się do szczegółowości — inaczej stawka bazowa udawałaby
+        // regułę warunkową i wygrywałaby remisy, których nie powinna.
+        ->and($rate->specificity())->toBe(0);
+});
+
+/**
+ * ⚠️ Treść ostrzeżenia o dziurze jest **częścią interfejsu**, nie logiem. Odtwarza zgłoszenie
+ * z 2026-09-22: stawka z warunkiem „poniedziałek–czwartek" zostawia piątki bez ceny, a operator
+ * dostał wtedy komunikat, który nie mówił ani dnia tygodnia, ani gdzie szukać przyczyny — za to
+ * wspominał o „regule wygasającej później", choć żadna jego reguła nie miała dat obowiązywania.
+ */
+test('the pricing gap warning names the weekday and points at the conditions', function () {
+    Date::setTestNow(CarbonImmutable::parse('2026-09-22 09:00', 'Europe/Warsaw'));
+
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    $fishery->salePeriods()->update(['starts_on' => '2026-09-01', 'ends_on' => '2026-12-31']);
+    StayFixtures::rate($fishery, 70.00, ['weekdays' => [1, 2, 3, 4]]);
+
+    $gap = (new PricingConfigurationAudit($fishery->fresh()))->firstPricingGap();
+
+    // Pierwsza doba bez ceny to piątek 25.09 — wtorek, środa i czwartek stawkę mają.
+    expect($gap)->not->toBeNull()
+        ->and($gap['night']->toDateString())->toBe('2026-09-25')
+        ->and($gap['role'])->toBe(ParticipantRole::Angler);
+
+    // ⚠️ Asercja idzie przez REALNY zapis i powiadomienie, które zobaczy operator — nie przez
+    // refleksję na prywatnej metodzie. Pinujemy komunikat, nie jego implementację.
+    app()->setLocale('pl');
+    $this->actingAs($owner);
+
+    Livewire::test(ManagePricing::class, ['record' => $fishery->fresh()->getRouteKey()])
+        ->call('save')
+        ->assertNotified(
+            Notification::make()
+                ->warning()
+                ->title(__('Some nights have no price — anglers can not buy them'))
+                ->body(
+                    // Dzień tygodnia prowadzi wprost do pola, które trzeba poprawić; rola
+                    // i obsada są w zwykłym przypadku szumem, więc komunikat ich nie niesie.
+                    __('The first one is :night. None of your rates covers it — check the conditions on your rates: nights of the week, date range, number of anglers, role.', [
+                        'night' => 'piątek, 25.09.2026',
+                    ])
+                    .' '.__('Checked against the price list as it stands today.')
+                ),
+        );
+
+    Date::setTestNow();
 });
