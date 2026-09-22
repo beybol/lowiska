@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Enums\ParticipantRole;
 use App\Enums\PriceRuleKind;
+use App\Enums\SurchargeAudience;
 use App\Services\FishingDay;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,13 +16,16 @@ use Spatie\Activitylog\Support\LogOptions;
 /**
  * Reguła cenowa — jedna pozycja listy, z której składa się cennik (ADR-014).
  *
- * ⚠️ **Pusty warunek znaczy „bez warunku na tej osi", NIE „warunek fałszywy".** Reguła `rate`
- * bez ani jednego warunku jest stawką bazową łowiska; oba łowiska klienta obchodzą się jedną
- * taką regułą plus jedną dopłatą.
+ * ⚠️ **Osie warunku rozkładają się ASYMETRYCZNIE** (ADR-014, sekcja „Aktualizacja"):
+ * - **stawka** (`rate`) zna wyłącznie zakres dat;
+ * - **dopłata** (`surcharge`) zna daty, dni tygodnia, obsadę i `applies_to`.
  *
- * ⚠️ **Dwa wymiary czasu i nie wolno ich zlać.** `effective_*` mierzy się wobec DZISIEJSZEJ DATY
- * (czy ten zapis bierze udział w wycenie), a `first_day_on`/`last_day_on` — wobec WYCENIANEJ DOBY
- * (których dób reguła dotyczy). Obie granice są domknięte.
+ * Kto chce różnicować cenę dniami tygodnia, robi to dopłatą — stawka tego nie potrafi i to
+ * jest zamierzone. Zniknęły też priorytet i szczegółowość: nachodzenie rozstrzyga się na
+ * korzyść wędkarza, czyli po najniższej kwocie.
+ *
+ * ⚠️ **Jest tylko JEDEN wymiar czasu.** `first_day_on`/`last_day_on` mierzy się wobec
+ * WYCENIANEJ DOBY — mówią, których dób reguła dotyczy. Obie granice są domknięte.
  *
  * ⚠️ Model świadomie NIE ma własnej polityki ani zasobu Filamenta — jak `SalePeriod` (015)
  * i `WholeTermPeriod` (017). `shield:generate` wyprowadza uprawnienia z zarejestrowanych zasobów,
@@ -38,23 +41,19 @@ class PriceRule extends Model
         'kind',
         'label',
         'amount',
-        'priority',
+        'amount_companion',
         'is_suspended',
-        'effective_from',
-        'effective_to',
-        'weekdays',
         'first_day_on',
         'last_day_on',
+        'weekdays',
         'anglers_count',
-        'participant_role',
+        'applies_to',
     ];
 
     protected $casts = [
         'kind' => PriceRuleKind::class,
-        'participant_role' => ParticipantRole::class,
+        'applies_to' => SurchargeAudience::class,
         'is_suspended' => 'boolean',
-        'effective_from' => 'date',
-        'effective_to' => 'date',
         'first_day_on' => 'date',
         'last_day_on' => 'date',
         'weekdays' => 'array',
@@ -86,38 +85,69 @@ class PriceRule extends Model
     }
 
     /**
-     * Czy ten ZAPIS bierze udział w wycenie danego dnia (wymiar `effective_*`).
+     * Kwota za osobę towarzyszącą w groszach — albo `null`, gdy stawka jej nie ma.
      *
-     * Granice domknięte: reguła obowiązuje także w dniu `effective_to`.
+     * ⚠️ **`null` znaczy BRAK CENY, nie cenę zerową.** Zapytanie z osobą towarzyszącą o dobę,
+     * której wygrana stawka nie ma tej kwoty, jest ODMOWĄ (`NoCompanionPrice`) — dokładnie jak
+     * brak pasującej stawki jest odmową. Darmowa towarzysząca to `0,00` wpisane świadomie,
+     * a nie puste pole, którego operator nie zauważył.
      */
-    public function isEffectiveOn(CarbonImmutable $date): bool
+    public function companionAmountInCents(): ?int
+    {
+        if ($this->amount_companion === null) {
+            return null;
+        }
+
+        return (int) round(((float) $this->amount_companion) * 100);
+    }
+
+    /**
+     * Czy ta STAWKA obowiązuje w tej dobie.
+     *
+     * ⚠️ Stawka nie zna ani dni tygodnia, ani obsady, ani roli — wyłącznie daty. Gdyby
+     * kiedykolwiek przybyło jej warunków, wróciłoby pytanie „która stawka wygrywa", które
+     * przedefiniowanie z 22.09.2026 usunęło razem z priorytetami.
+     */
+    public function coversNight(FishingDay $night): bool
+    {
+        return $this->coversDay($night->startsOn);
+    }
+
+    /**
+     * To samo pytanie, ale zadane samą datą — bez konstruowania doby.
+     *
+     * ⚠️ Istnieje, bo analiza martwych stawek (`PricingConfigurationAudit`) jest **arytmetyką
+     * przedziałów dat**, a nie przebiegiem po kalendarzu: pyta o granice okresów, w których
+     * nikt nie nocuje, i budowanie dla nich `FishingDay` byłoby pracą bez odbiorcy.
+     */
+    public function coversDay(CarbonImmutable $day): bool
     {
         if ($this->is_suspended) {
             return false;
         }
 
-        $day = $date->toDateString();
-
-        if ($this->effective_from !== null && $day < $this->effective_from->toDateString()) {
-            return false;
-        }
-
-        return $this->effective_to === null || $day <= $this->effective_to->toDateString();
+        return $this->withinDateRange($day->toDateString());
     }
 
     /**
-     * Czy warunki reguły są spełnione dla TEJ doby, roli i obsady.
+     * Czy ta DOPŁATA należy się w tej dobie przy tej obsadzie.
      *
      * ⚠️ Sprawdzane osobno dla KAŻDEJ doby pobytu (K3/P2), nie „całe albo wcale": pobyt śr–pt
      * przy dopłacie „czw–nd" dostaje ją za czwartek i piątek, a nie za środę.
      *
      * ⚠️ `anglers_count` porównuje się przez RÓWNOŚĆ z faktyczną obsadą z zapytania — nigdy
-     * z `positions.max_anglers`, która jest pojemnością stanowiska i kusi wyłącznie nazwą
-     * (zadanie 018, rozstrzygnięcie 24).
+     * z `positions.max_anglers`, która jest pojemnością stanowiska i kusi wyłącznie nazwą.
+     * ⚠️ Obsadę liczą SAMI ŁOWIĄCY: osoba towarzysząca jej nie podnosi, więc dopłata za
+     * wyłączność stanowiska nie znika przez to, że wędkarz przyjechał z kimś.
+     *
+     * `applies_to` NIE jest tu sprawdzane — ono nie decyduje, CZY dopłata wchodzi, tylko
+     * PRZEZ ILU osób się ją mnoży. To robi wycena.
      */
-    public function matches(FishingDay $night, ParticipantRole $role, int $anglersCount): bool
+    public function appliesToNight(FishingDay $night, int $anglersCount): bool
     {
-        $day = $night->startsOn->toDateString();
+        if ($this->is_suspended) {
+            return false;
+        }
 
         $weekdays = $this->weekdayNumbers();
 
@@ -125,55 +155,43 @@ class PriceRule extends Model
             return false;
         }
 
-        // Granica domknięta: warunek obejmuje także dobę rozpoczynającą się `last_day_on`.
-        if ($this->first_day_on !== null && $day < $this->first_day_on->toDateString()) {
+        if (! $this->withinDateRange($night->startsOn->toDateString())) {
             return false;
         }
 
-        if ($this->last_day_on !== null && $day > $this->last_day_on->toDateString()) {
-            return false;
-        }
-
-        if ($this->anglers_count !== null && (int) $this->anglers_count !== $anglersCount) {
-            return false;
-        }
-
-        return $this->participant_role === null || $this->participant_role === $role;
+        return $this->anglers_count === null || (int) $this->anglers_count === $anglersCount;
     }
 
     /**
-     * Szczegółowość reguły liczona OSIAMI, nie polami: od 0 (stawka bazowa) do 4.
+     * Ilu uczestników obciąża ta dopłata przy takim składzie.
      *
-     * ⚠️ Osi jest cztery — dni tygodnia, zakres dat, liczba łowiących, rola — a oś jest
-     * niepusta, gdy niesie **jakikolwiek** warunek. Zakres z jednym otwartym końcem liczy się
-     * jako JEDNA oś, nie pół ani dwie. Licząc pola zamiast osi, szczegółowość zależałaby od
-     * tego, czy operator domknął przedział (ADR-014).
+     * ⚠️ Domyślne `angler` (gdy kolumna jest pusta) jest celowe i NIE jest „bezpiecznym
+     * fallbackiem": zliczenie wszystkich obciążyłoby DARMOWĄ osobę towarzyszącą, czyli
+     * wprowadziłoby pomyłkę najtrudniejszą do zauważenia w całym cenniku.
      */
-    public function specificity(): int
+    public function chargeableHeadcount(int $anglersCount, int $companionsCount): int
     {
-        $axes = 0;
-
-        if ($this->weekdayNumbers() !== []) {
-            $axes++;
-        }
-
-        if ($this->first_day_on !== null || $this->last_day_on !== null) {
-            $axes++;
-        }
-
-        if ($this->anglers_count !== null) {
-            $axes++;
-        }
-
-        if ($this->participant_role !== null) {
-            $axes++;
-        }
-
-        return $axes;
+        return match ($this->applies_to) {
+            SurchargeAudience::Everyone => $anglersCount + $companionsCount,
+            SurchargeAudience::Companion => $companionsCount,
+            default => $anglersCount,
+        };
     }
 
     /**
-     * Dni ISO-8601 rozpoczęcia doby, na których reguła obowiązuje.
+     * Czy stawka jest BEZTERMINOWA, czyli jest „aktualnym cennikiem".
+     *
+     * ⚠️ To rozróżnienie niesie całą mechanikę domykania okresów (`PriceRulePeriods`):
+     * stawka bez daty końca to deklaracja „tak jest teraz", stawka z datą końca to wstawka
+     * w istniejący cennik.
+     */
+    public function isOpenEnded(): bool
+    {
+        return $this->last_day_on === null;
+    }
+
+    /**
+     * Dni ISO-8601 rozpoczęcia doby, na których dopłata obowiązuje.
      *
      * ⚠️ Rzutowanie na `int` jest konieczne: kolumna JSON oddaje to, co w niej zapisano,
      * a formularz Filamenta zapisuje tam łańcuchy — ta sama pułapka co przy `weekend_days`
@@ -188,5 +206,17 @@ class PriceRule extends Model
         }
 
         return array_values(array_map(static fn (mixed $day): int => (int) $day, $this->weekdays));
+    }
+
+    /**
+     * Granice domknięte po obu stronach — reguła obowiązuje także w dobie `last_day_on`.
+     */
+    private function withinDateRange(string $day): bool
+    {
+        if ($this->first_day_on !== null && $day < $this->first_day_on->toDateString()) {
+            return false;
+        }
+
+        return $this->last_day_on === null || $day <= $this->last_day_on->toDateString();
     }
 }

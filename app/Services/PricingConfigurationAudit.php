@@ -2,25 +2,23 @@
 
 namespace App\Services;
 
-use App\Enums\ParticipantRole;
 use App\Enums\PriceRuleKind;
 use App\Models\Fishery;
 use App\Models\PriceRule;
 use Carbon\CarbonImmutable;
 
 /**
- * Pomocnicze sprawdzenia cennika po zapisie — **ostrzeżenia, nie błędy** (G3).
+ * Pomocnicze sprawdzenia cennika — **ostrzeżenia i diagnostyka, nigdy błędy** (G3).
  *
- * ⚠️ Twarde reguły zapisu mieszkają w `app/Rules/`; tutaj są wyłącznie te dwa sprawdzenia,
- * które **nie mogą** być błędem, bo łowisko może świadomie chcieć takiej konfiguracji albo
- * dopiero ją porządkuje. Laravelowa reguła walidacji potrafi tylko odrzucić zapis, więc
- * ostrzeżenia potrzebują osobnego domu — usługi (`CLAUDE.md`: reguła do `app/Rules/`,
- * usługa do `app/Services/`).
+ * ⚠️ Twarde reguły zapisu mieszkają w `app/Rules/`; tutaj są wyłącznie te sprawdzenia, które
+ * **nie mogą** być błędem, bo łowisko może świadomie chcieć takiej konfiguracji albo dopiero
+ * ją porządkuje. Laravelowa reguła walidacji potrafi tylko odrzucić zapis, więc ostrzeżenia
+ * potrzebują osobnego domu — usługi (`CLAUDE.md`: reguła do `app/Rules/`, usługa do
+ * `app/Services/`).
  *
  * ⚠️ **To nie jest gwarancja, tylko podpowiedź.** Dziura w cenniku powstaje także poza ekranem
- * cennika — wydłużeniem okresu sprzedaży, podniesieniem `max_anglers` albo wygaśnięciem reguły
- * w połowie sezonu — a to sprawdzenie widzi wyłącznie **dzisiejszy** stan reguł. Gwarancją jest
- * odmowa przy sprzedaży (`StayOffer`).
+ * cennika — wydłużeniem okresu sprzedaży albo skróceniem stawki — a to sprawdzenie widzi
+ * wyłącznie **dzisiejszy** stan reguł. Gwarancją jest odmowa przy sprzedaży (`StayOffer`).
  */
 final class PricingConfigurationAudit
 {
@@ -29,23 +27,18 @@ final class PricingConfigurationAudit
     /**
      * Pierwsza znaleziona dziura w cenniku albo `null`.
      *
-     * Zakres sprawdzenia jest zadeklarowany wprost, żeby implementacja nie wybierała go
-     * na ślepo (zadanie 018, rozstrzygnięcie 14):
+     * ⚠️ **Zakres sprawdzenia to same DOBY i nic więcej** — i to jest zmiana wobec pierwszej
+     * implementacji, nie uproszczenie na skróty. Dopasowanie stawki zależy teraz wyłącznie od
+     * daty (obsada i rola zeszły ze stawki), a dopłaty dziur nie tworzą, bo tylko dodają.
+     * Pętla po obsadach `1…max_anglers` i po rolach nie mogłaby więc znaleźć nic, czego nie
+     * znajdzie sama iteracja po dobach — byłaby wyłącznie kosztem.
      *
      * | Wymiar | Zakres |
      * |---|---|
      * | doby | wszystkie doby okresów sprzedaży **od dziś** do końca ostatniego okresu |
-     * | liczba łowiących | od 1 do największego `max_anglers` wśród stanowisk |
-     * | rola | `angler` zawsze; `companion` tylko gdy łowisko dopuszcza osoby towarzyszące |
      * | stan cennika | reguły obowiązujące **dziś** |
-     *
-     * ⚠️ **Stanowisko bez podanej pojemności liczy się jako 1 łowiący i zero towarzyszących**,
-     * a nie jest pomijane: `max_anglers` i `max_people` są `nullable` od zadania 014, więc
-     * pominięcie zostawiłoby łowisko z nieuzupełnionymi pojemnościami bez sprawdzenia w ogóle.
-     *
-     * @return array{night: CarbonImmutable, role: ParticipantRole, anglers: int}|null
      */
-    public function firstPricingGap(): ?array
+    public function firstPricingGap(): ?CarbonImmutable
     {
         if (blank($this->fishery->day_start_time) || blank($this->fishery->day_end_time)) {
             return null;
@@ -54,18 +47,7 @@ final class PricingConfigurationAudit
         $timezone = $this->fishery->timezone ?: 'Europe/Warsaw';
         $today = CarbonImmutable::now($timezone)->startOfDay();
         $calendar = new FishingDayCalendar($this->fishery);
-
-        /** @var array<int, PriceRule> $rules */
-        $rules = $this->fishery->priceRules()->get()->all();
-        $resolver = new PriceRuleResolver($rules, $today);
-
-        $roles = [ParticipantRole::Angler];
-
-        if ($this->allowsCompanions()) {
-            $roles[] = ParticipantRole::Companion;
-        }
-
-        $maxAnglers = $this->largestAnglerCapacity();
+        $resolver = new PriceRuleResolver($this->rules());
 
         foreach ($this->fishery->salePeriods()->orderBy('starts_on')->get() as $period) {
             $from = CarbonImmutable::parse($period->starts_on->toDateString(), $timezone)->startOfDay();
@@ -81,18 +63,8 @@ final class PricingConfigurationAudit
             }
 
             foreach ($calendar->daysBetween($from, $to) as $night) {
-                foreach ($roles as $role) {
-                    for ($anglers = 1; $anglers <= $maxAnglers; $anglers++) {
-                        if ($resolver->resolve($night, $role, $anglers)->isResolved()) {
-                            continue;
-                        }
-
-                        return [
-                            'night' => $night->startsOn,
-                            'role' => $role,
-                            'anglers' => $anglers,
-                        ];
-                    }
+                if ($resolver->candidatesFor($night) === []) {
+                    return $night->startsOn;
                 }
             }
         }
@@ -101,67 +73,94 @@ final class PricingConfigurationAudit
     }
 
     /**
-     * Stawki bez warunku roli, które mają priorytet WYŻSZY niż stawka osoby towarzyszącej
-     * i których warunki da się spełnić z nią jednocześnie.
+     * Stawki, które nie wygrywają w ŻADNEJ dobie swojego okresu — czyli zapisane, ale martwe.
      *
-     * ⚠️ To jest druga połowa zabezpieczenia, bez której zasada „stawka towarzyszącej ma
-     * najwyższy priorytet" chroni tylko w jedną stronę. Walidacja remisu łapie priorytet
-     * **równy**, bo dopiero wtedy powstaje remis — priorytet **wyższy** przepuszcza bez słowa.
-     * Operator, który za rok doda „Sylwester 150 zł" bez warunku roli i z priorytetem 200,
-     * sprawi, że osoba towarzysząca zapłaci w sylwestra 150 zł: bez błędu, bez ostrzeżenia
-     * i bez śladu w konfiguracji. Instrukcja tego nie zagwarantuje, bo zasada obowiązuje
-     * tylko dopóty, dopóki ktoś o niej pamięta.
+     * ⚠️ **Po co to jest.** Po zdjęciu priorytetów stawkę z datą końca da się już tylko obniżyć:
+     * „90 zł w lipcu" przy bezterminowych 70 zł przegra w każdej lipcowej dobie i nie zrobi nic.
+     * Zapis takiej stawki jest legalny i **nie jest ostrzegany w formularzu** — uwidacznia go
+     * kalendarz podglądowy (019), żeby wiedza o nachodzeniu miała jeden dom.
      *
-     * ⚠️ **Ostrzeżenie, nie błąd**: łowisko może świadomie chcieć, żeby w sylwestra płacili wszyscy.
+     * ⚠️ **To arytmetyka przedziałów, nie przebieg po kalendarzu.** Zbiór stawek pokrywających
+     * datę zmienia się wyłącznie na granicach ich okresów, więc wystarczy sprawdzić po jednym
+     * dniu reprezentatywnym na przedział między kolejnymi granicami. Liczy się to RAZ na cennik,
+     * niezależnie od liczby stanowisk i długości sezonu.
      *
      * @return array<int, PriceRule>
      */
-    public function ratesOutrankingCompanionRate(): array
+    public function deadRates(): array
     {
-        /** @var array<int, PriceRule> $rates */
-        $rates = $this->fishery->priceRules()
-            ->where('kind', PriceRuleKind::Rate->value)
-            ->get()
-            ->all();
-
-        $companionRates = array_values(array_filter(
-            $rates,
-            static fn (PriceRule $rule): bool => $rule->participant_role === ParticipantRole::Companion,
+        $rates = array_values(array_filter(
+            $this->rules(),
+            static fn (PriceRule $rule): bool => $rule->kind === PriceRuleKind::Rate && ! $rule->is_suspended,
         ));
 
-        if ($companionRates === []) {
+        if (count($rates) < 2) {
             return [];
         }
 
-        $overlap = new PriceRuleOverlap;
-        $offenders = [];
+        $resolver = new PriceRuleResolver($rates);
+        $alive = [];
 
-        foreach ($rates as $rule) {
-            if ($rule->participant_role !== null) {
-                continue;
-            }
+        foreach ($this->representativeDays($rates) as $day) {
+            $winner = $resolver->cheapestOn($day);
 
-            foreach ($companionRates as $companionRate) {
-                if ((int) $rule->priority <= (int) $companionRate->priority) {
-                    continue;
-                }
-
-                if ($overlap->canMatchSimultaneously($rule, $companionRate)) {
-                    $offenders[] = $rule;
-
-                    break;
-                }
+            if ($winner instanceof PriceRule) {
+                $alive[(int) $winner->id] = true;
             }
         }
 
-        return $offenders;
+        return array_values(array_filter(
+            $rates,
+            static fn (PriceRule $rule): bool => ! isset($alive[(int) $rule->id]),
+        ));
     }
 
     /**
-     * Największa obsada do sprawdzenia; stanowisko bez podanej pojemności liczy się jako 1.
+     * Po jednym dniu z każdego przedziału, w którym zbiór pokrywających stawek jest stały.
      *
-     * Publiczna, bo tej samej liczby potrzebuje lista opcji „liczba łowiących" w formularzu
-     * cennika — druga jej implementacja rozjechałaby zakres sprawdzenia z zakresem wyboru.
+     * Granicami są początki okresów i dni tuż po ich końcach; dochodzi jeden dzień PRZED
+     * najwcześniejszą granicą, bo przedział otwarty od dołu też musi mieć reprezentanta.
+     *
+     * @param  array<int, PriceRule>  $rates
+     * @return array<int, CarbonImmutable>
+     */
+    private function representativeDays(array $rates): array
+    {
+        $boundaries = [];
+
+        // ⚠️ Rzut `date` oddaje `Illuminate\Support\Carbon` (mutowalny), a nie `CarbonImmutable`
+        // — bez jawnej zamiany arytmetyka na datach modyfikowałaby atrybut modelu w miejscu.
+        foreach ($rates as $rule) {
+            if ($rule->first_day_on !== null) {
+                $from = CarbonImmutable::parse($rule->first_day_on->toDateString())->startOfDay();
+                $boundaries[$from->toDateString()] = $from;
+            }
+
+            if ($rule->last_day_on !== null) {
+                $after = CarbonImmutable::parse($rule->last_day_on->toDateString())->addDay()->startOfDay();
+                $boundaries[$after->toDateString()] = $after;
+            }
+        }
+
+        if ($boundaries === []) {
+            // Same stawki bezterminowe bez dat — jeden przedział na wszystko.
+            return [CarbonImmutable::now($this->fishery->timezone ?: 'Europe/Warsaw')->startOfDay()];
+        }
+
+        ksort($boundaries);
+        $days = array_values($boundaries);
+        $earliest = $days[0]->subDay();
+
+        array_unshift($days, $earliest);
+
+        return $days;
+    }
+
+    /**
+     * Największa obsada do wyboru w formularzu; stanowisko bez podanej pojemności liczy się jako 1.
+     *
+     * ⚠️ Publiczna, bo tej liczby potrzebuje lista opcji „tylko przy obsadzie" na dopłacie.
+     * ⚠️ **Nie jest już wymiarem sprawdzania dziury w cenniku** — stawka obsady nie zna.
      */
     public function largestAnglerCapacity(): int
     {
@@ -175,19 +174,13 @@ final class PricingConfigurationAudit
     }
 
     /**
-     * Czy łowisko jawnie dopuszcza osoby towarzyszące — czyli czy którekolwiek stanowisko ma
-     * `max_people` większe niż `max_anglers`, przy obu wartościach podanych.
+     * @return array<int, PriceRule>
      */
-    private function allowsCompanions(): bool
+    private function rules(): array
     {
-        foreach ($this->fishery->positions()->get() as $position) {
-            if ($position->max_people !== null
-                && $position->max_anglers !== null
-                && (int) $position->max_people > (int) $position->max_anglers) {
-                return true;
-            }
-        }
+        /** @var array<int, PriceRule> $rules */
+        $rules = $this->fishery->priceRules()->get()->all();
 
-        return false;
+        return $rules;
     }
 }

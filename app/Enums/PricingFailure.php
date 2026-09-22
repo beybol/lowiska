@@ -9,19 +9,26 @@ namespace App\Enums;
  * a na `SaleUnavailabilityReason` tłumaczy to dopiero **warstwa oferty** (ADR-015) — dzięki
  * temu wycena zostaje wolna od pojęcia sprzedawalności.
  *
- * ⚠️ **Żadna z tych sytuacji nie leci w górę wyjątkiem** (ADR-014). Remis rzucony wyjątkiem
- * przerwałby cały widok kalendarza (019) przez jedną złą parę reguł — a kalendarz jest
- * właśnie tym miejscem, w którym operator ma taki błąd zobaczyć.
+ * ⚠️ **Żadna z tych sytuacji nie leci w górę wyjątkiem** (ADR-014). Błąd rzucony wyjątkiem
+ * przerwałby cały widok kalendarza (019) przez jedną złą regułę — a kalendarz jest właśnie
+ * tym miejscem, w którym operator ma taki błąd zobaczyć.
+ *
+ * ⚠️ **Wariant `UnresolvableTie` został USUNIĘTY** wraz z priorytetami i szczegółowością
+ * (ADR-014, sekcja „Aktualizacja"): nachodzenie stawek rozstrzyga się na korzyść wędkarza,
+ * więc nierozstrzygalność jest niemożliwa z konstrukcji. Nie przywracaj go — jego powrót
+ * znaczyłby, że wróciła konkurencja między stawkami.
  */
 enum PricingFailure: string
 {
-    /** Do tej doby, roli i obsady nie pasuje żadna reguła `rate` — dziura w cenniku. */
+    /** Do tej doby nie pasuje żadna reguła `rate` — dziura w cenniku. */
     case NoMatchingRate = 'no_matching_rate';
 
     /**
-     * Dwie reguły `rate` o tym samym priorytecie i tej samej szczegółowości pasują
-     * jednocześnie. Formularz tego nie zapisze; taki stan może powstać wyłącznie ścieżką
-     * omijającą walidację (import, seed, przyszłe API).
+     * Stawka pasuje, ale nie ma kwoty za osobę towarzyszącą, a zapytanie jej wymaga.
+     *
+     * ⚠️ **Osobny wariant, nie `NoMatchingRate`** — te dwie sytuacje prowadzą operatora
+     * w przeciwne strony: tam trzeba DOPISAĆ stawkę, tu POPRAWIĆ jedno pole w stawce,
+     * która już istnieje. Zlanie ich posłałoby go szukać nieistniejącej dziury w cenniku.
      */
-    case UnresolvableTie = 'unresolvable_tie';
+    case NoCompanionPrice = 'no_companion_price';
 }

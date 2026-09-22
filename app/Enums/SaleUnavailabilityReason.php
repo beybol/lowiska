@@ -80,6 +80,16 @@ enum SaleUnavailabilityReason: string
      */
     case NoPriceDefined = 'no_price_defined';
 
+    /**
+     * Stawka na tę dobę istnieje, ale nie ma kwoty za osobę towarzyszącą (zadanie 018).
+     *
+     * ⚠️ **Osobny powód, nie `NoPriceDefined`** — te dwie odmowy prowadzą operatora
+     * w przeciwne strony: tam trzeba DOPISAĆ stawkę, tu POPRAWIĆ jedno pole w stawce,
+     * która już istnieje. Kalendarz (019) pokazuje powód wprost, więc zlanie ich w jedno
+     * posłałoby go szukać nieistniejącej dziury w cenniku.
+     */
+    case NoCompanionPrice = 'no_companion_price';
+
     public function label(): string
     {
         return match ($this) {
@@ -97,6 +107,7 @@ enum SaleUnavailabilityReason: string
             self::BeyondSaleHorizon => __('That date is further ahead than this fishery sells'),
             self::BelowPresaleMinimum => __('The presale of this season requires a longer stay'),
             self::NoPriceDefined => __('This fishery has no price for that night'),
+            self::NoCompanionPrice => __('The rate for that night has no price for a companion'),
         };
     }
 }

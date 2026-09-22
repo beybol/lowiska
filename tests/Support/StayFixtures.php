@@ -94,8 +94,9 @@ final class StayFixtures
     /**
      * Stawka bazowa łowiska — reguła `rate` bez ani jednego warunku (zadanie 018).
      *
-     * ⚠️ Warunki dokłada się stanami fabryki (`onWeekdays()`, `forAnglers()`, `forRole()`,
-     * `between()`), bo pusta oś znaczy „bez warunku", a nie „warunek fałszywy".
+     * ⚠️ **Stawka nie ma żadnych warunków poza datami** — `between()` i tyle. Dni tygodnia,
+     * obsada i „dla kogo" są polami DOPŁATY (`onWeekdays()`, `forAnglers()`, `chargedTo()`).
+     * Domyślnie osoba towarzysząca kosztuje 0,00; `companionAmount(null)` znaczy BRAK CENY.
      */
     public static function rate(Fishery $fishery, float $amount = 70.00, array $state = []): PriceRule
     {

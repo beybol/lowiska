@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Enums\ParticipantRole;
 use App\Enums\PriceRuleKind;
+use App\Enums\SurchargeAudience;
 use App\Models\PriceRule;
 use App\Rules\PresaleDiscountIsPercentage;
 use App\Rules\PriceRuleDatesAreOrdered;
@@ -33,46 +33,91 @@ function priceRuleFailures(object $rule, array $rows): array
     return $failures;
 }
 
-test('an empty condition means no condition on that axis, not a false one', function () {
+test('stawka nie ma zadnych warunkow poza datami', function () {
     [$fishery] = StayFixtures::fisheryWithPosition();
-    $base = StayFixtures::rate($fishery, 70.00);
-    $night = (new FishingDayCalendar($fishery))->dayStartingOn('2026-05-01');
 
-    // Reguła bez ani jednego warunku jest stawką BAZOWĄ łowiska — pasuje wszędzie.
-    expect($base->specificity())->toBe(0)
-        ->and($base->matches($night, ParticipantRole::Angler, 1))->toBeTrue()
-        ->and($base->matches($night, ParticipantRole::Companion, 5))->toBeTrue();
+    $rate = StayFixtures::rate($fishery, 70.00, ['first_day_on' => '2026-05-01', 'last_day_on' => '2026-05-31']);
+    $calendar = new FishingDayCalendar($fishery->fresh());
+
+    $inside = $calendar->dayStartingOn(CarbonImmutable::parse('2026-05-10', 'Europe/Warsaw'));
+    $outside = $calendar->dayStartingOn(CarbonImmutable::parse('2026-06-10', 'Europe/Warsaw'));
+
+    // Kolumny dopłaty na stawce nie istnieją i nie wolno ich czytać przy dopasowaniu.
+    expect($rate->coversNight($inside))->toBeTrue()
+        ->and($rate->coversNight($outside))->toBeFalse()
+        ->and($rate->weekdays)->toBeNull()
+        ->and($rate->anglers_count)->toBeNull()
+        ->and($rate->applies_to)->toBeNull();
 });
 
-/**
- * ⚠️ `anglers_count` porównuje się przez RÓWNOŚĆ z obsadą z zapytania, nie z pojemnością
- * stanowiska (zadanie 018, rozstrzygnięcie 24).
- */
-test('the anglers condition is an equality against the party size', function () {
+test('warunek obsady dopłaty to rownosc z faktyczna liczba lowiacych', function () {
     [$fishery] = StayFixtures::fisheryWithPosition();
-    $rule = StayFixtures::rate($fishery, 70.00, ['anglers_count' => 1]);
-    $night = (new FishingDayCalendar($fishery))->dayStartingOn('2026-05-01');
 
-    expect($rule->matches($night, ParticipantRole::Angler, 1))->toBeTrue()
-        ->and($rule->matches($night, ParticipantRole::Angler, 2))->toBeFalse()
-        ->and($rule->specificity())->toBe(1);
+    $surcharge = StayFixtures::surcharge($fishery, 20.00, 'Solo', ['anglers_count' => 1]);
+    $night = (new FishingDayCalendar($fishery->fresh()))
+        ->dayStartingOn(CarbonImmutable::parse('2026-05-10', 'Europe/Warsaw'));
+
+    expect($surcharge->appliesToNight($night, 1))->toBeTrue()
+        ->and($surcharge->appliesToNight($night, 2))->toBeFalse();
 });
 
-test('the weekday condition matches the day the night starts on', function () {
+test('warunek dni tygodnia dopłaty patrzy na dzien ROZPOCZECIA doby', function () {
     [$fishery] = StayFixtures::fisheryWithPosition();
-    $friday = StayFixtures::rate($fishery, 90.00, ['weekdays' => [5]]);
-    $calendar = new FishingDayCalendar($fishery);
 
-    expect($friday->matches($calendar->dayStartingOn('2026-05-01'), ParticipantRole::Angler, 1))->toBeTrue()
-        // Doba sobotnia kończy się w niedzielę, ale ZACZYNA w sobotę — nie jest piątkowa.
-        ->and($friday->matches($calendar->dayStartingOn('2026-05-02'), ParticipantRole::Angler, 1))->toBeFalse();
+    // ISO 5 = piatek; 2026-05-01 to piatek, 2026-05-02 to sobota.
+    $surcharge = StayFixtures::surcharge($fishery, 20.00, 'Piatki', ['weekdays' => [5]]);
+    $calendar = new FishingDayCalendar($fishery->fresh());
+
+    $friday = $calendar->dayStartingOn(CarbonImmutable::parse('2026-05-01', 'Europe/Warsaw'));
+    $saturday = $calendar->dayStartingOn(CarbonImmutable::parse('2026-05-02', 'Europe/Warsaw'));
+
+    expect($surcharge->appliesToNight($friday, 1))->toBeTrue()
+        ->and($surcharge->appliesToNight($saturday, 1))->toBeFalse();
 });
 
-test('a suspended rule is not effective on any day', function () {
+test('reguła zawieszona nie obowiazuje w zadnej dobie', function () {
     [$fishery] = StayFixtures::fisheryWithPosition();
-    $rule = StayFixtures::rate($fishery, 70.00, ['is_suspended' => true]);
 
-    expect($rule->isEffectiveOn(CarbonImmutable::parse('2026-05-01')))->toBeFalse();
+    $rate = PriceRule::factory()->suspended()->create(['fishery_id' => $fishery->id]);
+    $surcharge = StayFixtures::surcharge($fishery, 20.00, 'Zawieszona', ['is_suspended' => true]);
+
+    $night = (new FishingDayCalendar($fishery->fresh()))
+        ->dayStartingOn(CarbonImmutable::parse('2026-05-10', 'Europe/Warsaw'));
+
+    expect($rate->coversNight($night))->toBeFalse()
+        ->and($surcharge->appliesToNight($night, 1))->toBeFalse();
+});
+
+test('kwota za osobe towarzyszaca: zero to cena, null to BRAK ceny', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+
+    $free = PriceRule::factory()->companionAmount(0.00)->create(['fishery_id' => $fishery->id]);
+    $undefined = PriceRule::factory()->companionAmount(null)->create(['fishery_id' => $fishery->id]);
+
+    expect($free->companionAmountInCents())->toBe(0)
+        ->and($undefined->companionAmountInCents())->toBeNull();
+});
+
+test('dopłata wie, przez ilu osob sie mnozy', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+
+    $everyone = StayFixtures::surcharge($fishery, 20.00, 'Kazdy', ['applies_to' => SurchargeAudience::Everyone->value]);
+    $angler = StayFixtures::surcharge($fishery, 20.00, 'Lowiacy', ['applies_to' => SurchargeAudience::Angler->value]);
+    $companion = StayFixtures::surcharge($fishery, 20.00, 'Towarzyszacy', ['applies_to' => SurchargeAudience::Companion->value]);
+    $unset = StayFixtures::surcharge($fishery, 20.00, 'Bez wartosci', ['applies_to' => null]);
+
+    expect($everyone->chargeableHeadcount(2, 1))->toBe(3)
+        ->and($angler->chargeableHeadcount(2, 1))->toBe(2)
+        ->and($companion->chargeableHeadcount(2, 1))->toBe(1)
+        // Pusta kolumna zachowuje sie jak „dla lowiacego", nie jak „dla kazdego".
+        ->and($unset->chargeableHeadcount(2, 1))->toBe(2);
+});
+
+test('stawka bezterminowa rozpoznaje sie po braku daty konca', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+
+    expect(StayFixtures::rate($fishery, 70.00, ['first_day_on' => '2026-01-01'])->isOpenEnded())->toBeTrue()
+        ->and(StayFixtures::rate($fishery, 70.00, ['last_day_on' => '2026-12-31'])->isOpenEnded())->toBeFalse();
 });
 
 test('the amount is read in whole cents', function () {
@@ -100,25 +145,19 @@ test('the amount lands in the database with both decimal separators', function (
         ->and((float) DB::table('price_rules')->where('id', $withComma->id)->value('amount'))->toBe(49.5);
 });
 
-test('both pairs of dates are validated independently', function () {
+test('okres reguly nie moze konczyc sie przed swoim poczatkiem', function () {
     $rule = new PriceRuleDatesAreOrdered;
 
-    expect(priceRuleFailures($rule, [['effective_from' => '2026-06-01', 'effective_to' => '2026-05-01']]))
-        ->toHaveCount(1)
-        ->and(priceRuleFailures($rule, [['first_day_on' => '2026-06-01', 'last_day_on' => '2026-05-01']]))
+    expect(priceRuleFailures($rule, [['first_day_on' => '2026-06-01', 'last_day_on' => '2026-05-01']]))
         ->toHaveCount(1)
         // Otwarty koniec jest poprawny — znaczy „bez granicy".
-        ->and(priceRuleFailures($rule, [['effective_from' => '2026-06-01', 'effective_to' => null]]))
+        ->and(priceRuleFailures($rule, [['first_day_on' => '2026-06-01', 'last_day_on' => null]]))
         ->toBe([])
         ->and(priceRuleFailures($rule, [['first_day_on' => null, 'last_day_on' => '2026-05-01']]))
         ->toBe([])
         // Kontrola pozytywna.
-        ->and(priceRuleFailures($rule, [[
-            'effective_from' => '2026-01-01',
-            'effective_to' => '2026-12-31',
-            'first_day_on' => '2026-05-01',
-            'last_day_on' => '2026-05-31',
-        ]]))->toBe([]);
+        ->and(priceRuleFailures($rule, [['first_day_on' => '2026-05-01', 'last_day_on' => '2026-05-31']]))
+        ->toBe([]);
 });
 
 test('the presale discount has to be a percentage', function () {

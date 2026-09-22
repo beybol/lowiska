@@ -1,7 +1,7 @@
 # Konwencje: cennik i wycena pobytu
 
 Obowiązuje przy zmianach w `app/Services/StayPricing.php`, `app/Services/PriceRuleResolver.php`,
-`app/Services/PriceRuleOverlap.php`, `app/Services/StayOffer.php`,
+`app/Services/PriceRulePeriods.php`, `app/Services/StayOffer.php`,
 `app/Services/PricingConfigurationAudit.php`, modelu `PriceRule`, regułach cenowych
 w `app/Rules/` oraz w **każdym miejscu, które pyta, ile kosztuje doba albo pobyt**.
 
@@ -15,116 +15,104 @@ i [ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md).
 
 ---
 
-## 1. Cennik jest listą reguł z warunkami
+## 1. Cennik jest listą reguł, a osie warunku rozkładają się ASYMETRYCZNIE
 
-- **Cennik to LISTA REGUŁ, nie tabela stawek po wymiarach.** Dodanie wymiaru cennika jest
-  **dodaniem warunku**, czasowa obniżka — **zawieszeniem** reguły, a zmiana ceny wyjściowej —
-  zmianą jednej liczby. Tabela kluczowana wymiarami wymagałaby migracji za każdym razem.
-- **Dwa rodzaje reguł różni WYŁĄCZNIE flaga `kind`:** `rate` **zastępuje** stawkę, `surcharge`
-  **dodaje się**. Warunki, priorytet, zawieszenie i okres obowiązywania działają w obu identycznie.
-  Nie rozdzielaj ich na dwa modele.
-- ⚠️ **Pusty warunek znaczy „bez warunku na tej osi", NIE „warunek fałszywy".** Reguła `rate` bez
-  ani jednego warunku jest **stawką bazową łowiska**; oba łowiska klienta obchodzą się jedną taką
-  regułą plus jedną dopłatą.
-- **Kwoty liczą się w GROSZACH, w liczbach całkowitych.** Obniżka przedsprzedażowa zaokrągla się
-  raz na dobę i musi odróżnić 14,01 zł od 14,02 zł — arytmetyka zmiennoprzecinkowa nie daje na to
-  gwarancji.
-- ⚠️ **Dopłaty procentowe w `price_rules` są ZAKAZANE** („procent od czego", zależność od
-  kolejności naliczania). Obniżka przedsprzedażowa nie jest wyjątkiem od tego zakazu, tylko innym
-  mechanizmem — z jedną jawną podstawą i jednym miejscem naliczania (§4).
+- **Cennik to LISTA REGUŁ, nie tabela stawek po wymiarach.** Dodanie wymiaru cennika jest dodaniem
+  warunku, czasowa obniżka — zawieszeniem reguły, zmiana ceny wyjściowej — zmianą jednej liczby.
+  Tabela kluczowana wymiarami wymagałaby migracji za każdym razem.
+- **Dwa rodzaje reguł na jednej tabeli, odróżnia je flaga `kind`:** `rate` **zastępuje** cenę doby,
+  `surcharge` **dodaje się**. Wszystkie pasujące dopłaty sumują się.
+- ⚠️ **Stawka zna WYŁĄCZNIE daty.** Nie ma dni tygodnia, obsady ani roli — cały ciężar warunkowy
+  siedzi na dopłacie (daty, dni tygodnia, obsada, `applies_to`). Kto chce różnicować cenę dniami
+  tygodnia, **robi to dopłatą**: wtedy widać, że to dopłata, a nie druga cena bazowa.
+- ⚠️ **Nie dokładaj stawce warunków.** Ich zdjęcie było sednem przedefiniowania z 22.09.2026:
+  warunek na stawce potrafi po cichu podmienić cenę bazową, warunek na dopłacie może tylko dodać
+  albo nie dodać znaną kwotę. Powrót warunków na stawkę przywraca pytanie „która stawka wygrywa",
+  a z nim priorytety — patrz [ADR-014](../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md),
+  sekcja „Aktualizacja".
+- **Pusty warunek dopłaty znaczy „bez warunku na tej osi", NIE „warunek fałszywy".**
+- ⚠️ **Pusty `Select` z formularza przysyła PUSTY ŁAŃCUCH, nie `null`** — i to jest stan normalny.
+  Normalizacja mieszka w `ManagePricing::withoutBlankValues()`; bez niej rzut enuma na pusty łańcuch
+  wywraca **cały zapis** formularza.
 
----
+## 2. Jeden wymiar czasu, nie dwa
 
-## 2. Dwa wymiary czasu na jednej regule
+- **`first_day_on`/`last_day_on` mówią, KTÓRYCH DÓB reguła dotyczy** — i to jedyny wymiar czasu
+  w cenniku. Obie granice są **domknięte**.
+- ⚠️ **Nazwy są celowe i identyczne jak w `whole_term_periods`**: oba pola wskazują **dni
+  rozpoczęcia dób**. `starts_on`/`ends_on` znaczą w tym projekcie co innego
+  ([`dostepnosc.md`](dostepnosc.md) §4) i użycie ich tutaj byłoby zaproszeniem do skopiowania złej
+  logiki granic.
+- ⚠️ **Nie wprowadzaj drugiego wymiaru czasu** („kiedy ten zapis staje się aktywny"). Dawne
+  `effective_*` zostało wycofane: różnica między nim a zakresem dób jest obserwowalna dopiero przy
+  **utrwalonej transakcji** pamiętającej cenę z chwili zakupu, czyli razem ze snapshotem G1.
+  Do tego czasu nowy cennik od 1 lipca to po prostu stawka z `first_day_on = 1.07`.
+- **Brak `last_day_on` na stawce NIE jest tylko „bez granicy"** — to deklaracja „to jest aktualny
+  cennik", i na niej stoi całe domykanie okresów (§3).
 
-⚠️ **To jest miejsce, w którym najłatwiej o defekt**, bo oba wyglądają jak „zakres dat":
+## 3. Rozstrzyganie: wygrywa tańsza, bez priorytetów
 
-| Wymiar | Pola | Mierzony wobec | Odpowiada na pytanie |
-|---|---|---|---|
-| **Obowiązywanie zapisu** | `effective_from`/`effective_to` | **dzisiejszej DACIE** w strefie łowiska | czy ta reguła w ogóle bierze dziś udział w wycenie |
-| **Warunek zakresu dat** | `first_day_on`/`last_day_on` | **wycenianej dobie** | których dób ta reguła dotyczy |
+Dla jednej doby:
 
-- **Bez rozdzielenia tych osi nie da się zaplanować zmiany ceny z wyprzedzeniem** — każda zmiana
-  działałaby natychmiast. „Od 1 czerwca podnoszę cenę wakacji" to nowa reguła z `effective_from`
-  na czerwiec i warunkiem dat obejmującym lipiec–sierpień.
-- **Obie granice są DOMKNIĘTE**, jak horyzont i okno przedsprzedaży w 017: reguła obowiązuje także
-  w dniu `effective_to`, a warunek obejmuje także dobę rozpoczynającą się `last_day_on`.
-- ⚠️ **`effective_*` mierzy się dzisiejszą DATĄ, nie momentem i nie parametrem wywołania.**
-  Rozróżnienie „wycena w koszyku kontra zapłata minutę po północy" wymaga utrwalonej transakcji,
-  której nie ma w schemacie, i należy do snapshotu G1.
-- ⚠️ **`first_day_on`/`last_day_on` to DNI ROZPOCZĘCIA DÓB**, tak samo jak w `whole_term_periods`.
-  Nazw `starts_on`/`ends_on` **nie wolno tu użyć** — w `sale_periods` znaczą co innego
-  ([`dostepnosc.md`](dostepnosc.md) §4).
+1. pomiń reguły miękko usunięte (globalny zakres `SoftDeletes`) i **zawieszone**;
+2. pomiń te, których warunek nie jest spełniony dla TEJ doby — stawka: daty; dopłata: daty, dni
+   tygodnia, obsada;
+3. spośród stawek wygrywa **najniższa kwota za osobę łowiącą**;
+4. wszystkie pasujące dopłaty **sumują się**.
 
----
+- ⚠️ **Nachodzenie stawek NIE jest błędem zapisu i nie ma priorytetów.** Uwidacznia je **kalendarz
+  podglądowy (019)**, a nie walidacja — to świadome przeniesienie odpowiedzialności z zapisu na
+  widok skutku.
+- ⚠️ **Pomyłka z koszem jest niewidoczna.** Przy wyborze „najniższa kwota" cena z reguły miękko
+  usuniętej byłaby **korzystniejsza**, więc wygrałaby i nie rzuciłaby się w oczy.
+- **Determinizm przy równych kwotach:** niższa kwota za towarzyszącą, potem mniejsze `id`. Kwota
+  jest wtedy i tak identyczna — chodzi o to, żeby rozbicie wskazywało zawsze tę samą regułę.
+  ⚠️ **Stawka bez kwoty za towarzyszącą przegrywa remis zawsze**, żeby wybór nie padł na regułę,
+  która odmówi wyceny.
+- ⚠️ **Warunek dopłaty sprawdza się osobno dla KAŻDEJ doby**, nie „całe albo wcale".
+- **Wynik rozstrzygnięcia niesie KOMPLET kandydatów, nie samego zwycięzcę** — to diagnostyka dla
+  kalendarza (019). Nie wchodzi do `StayPriceBreakdown`: rozbicie opisuje, za co wędkarz płaci,
+  a komplet kandydatów opisuje stan konfiguracji.
 
-## 3. Rozstrzyganie reguł
+### Domykanie okresów stawki
 
-**Nachodzenie się stawek jest ZAMIERZONE, nie błędem.** „70 zł zawsze" koliduje z „90 zł
-w piątki" w każdy piątek — i tak właśnie operator chce to zapisać. Stąd reguła wyboru, a nie zakaz
-nachodzenia.
-
-Kolejność dla jednej doby i jednej roli:
-
-1. odrzuć reguły **zawieszone** i spoza `effective_*`;
-2. odrzuć reguły, których którykolwiek warunek nie jest spełniony **dla tej doby**;
-3. spośród `rate` wygrywa **najwyższy `priority`**; przy remisie **wyższa szczegółowość**;
-   przy remisie nierozstrzygalnym — **błąd konfiguracji**;
-4. **wszystkie** pasujące `surcharge` **sumują się** — przy kwotach wynik nie zależy od kolejności.
-
-- ⚠️ **Warunek sprawdza się osobno dla KAŻDEJ doby**, nie „całe albo wcale": pobyt śr–pt przy
-  dopłacie „czw–nd" dostaje ją za czwartek i piątek, a nie za środę.
-- **Szczegółowość liczy się OSIAMI, nie polami.** Osie są cztery: dni tygodnia, zakres dat, liczba
-  łowiących, rola. Zakres z jednym otwartym końcem to **jedna** oś, nie pół ani dwie — licząc pola,
-  szczegółowość zależałaby od tego, czy operator domknął przedział.
-- ⚠️ **Priorytet idzie PRZED szczegółowością.** Priorytet jest jedynym narzędziem, którym operator
-  wyraża intencję wprost, więc musi wygrywać z regułą wyprowadzoną z kształtu warunków.
-- **`anglers_count` porównuje się przez RÓWNOŚĆ z faktyczną obsadą z zapytania** — nigdy
-  z `positions.max_anglers`, która jest pojemnością stanowiska i kusi wyłącznie nazwą.
-
-### Remis nierozstrzygalny jest błędem zapisu
-
-Remis to ten sam `priority` **i** ta sama szczegółowość przy warunkach spełnialnych jednocześnie.
-Sprawdzenie ma jeden dom: [`PriceRuleOverlap`](../../app/Services/PriceRuleOverlap.php).
-
-1. **Osie niezależne od doby** — liczba łowiących, rola, okno `effective_*` — muszą się przecinać
-   każda z osobna. ⚠️ **Oś pusta przecina się ze wszystkim.**
-2. ⚠️ **Dni tygodnia i zakres dat sprawdza się RAZEM, nie oś po osi.** Kolizja zachodzi tylko wtedy,
-   gdy **istnieje doba** w przecięciu zakresów, której dzień rozpoczęcia należy do przecięcia
-   zbiorów dni. Skrót „wystarczy niepuste przecięcie dni" wolno zastosować **wyłącznie** przy
-   przecięciu nieograniczonym albo obejmującym co najmniej 7 dni.
-
-⚠️ **To nie jest optymalizacja — bez tego walidacja odrzuca poprawne cenniki.** Stawka
-„30.04–02.05" i stawka „piątki" sprawdzane oś po osi kolidują **zawsze**: oś dni przecina się, bo
-pierwsza reguła jej nie ma, a oś dat — bo druga jej nie ma. Naprawdę kolidują tylko wtedy, gdy
-w tym zakresie wypada piątek.
-
-- **Porównywane są PARY, bez analizy przesłaniania.** Remis dwóch reguł jest błędem także wtedy,
-  gdy trzecia, szczegółowsza i tak wygrywa w całym przecięciu; pełna analiza pokrycia jest
-  nieproporcjonalnie droga wobec obejścia, którym jest podniesienie priorytetu o jeden.
-- ⚠️ **Remis nie leci wyjątkiem.** Wraca wynikiem, żeby jedna zła para reguł nie wywróciła całego
-  widoku kalendarza (019) — czyli jedynego miejsca, w którym operator ma ten błąd zobaczyć.
-
----
+- **Utworzenie stawki z `first_day_on = D`, która sama jest bezterminowa, domyka poprzednie
+  bezterminowe na `D − 1`.** Bez tego podwyżka cicho przestałaby działać: stara 70 zł i nowa 80 zł
+  nachodzą, więc wygrałaby tańsza.
+- ⚠️ **Stawka z datą KOŃCA nie domyka niczego.** To okno nakładkowe, nie nowy cennik. Wersja bez
+  tego warunku otwierała dziurę w cenniku po końcu okna — i po to ten warunek istnieje.
+- ⚠️ **Konsekwencja: stawką z datą końca da się cenę tylko OBNIŻYĆ.** Podwyżkę robi się nową
+  stawką bezterminową albo dopłatą. Panel tego nie sygnalizuje — pokazuje to kalendarz (019).
+- **Tylko przy UTWORZENIU, nigdy przy edycji** — domknięcie jest nieodwracalne.
+- ⚠️ **Migawkę identyfikatorów sprzed zapisu rób w `beforeValidate`, nie w `beforeSave`.** Filament
+  zapisuje repeatery relacyjne wewnątrz `getState()`, a `beforeSave` odpala się już po wstawieniu
+  wierszy — migawka zrobiona tam zawiera je wszystkie i domykanie nigdy się nie uruchamia, cicho.
+- **Kilka nowych stawek w jednym zapisie przetwarza się rosnąco po `first_day_on`**, w jednej
+  transakcji, z powiadomieniem dla operatora. Cicha zmiana cudzego wpisu jest gorsza niż brak
+  automatu.
 
 ## 4. Osoba towarzysząca i obniżka przedsprzedażowa
 
-- **Osoba towarzysząca NIE jest gałęzią w kodzie** — to reguła `rate` z warunkiem
-  `participant_role = companion` i kwotą `0.00`. Nie dorabiaj dla niej wyjątku.
-  ⚠️ Pole kwoty w cenniku dopuszcza **0,00**, inaczej niż przy usługach dodatkowych — i to jest
-  powód, dla którego minimum jest parametrem `SharedFormComponents::getPriceInput()`.
-- ⚠️ **Stawka osoby towarzyszącej musi mieć NAJWYŻSZY priorytet w cenniku.** Każda stawka
-  warunkowa **bez** warunku roli pasuje także do niej; przy równym priorytecie i równej
-  szczegółowości daje to remis, czyli błąd zapisu. Podniesienie priorytetu rozwiązuje to raz dla
-  całego cennika — alternatywą byłoby dopisywanie warunku „rola: łowiący" do **każdej** pozostałej
-  stawki.
-- ⚠️ **Ta zasada chroni tylko w jedną stronę.** Walidacja remisu łapie priorytet **równy**;
-  priorytet **wyższy** przepuszcza bez słowa, więc „Sylwester 150 zł" bez warunku roli i z wysokim
-  priorytetem sprawi, że towarzysząca zapłaci 150 zł — bez błędu i bez śladu. Przed tym broni
-  **ostrzeżenie** przy zapisie, nie model. Instrukcja nie wystarcza, bo zasada obowiązuje tylko
-  dopóty, dopóki ktoś o niej pamięta.
-- **Dopłata bez warunku roli obciąża także osobę towarzyszącą** — to zachowanie **poprawne**, nie
-  defekt, i wynika z konfiguracji, a nie z kodu.
+- **Cena osoby towarzyszącej to KOLUMNA `amount_companion` na stawce**, nie osobna reguła. Nie
+  dorabiaj dla niej gałęzi ani konkurencyjnego wpisu.
+  ⚠️ Pole kwoty dopuszcza **0,00**, inaczej niż przy usługach dodatkowych — i to jest powód, dla
+  którego minimum jest parametrem `SharedFormComponents::getPriceInput()`.
+- ⚠️ **`amount_companion = null` znaczy BRAK CENY, nie cenę zerową.** Zapytanie z osobą
+  towarzyszącą dostaje wtedy odmowę `NoCompanionPrice` — **osobną** od `NoPriceDefined`, bo obie
+  każą operatorowi zrobić co innego: tam dopisać stawkę, tu poprawić jedno pole w istniejącej.
+  Darmowa towarzysząca to `0,00` wpisane świadomie; formularz czyni to pole wymaganym.
+- **Komu nalicza się dopłatę, mówi `applies_to`** (`SurchargeAudience`: `angler` / `everyone` /
+  `companion`). Warunek obsady decyduje, **czy** dopłata wchodzi; `applies_to` — **przez ilu** się
+  ją mnoży. Oba są niezależne.
+- ⚠️ **Domyślne jest `angler`, nie `everyone`** — i to jest decyzja o kosztach pomyłki. Osoba
+  towarzysząca bywa darmowa, więc domyślne „dla każdego" obciążałoby kogoś, kto nie płaci nic.
+  Pusta kolumna zachowuje się tak samo jak `angler`.
+- ⚠️ **Obsadę liczą SAMI ŁOWIĄCY** — osoba towarzysząca nie podnosi `anglers_count`, inaczej
+  dopłata za wyłączność znikałaby przez to, że wędkarz przyjechał z kimś.
+- ⚠️ **Wycena wymaga co najmniej jednego łowiącego** — pilnuje tego obiekt zapytania wyjątkiem,
+  a nie warstwa odmów: pobyt bez wędkarza nie jest pojęciem. Bez tej bramki „0 łowiących,
+  1 towarzysząca" dałoby ofertę za 0,00 zł.
+- **`ParticipantRole` przestało być osią warunku** — zostało wyłącznie etykietą pozycji w rozbiciu.
 
 ### Obniżka przedsprzedażowa
 
@@ -199,19 +187,24 @@ pakietu działają **same z siebie**. Odmowa ze spoiwa niesie zakres pakietu, wi
 - ⚠️ **Powód „brak ceny" nazywa WARSTWA OFERTY, nie wycena.** Wycena zwraca typowaną informację,
   że nie umie wycenić doby (`PricingFailure`), i dzięki temu zostaje wolna od słownika odmów
   sprzedaży.
-- **Odmowa wskazuje dobę, rolę i obsadę**, dla których zabrakło stawki — sam powód jest
-  bezużyteczny przy pobycie wielodobowym i wieloosobowym, bo operator nie wie, którą regułę dopisać.
+- **Odmowa wskazuje DOBĘ**, dla której zabrakło ceny — sam powód jest bezużyteczny przy pobycie
+  wielodobowym, bo operator nie wie, którą regułę poprawić.
+- ⚠️ **Dwa powody, nie jeden:** `NoPriceDefined` (żadna stawka nie pasuje) i `NoCompanionPrice`
+  (stawka pasuje, ale nie ma kwoty za towarzyszącą). Zlanie ich posłałoby operatora szukać
+  nieistniejącej dziury w cenniku.
 
 ### Ostrzeżenie przy zapisie to POMOC, nie gwarancja
 
-Zakres sprawdzenia: doby okresów sprzedaży **od dziś** do końca ostatniego okresu, obsady od 1 do
-największego `max_anglers`, rola `companion` tylko na łowisku dopuszczającym osoby towarzyszące,
-reguły obowiązujące **dziś**. Stanowisko bez podanej pojemności liczy się jako **1 łowiący i zero
-towarzyszących**, a nie jest pomijane.
+Zakres sprawdzenia: **doby** okresów sprzedaży **od dziś** do końca ostatniego okresu, wobec reguł
+obowiązujących **dziś**. I tyle.
 
-⚠️ **Dziura powstaje także POZA ekranem cennika** — wydłużeniem okresu sprzedaży, podniesieniem
-`max_anglers` albo wygaśnięciem reguły w połowie sezonu — a sprawdzenie widzi wyłącznie dzisiejszy
-stan reguł. **Gwarancją jest odmowa przy sprzedaży**, nie ostrzeżenie przy zapisie.
+⚠️ **Nie dokładaj tu pętli po obsadach ani po rolach.** Dopasowanie stawki zależy wyłącznie od daty,
+a dopłaty dziur nie tworzą, bo tylko dodają — taka pętla nie może znaleźć nic, czego nie znajdzie
+iteracja po dobach, a kosztuje iloczyn.
+
+⚠️ **Dziura powstaje także POZA ekranem cennika** — wydłużeniem okresu sprzedaży albo skróceniem
+stawki — a sprawdzenie widzi wyłącznie dzisiejszy stan reguł. **Gwarancją jest odmowa przy
+sprzedaży**, nie ostrzeżenie przy zapisie.
 
 ### Co jest błędem, a co ostrzeżeniem
 
@@ -219,8 +212,14 @@ Twarde reguły zapisu mieszkają w `app/Rules/`; ostrzeżenia — w
 [`PricingConfigurationAudit`](../../app/Services/PricingConfigurationAudit.php), bo laravelowa
 reguła walidacji potrafi tylko odrzucić zapis.
 
-- **Błędy:** remis nierozstrzygalny dwóch stawek; `effective_to` przed `effective_from`;
-  `last_day_on` przed `first_day_on`; obniżka spoza zakresu 0–100.
-- **Ostrzeżenia:** dziura w cenniku; stawka bez warunku roli z priorytetem **wyższym** niż stawka
-  osoby towarzyszącej. Oba są ostrzeżeniami, bo łowisko może świadomie chcieć takiej konfiguracji
-  albo dopiero ją porządkuje.
+- **Błędy:** `last_day_on` przed `first_day_on`; brak kwoty za osobę towarzyszącą na stawce;
+  obniżka spoza zakresu 0–100.
+- **Ostrzeżenia:** dziura w cenniku; domknięcie okresu poprzedniej stawki (powiadomienie, nie
+  ostrzeżenie o błędzie).
+- ⚠️ **Czego tu NIE MA i nie ma wracać:** ostrzeżenia o stawce, która przegrywa z tańszą.
+  Nachodzenie uwidacznia kalendarz (019) — formularz mógłby najwyżej zgadywać intencję, a jedna
+  wiedza ma mieć jeden dom.
+- ⚠️ **Remis nierozstrzygalny przestał istnieć** razem z priorytetami. Jego powrót do `app/Rules/`
+  znaczyłby, że wróciła konkurencja między stawkami.
+- **Martwe stawki** (niewygrywające w żadnej dobie swojego okresu) wskazuje
+  `PricingConfigurationAudit::deadRates()` — dla kalendarza, nie dla formularza.

@@ -6,12 +6,11 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * Żadna z dwóch par dat reguły cenowej nie może kończyć się przed swoim początkiem.
+ * Okres reguły cenowej nie może kończyć się przed swoim początkiem.
  *
- * ⚠️ **To są DWA różne wymiary czasu i sprawdza się je osobno**, mimo że oba wyglądają jak
- * „zakres dat" (ADR-014):
- * - `effective_from`/`effective_to` — czy ten ZAPIS bierze dziś udział w wycenie;
- * - `first_day_on`/`last_day_on` — których DÓB reguła dotyczy.
+ * ⚠️ **Para dat jest JEDNA** — `first_day_on`/`last_day_on` mówią, których DÓB reguła dotyczy.
+ * Drugi wymiar czasu (`effective_*`, „czy ten zapis bierze dziś udział w wycenie") został
+ * wycofany wraz z przedefiniowaniem zadania 018 — ADR-014, sekcja „Aktualizacja".
  *
  * Reguła siedzi na całym repeaterze, jak `SalePeriodsDoNotOverlap` i `PresaleWindowsAreOrdered`:
  * repeater jest jednym polem formularza, a walidacja pojedynczego wiersza nie widzi pozostałych.
@@ -31,12 +30,6 @@ class PriceRuleDatesAreOrdered implements ValidationRule
         foreach ($value as $row) {
             if (! is_array($row)) {
                 continue;
-            }
-
-            if ($this->endsBeforeItStarts($row['effective_from'] ?? null, $row['effective_to'] ?? null)) {
-                $fail(__('A price rule can not stop being effective before it starts.'));
-
-                return;
             }
 
             if ($this->endsBeforeItStarts($row['first_day_on'] ?? null, $row['last_day_on'] ?? null)) {

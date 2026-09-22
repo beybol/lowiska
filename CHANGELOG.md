@@ -86,30 +86,32 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   przechodzi — porządkowanie sezonu w dowolnej kolejności zostaje możliwe.
 - Właściciel łowiska ustala **ceny**: na nowym ekranie „Cennik" prowadzi dwie listy — stawki
   i dopłaty. Stawka zastępuje cenę doby, dopłata się do niej dodaje, a wszystkie pasujące dopłaty
-  sumują się. Kwotę podaje się za osobę za dobę.
-- Każda reguła cennika może mieć warunki: wybrane doby tygodnia, zakres dat, dokładną liczbę
-  łowiących i rolę uczestnika. Reguła bez żadnego warunku jest stawką bazową łowiska — większości
-  obiektów wystarczy jedna taka stawka i jedna dopłata.
+  sumują się.
+- Stawka ma tylko kwoty i daty: kwotę za osobę łowiącą, kwotę za osobę towarzyszącą oraz okres,
+  od kiedy i do kiedy obowiązuje. Większości łowisk wystarczy jedna taka stawka i jedna dopłata.
+- Wszystkie warunki niesie dopłata: zakres dat, wybrane doby tygodnia, „tylko przy obsadzie N"
+  oraz **dla kogo** ma się naliczyć. To dopłatą liczy się więcej za weekend — cena bazowa zostaje
+  wtedy widoczna jako cena bazowa, a różnica jako różnica.
 - Warunek liczy się osobno dla każdej doby, więc dopłata „czwartek–niedziela" przy pobycie od środy
   do piątku nalicza się za czwartek i piątek, a nie za cały pobyt ani za nic.
-- Gdy do doby pasuje kilka stawek, wygrywa ta o wyższym priorytecie, a przy równym — ta z większą
-  liczbą warunków. Jeśli obie są nie do odróżnienia, system **nie zapisze cennika**: nie zgaduje,
-  którą cenę operator miał na myśli.
+- Dopłata może obciążać samych łowiących (domyślnie), wszystkich uczestników albo same osoby
+  towarzyszące. „Tylko przy obsadzie N" liczy przy tym samych łowiących, więc dopłata za wyłączność
+  stanowiska nie znika przez to, że wędkarz przyjechał z kimś.
+- Gdy do doby pasuje kilka stawek, wygrywa **tańsza dla wędkarza**. Zapis przechodzi bez błędu —
+  to, co naprawdę wychodzi w cenie każdej doby, pokaże kalendarz podglądowy.
+- Nowy cennik wprowadza się stawką z datą „obowiązuje od" i pustym „obowiązuje do". Poprzednia
+  stawka **domyka się sama** na dzień wcześniej, a właściciel dostaje o tym powiadomienie.
+  Stawka z obiema datami niczego nie domyka — jest wstawką w istniejący cennik.
 - Regułę można **zawiesić** zamiast usuwać — zostaje w cenniku i wraca jednym kliknięciem.
-- Każda reguła ma własny okres obowiązywania, niezależny od warunku zakresu dat. Dzięki temu
-  w maju da się przygotować cennik wakacji, który zacznie działać dopiero 1 czerwca, a do tego
-  czasu sprzedaż idzie po starych stawkach.
-- Osoba towarzysząca wycenia się zwykłą stawką z rolą „osoba towarzysząca" — domyślnie 0,00 zł,
-  ale wystarczy wpisać inną kwotę, żeby zaczęła płacić.
+- Osoba towarzysząca wycenia się drugą kwotą na tej samej stawce: 0,00 zł znaczy „za darmo",
+  a puste pole znaczy, że doby nie da się sprzedać nikomu, kto przyjeżdża z osobą towarzyszącą.
 - Zakup w otwartym oknie przedsprzedaży może być tańszy: przy okresie sprzedaży ustawia się
   procentową **obniżkę ceny**. Zdejmuje się ją od każdej doby osobno, od stawki wraz z dopłatami,
   i wędkarz widzi ją przy każdej dobie.
 - Doba w otwartym sezonie, do której nie pasuje żadna stawka, jest **niesprzedawalna** — nie
   darmowa. Wędkarz dostaje wtedy czytelną odmowę, a operator ostrzeżenie już przy zapisie cennika,
-  ze wskazaniem doby, roli i obsady, dla których stawki zabrakło.
-- Panel ostrzega też, gdy stawka bez warunku roli ma wyższy priorytet niż stawka osoby
-  towarzyszącej — w dniach, w których obowiązuje, towarzysząca zapłaci właśnie ją. Zapis przechodzi,
-  bo czasem właśnie o to chodzi.
+  ze wskazaniem doby, dla której stawki zabrakło. Osobny komunikat mówi, gdy stawka istnieje,
+  ale nie ma kwoty za osobę towarzyszącą — bo wtedy poprawia się jedno pole, a nie dopisuje regułę.
 - Odpowiedź „czy tę ofertę da się kupić i ile kosztuje" powstaje w jednym miejscu, razem
   z rozbiciem ceny na doby i osoby. To ono zasili kalendarz podglądowy i przyszły koszyk, więc
   wędkarz i operator zobaczą tę samą kwotę i to samo uzasadnienie.

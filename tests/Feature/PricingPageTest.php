@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Enums\ParticipantRole;
 use App\Enums\PriceRuleKind;
+use App\Enums\SurchargeAudience;
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\FisheryResource\Pages\ManagePricing;
 use App\Models\PriceRule;
@@ -19,33 +19,50 @@ use Livewire\Livewire;
 use Tests\Support\StayFixtures;
 
 /**
- * Ekran „Cennik" — nowa pozycja sub-nawigacji łowiska (zadanie 018).
+ * Ekran „Cennik" po przedefiniowaniu zadania 018.
  *
  * ⚠️ Strona jest STRONĄ ZASOBU `FisheryResource`, więc trafia do obu paneli bez dotykania
- * providerów. Testy pilnują też dwóch rzeczy niewidocznych po samym zapisie: remis jest
- * **błędem** (G2), a dziura i konflikt priorytetu z osobą towarzyszącą — **ostrzeżeniami**.
+ * providerów.
+ *
+ * ⚠️ **Stawka i dopłata mają teraz RÓŻNE zestawy pól** — dlatego dwie osobne fabryki wierszy.
+ * Wspólna fabryka wróciłaby razem z założeniem, że warunki są na obu rodzajach reguł.
  */
 beforeEach(function () {
     Filament::setCurrentPanel('owner');
 });
 
 /**
+ * Wiersz stawki: kwoty i daty, nic więcej.
+ *
  * @return array<string, mixed>
  */
-function pricingRow(array $overrides = []): array
+function rateRow(array $overrides = []): array
 {
     return array_merge([
         'amount' => '70.00',
-        'label' => null,
-        'priority' => 0,
+        'amount_companion' => '0.00',
         'is_suspended' => false,
-        'effective_from' => null,
-        'effective_to' => null,
-        'weekdays' => null,
         'first_day_on' => null,
         'last_day_on' => null,
+    ], $overrides);
+}
+
+/**
+ * Wiersz dopłaty: cały ciężar warunkowy cennika.
+ *
+ * @return array<string, mixed>
+ */
+function surchargeRow(array $overrides = []): array
+{
+    return array_merge([
+        'amount' => '20.00',
+        'label' => null,
+        'applies_to' => SurchargeAudience::Angler->value,
+        'is_suspended' => false,
+        'first_day_on' => null,
+        'last_day_on' => null,
+        'weekdays' => null,
         'anglers_count' => null,
-        'participant_role' => null,
     ], $overrides);
 }
 
@@ -55,8 +72,8 @@ test('an owner can add a rate and a surcharge on separate lists', function () {
 
     Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
         ->fillForm([
-            'rateRules' => [pricingRow(['amount' => '70.00'])],
-            'surchargeRules' => [pricingRow(['amount' => '20,00', 'label' => 'Wylacznosc'])],
+            'rateRules' => [rateRow(['amount' => '70.00'])],
+            'surchargeRules' => [surchargeRow(['amount' => '20,00', 'label' => 'Wylacznosc'])],
         ])
         ->call('save')
         ->assertHasNoFormErrors();
@@ -73,74 +90,91 @@ test('an owner can add a rate and a surcharge on separate lists', function () {
 });
 
 /**
- * ⚠️ Remis jest BŁĘDEM zapisu, nie ostrzeżeniem — G2. Cena rozstrzygnięta po cichu byłaby ceną,
- * której operator nie zamierzał.
+ * ⚠️ Pola dopłaty NIE mogą zostać na stawce. Kolumny są wspólne, bo rodzaj reguły jest flagą,
+ * ale zostawienie w nich czegokolwiek znaczyłoby trzymanie w bazie danych, których nikt nie
+ * interpretuje — a przy pierwszej zmianie w wycenie zaczęłyby coś znaczyć.
  */
-test('two indistinguishable rates are rejected at save', function () {
+test('saving a rate clears the surcharge-only columns', function () {
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    $this->actingAs($owner);
+
+    Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
+        ->fillForm(['rateRules' => [rateRow()]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $row = DB::table('price_rules')->where('fishery_id', $fishery->id)->first();
+
+    expect($row->weekdays)->toBeNull()
+        ->and($row->anglers_count)->toBeNull()
+        ->and($row->applies_to)->toBeNull();
+});
+
+/**
+ * ⚠️ Odtwarza zgłoszenie z 2026-09-22: pusty `Select` przysyła PUSTY ŁAŃCUCH, nie `null`,
+ * a rzut enuma na `''` wywracał CAŁY zapis (`ValueError`). Fixture z jawnym `null` tego nie
+ * widziała — dlatego ten test podaje dokładnie to, co wysyła przeglądarka.
+ */
+test('empty selects in the form are treated as no condition', function () {
     [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
     $this->actingAs($owner);
 
     Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
         ->fillForm([
-            'rateRules' => [
-                pricingRow(['amount' => '70.00', 'priority' => 10, 'participant_role' => ParticipantRole::Companion->value]),
-                pricingRow(['amount' => '90.00', 'priority' => 10, 'weekdays' => [5]]),
-            ],
+            'rateRules' => [rateRow(['first_day_on' => '', 'last_day_on' => ''])],
+            'surchargeRules' => [surchargeRow(['anglers_count' => '', 'weekdays' => [], 'label' => ''])],
         ])
         ->call('save')
-        ->assertHasFormErrors(['rateRules']);
+        ->assertHasNoFormErrors();
+
+    $rate = PriceRule::where('fishery_id', $fishery->id)->where('kind', PriceRuleKind::Rate->value)->firstOrFail();
+    $surcharge = PriceRule::where('fishery_id', $fishery->id)->where('kind', PriceRuleKind::Surcharge->value)->firstOrFail();
+
+    expect($rate->first_day_on)->toBeNull()
+        ->and($rate->last_day_on)->toBeNull()
+        ->and($surcharge->anglers_count)->toBeNull()
+        ->and($surcharge->label)->toBeNull();
+});
+
+/**
+ * ⚠️ Domyślne „dla łowiącego", NIE „dla każdego": osoba towarzysząca bywa darmowa, więc
+ * domyślne obciążanie jej byłoby pomyłką najtrudniejszą do zauważenia w całym cenniku.
+ */
+test('the default audience of a surcharge does not charge companions', function () {
+    [$fishery, $position, $owner] = StayFixtures::fisheryWithPosition();
+    $this->actingAs($owner);
+
+    Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
+        ->fillForm([
+            'rateRules' => [rateRow(['amount' => '70.00'])],
+            // Wartość domyślna pola — dokładnie to, co zapisze operator, który go nie dotknie.
+            'surchargeRules' => [surchargeRow()],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    // ⚠️ Gdyby domyślne było „dla każdego", wyszłoby 110,00 zł — dopłata obciążyłaby DARMOWĄ
+    // osobę towarzyszącą. To jest pomyłka najtrudniejsza do zauważenia w całym cenniku.
+    expect(StayFixtures::pricing($position)->breakdown('2026-05-07', 1, anglers: 1, companions: 1)->totalInCents())
+        ->toBe(9000)
+        // Kolejność opcji też jest decyzją: „dla łowiącego" stoi pierwsze, bo jest domyślne.
+        ->and(array_key_first(SurchargeAudience::options()))->toBe(SurchargeAudience::Angler->value);
+});
+
+/**
+ * ⚠️ Puste pole kwoty za osobę towarzyszącą znaczy BRAK CENY, czyli odmowę sprzedaży komuś
+ * z osobą towarzyszącą. Formularz nie pozwala tego zapisać przez nieuwagę.
+ */
+test('a rate without a companion amount is rejected', function () {
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    $this->actingAs($owner);
+
+    Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
+        ->fillForm(['rateRules' => [rateRow(['amount_companion' => null])]])
+        ->call('save')
+        ->assertHasFormErrors();
 
     expect(PriceRule::where('fishery_id', $fishery->id)->count())->toBe(0);
-});
-
-/**
- * ⚠️ Podniesienie priorytetu stawki towarzyszącej rozwiązuje remis raz dla całego cennika —
- * to jest ta zasada konfiguracji, którą `MANUAL.md` musi wyłożyć operatorowi.
- */
-test('raising the companion rate priority resolves the tie and the pricing follows', function () {
-    [$fishery, $position, $owner] = StayFixtures::fisheryWithPosition();
-    $this->actingAs($owner);
-
-    Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
-        ->fillForm([
-            'rateRules' => [
-                pricingRow(['amount' => '0.00', 'priority' => 100, 'participant_role' => ParticipantRole::Companion->value]),
-                pricingRow(['amount' => '90.00', 'priority' => 10, 'weekdays' => [5]]),
-            ],
-        ])
-        ->call('save')
-        ->assertHasNoFormErrors();
-
-    // W piątek łowiący płaci 90, a towarzysząca 0.
-    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-01', 1, anglers: 1, companions: 1);
-
-    expect($breakdown->totalInCents())->toBe(9000);
-});
-
-/**
- * ⚠️ Priorytet WYŻSZY niż stawka towarzyszącej przechodzi z OSTRZEŻENIEM, nie błędem —
- * łowisko może świadomie chcieć, żeby w sylwestra płacili wszyscy.
- */
-test('a rate outranking the companion rate saves with a warning', function () {
-    [$fishery, $position, $owner] = StayFixtures::fisheryWithPosition();
-    $this->actingAs($owner);
-
-    Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
-        ->fillForm([
-            'rateRules' => [
-                pricingRow(['amount' => '0.00', 'priority' => 100, 'participant_role' => ParticipantRole::Companion->value]),
-                pricingRow(['amount' => '150.00', 'priority' => 200, 'label' => 'Sylwester']),
-            ],
-        ])
-        ->call('save')
-        ->assertHasNoFormErrors();
-
-    expect(PriceRule::where('fishery_id', $fishery->id)->count())->toBe(2);
-
-    // Skutek, o którym ostrzega komunikat: towarzysząca płaci pełną stawkę.
-    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-01', 1, anglers: 1, companions: 1);
-
-    expect($breakdown->totalInCents())->toBe(30000);
 });
 
 test('a price rule with reversed dates is rejected', function () {
@@ -149,7 +183,7 @@ test('a price rule with reversed dates is rejected', function () {
 
     Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
         ->fillForm([
-            'rateRules' => [pricingRow([
+            'rateRules' => [rateRow([
                 'first_day_on' => '2026-06-01',
                 'last_day_on' => '2026-05-01',
             ])],
@@ -167,14 +201,70 @@ test('a rule can be suspended without being removed', function () {
 
     Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
         ->fillForm([
-            'rateRules' => [pricingRow(['amount' => '130.00'])],
-            'surchargeRules' => [pricingRow(['amount' => '30.00', 'is_suspended' => true])],
+            'rateRules' => [rateRow(['amount' => '130.00'])],
+            'surchargeRules' => [surchargeRow(['amount' => '30.00', 'is_suspended' => true])],
         ])
         ->call('save')
         ->assertHasNoFormErrors();
 
     expect(PriceRule::where('fishery_id', $fishery->id)->count())->toBe(2)
         ->and(StayFixtures::pricing($position)->breakdown('2026-05-01', 1)->totalInCents())->toBe(13000);
+});
+
+/**
+ * ⚠️ Domknięcie jest automatyczne, ale NIGDY ciche — cicha zmiana cudzego wpisu jest gorsza
+ * niż brak automatu.
+ */
+test('adding a new open-ended rate closes the previous one and says so', function () {
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    $this->actingAs($owner);
+
+    StayFixtures::rate($fishery, 70.00, ['first_day_on' => '2026-01-01']);
+
+    app()->setLocale('pl');
+
+    Livewire::test(ManagePricing::class, ['record' => $fishery->fresh()->getRouteKey()])
+        ->fillForm([
+            'rateRules' => [
+                rateRow(['amount' => '70.00', 'first_day_on' => '2026-01-01']),
+                rateRow(['amount' => '80.00', 'first_day_on' => '2027-01-01']),
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors()
+        // ⚠️ Stawka nie ma pola nazwy (pięć pól), więc powiadomienie nazywa ją KWOTĄ.
+        ->assertNotified(__('A previous rate was closed'));
+
+    // ⚠️ Asercja idzie po KWOCIE, nie po identyfikatorze sprzed zapisu: repeater relacyjny
+    // Filamenta usuwa wiersze i tworzy je od nowa, więc stary rekord po zapisie już nie żyje.
+    $closed = PriceRule::where('fishery_id', $fishery->id)->where('amount', 70.00)->firstOrFail();
+    $current = PriceRule::where('fishery_id', $fishery->id)->where('amount', 80.00)->firstOrFail();
+
+    expect($closed->last_day_on->toDateString())->toBe('2026-12-31')
+        ->and($current->last_day_on)->toBeNull();
+});
+
+/**
+ * ⚠️ Stawka-okno NIE domyka niczego i NIE dostaje ostrzeżenia, choć nic nie zrobi. Skutki
+ * nachodzenia pokazuje kalendarz (019), żeby ta wiedza miała jeden dom.
+ */
+test('adding a dated window rate closes nothing', function () {
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    $this->actingAs($owner);
+
+    $openEnded = StayFixtures::rate($fishery, 70.00, ['first_day_on' => '2026-01-01']);
+
+    Livewire::test(ManagePricing::class, ['record' => $fishery->fresh()->getRouteKey()])
+        ->fillForm([
+            'rateRules' => [
+                rateRow(['amount' => '70.00', 'first_day_on' => '2026-01-01']),
+                rateRow(['amount' => '90.00', 'first_day_on' => '2026-07-01', 'last_day_on' => '2026-08-31']),
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($openEnded->fresh()->last_day_on)->toBeNull();
 });
 
 /**
@@ -203,53 +293,24 @@ test('the price rule model does not get a policy of its own', function () {
 });
 
 /**
- * ⚠️ Pusty `Select` w formularzu przysyła PUSTY ŁAŃCUCH, nie `null` — i to jest stan NORMALNY,
- * bo stawka bazowa nie ma warunku roli ani obsady. Reguła remisu hydratowała z tego model,
- * więc rzut enuma wywracał CAŁY zapis (`ValueError: "" is not a valid backing value`).
- * Fixture z jawnym `null` tego nie widziała — dlatego ten test podaje dokładnie to, co wysyła
- * przeglądarka.
+ * ⚠️ Treść ostrzeżenia o dziurze jest **częścią interfejsu**, nie logiem.
+ *
+ * ⚠️ Po zdjęciu dni tygodnia ze stawki dziura może mieć już tylko przyczynę DATOWĄ — i komunikat
+ * to odzwierciedla: nie wymienia ani warunków tygodnia, ani obsady, ani roli, bo stawka ich nie
+ * zna, a wymienianie ich posyłałoby operatora szukać pól, których nie ma.
  */
-test('empty selects in the form are treated as no condition', function () {
-    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
-    $this->actingAs($owner);
-
-    Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
-        ->fillForm([
-            'rateRules' => [
-                pricingRow(['amount' => '70.00', 'participant_role' => '', 'anglers_count' => '', 'weekdays' => []]),
-            ],
-        ])
-        ->call('save')
-        ->assertHasNoFormErrors();
-
-    $rate = PriceRule::where('fishery_id', $fishery->id)->firstOrFail();
-
-    expect($rate->participant_role)->toBeNull()
-        ->and($rate->anglers_count)->toBeNull()
-        // ⚠️ Pusta oś NIE liczy się do szczegółowości — inaczej stawka bazowa udawałaby
-        // regułę warunkową i wygrywałaby remisy, których nie powinna.
-        ->and($rate->specificity())->toBe(0);
-});
-
-/**
- * ⚠️ Treść ostrzeżenia o dziurze jest **częścią interfejsu**, nie logiem. Odtwarza zgłoszenie
- * z 2026-09-22: stawka z warunkiem „poniedziałek–czwartek" zostawia piątki bez ceny, a operator
- * dostał wtedy komunikat, który nie mówił ani dnia tygodnia, ani gdzie szukać przyczyny — za to
- * wspominał o „regule wygasającej później", choć żadna jego reguła nie miała dat obowiązywania.
- */
-test('the pricing gap warning names the weekday and points at the conditions', function () {
+test('the pricing gap warning names the weekday and points at the dates', function () {
     Date::setTestNow(CarbonImmutable::parse('2026-09-22 09:00', 'Europe/Warsaw'));
 
     [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
     $fishery->salePeriods()->update(['starts_on' => '2026-09-01', 'ends_on' => '2026-12-31']);
-    StayFixtures::rate($fishery, 70.00, ['weekdays' => [1, 2, 3, 4]]);
+    StayFixtures::rate($fishery, 70.00, ['first_day_on' => '2026-10-01']);
 
     $gap = (new PricingConfigurationAudit($fishery->fresh()))->firstPricingGap();
 
-    // Pierwsza doba bez ceny to piątek 25.09 — wtorek, środa i czwartek stawkę mają.
+    // Sprzedaż jest otwarta od dziś, a stawka zaczyna się dopiero 1.10 — pierwsza dziura to dziś.
     expect($gap)->not->toBeNull()
-        ->and($gap['night']->toDateString())->toBe('2026-09-25')
-        ->and($gap['role'])->toBe(ParticipantRole::Angler);
+        ->and($gap->toDateString())->toBe('2026-09-22');
 
     // ⚠️ Asercja idzie przez REALNY zapis i powiadomienie, które zobaczy operator — nie przez
     // refleksję na prywatnej metodzie. Pinujemy komunikat, nie jego implementację.
@@ -263,10 +324,8 @@ test('the pricing gap warning names the weekday and points at the conditions', f
                 ->warning()
                 ->title(__('Some nights have no price — anglers can not buy them'))
                 ->body(
-                    // Dzień tygodnia prowadzi wprost do pola, które trzeba poprawić; rola
-                    // i obsada są w zwykłym przypadku szumem, więc komunikat ich nie niesie.
-                    __('The first one is :night. None of your rates covers it — check the conditions on your rates: nights of the week, date range, number of anglers, role.', [
-                        'night' => 'piątek, 25.09.2026',
+                    __('The first one is :night. None of your rates covers it — check the dates on your rates.', [
+                        'night' => 'wtorek, 22.09.2026',
                     ])
                     .' '.__('Checked against the price list as it stands today.')
                 ),

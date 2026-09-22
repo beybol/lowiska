@@ -1,8 +1,14 @@
 # ADR-014 — Cennik jako lista reguł z warunkami: rozstrzyganie i kształt nierozstrzygalności
 
-- **Status:** accepted
+- **Status:** ⚠️ **częściowo odwrócona** (accepted → superseded-in-part, 2026-09-22) —
+  patrz [Aktualizacja](#aktualizacja-2026-09-22--odwrócenie-decyzji-o-rozstrzyganiu)
 - **Data:** 2026-09-22
 - **Zadanie:** [018 — Cennik regułowy](../tasks/018-cennik-regulowy.md)
+
+> ⚠️ **Czytasz ADR, którego decyzja została częściowo odwrócona tego samego dnia, po pierwszej
+> implementacji.** Treść poniżej **zostaje nietknięta** jako zapis tego, co rozważano i dlaczego
+> Opcja A wtedy wygrała. **Obowiązujący stan jest w sekcji „Aktualizacja" na końcu pliku** —
+> zacznij od niej, jeśli szukasz reguły na dziś.
 
 ## Kontekst
 
@@ -168,3 +174,91 @@ i jeśli okaże się realny, będzie osobną decyzją z własnymi **pomiarami** 
 
 ## Decyzja
 Decyzja: A
+
+---
+
+## Aktualizacja (2026-09-22) — odwrócenie decyzji o rozstrzyganiu
+
+**Co się stało:** Opcja A została zaimplementowana (commit `08c8d38`), a następnie **odrzucona
+w części dotyczącej rozstrzygania i osi warunku**. Decyzję odwrócił autor projektu po zetknięciu
+z gotowym formularzem. Pełne streszczenie rozmowy jest w
+[zadaniu 018](../tasks/018-cennik-regulowy.md), sekcja „Historia kształtu".
+
+### Co pozostaje w mocy
+
+**Fundament Opcji A wobec Opcji B (tabela stawek po wymiarach) nie jest kwestionowany.** Cennik
+nadal jest **listą reguł z warunkami**, nadal ma dwa rodzaje reguł na jednej tabeli (`rate`
+zastępuje, `surcharge` dodaje), nadal zawiesza reguły zamiast je kasować, nadal zwraca brak ceny
+**wynikiem, a nie wyjątkiem**, i nadal traktuje dziurę w cenniku jako odmowę sprzedaży. Argument
+z Rekomendacji, że Opcja B zamienia każde przyszłe „nie teraz" w migrację, **stoi**.
+
+### Co zostaje odwrócone
+
+| Element decyzji A | Nowy stan |
+|---|---|
+| **cztery osie warunku** na każdej regule (dni tygodnia, zakres dat, obsada, rola) | **stawka ma wyłącznie zakres dat**; dopłata ma zakres dat, dni tygodnia, obsadę oraz pole **„dla kogo"** (`applies_to`) |
+| **jawny `priority`**, wyższa liczba wygrywa | **usunięty**; kolumna znika z tabeli |
+| przy remisie priorytetu — **szczegółowość** (liczba wypełnionych osi) | **usunięta** wraz z `specificity()` |
+| **nierozstrzygalny remis = błąd konfiguracji** blokujący zapis | **nie istnieje**; nachodzenie jest dozwolone, wygrywa **najniższa kwota za łowiącego**, a nierozstrzygalność jest niemożliwa z konstrukcji |
+| **rola jako oś warunku** (`participant_role`) | na **stawce** — zastąpiona kolumną `amount_companion`; na **dopłacie** — zastąpiona polem `applies_to` (`everyone`/`angler`/`companion`, nowy enum `SurchargeAudience`), **domyślnie `angler`**, bo domyślne „dla każdego" przywracałoby przez wartość domyślną tę samą pułapkę z darmową osobą towarzyszącą. `ParticipantRole` zostaje wyłącznie etykietą roli w rozbiciu |
+| **dwa wymiary czasu** (`effective_*` obok `first_day_on`/`last_day_on`) | **jeden**: `first_day_on`/`last_day_on` mówią, których dób reguła dotyczy |
+| — | **nowość: automatyczne domykanie** — utworzenie stawki **bezterminowej** od daty `D` domyka poprzednią bezterminową na `D − 1`. ⚠️ Stawka z datą **końca** nie domyka niczego; to okno nakładkowe, a nie nowy cennik |
+
+⚠️ **Skutek uboczny przyjęty świadomie: stawką z datą końca można cenę tylko OBNIŻYĆ.** Skoro
+wygrywa tańsza, promocja „50 zł w maju" działa, a „90 zł w lipcu" przegra z bezterminowymi 70 zł.
+Podwyżkę robi się **nową stawką bezterminową** (która domyka poprzednią) albo **dopłatą**. Panel
+takiego zapisu ani nie blokuje, ani nie komentuje: skutki nachodzenia stawek uwidacznia **kalendarz
+podglądowy** (019), bo tylko on pokazuje, co naprawdę wychodzi w cenie doby — formularz mógłby
+najwyżej zgadywać intencję.
+
+⚠️ **Konsekwencja, której ta aktualizacja nie może zostawić bez odpowiedzi: skoro nachodzenie
+przestało być błędem zapisu, a formularz go nie komentuje, to cennik musi je komuś pokazać.**
+Dlatego cennik wystawia **diagnostykę** — dwie odpowiedzi ponad to, czego potrzebuje sama wycena:
+**komplet kandydatów na dobę** (zamiast samego zwycięzcy, z `PriceRuleResolver`) oraz **wskazanie
+stawek martwych**, czyli niewygrywających w żadnej dobie swojego okresu (`PricingConfigurationAudit`).
+Rysuje to kalendarz (019), ale **liczy cennik**: dopasowanie stawki, choć po uproszczeniu jest samym
+porównaniem dat, pozostaje logiką cennika, a ta ma jeden dom — i to jest ta sama zasada, która
+w [ADR-015](ADR-015-warstwa-oferty-pobytu.md) kazała wystawić `shortestOffer()` zamiast pozwolić
+widokowi zgadywać. Resolver i tak materializuje zbiór kandydatów, więc jest to zmiana kształtu
+wyniku, nie nowa logika; kandydaci zależą wyłącznie od daty, więc podgląd pobiera diagnostykę raz na
+okno, nie raz na komórkę siatki.
+
+### Dlaczego
+
+Trzy powody, w kolejności wagi:
+
+1. **Zerowe pokrycie realnymi przypadkami.** Cennik obu klientów (O3) to jedna stawka bazowa plus
+   warunkowa dopłata — nigdy zestaw konkurujących stawek. Cała maszyneria priorytetu, szczegółowości
+   i remisu obsługiwała sytuację, której nie ma u nikogo. Makieta wskazała adresata wprost:
+   „trzecie łowisko z ceną »pt–sb drożej«" — klient hipotetyczny.
+2. **Nieprzekazywalność.** Żeby cztery osie dały się zrozumieć, makieta musiała je numerować
+   („oś 1 z 4"), wyświetlać licznik szczegółowości i oznaczyć dwa pola słowem **„pułapka"**.
+   Konfiguracja, której nie da się wytłumaczyć bez licznika osi, jest nie do utrzymania
+   w samoobsłudze — a samoobsługa jest założeniem produktu.
+3. **Jedno z trzech „zamierzonych ograniczeń" z Rekomendacji okazało się defektem.** Zasada
+   „stawka towarzyszącej ma najwyższy priorytet", której model nie wymuszał i której broniło
+   wyłącznie ostrzeżenie, znika w całości, gdy cena towarzyszącej jest **kolumną** wygranej stawki.
+   Ograniczenie nie zostało obejściem — zostało usunięte razem z przyczyną.
+
+⚠️ **Czego to NIE unieważnia w Rekomendacji:** ostrzeżenie o dziurze w cenniku nadal widzi wyłącznie
+dzisiejszy stan reguł, a gwarancją pozostaje odmowa przy sprzedaży. To ograniczenie było i jest
+zamierzone.
+
+### Czy Opcja C wygrała pośrednio?
+
+Nie — i warto to zapisać, bo z daleka tak wygląda. **Opcja C rozstrzygała remis regułą techniczną**
+(„najmłodsza reguła", „najwyższe id"), czyli po cichu i w sposób, o którym operator nie myślał; ten
+zarzut z Rekomendacji **zostaje aktualny**. Nowy model rozstrzyga regułą **biznesową i jawną** —
+*wygrywa cena korzystniejsza dla wędkarza* — i dodatkowo **uwidacznia** nachodzenie na kalendarzu
+podglądowym (019). Różnica jest istotna: reguła techniczna jest nieprzewidywalna dla operatora,
+reguła „tańsza wygrywa" jest przewidywalna nawet bez czytania dokumentacji.
+
+### Warunek powrotu
+
+Priorytety, szczegółowość albo dni tygodnia na stawce wracają **wtedy i tylko wtedy**, gdy pojawi
+się łowisko, które ma inną cenę **bazową** zależną od dnia tygodnia lub od czegoś poza datą, i
+któremu **dopłata nie wystarcza**. Do tego czasu różnicowanie ceny dniami robi się dopłatą —
+i widać wtedy, że to dopłata, a nie druga cena bazowa.
+
+⚠️ **Ten ADR nie wraca do stanu „accepted" przez samo dopisanie tu czegokolwiek.** Powrót do
+którejkolwiek z odwróconych reguł jest nową decyzją i nowym ADR-em.

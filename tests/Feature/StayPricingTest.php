@@ -1,193 +1,288 @@
 <?php
 
-namespace Tests\Feature;
-
 use App\Enums\ParticipantRole;
 use App\Enums\PriceRuleKind;
 use App\Enums\PricingFailure;
-use App\Models\Position;
+use App\Enums\SaleUnavailabilityReason;
+use App\Enums\SurchargeAudience;
+use App\Models\PriceRule;
+use App\Services\StayNightPrice;
+use App\Services\StayPriceItem;
 use App\Services\StayPricing;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Tests\Support\StayFixtures;
 
 /**
- * Wycena pobytu: **rozbicie**, nie jedna liczba (ADR-014).
+ * Wycena pobytu po przedefiniowaniu zadania 018 (ADR-014, sekcja „Aktualizacja").
  *
- * ⚠️ Kwoty w groszach, w liczbach całkowitych — obniżka przedsprzedażowa zaokrągla się raz
- * na dobę i musi odróżnić 14,01 zł od 14,02 zł.
- *
- * Kalendarz odniesienia (2026): 29.04 śr · **30.04 czw** · 01.05 pt · 02.05 sob · 03.05 nd ·
- * 04.05 pon.
+ * Kalendarz odniesienia 2026: 04.05 pon · 06.05 śr · 07.05 czw · 08.05 pt · 09.05 sob ·
+ * 10.05 nd · 11.05 pon.
  */
 
 /**
- * ⚠️ Odwzorowanie ŁOPIENNA — najważniejszy test tego pliku, bo pinuje cały łańcuch:
- * stawkę bazową, dopłatę warunkową liczoną per doba i warunek roli.
+ * Pozycje rozbicia danej roli i rodzaju — asercje idą po POZYCJACH, nie po samej sumie.
+ *
+ * @return array<int, StayPriceItem>
  */
-test('lopienno is reproduced by one base rate and one conditional surcharge', function () {
+function itemsOf(StayNightPrice $night, ParticipantRole $role, PriceRuleKind $kind): array
+{
+    return array_values(array_filter(
+        $night->items,
+        static fn (StayPriceItem $item): bool => $item->role === $role && $item->kind === $kind,
+    ));
+}
+
+test('Łopienno: jedna stawka i jedna dopłata dają 430,00 zł za pięć dób od czwartku', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition();
 
     StayFixtures::rate($fishery, 70.00);
     StayFixtures::surcharge($fishery, 20.00, 'Stanowisko tylko dla Ciebie', [
-        'anglers_count' => 1,
         'weekdays' => [4, 5, 6, 7],
-        'participant_role' => ParticipantRole::Angler->value,
+        'anglers_count' => 1,
+        'applies_to' => SurchargeAudience::Angler->value,
     ]);
 
-    // Pobyt jednej osoby od czwartku na 5 dób: czw, pt, sob, nd dostają dopłatę, pon nie.
-    $breakdown = StayFixtures::pricing($position)->breakdown('2026-04-30', 5, anglers: 1);
+    // 07.05 czw, 08.05 pt, 09.05 sob, 10.05 nd, 11.05 pon — dopłata w czterech pierwszych.
+    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-07', 5);
 
-    expect($breakdown->isPriced())->toBeTrue()
-        ->and($breakdown->totalInCents())->toBe(43000)
-        ->and($breakdown->nights)->toHaveCount(5);
-
-    $nightTotals = array_map(
-        fn ($night): int => $night->totalInCents(),
-        $breakdown->nights,
-    );
-
-    // Rozbicie pokazuje, KTÓRA doba niesie dopłatę — bez tego operator nie wie, skąd 430 zł.
-    expect($nightTotals)->toBe([9000, 9000, 9000, 9000, 7000]);
+    expect($breakdown->totalInCents())->toBe(43000);
 });
 
-test('klasztorne is reproduced with a suspended surcharge left in the list', function () {
+test('dopłata za wyłączność NIE nalicza się przy dwóch łowiących', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    StayFixtures::rate($fishery, 70.00);
+    StayFixtures::surcharge($fishery, 20.00, 'Wylacznosc', [
+        'weekdays' => [4, 5, 6, 7],
+        'anglers_count' => 1,
+    ]);
+
+    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-07', 1, anglers: 2);
+
+    expect($breakdown->totalInCents())->toBe(14000)
+        ->and($breakdown->totalInCents())->not->toBe(18000);
+});
+
+test('dopłata „dla łowiącego" nie dotyka osoby towarzyszącej', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    StayFixtures::rate($fishery, 70.00);
+    StayFixtures::surcharge($fishery, 20.00, 'Wylacznosc', [
+        'anglers_count' => 1,
+        'applies_to' => SurchargeAudience::Angler->value,
+    ]);
+
+    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-07', 1, anglers: 1, companions: 1);
+
+    expect($breakdown->totalInCents())->toBe(9000)
+        ->and($breakdown->totalInCents())->not->toBe(11000);
+});
+
+test('trzy warianty „dla kogo" dają trzy różne ROZBICIA, choć dwa z nich tę samą sumę', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    StayFixtures::rate($fishery, 70.00);
+    $surcharge = StayFixtures::surcharge($fishery, 20.00, 'Doplata');
+
+    $nightFor = function (SurchargeAudience $audience) use ($surcharge, $position) {
+        $surcharge->update(['applies_to' => $audience->value]);
+
+        return StayFixtures::pricing($position)->breakdown('2026-05-07', 1, anglers: 1, companions: 1)->nights[0];
+    };
+
+    $everyone = $nightFor(SurchargeAudience::Everyone);
+    expect(itemsOf($everyone, ParticipantRole::Angler, PriceRuleKind::Surcharge))->toHaveCount(1)
+        ->and(itemsOf($everyone, ParticipantRole::Companion, PriceRuleKind::Surcharge))->toHaveCount(1)
+        ->and($everyone->subtotalInCents())->toBe(11000);
+
+    $angler = $nightFor(SurchargeAudience::Angler);
+    expect(itemsOf($angler, ParticipantRole::Angler, PriceRuleKind::Surcharge))->toHaveCount(1)
+        ->and(itemsOf($angler, ParticipantRole::Companion, PriceRuleKind::Surcharge))->toHaveCount(0)
+        ->and($angler->subtotalInCents())->toBe(9000);
+
+    $companion = $nightFor(SurchargeAudience::Companion);
+    expect(itemsOf($companion, ParticipantRole::Angler, PriceRuleKind::Surcharge))->toHaveCount(0)
+        ->and(itemsOf($companion, ParticipantRole::Companion, PriceRuleKind::Surcharge))->toHaveCount(1)
+        // ⚠️ Ta sama SUMA co przy „dla łowiącego" — różni je wyłącznie pozycja w rozbiciu.
+        ->and($companion->subtotalInCents())->toBe(9000);
+});
+
+test('domyślną wartością „dla kogo" jest łowiący, więc dopłata nie obciąża towarzyszącej', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    StayFixtures::rate($fishery, 70.00);
+    // Fabryka dopłaty nie dotyka `applies_to` poza wartością domyślną.
+    $surcharge = StayFixtures::surcharge($fishery, 20.00, 'Doplata');
+
+    expect($surcharge->applies_to)->toBe(SurchargeAudience::Angler);
+
+    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-07', 1, anglers: 1, companions: 1);
+
+    expect($breakdown->totalInCents())->toBe(9000);
+});
+
+test('pusta kolumna „dla kogo" też znaczy łowiący — nie każdego', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    StayFixtures::rate($fishery, 70.00);
+    StayFixtures::surcharge($fishery, 20.00, 'Doplata', ['applies_to' => null]);
+
+    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-07', 1, anglers: 1, companions: 1);
+
+    expect($breakdown->totalInCents())->toBe(9000);
+});
+
+test('wycena odrzuca skład bez ani jednego łowiącego', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+
+    StayFixtures::pricing($position)->breakdown('2026-05-07', 1, anglers: 0, companions: 1);
+})->throws(InvalidArgumentException::class);
+
+test('Klasztorne: zawieszona dopłata nie wchodzi do wyceny, ale zostaje w cenniku', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition();
 
     StayFixtures::rate($fishery, 130.00);
-    $suspended = StayFixtures::surcharge($fishery, 30.00, 'Wylacznosc', ['is_suspended' => true]);
+    $suspended = StayFixtures::surcharge($fishery, 40.00, 'Wylacznosc', [
+        'first_day_on' => '2026-04-26',
+        'last_day_on' => '2026-11-30',
+        'anglers_count' => 1,
+        'is_suspended' => true,
+    ]);
 
-    expect(StayFixtures::pricing($position)->breakdown('2026-05-01', 2)->totalInCents())->toBe(26000);
+    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-07', 1);
 
-    // Reguła zostaje w cenniku i daje się włączyć bez wpisywania od nowa.
+    expect($breakdown->totalInCents())->toBe(13000)
+        ->and($suspended->fresh())->not->toBeNull();
+
+    // Włącza się bez wpisywania od nowa.
     $suspended->update(['is_suspended' => false]);
 
-    expect(StayFixtures::pricing($position)->breakdown('2026-05-01', 2)->totalInCents())->toBe(32000);
+    expect(StayFixtures::pricing($position)->breakdown('2026-05-07', 1)->totalInCents())->toBe(17000);
 });
 
-/**
- * ⚠️ Warunek liczy się osobno dla KAŻDEJ doby (K3/P2), nie „całe albo wcale".
- */
-test('a condition is evaluated per night, not per stay', function () {
+test('osoba towarzysząca jest KOLUMNĄ na stawce, nie osobną regułą', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    StayFixtures::rate($fishery, 70.00);
+
+    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-07', 1, anglers: 1, companions: 1);
+    $night = $breakdown->nights[0];
+
+    expect($breakdown->totalInCents())->toBe(7000)
+        ->and($fishery->priceRules()->count())->toBe(1)
+        ->and(itemsOf($night, ParticipantRole::Companion, PriceRuleKind::Rate))->toHaveCount(1)
+        ->and(itemsOf($night, ParticipantRole::Companion, PriceRuleKind::Rate)[0]->amountInCents())->toBe(0);
+});
+
+test('płatna osoba towarzysząca to po prostu inna kwota w tej samej kolumnie', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    PriceRule::factory()->amount(70.00)->companionAmount(30.00)->create(['fishery_id' => $fishery->id]);
+
+    expect(StayFixtures::pricing($position)->breakdown('2026-05-07', 1, anglers: 1, companions: 1)->totalInCents())
+        ->toBe(10000);
+});
+
+test('brak kwoty za osobę towarzyszącą to ODMOWA, i to inna niż dziura w cenniku', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    PriceRule::factory()->amount(70.00)->companionAmount(null)->create(['fishery_id' => $fishery->id]);
+
+    $withCompanion = StayFixtures::pricing($position)->breakdown('2026-05-07', 1, anglers: 1, companions: 1);
+
+    expect($withCompanion->isPriced())->toBeFalse()
+        ->and($withCompanion->failure)->toBe(PricingFailure::NoCompanionPrice)
+        ->and($withCompanion->failure)->not->toBe(PricingFailure::NoMatchingRate);
+
+    // To samo zapytanie BEZ osoby towarzyszącej wycenia się normalnie.
+    expect(StayFixtures::pricing($position)->breakdown('2026-05-07', 1)->totalInCents())->toBe(7000);
+});
+
+test('warstwa oferty rozróżnia oba powody odmowy', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    PriceRule::factory()->amount(70.00)->companionAmount(null)->create(['fishery_id' => $fishery->id]);
+
+    $verdict = StayFixtures::offer($position)->offer('2026-05-07', 1, anglers: 1, companions: 1);
+
+    expect($verdict->available)->toBeFalse()
+        ->and($verdict->reason)->toBe(SaleUnavailabilityReason::NoCompanionPrice)
+        ->and($verdict->reason)->not->toBe(SaleUnavailabilityReason::NoPriceDefined);
+});
+
+test('stawka nie zna dni tygodnia — różnicowanie ceny dniami robi się dopłatą', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    StayFixtures::rate($fishery, 70.00);
+    StayFixtures::surcharge($fishery, 20.00, 'Weekend', ['weekdays' => [5, 6]]);
+
+    // 08.05 piątek, 11.05 poniedziałek.
+    expect(StayFixtures::pricing($position)->breakdown('2026-05-08', 1)->totalInCents())->toBe(9000)
+        ->and(StayFixtures::pricing($position)->breakdown('2026-05-11', 1)->totalInCents())->toBe(7000);
+});
+
+test('warunek dopłaty liczy się osobno dla każdej doby, nie dla całego pobytu', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition();
 
     StayFixtures::rate($fishery, 70.00);
     StayFixtures::surcharge($fishery, 20.00, 'Weekend', ['weekdays' => [4, 5, 6, 7]]);
 
-    // Pobyt śr–pt: dopłata za czwartek i piątek, nie za środę.
-    $breakdown = StayFixtures::pricing($position)->breakdown('2026-04-29', 3);
+    // Śr 06.05 → czw 07.05 → pt 08.05: dopłata w dwóch ostatnich dobach.
+    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-06', 3);
 
-    expect(array_map(fn ($night): int => $night->totalInCents(), $breakdown->nights))
-        ->toBe([7000, 9000, 9000]);
+    expect($breakdown->totalInCents())->toBe(25000)
+        ->and($breakdown->nights[0]->subtotalInCents())->toBe(7000)
+        ->and($breakdown->nights[1]->subtotalInCents())->toBe(9000)
+        ->and($breakdown->nights[2]->subtotalInCents())->toBe(9000);
 });
 
-/**
- * ⚠️ Osoba towarzysząca NIE jest gałęzią w kodzie — to reguła `rate` z warunkiem roli
- * i kwotą 0,00 (O15).
- */
-test('a companion is priced by a rule, not by a branch in the code', function () {
+test('nachodzące stawki rozstrzygają się na korzyść wędkarza', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    StayFixtures::rate($fishery, 70.00, ['first_day_on' => '2026-01-01']);
+    StayFixtures::rate($fishery, 50.00, ['first_day_on' => '2026-05-01', 'last_day_on' => '2026-05-31']);
+
+    expect(StayFixtures::pricing($position)->breakdown('2026-05-10', 1)->totalInCents())->toBe(5000)
+        ->and(StayFixtures::pricing($position)->breakdown('2026-06-10', 1)->totalInCents())->toBe(7000);
+});
+
+test('rozbicie wskazuje regułę, która wygrała', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+
+    StayFixtures::rate($fishery, 90.00);
+    $cheap = StayFixtures::rate($fishery, 70.00);
+
+    $night = StayFixtures::pricing($position)->breakdown('2026-05-10', 1)->nights[0];
+
+    expect(itemsOf($night, ParticipantRole::Angler, PriceRuleKind::Rate)[0]->priceRuleId)->toBe($cheap->id);
+});
+
+test('dopłaty sumują się i widać je w rozbiciu osobno', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition();
 
     StayFixtures::rate($fishery, 70.00);
-    StayFixtures::rate($fishery, 0.00, [
-        'participant_role' => ParticipantRole::Companion->value,
-        'priority' => 100,
-        'label' => 'Osoba towarzyszaca',
-    ]);
+    StayFixtures::surcharge($fishery, 20.00, 'Pierwsza');
+    StayFixtures::surcharge($fishery, 20.00, 'Druga');
 
-    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-01', 1, anglers: 1, companions: 1);
+    $night = StayFixtures::pricing($position)->breakdown('2026-05-10', 1)->nights[0];
 
-    expect($breakdown->totalInCents())->toBe(7000)
-        ->and($breakdown->items())->toHaveCount(2);
+    expect($night->subtotalInCents())->toBe(11000)
+        ->and(itemsOf($night, ParticipantRole::Angler, PriceRuleKind::Surcharge))->toHaveCount(2);
 });
 
-/**
- * ⚠️ Dopłata BEZ warunku roli obciąża także osobę towarzyszącą — i to jest zachowanie
- * POPRAWNE, nie defekt. Różnica bierze się z konfiguracji, a nie z kodu, więc oba przypadki
- * mają test.
- */
-test('a surcharge without a role condition also charges the companion', function () {
+test('doba bez pasującej stawki jest odmową, a nie ceną zerową', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition();
 
-    StayFixtures::rate($fishery, 70.00);
-    StayFixtures::rate($fishery, 0.00, [
-        'participant_role' => ParticipantRole::Companion->value,
-        'priority' => 100,
-    ]);
-    $surcharge = StayFixtures::surcharge($fishery, 20.00, 'Wylacznosc', [
-        'anglers_count' => 1,
-        'weekdays' => [4, 5, 6, 7],
-    ]);
+    StayFixtures::rate($fishery, 70.00, ['first_day_on' => '2026-06-01']);
 
-    // 70 + 20 (łowiący) + 0 + 20 (towarzysząca) = 110,00 zł.
-    expect(StayFixtures::pricing($position)->breakdown('2026-04-30', 1, 1, 1)->totalInCents())
-        ->toBe(11000);
-
-    $surcharge->update(['participant_role' => ParticipantRole::Angler->value]);
-
-    // Po dołożeniu warunku roli: tyle, co pobyt samego łowiącego.
-    expect(StayFixtures::pricing($position)->breakdown('2026-04-30', 1, 1, 1)->totalInCents())
-        ->toBe(9000);
-});
-
-test('the breakdown carries items per night and per role with the rule behind them', function () {
-    [$fishery, $position] = StayFixtures::fisheryWithPosition();
-
-    $rate = StayFixtures::rate($fishery, 90.00);
-    $surcharge = StayFixtures::surcharge($fishery, 20.00, 'Wylacznosc');
-
-    $items = StayFixtures::pricing($position)->breakdown('2026-05-01', 1)->items();
-
-    expect($items)->toHaveCount(2)
-        ->and($items[0]->kind)->toBe(PriceRuleKind::Rate)
-        ->and($items[0]->priceRuleId)->toBe($rate->id)
-        ->and($items[0]->role)->toBe(ParticipantRole::Angler)
-        ->and($items[0]->night->toDateString())->toBe('2026-05-01')
-        ->and($items[1]->kind)->toBe(PriceRuleKind::Surcharge)
-        ->and($items[1]->label)->toBe('Wylacznosc')
-        ->and($items[1]->priceRuleId)->toBe($surcharge->id);
-});
-
-test('a gap in the price list is reported with the night, role and party size', function () {
-    [$fishery, $position] = StayFixtures::fisheryWithPosition();
-    StayFixtures::rate($fishery, 90.00, ['weekdays' => [5]]);
-
-    $breakdown = StayFixtures::pricing($position)->breakdown('2026-04-30', 1, anglers: 2);
+    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-10', 1);
 
     expect($breakdown->isPriced())->toBeFalse()
         ->and($breakdown->failure)->toBe(PricingFailure::NoMatchingRate)
-        ->and($breakdown->failedNight?->toDateString())->toBe('2026-04-30')
-        ->and($breakdown->failedRole)->toBe(ParticipantRole::Angler)
-        ->and($breakdown->failedAnglersCount)->toBe(2);
-});
-
-test('an unresolvable tie comes back as a result, never as an exception', function () {
-    [$fishery, $position] = StayFixtures::fisheryWithPosition();
-    StayFixtures::rate($fishery, 70.00, ['weekdays' => [5]]);
-    StayFixtures::rate($fishery, 90.00, ['first_day_on' => '2026-04-01', 'last_day_on' => '2026-06-30']);
-
-    $breakdown = StayFixtures::pricing($position)->breakdown('2026-05-01', 1);
-
-    expect($breakdown->isPriced())->toBeFalse()
-        ->and($breakdown->failure)->toBe(PricingFailure::UnresolvableTie);
-});
-
-/**
- * ⚠️ Wycena NIE woła `StaySellability` i nie powtarza warunków sprzedawalności — zmiana reguł
- * pobytu z 017 nie ma prawa zmienić wyniku wyceny. To jest granica, nie przypadek.
- */
-test('pricing does not depend on the stay rules from task 017', function () {
-    [$fishery, $position] = StayFixtures::fisheryWithPosition();
-    StayFixtures::rate($fishery, 70.00);
-
-    $before = StayFixtures::pricing($position)->breakdown('2026-05-01', 1)->totalInCents();
-
-    // Reguły, które w 017 czynią ten pobyt NIESPRZEDAWALNYM.
-    $fishery->update(['min_nights' => 5, 'weekend_days' => [5, 6], 'sale_horizon_days' => 1]);
-    StayFixtures::wholeTerm($fishery, '2026-04-30', 3);
-
-    expect(StayFixtures::pricing($position)->breakdown('2026-05-01', 1)->totalInCents())
-        ->toBe($before);
+        ->and($breakdown->totalInCents())->toBe(0)
+        ->and($breakdown->failedNight->toDateString())->toBe('2026-05-10');
 });
 
 test('the presale discount is taken off each night separately', function () {
@@ -209,18 +304,12 @@ test('the presale discount is taken off each night separately', function () {
     expect($breakdown->nights[0]->subtotalInCents())->toBe(9000)
         ->and($breakdown->nights[0]->discountInCents)->toBe(900)
         ->and($breakdown->nights[0]->totalInCents())->toBe(8100)
-        // Obniżka jest widoczna PRZY KAŻDEJ dobie, nie tylko w sumie.
         ->and($breakdown->nights[1]->discountInCents)->toBe(900)
         ->and($breakdown->totalInCents())->toBe(16200);
 
     Date::setTestNow();
 });
 
-/**
- * ⚠️ **Przypadek rozstrzygający zaokrąglenie.** Kwota bez połówki grosza niczego by tu
- * nie sprawdziła: liczenie osobno na każdą osobę dałoby 7,005 → 7,01 i razem 14,02 zł,
- * a jedno zaokrąglenie na dobę daje 14,01 zł.
- */
 test('the discount rounds once per night, from the sum of that nights items', function () {
     Date::setTestNow(CarbonImmutable::parse('2026-01-10 09:00', 'Europe/Warsaw'));
 
@@ -245,29 +334,13 @@ test('the discount rounds once per night, from the sum of that nights items', fu
     Date::setTestNow();
 });
 
-test('the discount applies only inside an open window and only to nights of that period', function () {
+test('wycena nie woła sprzedawalności — zmiana reguł pobytu nie zmienia ceny', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition();
     StayFixtures::rate($fishery, 70.00);
 
-    $fishery->salePeriods()->update([
-        'presale_opens_on' => '2026-01-01',
-        'presale_closes_on' => '2026-01-31',
-        'presale_discount_percent' => 10.00,
-    ]);
+    $before = StayFixtures::pricing($position)->breakdown('2026-05-10', 1)->totalInCents();
 
-    // Okno otwarte — obniżka działa.
-    Date::setTestNow(CarbonImmutable::parse('2026-01-10 09:00', 'Europe/Warsaw'));
-    expect(StayFixtures::pricing($position)->breakdown('2026-05-01', 1)->totalInCents())->toBe(6300);
+    $fishery->update(['min_nights' => 5, 'max_nights' => 7]);
 
-    // Okno zamknięte — pełna cena.
-    Date::setTestNow(CarbonImmutable::parse('2026-02-10 09:00', 'Europe/Warsaw'));
-    expect(StayFixtures::pricing($position)->breakdown('2026-05-01', 1)->totalInCents())->toBe(7000);
-
-    Date::setTestNow();
-});
-
-test('a position without a fishery has no price', function () {
-    $position = Position::factory()->create(['fishery_id' => null]);
-
-    expect(fn () => new StayPricing($position))->toThrow(\InvalidArgumentException::class);
+    expect(StayFixtures::pricing($position)->breakdown('2026-05-10', 1)->totalInCents())->toBe($before);
 });

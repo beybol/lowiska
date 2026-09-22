@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ParticipantRole;
 use App\Enums\PriceRuleKind;
+use App\Enums\PricingFailure;
 use App\Models\Fishery;
 use App\Models\Position;
 use App\Models\PriceRule;
@@ -27,8 +28,14 @@ use InvalidArgumentException;
  * ⚠️ **Kwoty liczą się w groszach, w liczbach całkowitych.** Obniżka przedsprzedażowa zaokrągla
  * się raz na dobę i musi odróżnić 14,01 zł od 14,02 zł.
  *
- * ⚠️ **Dziura w cenniku i remis wracają WYNIKIEM, nie wyjątkiem** — żeby jedna zła para reguł
- * nie wywróciła całego widoku kalendarza (019).
+ * ⚠️ **Brak ceny wraca WYNIKIEM, nie wyjątkiem** — żeby jedna dziura w cenniku nie wywróciła
+ * całego widoku kalendarza (019). Dwie odmowy są rozróżnialne: `NoMatchingRate` znaczy „dopisz
+ * stawkę", `NoCompanionPrice` — „popraw pole w stawce, która już jest".
+ *
+ * ⚠️ **Skład wymaga co najmniej jednego łowiącego.** Bez tej bramki zapytanie „0 łowiących,
+ * 1 osoba towarzysząca" przeszłoby przez cały model i dało ofertę za 0,00 zł: warunek obsady
+ * by nie wszedł, a stawka wniosłaby kwotę towarzyszącej. To niepoprawne wejście, nie odmowa
+ * biznesowa — stąd wyjątek, a nie `SaleUnavailabilityReason`.
  */
 final class StayPricing
 {
@@ -95,44 +102,79 @@ final class StayPricing
                 );
             }
 
-            $items = [];
+            // ⚠️ Rozstrzygnięcie zapada RAZ na dobę, nie raz na rolę: stawka nie zna roli,
+            // a obsadą porównywaną z warunkiem dopłaty jest zawsze liczba ŁOWIĄCYCH — dopłata
+            // „obsada 1" należy się przy jednym łowiącym niezależnie od tego, ile osób mu
+            // towarzyszy.
+            $resolution = $this->resolver()->resolve($night, $anglers);
 
-            foreach ([[ParticipantRole::Angler, $anglers], [ParticipantRole::Companion, $companions]] as [$role, $people]) {
-                if ($people < 1) {
-                    continue;
-                }
+            if (! $resolution->isResolved()) {
+                return StayPriceBreakdown::failed(
+                    $resolution->failure,
+                    $night->startsOn,
+                    ParticipantRole::Angler,
+                    $anglers,
+                );
+            }
 
-                // ⚠️ Obsadą porównywaną z warunkiem jest zawsze liczba ŁOWIĄCYCH, także gdy
-                // wyceniamy osobę towarzyszącą — dopłata „obsada 1" należy się przy jednym
-                // łowiącym niezależnie od tego, ile osób mu towarzyszy.
-                $resolution = $this->resolver()->resolve($night, $role, $anglers);
+            $companionAmount = $resolution->companionAmountInCents();
 
-                if (! $resolution->isResolved()) {
-                    return StayPriceBreakdown::failed(
-                        $resolution->failure,
-                        $night->startsOn,
-                        $role,
-                        $anglers,
-                    );
-                }
+            // ⚠️ Brak kwoty za osobę towarzyszącą to BRAK CENY, nie cena zerowa — i ma własny
+            // powód odmowy, bo prowadzi operatora gdzie indziej niż dziura w cenniku: tam
+            // trzeba dopisać stawkę, tu poprawić jedno pole w stawce, która już jest.
+            if ($companions > 0 && $companionAmount === null) {
+                return StayPriceBreakdown::failed(
+                    PricingFailure::NoCompanionPrice,
+                    $night->startsOn,
+                    ParticipantRole::Companion,
+                    $anglers,
+                );
+            }
 
-                $items[] = new StayPriceItem(
+            $items = [
+                new StayPriceItem(
                     night: $night->startsOn,
-                    role: $role,
+                    role: ParticipantRole::Angler,
                     kind: PriceRuleKind::Rate,
                     label: $resolution->rate->label,
-                    people: $people,
-                    amountPerPersonInCents: $resolution->rate->amountInCents(),
+                    people: $anglers,
+                    amountPerPersonInCents: $resolution->anglerAmountInCents(),
+                    priceRuleId: $resolution->rate->id,
+                ),
+            ];
+
+            if ($companions > 0) {
+                $items[] = new StayPriceItem(
+                    night: $night->startsOn,
+                    role: ParticipantRole::Companion,
+                    kind: PriceRuleKind::Rate,
+                    label: $resolution->rate->label,
+                    people: $companions,
+                    amountPerPersonInCents: (int) $companionAmount,
                     priceRuleId: $resolution->rate->id,
                 );
+            }
 
-                foreach ($resolution->surcharges as $surcharge) {
+            foreach ($resolution->surcharges as $surcharge) {
+                // ⚠️ `applies_to` decyduje, PRZEZ ILU osób mnoży się dopłata — nie czy wchodzi.
+                // Rozbijamy ją na pozycje per rola, żeby wędkarz widział w rozbiciu, kto płaci:
+                // „dla każdego" daje dwie pozycje, pozostałe warianty po jednej.
+                foreach ([[ParticipantRole::Angler, $anglers], [ParticipantRole::Companion, $companions]] as [$role, $people]) {
+                    $charged = $surcharge->chargeableHeadcount(
+                        $role === ParticipantRole::Angler ? $people : 0,
+                        $role === ParticipantRole::Companion ? $people : 0,
+                    );
+
+                    if ($charged < 1) {
+                        continue;
+                    }
+
                     $items[] = new StayPriceItem(
                         night: $night->startsOn,
                         role: $role,
                         kind: PriceRuleKind::Surcharge,
                         label: $surcharge->label,
-                        people: $people,
+                        people: $charged,
                         amountPerPersonInCents: $surcharge->amountInCents(),
                         priceRuleId: $surcharge->id,
                     );
@@ -207,12 +249,15 @@ final class StayPricing
     }
 
     /**
-     * Cennik wczytany RAZ na instancję, z odfiltrowanym wymiarem obowiązywania zapisu.
+     * Cennik wczytany RAZ na instancję.
      *
-     * ⚠️ `effective_*` mierzy się wobec **dzisiejszej daty w strefie łowiska**, liczonej tutaj —
-     * nie wobec momentu i nie wobec parametru wywołania. Rozróżnienie „wycena w koszyku kontra
-     * zapłata minutę po północy" wymaga utrwalonej transakcji, której nie ma w schemacie,
-     * i należy do snapshotu G1 (zadanie 018, rozstrzygnięcie 21).
+     * ⚠️ **Nie ma już wymiaru „obowiązywania zapisu"** (`effective_*`): reguła ma jeden przedział
+     * dat i mówi on, których DÓB dotyczy. Różnica między „kiedy zapis działa" a „których dób
+     * dotyczy" jest obserwowalna dopiero przy utrwalonej transakcji pamiętającej cenę z chwili
+     * zakupu, a ta należy do snapshotu G1 (ADR-014, sekcja „Aktualizacja").
+     *
+     * ⚠️ Brak `orderBy` jest celowy — kolejność rozstrzygania ustala `PriceRuleResolver`, żeby
+     * nie dało się jej zmienić przypadkiem z poziomu zapytania.
      */
     private function resolver(): PriceRuleResolver
     {
@@ -221,11 +266,8 @@ final class StayPricing
         }
 
         /** @var array<int, PriceRule> $rules */
-        $rules = $this->fishery->priceRules()->orderBy('priority', 'desc')->get()->all();
+        $rules = $this->fishery->priceRules()->get()->all();
 
-        return $this->resolver = new PriceRuleResolver(
-            $rules,
-            CarbonImmutable::now($this->periods()->timezone())->startOfDay(),
-        );
+        return $this->resolver = new PriceRuleResolver($rules);
     }
 }

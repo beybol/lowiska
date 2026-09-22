@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\FisheryResource\Pages;
 
-use App\Enums\ParticipantRole;
 use App\Enums\PriceRuleKind;
+use App\Enums\SurchargeAudience;
 use App\Filament\Resources\FisheryResource;
 use App\Models\Fishery;
 use App\Rules\PriceRuleDatesAreOrdered;
-use App\Rules\PriceRulesDoNotTie;
 use App\Services\FisheryNavigation;
+use App\Services\PriceRulePeriods;
 use App\Services\PricingConfigurationAudit;
 use App\Services\SharedFormComponents;
 use Carbon\CarbonImmutable;
@@ -26,22 +26,38 @@ use Filament\Schemas\Schema;
 /**
  * Ekran „Cennik": ile kosztuje doba na stanowisku.
  *
- * ⚠️ Cennik jest **listą reguł z warunkami**, nie tabelą stawek po wymiarach (ADR-014).
- * Dwie listy — stawki i dopłaty — bo operator myśli o nich osobno, choć mechanika wpisu jest
- * ta sama i różni je wyłącznie `kind`: stawka ZASTĘPUJE, dopłata DODAJE się.
+ * ⚠️ Cennik jest **listą reguł**, nie tabelą stawek po wymiarach (ADR-014). Dwie listy —
+ * stawki i dopłaty — bo operator myśli o nich osobno, a po przedefiniowaniu z 22.09.2026
+ * różnią się także KSZTAŁTEM, nie tylko flagą `kind`:
+ *
+ * - **stawka** ma pięć pól i żadnego warunku poza datami;
+ * - **dopłata** ma osiem pól i niesie cały ciężar warunkowy.
+ *
+ * Kto chce różnicować cenę dniami tygodnia, robi to dopłatą. Zniknęły priorytet, rola
+ * uczestnika, drugi zakres dat i błąd remisu — nachodzenie rozstrzyga się na korzyść wędkarza.
  *
  * ⚠️ To jest STRONA ZASOBU `FisheryResource`, nie strona panelu (`panel-wlasciciela.md` §6),
  * więc trafia do obu paneli bez dotykania providerów i bez dopisywania uprawnień do
  * `tests/TestCase.php`.
  *
  * ⚠️ **Ekran nie liczy ceny.** Odpowiada na nią `StayPricing`, a na „czy w ofercie" —
- * `StayOffer` (ADR-015). Tutaj są dane wejściowe, jeden błąd zapisu (remis) i dwa ostrzeżenia.
+ * `StayOffer` (ADR-015). Tutaj są dane wejściowe, jeden błąd zapisu i dwa powiadomienia.
  */
 class ManagePricing extends EditRecord
 {
     protected static string $resource = FisheryResource::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-banknotes';
+
+    /**
+     * Identyfikatory reguł istniejących PRZED zapisem — z nich wynika, które powstały teraz.
+     *
+     * ⚠️ Domykanie okresów działa wyłącznie przy utworzeniu, więc musi odróżnić nowy wpis od
+     * edytowanego. Filament zapisuje repeatery relacyjne hurtem i nie mówi, co dołożył.
+     *
+     * @var array<int, int>
+     */
+    protected array $ruleIdsBeforeSave = [];
 
     public static function getNavigationLabel(): string
     {
@@ -74,54 +90,49 @@ class ManagePricing extends EditRecord
     public function form(Schema $schema): Schema
     {
         // ⚠️ `EditRecord::defaultForm()` narzuca `columns(2)` — bez tego obie listy stoją
-        // obok siebie i wiersz reguły z sześcioma polami warunku jest nieczytelny
+        // obok siebie i wiersz dopłaty z ośmioma polami jest nieczytelny
         // (`panel-wlasciciela.md` §6).
         return $schema->columns(1)->components([
             Section::make(__('Rates'))
-                ->description(__('A rate replaces the price. For one night and one role exactly one rate wins — by priority, then by how many conditions it carries.'))
+                ->description(__('A rate replaces the price of a night. Rates have no conditions other than dates — to charge more on some days of the week, add a surcharge instead.'))
                 ->schema([
                     Repeater::make('rateRules')
                         ->hiddenLabel()
                         ->relationship()
-                        ->schema($this->ruleFields())
+                        ->schema($this->rateFields())
                         ->columns(3)
                         ->reorderable(false)
                         ->defaultItems(0)
                         ->addActionLabel(__('Add rate'))
-                        ->itemLabel(fn (array $state): ?string => $this->ruleItemLabel($state))
-                        // ⚠️ Relacja jest zawężona po `kind`, a Eloquent NIE wypełnia wartości
-                        // z `where()` przy tworzeniu przez relację — bez tego nowy wiersz
-                        // zapisałby się bez rodzaju i zniknąłby z obu list.
+                        ->itemLabel(fn (array $state): ?string => $this->rateItemLabel($state))
                         // ⚠️ Rodzaj ustawia hook, bo relacja zawężona po `kind` NIE wypełnia go
-                        // przy tworzeniu. Puste warunki sprowadzamy tu do `null` — pusty `Select`
-                        // przysyła pusty łańcuch, na którym rzut enuma wywracał zapis.
+                        // przy tworzeniu — bez tego nowy wiersz zapisałby się bez rodzaju
+                        // i zniknąłby z obu list.
                         ->mutateRelationshipDataBeforeCreateUsing(
-                            fn (array $data): array => self::ruleData($data, PriceRuleKind::Rate),
+                            fn (array $data): array => self::rateData($data),
                         )
                         ->mutateRelationshipDataBeforeSaveUsing(
-                            fn (array $data): array => self::ruleData($data, PriceRuleKind::Rate),
+                            fn (array $data): array => self::rateData($data),
                         )
-                        // ⚠️ Reguły siedzą na CAŁYM repeaterze: remis jest własnością ZBIORU,
-                        // więc walidacja pojedynczego wiersza nigdy by go nie zobaczyła.
-                        ->rules([new PriceRulesDoNotTie, new PriceRuleDatesAreOrdered]),
+                        ->rules([new PriceRuleDatesAreOrdered]),
                 ]),
             Section::make(__('Surcharges'))
-                ->description(__('A surcharge adds to the rate. All matching surcharges add up, so there is nothing to resolve between them.'))
+                ->description(__('A surcharge adds to the rate. All matching surcharges add up, so there is nothing to resolve between them. This is also how you charge more on chosen days of the week.'))
                 ->schema([
                     Repeater::make('surchargeRules')
                         ->hiddenLabel()
                         ->relationship()
-                        ->schema($this->ruleFields())
+                        ->schema($this->surchargeFields())
                         ->columns(3)
                         ->reorderable(false)
                         ->defaultItems(0)
                         ->addActionLabel(__('Add surcharge'))
-                        ->itemLabel(fn (array $state): ?string => $this->ruleItemLabel($state))
+                        ->itemLabel(fn (array $state): ?string => $this->surchargeItemLabel($state))
                         ->mutateRelationshipDataBeforeCreateUsing(
-                            fn (array $data): array => self::ruleData($data, PriceRuleKind::Surcharge),
+                            fn (array $data): array => self::surchargeData($data),
                         )
                         ->mutateRelationshipDataBeforeSaveUsing(
-                            fn (array $data): array => self::ruleData($data, PriceRuleKind::Surcharge),
+                            fn (array $data): array => self::surchargeData($data),
                         )
                         ->rules([new PriceRuleDatesAreOrdered]),
                 ]),
@@ -129,82 +140,135 @@ class ManagePricing extends EditRecord
     }
 
     /**
-     * Pola jednego wiersza — wspólne dla stawek i dopłat, bo mechanika wpisu jest ta sama.
+     * Pięć pól stawki — kwoty i daty, nic więcej.
      *
      * @return array<int, mixed>
      */
-    private function ruleFields(): array
+    private function rateFields(): array
     {
         return [
-            // ⚠️ Minimum 0,00, nie 0,01: stawka osoby towarzyszącej MUSI dać się zapisać
-            // jako zero — tak właśnie wycenia się ją zgodnie z O15, bez gałęzi w kodzie.
-            SharedFormComponents::getPriceInput('amount', __('Amount per person per night'), 0.00),
-            TextInput::make('label')
-                ->label(__('Label shown to the angler'))
-                ->maxLength(255),
-            TextInput::make('priority')
-                ->label(__('Priority'))
-                ->helperText(__('A higher number wins.'))
-                ->numeric()
-                ->default(0),
-            DatePicker::make('effective_from')
-                ->label(__('Effective from')),
-            DatePicker::make('effective_to')
-                ->label(__('Effective to')),
+            SharedFormComponents::getPriceInput('amount', __('Amount per angler per night'), 0.00),
+            // ⚠️ Minimum 0,00, nie 0,01: osoba towarzysząca jest u obu znanych łowisk darmowa.
+            // ⚠️ WYMAGANE, bo puste pole znaczy BRAK CENY, czyli odmowę sprzedaży komuś,
+            // kto przyjechał z osobą towarzyszącą — a operator prawie nigdy tego nie chce.
+            SharedFormComponents::getPriceInput('amount_companion', __('Amount per companion per night'), 0.00)
+                ->required()
+                ->default(0)
+                ->helperText(__('Enter 0.00 if companions stay for free. Leaving this empty means the night can not be sold to anyone bringing a companion.')),
             Toggle::make('is_suspended')
                 ->label(__('Suspended'))
                 ->helperText(__('Stays in the price list and takes no part in pricing.')),
-            // ⚠️ Warunki. Pusta oś znaczy „bez warunku na tej osi", NIE „warunek fałszywy" —
-            // reguła bez ani jednego warunku jest stawką bazową łowiska.
-            ToggleButtons::make('weekdays')
-                ->label(__('Only on these nights'))
-                ->helperText(__('Nights are identified by the day they start on.'))
-                ->multiple()
-                ->inline()
-                ->options($this->weekdayOptions())
-                ->columnSpanFull(),
             DatePicker::make('first_day_on')
-                ->label(__('First night')),
+                ->label(__('Effective from'))
+                ->helperText(__('The first night this rate prices. Empty means no lower bound.')),
             DatePicker::make('last_day_on')
-                ->label(__('Last night')),
-            Select::make('anglers_count')
-                ->label(__('Only with exactly this many anglers'))
-                ->options($this->anglerCountOptions()),
-            Select::make('participant_role')
-                ->label(__('Only for this role'))
-                ->options(ParticipantRole::options()),
+                ->label(__('Effective to'))
+                ->helperText(__('Leave empty for the current price list — a new open-ended rate then closes this one automatically.')),
         ];
     }
 
     /**
-     * Ostrzeżenia o konfiguracji (G3).
+     * Osiem pól dopłaty — cały ciężar warunkowy cennika.
      *
-     * ⚠️ Oba są **ostrzeżeniami, nie błędami**, i to jest świadome: dziura w cenniku może być
-     * etapem porządkowania, a stawka bez warunku roli obciążająca osobę towarzyszącą może być
-     * intencją („w sylwestra płacą wszyscy"). Twardym błędem jest wyłącznie remis — bo tam
-     * cennik mówi dwie rzeczy naraz i żadnej nie da się wybrać uczciwie.
+     * ⚠️ **Każde pole warunku ma jednozdaniowe wyjaśnienie.** Zgłoszenie, które doprowadziło do
+     * przedefiniowania, dotyczyło nieczytelności warunków; samo usunięcie dwóch osi go nie zamyka.
+     *
+     * @return array<int, mixed>
+     */
+    private function surchargeFields(): array
+    {
+        return [
+            SharedFormComponents::getPriceInput('amount', __('Amount per person per night'), 0.00),
+            TextInput::make('label')
+                ->label(__('Label shown to the angler'))
+                ->helperText(__('Shown next to every night it applies to.'))
+                ->maxLength(255),
+            // ⚠️ Domyślnie „dla łowiącego", NIE „dla każdego": osoba towarzysząca bywa darmowa,
+            // więc domyślne obciążanie jej byłoby pomyłką najtrudniejszą do zauważenia.
+            Select::make('applies_to')
+                ->label(__('Charged to'))
+                ->options(SurchargeAudience::options())
+                ->default(SurchargeAudience::Angler->value)
+                ->selectablePlaceholder(false)
+                ->required()
+                ->helperText(__('"For everyone" charges companions too — pick it for things everyone uses, such as power or parking.')),
+            DatePicker::make('first_day_on')
+                ->label(__('Effective from'))
+                ->helperText(__('The first night this surcharge applies to. Empty means no lower bound.')),
+            DatePicker::make('last_day_on')
+                ->label(__('Effective to'))
+                ->helperText(__('Empty means it applies indefinitely.')),
+            Toggle::make('is_suspended')
+                ->label(__('Suspended'))
+                ->helperText(__('Stays in the price list and takes no part in pricing.')),
+            Select::make('anglers_count')
+                ->label(__('Only with exactly this many anglers'))
+                ->options($this->anglerCountOptions())
+                ->helperText(__('Empty means any number. Only anglers count — a companion does not raise it.')),
+            ToggleButtons::make('weekdays')
+                ->label(__('Only on these nights'))
+                ->helperText(__('Nights are identified by the day they start on. Selecting none means every night.'))
+                ->multiple()
+                ->inline()
+                ->options($this->weekdayOptions())
+                ->columnSpanFull(),
+        ];
+    }
+
+    /**
+     * Zapamiętuje stan sprzed zapisu, żeby dało się odróżnić nowe reguły od edytowanych.
+     *
+     * ⚠️ **`beforeValidate`, a NIE `beforeSave`** — i to nie jest wybór stylistyczny. Filament
+     * zapisuje repeatery relacyjne wewnątrz `$this->form->getState()`, a hook `beforeSave`
+     * odpala się dopiero w jego wywołaniu zwrotnym `afterValidate`, czyli **już po** wstawieniu
+     * nowych wierszy. Migawka zrobiona tam zawierałaby je wszystkie i domykanie nigdy by się
+     * nie uruchomiło — cicho, bez błędu.
+     */
+    protected function beforeValidate(): void
+    {
+        $this->ruleIdsBeforeSave = $this->fishery()->priceRules()->pluck('id')->map(
+            static fn (mixed $id): int => (int) $id,
+        )->all();
+    }
+
+    /**
+     * Domknięcie wypartych stawek plus ostrzeżenie o dziurze w cenniku (G3).
+     *
+     * ⚠️ **Ostrzeżenie o dziurze jest ostrzeżeniem, nie błędem**, i to jest świadome: dziura
+     * może być etapem porządkowania sezonu.
+     *
+     * ⚠️ **Nie ostrzegamy o stawce, która przegrywa z tańszą.** Zapis „90 zł w lipcu" przy
+     * bezterminowych 70 zł jest legalny i nic nie zrobi — pokazuje to kalendarz podglądowy
+     * (019), a nie formularz, żeby wiedza o nachodzeniu miała jeden dom.
      */
     protected function afterSave(): void
     {
-        $audit = new PricingConfigurationAudit($this->fishery()->refresh());
+        $fishery = $this->fishery()->refresh();
 
-        $gap = $audit->firstPricingGap();
+        $created = $fishery->priceRules()
+            ->whereNotIn('id', $this->ruleIdsBeforeSave)
+            ->pluck('id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
 
-        if ($gap !== null) {
+        foreach ((new PriceRulePeriods($fishery))->closeSupersededRates($created) as $closed) {
+            Notification::make()
+                ->success()
+                ->title(__('A previous rate was closed'))
+                ->body(__('Rate ":label" now ends on :until, because a newer rate takes over from the next day.', [
+                    'label' => $closed['label'],
+                    'until' => $closed['until'],
+                ]))
+                ->send();
+        }
+
+        $gap = (new PricingConfigurationAudit($fishery->refresh()))->firstPricingGap();
+
+        if ($gap instanceof CarbonImmutable) {
             Notification::make()
                 ->warning()
                 ->title(__('Some nights have no price — anglers can not buy them'))
                 ->body($this->pricingGapBody($gap))
-                ->send();
-        }
-
-        $outranking = $audit->ratesOutrankingCompanionRate();
-
-        if ($outranking !== []) {
-            Notification::make()
-                ->warning()
-                ->title(__('A rate without a role condition outranks the companion rate'))
-                ->body(__('On the nights it applies, a companion will pay it. Add a role condition to that rate, or raise the priority of the companion rate.'))
                 ->send();
         }
     }
@@ -251,9 +315,11 @@ class ManagePricing extends EditRecord
     }
 
     /**
+     * Nagłówek wiersza stawki: `70,00 zł · od 01.01.2026` albo `· okno` przy datowanej.
+     *
      * @param  array<string, mixed>  $state
      */
-    private function ruleItemLabel(array $state): ?string
+    private function rateItemLabel(array $state): ?string
     {
         $amount = $state['amount'] ?? null;
 
@@ -261,63 +327,141 @@ class ManagePricing extends EditRecord
             return null;
         }
 
-        $label = $state['label'] ?? null;
-        $suffix = filled($label) ? ' · '.$label : '';
+        $from = $state['first_day_on'] ?? null;
+        $to = $state['last_day_on'] ?? null;
 
-        if ($state['is_suspended'] ?? false) {
-            $suffix .= ' · '.__('suspended');
+        $label = (string) $amount;
+
+        if (filled($from) && filled($to)) {
+            $label .= ' · '.$from.'–'.$to.' · '.__('window');
+        } elseif (filled($from)) {
+            $label .= ' · '.__('from').' '.$from;
+        } elseif (filled($to)) {
+            $label .= ' · '.__('until').' '.$to;
         }
 
-        return $amount.$suffix;
+        return $label.$this->suspendedSuffix($state);
+    }
+
+    /**
+     * Nagłówek wiersza dopłaty: `+20,00 zł · dla łowiącego · obsada 1 · czw–nd`.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private function surchargeItemLabel(array $state): ?string
+    {
+        $amount = $state['amount'] ?? null;
+
+        if (blank($amount)) {
+            return null;
+        }
+
+        $parts = ['+'.$amount];
+
+        if (filled($state['label'] ?? null)) {
+            $parts[] = (string) $state['label'];
+        }
+
+        $audience = SurchargeAudience::tryFrom((string) ($state['applies_to'] ?? ''));
+        $parts[] = mb_strtolower(($audience ?? SurchargeAudience::Angler)->label());
+
+        if (filled($state['anglers_count'] ?? null)) {
+            $parts[] = __('anglers: :count', ['count' => $state['anglers_count']]);
+        }
+
+        $weekdays = $state['weekdays'] ?? [];
+
+        if (is_array($weekdays) && $weekdays !== []) {
+            $names = $this->weekdayOptions();
+            $parts[] = implode('–', array_map(
+                static fn (mixed $day): string => $names[(int) $day] ?? (string) $day,
+                [reset($weekdays), end($weekdays)],
+            ));
+        }
+
+        return implode(' · ', $parts).$this->suspendedSuffix($state);
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function suspendedSuffix(array $state): string
+    {
+        return ($state['is_suspended'] ?? false) ? ' · '.__('suspended') : '';
     }
 
     /**
      * Treść ostrzeżenia o dziurze w cenniku.
      *
-     * ⚠️ Komunikat ma **nazwać dzień tygodnia**, a nie samą datę. Najczęstszą przyczyną dziury
-     * jest warunek dób tygodnia na stawce, więc „piątek, 25.09.2026" prowadzi operatora prosto
-     * do pola, które trzeba poprawić; sama data każe mu to zgadywać (zgłoszenie z 2026-09-22).
+     * ⚠️ Komunikat ma **nazwać dzień tygodnia**, a nie samą datę — operator myśli o cenniku
+     * kalendarzowo (zgłoszenie z 2026-09-22).
      *
-     * ⚠️ Rolę i obsadę wymieniamy **tylko wtedy, gdy są istotne**. W zwykłym przypadku (łowiący,
-     * jedna osoba) zdanie „dla roli Łowiący przy 1 łowiących" jest szumem, który przykrywa jedyną
-     * użyteczną informację — którą dobę poprawić.
-     *
-     * ⚠️ Zastrzeżenie o dzisiejszym stanie cennika ZOSTAJE, bo sprawdzenie nie analizuje osi
-     * czasu — ale jest jednym krótkim zdaniem. Wcześniejsza wersja rozwijała je w wykład
-     * o „regule wygasającej później" i podsuwała operatorowi trop `effective_*` nawet wtedy,
-     * gdy żadna jego reguła nie miała dat obowiązywania.
-     *
-     * @param  array{night: CarbonImmutable, role: ParticipantRole, anglers: int}  $gap
+     * ⚠️ **Nie wymienia już obsady ani roli**: stawka od nich nie zależy, więc byłyby to dane
+     * mylące, a nie doprecyzowujące. Nie wymienia też dni tygodnia jako możliwej przyczyny —
+     * stawka ich nie zna, więc dziura może mieć już tylko przyczynę datową.
      */
-    private function pricingGapBody(array $gap): string
+    private function pricingGapBody(CarbonImmutable $night): string
     {
-        $body = __('The first one is :night. None of your rates covers it — check the conditions on your rates: nights of the week, date range, number of anglers, role.', [
-            'night' => $gap['night']->locale(app()->getLocale())->isoFormat('dddd, D.MM.YYYY'),
-        ]);
-
-        if ($gap['role'] !== ParticipantRole::Angler || $gap['anglers'] > 1) {
-            $body .= ' '.__('It concerns :role at a position taken by :anglers angler(s).', [
-                'role' => mb_strtolower($gap['role']->label()),
-                'anglers' => $gap['anglers'],
-            ]);
-        }
-
-        return $body.' '.__('Checked against the price list as it stands today.');
+        return __('The first one is :night. None of your rates covers it — check the dates on your rates.', [
+            'night' => $night->locale(app()->getLocale())->isoFormat('dddd, D.MM.YYYY'),
+        ]).' '.__('Checked against the price list as it stands today.');
     }
 
     /**
-     * Wiersz repeatera gotowy do zapisu: rodzaj reguły plus puste warunki sprowadzone do `null`.
+     * Wiersz stawki gotowy do zapisu.
      *
-     * ⚠️ Normalizacja pustych wartości ma jeden dom — `PriceRulesDoNotTie::withoutBlankConditions()`
-     * — bo tę samą operację musi wykonać walidacja remisu, która hydratuje z wiersza model.
-     * Dwie kopie rozjechałyby się przy pierwszej nowej osi warunku.
+     * ⚠️ **Pola dopłaty jadą na `null`, a nie zostają puste.** Kolumny są wspólne, bo rodzaj
+     * reguły jest flagą — ale zostawienie w nich czegokolwiek znaczyłoby trzymanie w bazie
+     * danych, których nikt nie interpretuje.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private static function ruleData(array $data, PriceRuleKind $kind): array
+    private static function rateData(array $data): array
     {
-        return PriceRulesDoNotTie::withoutBlankConditions($data) + ['kind' => $kind->value];
+        return self::withoutBlankValues($data) + [
+            'kind' => PriceRuleKind::Rate->value,
+            'weekdays' => null,
+            'anglers_count' => null,
+            'applies_to' => null,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private static function surchargeData(array $data): array
+    {
+        return self::withoutBlankValues($data) + [
+            'kind' => PriceRuleKind::Surcharge->value,
+            'amount_companion' => null,
+        ];
+    }
+
+    /**
+     * Puste wartości z formularza sprowadzone do `null`.
+     *
+     * ⚠️ **Pusty `Select` przysyła PUSTY ŁAŃCUCH, nie `null`** — i to jest stan normalny, bo
+     * dopłata bez warunku obsady nic tam nie wybiera. Bez tej normalizacji rzutowanie enuma
+     * na `''` rzuca `ValueError` i wywraca **cały zapis** formularza (zgłoszenie z 2026-09-22).
+     *
+     * ⚠️ Metoda przyjechała tu z `PriceRulesDoNotTie`, usuniętej razem z remisami. Gdyby ktoś
+     * szukał jej tam — nie ma, i nie ma dokąd wracać: walidacja remisu przestała istnieć,
+     * a normalizacja musiała przeżyć.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    private static function withoutBlankValues(array $row): array
+    {
+        foreach (['weekdays', 'first_day_on', 'last_day_on', 'anglers_count', 'applies_to', 'label', 'amount_companion'] as $key) {
+            if (array_key_exists($key, $row) && blank($row[$key])) {
+                $row[$key] = null;
+            }
+        }
+
+        return $row;
     }
 
     /**

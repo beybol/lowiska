@@ -52,9 +52,10 @@ test('an unsellable stay is refused without being priced', function () {
 
 test('a sellable stay without a matching rate is refused as having no price', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition();
-    StayFixtures::rate($fishery, 90.00, ['weekdays' => [5]]);
+    // ⚠️ Stawka nie zna dni tygodnia — dziura w cenniku ma dziś wyłącznie przyczynę DATOWĄ.
+    StayFixtures::rate($fishery, 90.00, ['first_day_on' => '2026-05-01']);
 
-    // Czwartek: sprzedawalny wg 017, ale cennik go nie obejmuje.
+    // 30.04: sprzedawalny wg 017, ale cennik zaczyna się dopiero następnego dnia.
     $verdict = StayFixtures::offer($position)->offer('2026-04-30', 1);
 
     expect($verdict->available)->toBeFalse()
@@ -78,15 +79,22 @@ test('with both causes at once the sellability reason wins', function () {
         ->not->toBe(SaleUnavailabilityReason::NoPriceDefined);
 });
 
-test('an unresolvable tie comes back as a refusal, not as an exception', function () {
+/**
+ * ⚠️ **Nachodzenie stawek NIE jest już odmową.** Remis blokujący sprzedaż został wycofany wraz
+ * z priorytetami (ADR-014, sekcja „Aktualizacja") — dwie stawki na tę samą dobę rozstrzygają się
+ * na korzyść wędkarza, a oferta jest DOSTĘPNA. Ten test pilnuje odwróconego niezmiennika: gdyby
+ * kiedykolwiek wróciła odmowa z tytułu nachodzenia, zaczerwienieje.
+ */
+test('overlapping rates do not refuse the offer, they resolve in the anglers favour', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition();
-    StayFixtures::rate($fishery, 70.00, ['weekdays' => [5]]);
+    StayFixtures::rate($fishery, 70.00);
     StayFixtures::rate($fishery, 90.00, ['first_day_on' => '2026-04-01', 'last_day_on' => '2026-06-30']);
 
     $verdict = StayFixtures::offer($position)->offer('2026-05-01', 1);
 
-    expect($verdict->available)->toBeFalse()
-        ->and($verdict->reason)->toBe(SaleUnavailabilityReason::NoPriceDefined);
+    expect($verdict->available)->toBeTrue()
+        ->and($verdict->reason)->toBeNull()
+        ->and($verdict->breakdown?->totalInCents())->toBe(7000);
 });
 
 test('the shortest buyable stay is one night when nothing constrains it', function () {
@@ -182,7 +190,7 @@ test('a night is unsellable when the shortest possible stay exceeds the maximum'
 
 test('a night with no price at all has no shortest buyable stay', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition();
-    StayFixtures::rate($fishery, 90.00, ['weekdays' => [5]]);
+    StayFixtures::rate($fishery, 90.00, ['first_day_on' => '2026-06-01']);
 
     $shortest = StayFixtures::offer($position)->shortestOffer('2026-05-06');
 

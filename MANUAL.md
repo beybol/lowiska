@@ -110,52 +110,54 @@ i sezony". Bez nich nie da się pokazać, od której do której godziny trwa dob
 ## 6. Cennik
 
 Tutaj mówisz, **ile kosztuje doba** na stanowisku. Cennik nie jest tabelą cen, tylko **listą
-reguł z warunkami** — dzięki temu nowy wymiar cennika dokładasz warunkiem, a nie czekaniem na
-zmianę w programie.
+reguł** — i te reguły są dwojakiego rodzaju, a różni je coś więcej niż nazwa:
 
-Reguły są dwojakiego rodzaju i różni je tylko jedno:
-
-- **Stawka** — *zastępuje* cenę. Dla jednej doby i jednej roli wygrywa dokładnie jedna.
+- **Stawka** — *zastępuje* cenę doby. Dla jednej doby wygrywa dokładnie jedna.
 - **Dopłata** — *dodaje się* do stawki. Wszystkie pasujące sumują się.
 
-Przy każdej regule podajesz kwotę **za osobę za dobę**, opis widoczny dla wędkarza, priorytet
-oraz — opcjonalnie — warunki: doby tygodnia, zakres dat, dokładną liczbę łowiących i rolę
-uczestnika. **Reguła bez żadnego warunku jest stawką bazową** łowiska; większości obiektów
-wystarczy jedna taka stawka i jedna dopłata.
+**Stawka ma pięć pól i żadnych warunków poza datami:** kwotę za osobę łowiącą, kwotę za osobę
+towarzyszącą, „obowiązuje od", „obowiązuje do" i zawieszenie. To wszystko.
 
-⚠️ **Warunek liczy się osobno dla każdej doby.** Dopłata „czwartek–niedziela" przy pobycie
-od środy do piątku naliczy się za czwartek i piątek, a nie za cały pobyt ani za nic.
+⚠️ **Chcesz policzyć więcej w weekend? Zrób to dopłatą, nie stawką.** Stawka nie umie rozróżniać
+dni tygodnia i to jest zamierzone — dzięki temu zawsze wiadomo, ile wynosi cena bazowa, a różnica
+jest widoczna jako różnica.
 
-**Która reguła wygrywa.** Najpierw wyższy **priorytet**, a przy równym — ta z **większą liczbą
-warunków**. Jeśli dwie stawki mają ten sam priorytet i tyle samo warunków, i obie pasują do tej
-samej doby, system **nie zapisze cennika**: nie zgadujemy, którą cenę miałeś na myśli. Wyjściem
-jest podniesienie priorytetu jednej z nich.
+**Dopłata ma osiem pól** i to ona niesie wszystkie warunki: kwotę, opis dla wędkarza, **„dla
+kogo"**, zakres dat, doby tygodnia, „tylko przy obsadzie N" i zawieszenie.
 
-⚠️ **Dwie rzeczy, na które trzeba uważać — obie łatwe do przeoczenia:**
+**Która stawka wygrywa.** Gdy do doby pasuje kilka stawek, wygrywa **tańsza dla wędkarza**. Nie ma
+priorytetów i nie ma błędu — nachodzenie jest dozwolone, a to, co naprawdę wychodzi w cenie każdej
+doby, zobaczysz na kalendarzu podglądowym.
 
-1. **Dopłata bez warunku roli nalicza się za KAŻDĄ osobę**, także towarzyszącą. Jeśli dopłata
-   ma dotyczyć tylko łowiących, ustaw jej rolę na „łowiący". To najczęstsza pomyłka w całym
-   cenniku i najtrudniejsza do zauważenia, bo wszystko wygląda poprawnie.
-2. **Stawka osoby towarzyszącej musi mieć najwyższy priorytet.** Każda stawka warunkowa bez
-   warunku roli pasuje także do niej — przy równym priorytecie zderzy się z nią i cennik nie
-   przejdzie, a przy niższym towarzysząca zapłaci pełną stawkę. Gdy dopiszesz stawkę o priorytecie
-   wyższym niż stawka towarzyszącej, system Cię o tym ostrzeże, ale zapis przepuści: czasem
-   właśnie o to chodzi (np. w sylwestra płacą wszyscy).
+⚠️ **Stąd wynika rzecz, o której trzeba wiedzieć: stawką z datą końca możesz cenę tylko OBNIŻYĆ.**
+Promocja „50 zł w maju" zadziała. „90 zł w lipcu" przegra z Twoimi bezterminowymi 70 zł i nie zrobi
+nic. Podwyżkę robi się **nową stawką bez daty końca** albo **dopłatą**.
 
-**Zawieszenie zamiast kasowania.** Reguły, której czasowo nie chcesz stosować, nie musisz usuwać
-— wystarczy ją zawiesić. Zostaje w cenniku i włączysz ją jednym kliknięciem.
+**Jak podnieść ceny od nowego roku.** Dodaj stawkę z datą „obowiązuje od" i **zostaw puste
+„obowiązuje do"** — to znaczy „tak jest teraz". System sam domknie poprzednią stawkę na dzień
+wcześniej i **powie Ci o tym** w powiadomieniu. Stawka z wypełnionymi obiema datami niczego nie
+domyka: jest wstawką w istniejący cennik, nie nowym cennikiem.
 
-**Od kiedy obowiązuje zmiana.** Każda reguła ma własny okres obowiązywania („obowiązuje od / do").
-To **coś innego** niż warunek zakresu dat: okres obowiązywania mówi, od kiedy ten zapis bierze
-udział w wycenie, a warunek — których dób dotyczy. Dzięki temu w maju możesz przygotować cennik
-wakacji, który zacznie działać dopiero 1 czerwca.
+**Pole „dla kogo" przy dopłacie.** Decyduje, przez ile osób mnożymy dopłatę:
 
-**Osoba towarzysząca** nie jest osobnym ustawieniem, tylko stawką z rolą „osoba towarzysząca"
-i kwotą 0,00 zł. Jeśli chcesz, żeby płaciła — wpisz inną kwotę.
+- **dla łowiącego** — wartość domyślna, i taką mają oba znane nam cenniki;
+- **dla każdego** — obciąży także osoby towarzyszące; wybierz to dla rzeczy, z których korzysta
+  każdy: prąd, altana, parking;
+- **dla osoby towarzyszącej** — gdy pobierasz za samą obecność osoby niełowiącej.
+
+⚠️ **„Tylko przy obsadzie N" liczy samych łowiących.** Osoba towarzysząca obsady nie podnosi, więc
+dopłata za wyłączność stanowiska nie zniknie przez to, że wędkarz przyjechał z kimś.
+
+**Osoba towarzysząca** nie jest osobną regułą — to druga kwota na stawce. ⚠️ **Wpisz tam 0,00,
+jeśli towarzysząca jest za darmo.** Puste pole znaczy coś innego: że doby **nie da się sprzedać**
+nikomu, kto przyjeżdża z osobą towarzyszącą.
+
+**Zawieszenie zamiast kasowania.** Reguły, której czasowo nie chcesz stosować, nie musisz usuwać —
+wystarczy ją zawiesić. Zostaje w cenniku i włączysz ją jednym kliknięciem.
 
 ⚠️ **Doba bez pasującej stawki jest niesprzedawalna**, a nie darmowa. Po zapisie system ostrzeże
 Cię, jeśli w otwartym sezonie znajdzie taką dobę — ale ostrzeżenie sprawdza **dzisiejszy** stan
-cennika, więc wydłużenie sezonu albo wygaśnięcie reguły może otworzyć dziurę później.
+cennika, więc wydłużenie sezonu może otworzyć dziurę później.
 
 ## 7. Stanowiska
 

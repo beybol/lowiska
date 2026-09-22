@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ParticipantRole;
+use App\Enums\PricingFailure;
 use App\Enums\SaleUnavailabilityReason;
 use Carbon\CarbonImmutable;
 
@@ -38,12 +39,21 @@ final readonly class StayOfferVerdict
         return new self(false, null, $verdict->reason, $verdict);
     }
 
-    /** Odmowa z cennika — doba jest sprzedawalna, ale nie ma dla niej stawki. */
+    /**
+     * Odmowa z cennika — doba jest sprzedawalna, ale nie ma dla niej ceny.
+     *
+     * ⚠️ Powód **tłumaczy się z `PricingFailure`**, a nie jest stały: brak stawki i brak kwoty
+     * za osobę towarzyszącą to dwie różne odmowy, bo każe się po nich zrobić co innego.
+     * To tutaj, w warstwie oferty, słownik wyceny zamienia się na słownik sprzedaży (ADR-015).
+     */
     public static function notPriced(StayPriceBreakdown $breakdown): self
     {
         return new self(
             available: false,
-            reason: SaleUnavailabilityReason::NoPriceDefined,
+            reason: match ($breakdown->failure) {
+                PricingFailure::NoCompanionPrice => SaleUnavailabilityReason::NoCompanionPrice,
+                default => SaleUnavailabilityReason::NoPriceDefined,
+            },
             unpricedNight: $breakdown->failedNight,
             unpricedRole: $breakdown->failedRole,
             unpricedAnglersCount: $breakdown->failedAnglersCount,

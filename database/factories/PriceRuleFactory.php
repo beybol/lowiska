@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Enums\ParticipantRole;
 use App\Enums\PriceRuleKind;
+use App\Enums\SurchargeAudience;
 use App\Models\Fishery;
 use App\Models\PriceRule;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -14,8 +14,11 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class PriceRuleFactory extends Factory
 {
     /**
-     * Domyślnie **stawka bazowa łowiska**: reguła `rate` bez ani jednego warunku.
-     * Oba łowiska klienta obchodzą się jedną taką regułą plus jedną dopłatą.
+     * Domyślnie **stawka bazowa łowiska**: reguła `rate` bez żadnych dat, z darmową osobą
+     * towarzyszącą. Oba łowiska klienta obchodzą się jedną taką regułą plus jedną dopłatą.
+     *
+     * ⚠️ `amount_companion` domyślnie `0.00`, a nie `null`: `null` znaczy BRAK CENY, czyli
+     * odmowę sprzedaży komuś z osobą towarzyszącą. Fabryka ma dawać cennik, który działa.
      *
      * @return array<string, mixed>
      */
@@ -26,24 +29,27 @@ class PriceRuleFactory extends Factory
             'kind' => PriceRuleKind::Rate->value,
             'label' => null,
             'amount' => 70.00,
-            'priority' => 0,
+            'amount_companion' => 0.00,
             'is_suspended' => false,
-            'effective_from' => null,
-            'effective_to' => null,
-            'weekdays' => null,
             'first_day_on' => null,
             'last_day_on' => null,
+            'weekdays' => null,
             'anglers_count' => null,
-            'participant_role' => null,
+            'applies_to' => null,
         ];
     }
 
+    /**
+     * Dopłata — domyślnie „dla łowiącego", jak w obu realnych cennikach.
+     */
     public function surcharge(float $amount, ?string $label = null): self
     {
         return $this->state(fn (): array => [
             'kind' => PriceRuleKind::Surcharge->value,
             'amount' => $amount,
             'label' => $label,
+            'amount_companion' => null,
+            'applies_to' => SurchargeAudience::Angler->value,
         ]);
     }
 
@@ -52,9 +58,17 @@ class PriceRuleFactory extends Factory
         return $this->state(fn (): array => ['amount' => $amount]);
     }
 
-    public function priority(int $priority): self
+    /**
+     * Kwota za osobę towarzyszącą; `null` znaczy BRAK CENY, nie zero.
+     */
+    public function companionAmount(?float $amount): self
     {
-        return $this->state(fn (): array => ['priority' => $priority]);
+        return $this->state(fn (): array => ['amount_companion' => $amount]);
+    }
+
+    public function chargedTo(SurchargeAudience $audience): self
+    {
+        return $this->state(fn (): array => ['applies_to' => $audience->value]);
     }
 
     /**
@@ -78,21 +92,8 @@ class PriceRuleFactory extends Factory
         return $this->state(fn (): array => ['anglers_count' => $count]);
     }
 
-    public function forRole(ParticipantRole $role): self
-    {
-        return $this->state(fn (): array => ['participant_role' => $role->value]);
-    }
-
     public function suspended(): self
     {
         return $this->state(fn (): array => ['is_suspended' => true]);
-    }
-
-    public function effective(?string $from, ?string $to = null): self
-    {
-        return $this->state(fn (): array => [
-            'effective_from' => $from,
-            'effective_to' => $to,
-        ]);
     }
 }

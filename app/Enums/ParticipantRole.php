@@ -3,15 +3,17 @@
 namespace App\Enums;
 
 /**
- * Rola uczestnika pobytu — oś warunku cenowego i parametr zapytania o cenę.
+ * Rola uczestnika pobytu — parametr zapytania o cenę i etykieta pozycji w rozbiciu.
  *
  * ⚠️ Uczestnik jest PARAMETREM ZAPYTANIA, nie rekordem w schemacie. Wycena pyta „ilu
  * łowiących, ile osób towarzyszących", a nie „kto konkretnie" — model rezerwacji
  * i uczestników powstanie dopiero razem z transakcją (G1, poza tą iteracją).
  *
- * ⚠️ **Osoba towarzysząca nie jest wyjątkiem w kodzie.** Wycenia się ją regułą `rate`
- * z warunkiem `participant_role = companion` i kwotą `0.00` (O15). Nie dorabiaj dla niej
- * gałęzi — niezmiennik i jego pułapka są w `docs/conventions/cennik.md`.
+ * ⚠️ **Rola NIE jest już osią warunku cenowego** (ADR-014, sekcja „Aktualizacja"). Cena osoby
+ * towarzyszącej to KOLUMNA `price_rules.amount_companion` na stawce, a nie konkurencyjna reguła;
+ * komu nalicza się dopłatę, mówi osobny enum `SurchargeAudience`. Tutaj została wyłącznie
+ * **etykieta roli w rozbiciu wyceny** — to, co widać przy pozycji „Łowiący" albo „Osoba
+ * towarzysząca". Nie przywracaj jej do roli warunku: wróciłaby razem z priorytetami.
  */
 enum ParticipantRole: string
 {
