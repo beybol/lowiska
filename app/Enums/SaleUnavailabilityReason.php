@@ -11,9 +11,10 @@ namespace App\Enums;
  *
  * ⚠️ Enum jest JEDEN dla całej sprzedaży (`docs/conventions/dostepnosc.md` §2).
  * Pierwsze siedem wartości dotyczy pojedynczej DOBY (`PositionAvailability`),
- * sześć ostatnich — POBYTU, czyli ciągu dób kupowanego razem (`StaySellability`,
- * zadanie 017, ADR-013). Nowy warunek dokłada wartość tutaj, nie zakłada własnego
- * słownika komunikatów.
+ * kolejne sześć — POBYTU, czyli ciągu dób kupowanego razem (`StaySellability`,
+ * zadanie 017, ADR-013), a ostatnia — braku ceny, który też jest odmową sprzedaży
+ * (zadanie 018, ADR-014/ADR-015). Nowy warunek dokłada wartość tutaj, nie zakłada
+ * własnego słownika komunikatów.
  *
  * ⚠️ Każda nowa wartość wymaga DWÓCH zmian: gałęzi w wyczerpującym `match`
  * w `label()` — brak którejkolwiek to `UnhandledMatchError` dopiero w chwili
@@ -70,6 +71,15 @@ enum SaleUnavailabilityReason: string
      */
     case BelowPresaleMinimum = 'below_presale_minimum';
 
+    /**
+     * Do doby w otwartym sezonie nie pasuje żadna stawka cennika (zadanie 018, ADR-014).
+     *
+     * ⚠️ Dziura w cenniku jest ODMOWĄ, nie ceną zerową. Powód nazywa **warstwa oferty**,
+     * nie wycena — ta zgłasza tylko, że nie umie wycenić doby, i dzięki temu zostaje wolna
+     * od słownika odmów sprzedaży (ADR-015).
+     */
+    case NoPriceDefined = 'no_price_defined';
+
     public function label(): string
     {
         return match ($this) {
@@ -86,6 +96,7 @@ enum SaleUnavailabilityReason: string
             self::WholeTermBroken => __('This term is sold whole — take all of its nights or none'),
             self::BeyondSaleHorizon => __('That date is further ahead than this fishery sells'),
             self::BelowPresaleMinimum => __('The presale of this season requires a longer stay'),
+            self::NoPriceDefined => __('This fishery has no price for that night'),
         };
     }
 }

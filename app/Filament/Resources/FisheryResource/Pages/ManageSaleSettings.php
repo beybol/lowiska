@@ -5,6 +5,7 @@ namespace App\Filament\Resources\FisheryResource\Pages;
 use App\Enums\SaleMode;
 use App\Filament\Resources\FisheryResource;
 use App\Models\Fishery;
+use App\Rules\PresaleDiscountIsPercentage;
 use App\Rules\PresaleWindowsAreOrdered;
 use App\Rules\SalePeriodsDoNotOverlap;
 use App\Services\FisheryNavigation;
@@ -160,6 +161,17 @@ class ManageSaleSettings extends EditRecord
                                 ->minValue(1)
                                 ->maxValue(365)
                                 ->visible(fn (Get $get): bool => (bool) $get(self::PRESALE_TOGGLE)),
+                            TextInput::make('presale_discount_percent')
+                                // ⚠️ Piąte pole TEGO bloku, nie osobna sekcja i nie ekran
+                                // „Cennik": wszystkie pięć opisuje tę samą ofertę tego samego
+                                // sezonu. Rozdzielenie ich pozwalałoby ustawić obniżkę dla
+                                // okresu, który przedsprzedaży w ogóle nie ma.
+                                ->label(__('Price discount (%)'))
+                                ->helperText(__('Taken off each night separately, from the rate together with its surcharges.'))
+                                ->numeric()
+                                ->minValue(0)
+                                ->maxValue(100)
+                                ->visible(fn (Get $get): bool => (bool) $get(self::PRESALE_TOGGLE)),
                             Toggle::make('presale_whole_terms_bypass_min_nights')
                                 ->label(__('Terms sold whole ignore that minimum'))
                                 ->default(true)
@@ -190,7 +202,7 @@ class ManageSaleSettings extends EditRecord
                         // polu: nienachodzenie jest własnością ZBIORU okresów,
                         // więc walidacja pojedynczego wiersza nigdy by go nie
                         // zobaczyła.
-                        ->rules([new SalePeriodsDoNotOverlap, new PresaleWindowsAreOrdered]),
+                        ->rules([new SalePeriodsDoNotOverlap, new PresaleWindowsAreOrdered, new PresaleDiscountIsPercentage]),
                 ]),
             Section::make(__('Sale horizon'))
                 ->description(__('How far ahead anglers may buy. Leave empty for no horizon.'))
@@ -312,9 +324,16 @@ class ManageSaleSettings extends EditRecord
         $opensOn = substr((string) ($state['presale_opens_on'] ?? ''), 0, 10);
         $closesOn = substr((string) ($state['presale_closes_on'] ?? ''), 0, 10);
 
-        $presale = ($opensOn !== '' && $closesOn !== '')
-            ? __('presale :from – :to', ['from' => $opensOn, 'to' => $closesOn])
-            : __('no presale');
+        if ($opensOn === '' || $closesOn === '') {
+            return $startsOn.' – '.$endsOn.' · '.__('no presale');
+        }
+
+        $presale = __('presale :from – :to', ['from' => $opensOn, 'to' => $closesOn]);
+        $discount = $state['presale_discount_percent'] ?? null;
+
+        if (filled($discount)) {
+            $presale .= ' · −'.rtrim(rtrim(number_format((float) $discount, 2, '.', ''), '0'), '.').'%';
+        }
 
         return $startsOn.' – '.$endsOn.' · '.$presale;
     }
@@ -351,6 +370,7 @@ class ManageSaleSettings extends EditRecord
             $data['presale_closes_on'] = null;
             $data['presale_min_nights'] = null;
             $data['presale_whole_terms_bypass_min_nights'] = true;
+            $data['presale_discount_percent'] = null;
         }
 
         unset($data[self::PRESALE_TOGGLE]);

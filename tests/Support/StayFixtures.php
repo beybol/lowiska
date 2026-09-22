@@ -8,10 +8,13 @@ use App\Enums\SelectionKind;
 use App\Models\AvailabilityBlock;
 use App\Models\Fishery;
 use App\Models\Position;
+use App\Models\PriceRule;
 use App\Models\SalePeriod;
 use App\Models\User;
 use App\Models\WholeTermPeriod;
 use App\Services\OwnerRoleProvisioner;
+use App\Services\StayOffer;
+use App\Services\StayPricing;
 use App\Services\StaySellability;
 
 /**
@@ -86,6 +89,47 @@ final class StayFixtures
         return WholeTermPeriod::factory()
             ->nights($firstDayOn, $nights)
             ->create(['fishery_id' => $fishery->id]);
+    }
+
+    /**
+     * Stawka bazowa łowiska — reguła `rate` bez ani jednego warunku (zadanie 018).
+     *
+     * ⚠️ Warunki dokłada się stanami fabryki (`onWeekdays()`, `forAnglers()`, `forRole()`,
+     * `between()`), bo pusta oś znaczy „bez warunku", a nie „warunek fałszywy".
+     */
+    public static function rate(Fishery $fishery, float $amount = 70.00, array $state = []): PriceRule
+    {
+        return PriceRule::factory()
+            ->amount($amount)
+            ->create(array_merge(['fishery_id' => $fishery->id], $state));
+    }
+
+    public static function surcharge(
+        Fishery $fishery,
+        float $amount = 20.00,
+        ?string $label = null,
+        array $state = [],
+    ): PriceRule {
+        return PriceRule::factory()
+            ->surcharge($amount, $label)
+            ->create(array_merge(['fishery_id' => $fishery->id], $state));
+    }
+
+    /**
+     * Wycena na świeżo wczytanym stanowisku.
+     *
+     * ⚠️ `fresh()` z tego samego powodu co przy `stay()`: instancja pamięta cennik na czas
+     * jednego pytania, więc test zmieniający reguły musi zażądać nowej.
+     */
+    public static function pricing(Position $position): StayPricing
+    {
+        return new StayPricing($position->fresh());
+    }
+
+    /** Warstwa oferty na świeżo wczytanym stanowisku. */
+    public static function offer(Position $position): StayOffer
+    {
+        return new StayOffer($position->fresh());
     }
 
     /**

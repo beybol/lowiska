@@ -12,8 +12,14 @@ use Carbon\CarbonInterface;
 use InvalidArgumentException;
 
 /**
- * JEDYNE miejsce odpowiadające na pytanie „czy ten POBYT wolno kupić w tej chwili —
- * a jeśli nie, to dlaczego" (ADR-013, zadanie 017).
+ * JEDYNE źródło prawdy o SPRZEDAWALNOŚCI pobytu — czy ten pobyt wolno kupić w tej chwili
+ * i dlaczego nie (ADR-013, zadanie 017).
+ *
+ * ⚠️ **Nie jest już bezpośrednim wejściem dla cennika, kalendarza ani portalu.** Od zadania 018
+ * na pytanie „czy wolno to sprzedać" odpowiadają dwaj dostawcy — ta klasa i cennik (dziura
+ * w cenniku jest odmową) — a składa ich **warstwa oferty** (`StayOffer`, ADR-015). Decyzja
+ * ADR-013 zostaje w mocy; zmieniła się wyłącznie lista wołających. Panel konfiguracyjny nadal
+ * woła tę klasę wprost, bo pyta o sprzedawalność, nie o ofertę.
  *
  * **Pobyt** to ciągły zakres dób na JEDNYM stanowisku, opisany dobą rozpoczęcia
  * i liczbą dób. Reguły z tego zadania dotyczą ciągu dób i nie dają się wyrazić jako
@@ -62,8 +68,7 @@ final class StaySellability
     /** @var array<int, WholeTermPeriod>|null */
     private ?array $wholeTermPeriods = null;
 
-    /** @var array<int, SalePeriod>|null */
-    private ?array $salePeriods = null;
+    private ?SalePeriodFinder $periods = null;
 
     /**
      * Werdykt dostępności doby, pamiętany po dniu rozpoczęcia.
@@ -333,9 +338,9 @@ final class StaySellability
                 continue;
             }
 
-            $period = $this->periodFor($day);
+            $period = $this->periods()->forNight($day);
 
-            if ($period instanceof SalePeriod && $this->hasOpenPresale($period)) {
+            if ($period instanceof SalePeriod && $this->periods()->hasOpenPresale($period)) {
                 continue;
             }
 
@@ -389,9 +394,9 @@ final class StaySellability
         $periods = [];
 
         foreach ($days as $day) {
-            $period = $this->periodFor($day);
+            $period = $this->periods()->forNight($day);
 
-            if (! $period instanceof SalePeriod || ! $this->hasOpenPresale($period)) {
+            if (! $period instanceof SalePeriod || ! $this->periods()->hasOpenPresale($period)) {
                 continue;
             }
 
@@ -402,47 +407,14 @@ final class StaySellability
     }
 
     /**
-     * Czy okno przedsprzedaży tego okresu jest otwarte W TEJ CHWILI.
-     *
-     * Okno obejmuje CAŁE dni brzegowe — od `presale_opens_on` od północy do
-     * `presale_closes_on` do końca dnia w strefie łowiska, tak samo jak okno blokady
-     * (`dostepnosc.md` §3). Porównywanym momentem jest chwila zakupu.
+     * ⚠️ Dwie reguły o okresie sprzedaży — „do którego okresu należy doba" i „czy okno
+     * przedsprzedaży jest otwarte" — mieszkają w `SalePeriodFinder`, a nie tutaj. Potrzebuje
+     * ich także wycena (018), a obie warstwy mają zostać od siebie niezależne, więc nie mogą
+     * pytać jedna drugiej; wspólny pomocnik jest jedynym wariantem, w którym reguła ma jeden dom.
      */
-    private function hasOpenPresale(SalePeriod $period): bool
+    private function periods(): SalePeriodFinder
     {
-        if (! $period->hasPresale()) {
-            return false;
-        }
-
-        $timezone = $this->timezone();
-        $now = CarbonImmutable::now($timezone);
-        $opensAt = CarbonImmutable::parse($period->presale_opens_on->toDateString(), $timezone)->startOfDay();
-        $closesAt = CarbonImmutable::parse($period->presale_closes_on->toDateString(), $timezone)->endOfDay();
-
-        return $now >= $opensAt && $now <= $closesAt;
-    }
-
-    /**
-     * Okres sprzedaży, w którym ZAWIERA się ta doba.
-     *
-     * ⚠️ Reguła zawierania, nie przecięcia — ta sama, którą stosuje
-     * `FishingDayCalendar` przy sprzedaży doby, i stąd wynika, że doba na styku dwóch
-     * sąsiadujących okresów nie należy do żadnego z nich (`dostepnosc.md` §1).
-     */
-    private function periodFor(FishingDay $day): ?SalePeriod
-    {
-        $timezone = $this->timezone();
-
-        foreach ($this->salePeriods() as $period) {
-            $windowStart = CarbonImmutable::parse($period->starts_on->toDateString(), $timezone)->startOfDay();
-            $windowEnd = CarbonImmutable::parse($period->ends_on->toDateString(), $timezone)->endOfDay();
-
-            if ($day->isContainedIn($windowStart, $windowEnd)) {
-                return $period;
-            }
-        }
-
-        return null;
+        return $this->periods ??= new SalePeriodFinder($this->fishery);
     }
 
     /**
@@ -520,17 +492,6 @@ final class StaySellability
     {
         return $this->wholeTermPeriods ??= $this->fishery->wholeTermPeriods()
             ->orderBy('first_day_on')
-            ->get()
-            ->all();
-    }
-
-    /**
-     * @return array<int, SalePeriod>
-     */
-    private function salePeriods(): array
-    {
-        return $this->salePeriods ??= $this->fishery->salePeriods()
-            ->orderBy('starts_on')
             ->get()
             ->all();
     }

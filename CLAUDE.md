@@ -69,7 +69,8 @@ da się odtworzyć z samego kodu.
 | `app/Policies/**`, role i uprawnienia Shielda, `User` | `docs/conventions/autoryzacja.md` |
 | `app/Services/CSOService.php`, `app/Rules/IbanValidation.php`, `app/Helpers/**` | `docs/conventions/integracje.md` ⛏️ |
 | Modele z traitem `LogsActivity`, `config/activitylog.php` | `docs/conventions/dziennik-zmian.md` |
-| `app/Services/FishingDay*`, `PositionAvailability`, `AvailabilityBlock*`, każde miejsce pytające o sprzedawalność doby | `docs/conventions/dostepnosc.md` |
+| `app/Services/FishingDay*`, `PositionAvailability`, `StaySellability*`, `AvailabilityBlock*`, każde miejsce pytające o sprzedawalność doby albo pobytu | `docs/conventions/dostepnosc.md` |
+| `app/Services/StayPricing*`, `PriceRule*`, `StayOffer*`, `app/Models/PriceRule.php`, każde miejsce pytające o cenę | `docs/conventions/cennik.md` |
 | `routes/**`, widoki Breeze, `resources/views/**` | `docs/conventions/strona-publiczna.md` ⛏️ |
 
 **Dokumentacja projektu** - znajduje się w katalogu docs

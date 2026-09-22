@@ -52,8 +52,11 @@ i [ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md).
 ## 2. Jedno źródło prawdy o dostępności
 
 - **Na pytanie „czy tę dobę można sprzedać na tym stanowisku — i dlaczego nie" odpowiada
-  WYŁĄCZNIE [`PositionAvailability`](../../app/Services/PositionAvailability.php).** Panel, portal,
-  cennik (018) i kalendarz podglądowy (019) wołają tę klasę.
+  WYŁĄCZNIE [`PositionAvailability`](../../app/Services/PositionAvailability.php).**
+  ⚠️ **Lista wołających zmieniła się w zadaniu 018.** Panel konfiguracyjny woła tę klasę wprost,
+  ale kalendarz podglądowy (019), koszyk i portal pytają **warstwę oferty**
+  ([`cennik.md`](cennik.md) §5, ADR-015) — bo od chwili, w której dziura w cenniku jest odmową,
+  odpowiedź „czy wolno sprzedać" ma dwóch dostawców i ktoś musi ich złożyć w JEDNYM miejscu.
   ⚠️ Zapytanie z `where('status', 'available')` napisane w zasobie Filamenta obok usługi jest
   defektem, nawet gdy dziś zwraca to samo — przestanie, gdy dojdzie piąty warunek.
 - **`PositionAvailability` KOMPONUJE `FishingDayCalendar`, nie zastępuje go.** Kalendarz wie
@@ -154,6 +157,12 @@ Zadanie źródłowe: 017. Uzasadnienie i odrzucone warianty:
   | doby sezonu, bez stanowiska | `FishingDayCalendar` |
   | jedną dobę na stanowisku | `PositionAvailability` |
   | ciąg dób kupowany razem | `StaySellability` |
+  | **ile ten pobyt kosztuje** | `StayPricing` ([`cennik.md`](cennik.md)) |
+  | **czy pobyt jest w ofercie** | `StayOffer` ([`cennik.md`](cennik.md) §5) |
+
+  ⚠️ **`StaySellability` NIE jest już bezpośrednim wejściem dla cennika, kalendarza ani portalu** —
+  zostaje jedynym źródłem prawdy o **sprzedawalności pobytu**, a wołającym jest warstwa oferty
+  (ADR-015). Decyzja ADR-013 zostaje w mocy; zmieniła się wyłącznie lista wołających.
 
 - ⚠️ **Brak reguły pobytu znaczy BRAK OGRANICZENIA** — odwrotnie niż przy okresach sprzedaży,
   gdzie brak wpisu jest odmową (§1). Asymetria jest zamierzona: okres sprzedaży mówi, co

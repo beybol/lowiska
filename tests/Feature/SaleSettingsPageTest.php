@@ -369,3 +369,65 @@ test('an existing sale period keeps working with empty presale columns', functio
         ->assertStatus(200)
         ->assertFormFieldExists('sale_horizon_days');
 });
+
+/**
+ * ⚠️ Obniżka przedsprzedażowa jest PIĄTYM polem bloku przedsprzedaży na TEJ stronie, nie na
+ * „Cenniku": wszystkie pięć opisuje tę samą ofertę tego samego sezonu. Wyłączenie
+ * przedsprzedaży czyści ją razem z pozostałymi czterema kolumnami — inaczej dałoby się
+ * zostawić obniżkę dla okresu, który przedsprzedaży w ogóle nie ma.
+ */
+test('the presale discount lives in the presale block and is cleared with it', function () {
+    [$owner, $fishery] = ownerWithFishery();
+    $fishery->update(['day_start_time' => '15:00:00', 'day_end_time' => '15:00:00']);
+
+    $period = SalePeriod::factory()->create([
+        'fishery_id' => $fishery->id,
+        'starts_on' => '2027-03-01',
+        'ends_on' => '2027-10-31',
+        'presale_opens_on' => '2026-11-04',
+        'presale_closes_on' => '2026-11-14',
+        'presale_discount_percent' => 10.00,
+    ]);
+
+    $this->actingAs($owner);
+
+    $component = Livewire::test(ManageSaleSettings::class, ['record' => $fishery->id]);
+    $rowKey = array_key_first($component->get('data')['salePeriods']);
+
+    // Wartość wraca do formularza…
+    expect((float) $component->get('data')['salePeriods'][$rowKey]['presale_discount_percent'])
+        ->toBe(10.0);
+
+    // …a wyłączenie przedsprzedaży ją czyści.
+    $component->set("data.salePeriods.{$rowKey}.presale_enabled", false)
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($period->fresh()->presale_discount_percent)->toBeNull();
+});
+
+test('a presale discount outside the 0 to 100 range is rejected', function () {
+    [$owner, $fishery] = ownerWithFishery();
+    $this->actingAs($owner);
+
+    Livewire::test(ManageSaleSettings::class, ['record' => $fishery->id])
+        ->fillForm([
+            'sale_mode' => SaleMode::DailyPeriod->value,
+            'day_start_time' => '15:00',
+            'day_end_time' => '15:00',
+            'timezone' => 'Europe/Warsaw',
+            'salePeriods' => [
+                [
+                    'starts_on' => '2027-03-01',
+                    'ends_on' => '2027-10-31',
+                    'name' => null,
+                    'presale_enabled' => true,
+                    'presale_opens_on' => '2026-11-04',
+                    'presale_closes_on' => '2026-11-14',
+                    'presale_discount_percent' => 150,
+                ],
+            ],
+        ])
+        ->call('save')
+        ->assertHasFormErrors();
+});

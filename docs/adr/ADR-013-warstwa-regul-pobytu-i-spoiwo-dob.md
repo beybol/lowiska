@@ -167,3 +167,16 @@ liczbami — nie rozwinięcie tej.
 
 ## Decyzja
 Decyzja: A
+
+## Aktualizacja (zadanie 018, 2026-09-22)
+
+⚠️ **`StaySellability` przestaje być bezpośrednim wejściem dla cennika, kalendarza i portalu.**
+Decyzja A **zostaje w mocy** w całości — kompozycja `PositionAvailability`, spoiwo jako jedna
+mechanika, kolejność warunków i przynależność zwolnienia do pakietu nie zmieniają się ani o krok.
+Zmienia się wyłącznie **lista wołających**: od zadania 018 dziura w cenniku też jest odmową, więc
+na pytanie „czy wolno to sprzedać" odpowiadają dwaj niezależni dostawcy, a składa ich
+**warstwa oferty** — [ADR-015](ADR-015-warstwa-oferty-pobytu.md).
+
+Zdanie z opcji A „jest jedynym wejściem dla panelu, portalu, cennika (018) i kalendarza (019)"
+czytaj odtąd jako: **jedyne źródło prawdy o sprzedawalności pobytu**. Panel konfiguracyjny nadal
+woła tę klasę wprost; kalendarz (019), koszyk i portal wołają warstwę oferty.

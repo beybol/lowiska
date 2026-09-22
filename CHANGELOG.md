@@ -84,6 +84,35 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   sprzedawany w całości, okno przedsprzedaży otwierające się po starcie sezonu, przedsprzedaż
   na łowisku bez horyzontu oraz święto, które po skróceniu sezonu wypadło poza sprzedaż. Zapis
   przechodzi — porządkowanie sezonu w dowolnej kolejności zostaje możliwe.
+- Właściciel łowiska ustala **ceny**: na nowym ekranie „Cennik" prowadzi dwie listy — stawki
+  i dopłaty. Stawka zastępuje cenę doby, dopłata się do niej dodaje, a wszystkie pasujące dopłaty
+  sumują się. Kwotę podaje się za osobę za dobę.
+- Każda reguła cennika może mieć warunki: wybrane doby tygodnia, zakres dat, dokładną liczbę
+  łowiących i rolę uczestnika. Reguła bez żadnego warunku jest stawką bazową łowiska — większości
+  obiektów wystarczy jedna taka stawka i jedna dopłata.
+- Warunek liczy się osobno dla każdej doby, więc dopłata „czwartek–niedziela" przy pobycie od środy
+  do piątku nalicza się za czwartek i piątek, a nie za cały pobyt ani za nic.
+- Gdy do doby pasuje kilka stawek, wygrywa ta o wyższym priorytecie, a przy równym — ta z większą
+  liczbą warunków. Jeśli obie są nie do odróżnienia, system **nie zapisze cennika**: nie zgaduje,
+  którą cenę operator miał na myśli.
+- Regułę można **zawiesić** zamiast usuwać — zostaje w cenniku i wraca jednym kliknięciem.
+- Każda reguła ma własny okres obowiązywania, niezależny od warunku zakresu dat. Dzięki temu
+  w maju da się przygotować cennik wakacji, który zacznie działać dopiero 1 czerwca, a do tego
+  czasu sprzedaż idzie po starych stawkach.
+- Osoba towarzysząca wycenia się zwykłą stawką z rolą „osoba towarzysząca" — domyślnie 0,00 zł,
+  ale wystarczy wpisać inną kwotę, żeby zaczęła płacić.
+- Zakup w otwartym oknie przedsprzedaży może być tańszy: przy okresie sprzedaży ustawia się
+  procentową **obniżkę ceny**. Zdejmuje się ją od każdej doby osobno, od stawki wraz z dopłatami,
+  i wędkarz widzi ją przy każdej dobie.
+- Doba w otwartym sezonie, do której nie pasuje żadna stawka, jest **niesprzedawalna** — nie
+  darmowa. Wędkarz dostaje wtedy czytelną odmowę, a operator ostrzeżenie już przy zapisie cennika,
+  ze wskazaniem doby, roli i obsady, dla których stawki zabrakło.
+- Panel ostrzega też, gdy stawka bez warunku roli ma wyższy priorytet niż stawka osoby
+  towarzyszącej — w dniach, w których obowiązuje, towarzysząca zapłaci właśnie ją. Zapis przechodzi,
+  bo czasem właśnie o to chodzi.
+- Odpowiedź „czy tę ofertę da się kupić i ile kosztuje" powstaje w jednym miejscu, razem
+  z rozbiciem ceny na doby i osoby. To ono zasili kalendarz podglądowy i przyszły koszyk, więc
+  wędkarz i operator zobaczą tę samą kwotę i to samo uzasadnienie.
 
 ### Zmienione
 

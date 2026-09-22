@@ -30,6 +30,7 @@ class SalePeriod extends Model
         'presale_closes_on',
         'presale_min_nights',
         'presale_whole_terms_bypass_min_nights',
+        'presale_discount_percent',
     ];
 
     protected $casts = [

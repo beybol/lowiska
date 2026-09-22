@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PriceRuleKind;
 use App\Enums\SaleMode;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -191,5 +192,38 @@ class Fishery extends Model
     public function wholeTermPeriods(): HasMany
     {
         return $this->hasMany(WholeTermPeriod::class);
+    }
+
+    /**
+     * Cennik łowiska — jedna lista, dwa rodzaje reguł (zadanie 018, ADR-014).
+     *
+     * @return HasMany<PriceRule, $this>
+     */
+    public function priceRules(): HasMany
+    {
+        return $this->hasMany(PriceRule::class);
+    }
+
+    /**
+     * Stawki — podzbiór cennika renderowany osobnym repeaterem.
+     *
+     * ⚠️ Relacja zawężona po `kind`, bo panel prowadzi dwie listy: operator myśli o stawkach
+     * i dopłatach osobno. Eloquent NIE wypełnia wartości z `where()` przy tworzeniu przez
+     * relację, więc `kind` ustawia się jawnie w hooku repeatera — inaczej nowy wiersz
+     * zapisałby się bez rodzaju i zniknął z obu list.
+     *
+     * @return HasMany<PriceRule, $this>
+     */
+    public function rateRules(): HasMany
+    {
+        return $this->hasMany(PriceRule::class)->where('kind', PriceRuleKind::Rate->value);
+    }
+
+    /**
+     * @return HasMany<PriceRule, $this>
+     */
+    public function surchargeRules(): HasMany
+    {
+        return $this->hasMany(PriceRule::class)->where('kind', PriceRuleKind::Surcharge->value);
     }
 }

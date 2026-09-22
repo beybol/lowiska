@@ -54,10 +54,16 @@ final class SharedFormComponents
         ];
     }
 
-    public static function getPriceInput()
+    /**
+     * ⚠️ Nazwa pola jest PARAMETREM, bo ten sam komponent obsługuje dziś `additional_services.price`
+     * i `price_rules.amount` (zadanie 018). Drugi wariant tego pola byłby drugim literałem
+     * walidacji kwoty i normalizacji przecinka — a to jest dokładnie ta reguła, której
+     * `CLAUDE.md` każe mieć jeden dom.
+     */
+    public static function getPriceInput(string $name = 'price', ?string $label = null, float $minimum = 0.01)
     {
-        return TextInput::make('price')
-            ->label(__('Price'))
+        return TextInput::make($name)
+            ->label($label ?? __('Price'))
             ->inputMode('decimal')
             ->placeholder('100.00')
             ->rules([
@@ -68,13 +74,20 @@ final class SharedFormComponents
                 // i wstrzykuje argumenty PO NAZWIE — przekazana wprost reguła
                 // Laravela wywala się na `[$attribute] was unresolvable`
                 // (BindingResolutionException) dopiero przy zapisie formularza.
-                static fn (): \Closure => static function (string $attribute, $value, \Closure $fail): void {
+                // ⚠️ Minimum jest PARAMETREM, bo należy do kontekstu, nie do komponentu.
+                // Usługa dodatkowa za 0,00 zł nie ma sensu, ale stawka cennika owszem:
+                // osoba towarzysząca wycenia się regułą `rate` z kwotą **0,00** i to jest
+                // jedyny sposób, w jaki ma być wyceniana (O15, zadanie 018). Twarde 0,01
+                // w komponencie blokowało zapis tej reguły.
+                static fn (): \Closure => static function (string $attribute, $value, \Closure $fail) use ($minimum): void {
                     if (blank($value)) {
                         return;
                     }
 
-                    if ((float) str_replace(',', '.', $value) < 0.01) {
-                        $fail(__('The price must be at least 0.01.'));
+                    if ((float) str_replace(',', '.', $value) < $minimum) {
+                        $fail(__('The price must be at least :minimum.', [
+                            'minimum' => number_format($minimum, 2, '.', ''),
+                        ]));
                     }
                 },
             ])
