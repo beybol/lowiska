@@ -172,7 +172,6 @@ final class SaleCalendar
     }
 
     /**
-     * @param  array<int, CarbonImmutable>  $days
      * @return array<int, CarbonImmutable>
      */
     private function daysOf(CarbonImmutable $from, CalendarWindow $unit): array
