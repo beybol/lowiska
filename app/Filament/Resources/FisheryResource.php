@@ -7,6 +7,7 @@ use App\Filament\Resources\FisheryResource\Pages\EditFishery;
 use App\Filament\Resources\FisheryResource\Pages\ListFisheries;
 use App\Filament\Resources\FisheryResource\Pages\ManageAdditionalServices;
 use App\Filament\Resources\FisheryResource\Pages\ManageAvailabilityBlocks;
+use App\Filament\Resources\FisheryResource\Pages\ManageCalendar;
 use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
 use App\Filament\Resources\FisheryResource\Pages\ManageLongTermPermits;
 use App\Filament\Resources\FisheryResource\Pages\ManagePositionGroups;
@@ -347,6 +348,8 @@ class FisheryResource extends Resource
             ManageSaleSettings::class,
             ManageSaleRules::class,
             ManagePricing::class,
+            // Kalendarz stoi ZARAZ ZA konfiguracja: trzy ekrany ustawien, a po nich ich skutek.
+            ManageCalendar::class,
             ManagePositions::class,
             ManagePositionGroups::class,
             ManageAdditionalServices::class,
@@ -387,6 +390,7 @@ class FisheryResource extends Resource
             'sale-settings' => ManageSaleSettings::route('/{record}/sale-settings'),
             'sale-rules' => ManageSaleRules::route('/{record}/sale-rules'),
             'pricing' => ManagePricing::route('/{record}/pricing'),
+            'calendar' => ManageCalendar::route('/{record}/calendar'),
             'positions' => ManagePositions::route('/{record}/positions'),
             'position-groups' => ManagePositionGroups::route('/{record}/position-groups'),
             'availability-blocks' => ManageAvailabilityBlocks::route('/{record}/availability-blocks'),

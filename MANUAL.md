@@ -27,11 +27,13 @@ Najwygodniej iść po kolei; każdy krok korzysta z tego, co ustawiłeś wcześn
 2. [Sprzedaż i sezony](#4-sprzedaż-i-sezony) — powiedz systemowi, czym handlujesz i kiedy.
 3. [Reguły sprzedaży](#5-reguły-sprzedaży) — powiedz, jaki pobyt wolno kupić.
 4. [Cennik](#6-cennik) — powiedz, ile to kosztuje.
-5. [Stanowiska](#7-stanowiska) — wprowadź miejsca, które sprzedajesz.
-6. [Grupy stanowisk](#8-grupy-stanowisk) — pogrupuj stanowiska, jeśli to ułatwi Ci pracę.
-7. [Usługi dodatkowe](#9-usługi-dodatkowe) — dodaj to, co wędkarz może dokupić.
-8. [Pozwolenia długoterminowe](#10-pozwolenia-długoterminowe) — dodaj sezonówki, jeśli je sprzedajesz.
-9. [Blokady i ograniczenia](#11-blokady-i-ograniczenia) — wracaj tutaj, ilekroć coś wypada z użytku.
+5. [Kalendarz](#7-kalendarz) — **sprawdź, co z tego wyszło.** To jedyny krok, w którym niczego nie
+   wypełniasz: pokazuje skutek wszystkiego, co ustawiłeś wyżej.
+6. [Stanowiska](#8-stanowiska) — wprowadź miejsca, które sprzedajesz.
+7. [Grupy stanowisk](#9-grupy-stanowisk) — pogrupuj stanowiska, jeśli to ułatwi Ci pracę.
+8. [Usługi dodatkowe](#10-usługi-dodatkowe) — dodaj to, co wędkarz może dokupić.
+9. [Pozwolenia długoterminowe](#11-pozwolenia-długoterminowe) — dodaj sezonówki, jeśli je sprzedajesz.
+10. [Blokady i ograniczenia](#12-blokady-i-ograniczenia) — wracaj tutaj, ilekroć coś wypada z użytku.
 
 Usługi dodatkowe i pozwolenia przypisuje się do konkretnych stanowisk na formularzu stanowiska —
 dlatego po ich wprowadzeniu warto wrócić na chwilę do zakładki „Stanowiska".
@@ -47,7 +49,7 @@ Część pól na tym formularzu to **wybór ze słownika prowadzonego przez admi
 łowiska, metody łowienia, udogodnienia, występujące ryby, waluta rozliczenia, kraj i województwo.
 Nie dopisujesz do nich własnych pozycji — zaznaczasz te, które pasują do Twojego obiektu. Jeśli
 któregoś z tych pól w ogóle nie widzisz, znaczy to, że odpowiedni słownik jest jeszcze pusty
-(patrz [Słowniki](#14-słowniki--wspólne-dla-całego-portalu)).
+(patrz [Słowniki](#15-słowniki--wspólne-dla-całego-portalu)).
 
 ## 4. Sprzedaż i sezony
 
@@ -159,7 +161,39 @@ wystarczy ją zawiesić. Zostaje w cenniku i włączysz ją jednym kliknięciem.
 Cię, jeśli w otwartym sezonie znajdzie taką dobę — ale ostrzeżenie sprawdza **dzisiejszy** stan
 cennika, więc wydłużenie sezonu może otworzyć dziurę później.
 
-## 7. Stanowiska
+## 7. Kalendarz
+
+To jedyny ekran, na którym **niczego nie wypełniasz**. Pokazuje, **co wynika** z tego, co ustawiłeś
+na trzech poprzednich: kiedy da się kupić pobyt, po jakiej cenie, a jeśli się nie da — dlaczego.
+
+Siatka ma **wiersz na stanowisko** i **kolumnę na dobę**. Nad nią wybierasz sezon, okno (miesiąc
+albo tydzień) oraz **skład, dla którego liczymy**: ilu łowiących, ile osób towarzyszących i jak
+długi pobyt. Domyślnie widzisz **„ceny od"** — jeden łowiący i najkrótszy pobyt, jaki wolno kupić.
+
+**Jak czytać komórkę.** Są trzy możliwości:
+
+- **kwota wraz z liczbą dób** — tyle kosztuje pobyt rozpoczynający się tą dobą. ⚠️ Liczba dób jest
+  tu istotna: 130,00 zł za jedną dobę i 520,00 zł za czterodobowy pakiet to nie są ceny tego samego;
+- **„zacznij 03.06"** — tej doby **nie można zacząć**, bo leży w środku pakietu sprzedawanego
+  w całości (weekend albo święto). Zacznij tam, gdzie wskazuje komórka;
+- **powód odmowy** — na przykład „blokada", „poza sezonem", „brak stawki". Najedź kursorem, żeby
+  zobaczyć pełne zdanie wraz ze wskazaniem: który zakres trzeba objąć albo ile stanowisk objęła
+  blokada.
+
+⚠️ **Cena tutaj bywa inna niż kwota wpisana w cenniku — i to jest poprawne.** Składają się na nią
+stawka, wszystkie pasujące dopłaty oraz obniżka przedsprzedażowa, jeśli okno przedsprzedaży jest
+akurat otwarte. Właśnie po to ten ekran istnieje: żebyś zobaczył **wynik**, a nie składniki.
+
+**Kalendarz pokazuje też bałagan w cenniku.** Gdy do jednej doby pasuje więcej niż jedna stawka,
+przy kolumnie pojawia się ostrzeżenie z ich liczbą — wygrywa wtedy tańsza. Osobno wypisujemy
+**stawki, które nie wygrywają nigdzie** w swoim okresie: taka stawka jest martwym wpisem, a Ty
+prawdopodobnie myślisz, że coś nią ustawiłeś.
+
+⚠️ **Dołożenie jednej osoby towarzyszącej potrafi przestawić całą siatkę w „brak ceny dla
+towarzyszącej".** To nie usterka, tylko najszybsza diagnoza, jaką ten ekran daje: znaczy, że
+w cenniku nie wpisałeś kwoty za osobę towarzyszącą. Wpisz tam 0,00, jeśli ma być za darmo.
+
+## 8. Stanowiska
 
 Lista miejsc, które sprzedajesz. Przy każdym podajesz nazwę, stan („w sprzedaży" albo „wycofane"),
 pojemność — ilu wędkarzy może na nim łowić i ile osób może na nim przebywać łącznie — oraz opis
@@ -171,9 +205,9 @@ dodatkowych. Jeśli tę samą cechę chcesz ustawić wielu miejscom naraz, zazna
 działania **Ustaw cechę** — przed zapisem zobaczysz, ilu stanowisk dotyczy.
 
 Sekcja z cechami pojawia się dopiero wtedy, gdy administrator dopisał do słownika choć jedną cechę
-(patrz [Cechy stanowisk](#15-cechy-stanowisk)).
+(patrz [Cechy stanowisk](#16-cechy-stanowisk)).
 
-## 8. Grupy stanowisk
+## 9. Grupy stanowisk
 
 Grupa to nazwana etykieta, którą łączysz stanowiska mające ze sobą coś wspólnego — brzeg, dojazd,
 część obiektu. W opisie grupy mieści się wszystko, czego nie da się zapisać pojedynczą cechą: jak się
@@ -183,7 +217,7 @@ Stanowisko może należeć do kilku grup naraz, a grupy nie nadają stanowiskom 
 służą do opisu i do szybkiego wskazywania większej liczby miejsc. Z poziomu grupy możesz też ustawić
 cechę wszystkim jej stanowiskom naraz.
 
-## 9. Usługi dodatkowe
+## 10. Usługi dodatkowe
 
 Wszystko, co wędkarz **dokupuje** do pobytu: łódka, prysznic, wypożyczenie sprzętu. Przy każdej usłudze
 podajesz nazwę, opis, cenę, liczbę dostępnych sztuk oraz to, czy usługa jest aktywna.
@@ -191,7 +225,7 @@ podajesz nazwę, opis, cenę, liczbę dostępnych sztuk oraz to, czy usługa jes
 Samo dodanie usługi jej nie udostępnia — przypisujesz ją do konkretnych stanowisk na formularzu
 stanowiska, gdzie możesz też oznaczyć, że jest dla danego miejsca obowiązkowa.
 
-## 10. Pozwolenia długoterminowe
+## 11. Pozwolenia długoterminowe
 
 Pozwolenia na dłuższy okres, na przykład sezonowe. Podajesz opis, okres ważności, cenę, limit sprzedaży
 oraz to, czy pozwolenie jest aktywne.
@@ -199,7 +233,7 @@ oraz to, czy pozwolenie jest aktywne.
 Podobnie jak usługi, pozwolenie wiążesz ze stanowiskami na formularzu stanowiska — dzięki temu wiadomo,
 gdzie dane pozwolenie obowiązuje.
 
-## 11. Blokady i ograniczenia
+## 12. Blokady i ograniczenia
 
 Tutaj wyłączasz coś na określony czas: zawody, zarybianie, remont, decyzja urzędu. Wpis ma dwa możliwe
 skutki — albo **blokuje sprzedaż** wskazanych stanowisk, albo **zawiesza jedną cechę** (na przykład
@@ -219,7 +253,7 @@ ukryte, bo nie miałyby czego dotyczyć.
 
 # Część II — Admin (panel administratora)
 
-## 12. Do czego służy panel administratora
+## 13. Do czego służy panel administratora
 
 Panel administratora jest narzędziem **prowadzących portal**, nie operatorów łowisk. Odpowiada za
 trzy rzeczy:
@@ -231,7 +265,7 @@ trzy rzeczy:
 Właściciel łowiska nie ma tu wstępu i nie edytuje niczego z tej listy. Odwrotnie też: administrator
 nie ustawia za niego cen, sezonów ani stanowisk — to należy do panelu właściciela.
 
-## 13. Firmy i łowiska
+## 14. Firmy i łowiska
 
 **Firmy** to podmioty gospodarcze prowadzące łowiska. Dane adresowe da się pobrać automatycznie
 z rejestru GUS po numerze NIP albo REGON, zamiast przepisywać je ręcznie. Numer rachunku bankowego
@@ -240,7 +274,7 @@ jest sprawdzany jako IBAN — błędny nie przejdzie zapisu.
 **Łowiska** to widok wszystkich obiektów w portalu, niezależnie od tego, kto je założył. Służy do
 przeglądu i do interwencji; codzienna konfiguracja obiektu odbywa się po stronie właściciela.
 
-## 14. Słowniki — wspólne dla całego portalu
+## 15. Słowniki — wspólne dla całego portalu
 
 Grupa **Słowniki** w menu zbiera listy, z których korzystają formularze właścicieli. Zasada jest
 jedna i ważna: **słownik jest wspólny dla całego portalu, a właściciel tylko z niego wybiera**.
@@ -262,7 +296,7 @@ wcale. Właściciel nie dostaje żadnego komunikatu i nie ma jak się domyślić
 w ogóle istnieje. Dlatego każdy słownik, który ma być używany, wymaga zestawu startowego wpisanego
 przez administratora.
 
-## 15. Cechy stanowisk
+## 16. Cechy stanowisk
 
 Najmłodsza i najbogatsza pozycja słownikowa. Cecha opisuje **pojedyncze stanowisko**, a nie cały
 obiekt: pomost, zadaszenie, wjazd samochodem, odległość do parkingu, rodzaj dna.
@@ -287,7 +321,7 @@ Dodatkowo:
 - Tylko cecha typu **tak/nie** da się zawiesić wpisem w „Blokadach i ograniczeniach". Zawieszenie
   liczby albo wyboru z listy byłoby nadpisaniem wartości, czyli czymś innym niż czasowe wyłączenie.
 
-## 16. Udogodnienia a cechy stanowisk — gdzie przebiega granica
+## 17. Udogodnienia a cechy stanowisk — gdzie przebiega granica
 
 Oba słowniki opisują „co tu jest", więc łatwo je pomylić. Różni je **przedmiot opisu**:
 
@@ -313,7 +347,7 @@ Gdyby kiedyś przyszła decyzja o połączeniu obu słowników w jeden, kierunek
 udogodnienia stają się cechami na poziomie łowiska, nie odwrotnie. Jest to jednak osobna decyzja
 wymagająca migracji danych, a nie porządek do zrobienia przy okazji.
 
-## 17. Dostępy: użytkownicy i role
+## 18. Dostępy: użytkownicy i role
 
 Grupa **Dostępy** zbiera konta i uprawnienia.
 

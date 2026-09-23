@@ -318,3 +318,36 @@ Tutaj zostaje wyłącznie to, co dotyczy ekranów panelu:
   więc coś znaczy; grupa po odcięciu nie znaczy nic.
 
 Uzasadnienie kształtu wartości cech: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech-stanowiska.md).
+
+### Ekran podglądowy obok stron ustawień (zadanie 019)
+
+Sub-nawigacja łowiska niesie dziś dwa rodzaje ekranów i warto je odróżniać:
+
+- **strony ustawień** — formularze zapisujące konfigurację (`ManageSaleSettings`, `ManageSaleRules`,
+  `ManagePricing`, …);
+- **ekran podglądowy** — `ManageCalendar`, który **niczego nie zapisuje** i pokazuje SKUTEK
+  ustawień. Stoi **za „Cennikiem", przed „Stanowiskami"**: trzy ekrany konfiguracji, a zaraz po
+  nich to, co z nich wynika.
+
+⚠️ **Podgląd woła WARSTWĘ OFERTY, nigdy warstwy niższe.** `SaleCalendar` nie dotyka
+`StaySellability`, `PositionAvailability` ani wyceny wprost — inaczej stałby się drugim miejscem
+składania odpowiedzi, czyli dokładnie tym, czego zakazują ADR-013 i ADR-015. Ta sama zasada
+obowiązuje każdy przyszły ekran podglądowy.
+
+⚠️ **Ekran podglądowy nie buforuje werdyktu** ([`dostepnosc.md`](dostepnosc.md) §2). Wolno wyłącznie
+to, co buforem nie jest: jedna instancja warstwy oferty na stanowisko, jedno wczytanie cennika
+i blokad na cały render, diagnostyka cennika pobierana raz na okno. Pomiar dla 806 komórek: 191
+zapytań, ≈ 876 ms — patrz zadanie 019.
+
+⚠️ **Strona podglądowa dziedziczy po `Page`, więc NIE MA z definicji pojęcia rekordu.** Potrzebuje
+cechy `InteractsWithRecord` (to z niej biorą się `resolveRecord()` i `getRecord()`), a autoryzację
+wykonuje **jawnie** — `abort_unless(... ->can('view', $record), 404)`. Samo zawężenie zapytania
+w `resolveRecord()` też broniłoby dostępu, ale niejawnie, jako uboczny skutek zakresu widoczności;
+reguła dostępu ma być widoczna w kodzie strony ([`autoryzacja.md`](autoryzacja.md) §5).
+
+⚠️ **Widok siatki używa stylów wpisanych wprost, a nie klas Tailwinda** — i to jest stan
+TYMCZASOWY, nie wzorzec. Powód w §1: panel nie rejestruje własnego motywu, więc klasa użyta
+w widoku nie ma skąd wziąć CSS-u. Rejestracja motywu okazała się wymagać migracji potoku zasobów
+z Tailwinda 3 na 4 (patrz [ADR-016](../adr/ADR-016-wlasny-motyw-panelu.md) i uwaga w zadaniu 019),
+więc czeka na własne zadanie. Po jego wykonaniu ten widok przepisuje się na klasy.
+

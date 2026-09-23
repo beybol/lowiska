@@ -115,6 +115,28 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - Odpowiedź „czy tę ofertę da się kupić i ile kosztuje" powstaje w jednym miejscu, razem
   z rozbiciem ceny na doby i osoby. To ono zasili kalendarz podglądowy i przyszły koszyk, więc
   wędkarz i operator zobaczą tę samą kwotę i to samo uzasadnienie.
+- Właściciel ma **kalendarz podglądowy**: nowy ekran „Kalendarz" pokazuje siatkę stanowisk i dób,
+  a w każdej komórce — czy pobyt da się kupić, po jakiej cenie i za ile dób. To jedyny ekran
+  konfiguracji, na którym niczego się nie wypełnia: pokazuje skutek wszystkich pozostałych.
+- Widok otwiera się na **właściwym sezonie**, a nie na „najbliższych 30 dniach": gdy dziś jest poza
+  sezonem, kalendarz przeskakuje na początek najbliższego przyszłego. Okno przesuwa się o miesiąc
+  albo tydzień, w granicach wybranego sezonu.
+- Kontrolki nad siatką pozwalają policzyć ofertę dla **dowolnego składu**: liczby łowiących, liczby
+  osób towarzyszących i zadanej długości pobytu. Domyślnie pokazujemy „ceny od" — jeden łowiący
+  i najkrótszy pobyt, jaki wolno kupić.
+- W kalendarzu widać wreszcie rzeczy, których nie pokazywał żaden formularz: **zlewanie
+  i przycinanie pakietów** (doba w środku pakietu mówi, od której doby zacząć), złożenie ceny ze
+  stawki i dopłat oraz dziury w cenniku.
+- Stanowisko wycofane ze sprzedaży zajmuje wiersz **jednym komunikatem**, zamiast trzydziestu razy
+  powtarzać tę samą przyczynę.
+- Podpowiedź przy zablokowanej dobie podaje **zasięg blokady** — ile stanowisk objęła i po czym je
+  wybrano. To najłatwiejszy do przeoczenia błąd konfiguracji: blokada na piętnaście miejsc zamiast
+  pięciu.
+- Kalendarz pokazuje też **bałagan w cenniku**: licznik przy dobie, do której pasuje więcej niż
+  jedna stawka (także gdy mają identyczne kwoty), oraz listę stawek, które nie wygrywają nigdzie
+  w swoim okresie.
+- Łowisko bez godzin doby, bez okresu sprzedaży albo bez stanowisk dostaje **komunikat, czego
+  brakuje i dokąd pójść**, zamiast siatki samych odmów.
 
 ### Zmienione
 
