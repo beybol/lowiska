@@ -18,7 +18,7 @@ nie zobaczy skutku własnej konfiguracji.
 
 Zadanie realizuje moduł **M3** wraz z mechanizmem **G2** (deterministyczne rozstrzyganie)
 i częścią **G3** (walidacja konfiguracji przy zapisie) z
-[Wymagań konfiguracji sprzedaży krótkoterminowej](../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md).
+[Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md).
 Jest drugim zadaniem **punktu kontrolnego B**.
 
 **Podział pracy z 017 jest jednokierunkowy: 017 mówi, CO wolno kupić, 018 ILE to kosztuje.** Wycena
@@ -28,14 +28,14 @@ implementacji **zostaje bez zmian**.
 
 Makiety:
 
-- **wiążąca** — [`makieta-018-cennik-regulowy-v2.html`](../project/mockups/makieta-018-cennik-regulowy-v2.html):
+- **wiążąca** — [`makieta-018-cennik-regulowy-v2.html`](../../project/mockups/makieta-018-cennik-regulowy-v2.html):
   ekran „Cennik" po uproszczeniu (stawka = oś czasu, dopłata = trzy warunki + „dla kogo"),
   rozstrzyganie na korzyść wędkarza, domykanie okresów, rozbicie wyceny i dziura w cenniku.
-- [`makieta-018-cennik-regulowy.html`](../project/mockups/makieta-018-cennik-regulowy.html) —
+- [`makieta-018-cennik-regulowy.html`](../../project/mockups/makieta-018-cennik-regulowy.html) —
   ⚠️ **powstała dla modelu WYCOFANEGO i zostaje wyłącznie jako zapis historyczny.** Jej sekcje
   o czterech osiach warunku, priorytetach i szczegółowości **nie obowiązują**. Nie posługuj się nią
   przy implementacji.
-- [`makiety-panelu-lowiska-v2.html`](../project/mockups/makiety-panelu-lowiska-v2.html), sekcja
+- [`makiety-panelu-lowiska-v2.html`](../../project/mockups/makiety-panelu-lowiska-v2.html), sekcja
   **M3** — pomocnicza, powstała przed 014–017, nie zna pojęcia pobytu ani spoiwa dób.
 
 ---
@@ -52,7 +52,7 @@ rola uczestnika) plus **jawny priorytet**, a przy jego remisie — rozstrzyganie
 (liczbie wypełnionych osi). Nierozstrzygalny remis był **błędem zapisu**. Do tego **dwa niezależne
 wymiary czasu** na każdej regule: `effective_*` („czy ten zapis bierze dziś udział w wycenie")
 oraz `first_day_on`/`last_day_on` („których dób reguła dotyczy"). Uzasadnienie:
-[ADR-014](../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md).
+[ADR-014](../../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md).
 
 ### Co się posypało
 
@@ -191,7 +191,7 @@ puste pole, którego operator nie zauważył.
 ⚠️ **`first_day_on`/`last_day_on` to DNI ROZPOCZĘCIA DÓB**, identycznie jak w `whole_term_periods`
 (017). Nazw `starts_on`/`ends_on` **nie wolno tu użyć** — w `sale_periods` znaczą co innego
 (`ends_on` to ostatni dzień okna, a ostatnia sprzedawalna doba zaczyna się dzień wcześniej),
-[`dostepnosc.md`](../conventions/dostepnosc.md) §4. Etykieta dla operatora brzmi „Obowiązuje od /
+[`dostepnosc.md`](../../conventions/dostepnosc.md) §4. Etykieta dla operatora brzmi „Obowiązuje od /
 do", bo tak on o tym myśli.
 
 ⚠️ **Jest tylko JEDEN wymiar czasu.** `first_day_on`/`last_day_on` odpowiadają na pytanie **których
@@ -278,7 +278,7 @@ Pozostałe własności:
 - **Powiadomienie jest obowiązkowe** — z nazwą domkniętej reguły i nową datą. Cicha zmiana cudzego
   wpisu jest gorsza niż brak automatu.
 - **Domknięcie idzie w TEJ SAMEJ transakcji co zapis** i trafia do dziennika zmian jak każda inna
-  modyfikacja rekordu ([`dziennik-zmian.md`](../conventions/dziennik-zmian.md)) — modyfikujemy wpis,
+  modyfikacja rekordu ([`dziennik-zmian.md`](../../conventions/dziennik-zmian.md)) — modyfikujemy wpis,
   którego operator w tym formularzu nie dotknął.
 - ⚠️ **Gdy jeden zapis repeatera wnosi kilka nowych stawek bezterminowych, przetwarzaj je
   w kolejności rosnącego `first_day_on`.** Ekran jest jednym repeaterem zapisywanym w całości, więc
@@ -293,7 +293,7 @@ Pozostałe własności:
 Po zdjęciu priorytetów nachodzenie stawek przestało być błędem zapisu, a ostrzeżenie w formularzu
 zostało świadomie usunięte. Odpowiedzialność za uwidocznienie nachodzenia niesie kalendarz (019) —
 ale **kalendarz nie ma prawa dopasowywać stawek sam**: po uproszczeniu jest to wprawdzie samo
-porównanie dat, lecz nadal logika cennika, a ta ma jeden dom ([ADR-014](../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md)).
+porównanie dat, lecz nadal logika cennika, a ta ma jeden dom ([ADR-014](../../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md)).
 Dlatego cennik wystawia **diagnostykę**: dwie odpowiedzi, których wycena sama w sobie nie potrzebuje.
 
 | Pytanie | Kto odpowiada | Kształt odpowiedzi |
@@ -405,7 +405,7 @@ zmiany treści** — zmienia się tylko to, że trzeba ją cofnąć i wykonać p
 
 ⚠️ **`PriceRule` nadal NIE dostaje zasobu Filamenta, polityki ani uprawnień Shielda** — jak
 `SalePeriod` (015) i `WholeTermPeriod` (017); dostępu pilnuje `FisheryPolicy`
-([`autoryzacja.md`](../conventions/autoryzacja.md) §5).
+([`autoryzacja.md`](../../conventions/autoryzacja.md) §5).
 
 ⚠️ **Reguła o `getRedirectUrl()` z `CLAUDE.md` tej strony nie dotyczy** — to strona ustawień, nie
 standardowy CRUD z osobnym `Create*`.
@@ -631,7 +631,7 @@ bezpieczeństwa; ratunkiem był test, nie czujność.
       świąteczne z minimum nadal działa.
 - [ ] Wycena **nie woła `StaySellability`** — zmiana reguł pobytu z 017 nie zmienia wyniku wyceny.
 - [ ] Kwoty zapisują się z przecinkiem i kropką tak samo, a asercje idą przez
-      `DB::table(...)->value(...)` ([`panel-wlasciciela.md`](../conventions/panel-wlasciciela.md) §4).
+      `DB::table(...)->value(...)` ([`panel-wlasciciela.md`](../../conventions/panel-wlasciciela.md) §4).
 - [ ] Właściciel nie widzi ani nie edytuje cennika cudzego łowiska.
 - [ ] `ShieldPermissionNamesTest` zielony, w `app/Policies/` **nie przybywa** żaden plik.
 - [ ] Trwałe usunięcie łowiska zabiera ze sobą jego reguły cenowe.
@@ -686,11 +686,11 @@ bezpieczeństwa; ratunkiem był test, nie czujność.
 
 ## Zmiany dokumentacji
 
-- [ ] [`ADR-014`](../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md) — **sekcja „Aktualizacja"
+- [ ] [`ADR-014`](../../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md) — **sekcja „Aktualizacja"
       z odwróceniem decyzji**: cztery osie, priorytet i szczegółowość wycofane; zostaje lista reguł,
       w której **stawka ma tylko oś czasu**, dopłata trzy osie, a pierwszeństwo rozstrzyga się na
       korzyść wędkarza. Treść pierwotna **zostaje** jako zapis tego, co rozważano i dlaczego odpadło
-- [ ] [`ADR-015`](../adr/ADR-015-warstwa-oferty-pobytu.md) — **bez zmian**; warstwa oferty nie zależy
+- [ ] [`ADR-015`](../../adr/ADR-015-warstwa-oferty-pobytu.md) — **bez zmian**; warstwa oferty nie zależy
       od sposobu rozstrzygania cennika
 - [ ] `docs/conventions/cennik.md` — **przepisanie** rozdziałów o rozstrzyganiu, dwóch wymiarach
       czasu, osiach warunku i osobie towarzyszącej (reguła unieważniona jest **przepisywana, nie
@@ -800,12 +800,12 @@ Shielda dla `PriceRule`.
 
 ## Powiązane ADR-y
 
-- [ADR-014](../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md) — ⚠️ **decyzja częściowo
+- [ADR-014](../../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md) — ⚠️ **decyzja częściowo
   odwrócona** przez to przedefiniowanie; wymaga sekcji „Aktualizacja" **przed** implementacją.
-- [ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md) — **w mocy bez zmian**.
-- [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md),
-  [ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md),
-  [ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md) — w mocy.
+- [ADR-015](../../adr/ADR-015-warstwa-oferty-pobytu.md) — **w mocy bez zmian**.
+- [ADR-010](../../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md),
+  [ADR-012](../../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md),
+  [ADR-013](../../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md) — w mocy.
 
 ---
 

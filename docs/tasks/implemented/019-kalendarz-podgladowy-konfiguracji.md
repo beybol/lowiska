@@ -11,7 +11,7 @@ przesądzają o sprzedaży:
 
 1. **Zlewanie pakietów** — święto śr–pt nachodzące na weekend pt–sob daje jeden pakiet śr–sob
    (4 doby). Operator nie zobaczy tego w żadnym z dwóch formularzy, bo nigdzie tego nie wpisał
-   ([ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md) nazywa to skutkiem zamierzonym,
+   ([ADR-013](../../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md) nazywa to skutkiem zamierzonym,
    ale niewidocznym).
 2. **Przycinanie pakietów** — blokada soboty skraca weekend do samego piątku, więc reguła „weekend
    w całości" przestaje obowiązywać w tym tygodniu.
@@ -20,7 +20,7 @@ przesądzają o sprzedaży:
    (K1a). To samo dotyczy dziur w cenniku (K2).
 
 Zadanie realizuje mechanizm **G4** z
-[Wymagań konfiguracji sprzedaży krótkoterminowej](../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)
+[Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)
 — „kalendarz podglądowy «co z tego wynika»: dla najbliższych N dni pokazuje, czy sprzedawalne, po
 jakiej cenie, a jeśli nie — dlaczego". Wymagania nazywają go **najtańszym mechanizmem
 antykonfliktowym** i **głównym narzędziem onboardingu concierge** (IDEA 10.1).
@@ -41,7 +41,7 @@ powodów i wzmianek o remisie.
 modelu, przeznaczony do przebudowy. Implementacja 019 rusza po tamtej przebudowie, a nazwy klas
 weryfikuje się wtedy w kodzie, nie w tym pliku.
 
-Makieta: [`makieta-019-kalendarz-podgladowy.html`](../project/mockups/makieta-019-kalendarz-podgladowy.html)
+Makieta: [`makieta-019-kalendarz-podgladowy.html`](../../project/mockups/makieta-019-kalendarz-podgladowy.html)
 — umiejscowienie w sub-nawigacji, siatka stanowiska × doby z kontrolkami „ceny od", trzy stany
 komórki wraz z kształtem podpowiedzi, **zlewanie i przycinanie pakietów** rozrysowane osobno,
 złożenie cen na przykładzie Łopienna oraz zakres pomiaru kosztu.
@@ -185,7 +185,7 @@ i to jest **odpowiedź warstwy oferty**, a nie wyliczenie kalendarza.
 
 ⚠️ **Kalendarz nie ma prawa tego odtwarzać.** Wartość składa się z pakietu, `min_nights`, zwolnienia
 świątecznego, minimum przedsprzedaży i `max_nights`, czyli **z reguł należących do 017**. Odtworzenie
-ich w widoku złamałoby [ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md) i zrobiło
+ich w widoku złamałoby [ADR-013](../../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md) i zrobiło
 z kalendarza drugie źródło prawdy — a wołanie `StaySellability` wprost łamałoby zasadę „jedno
 wejście", którą 018 ustanowił. Alternatywa „próbuj kolejnych długości, aż warstwa powie tak" odpada
 z innego powodu: przy siatce stanowiska × doby to dziesiątki tysięcy wywołań.
@@ -205,13 +205,13 @@ zapytanie.
 
 ### Pomiar kosztu — element zakresu, nie „zobaczymy potem"
 
-[ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md) zostawił jawnie nierozstrzygnięty
+[ADR-013](../../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md) zostawił jawnie nierozstrzygnięty
 koszt liczenia instancji pakietów w chwili pytania, „gdy kalendarz z zadania 019 zapyta o iloczyn
 dób i stanowisk". To zadanie ten koszt **mierzy i zapisuje w treści zadania**: czas renderowania
 siatki dla łowiska o realnej wielkości przy **oknie miesięcznym** (Klasztorne: ~26 stanowisk × 31 dób
 = ok. 806 komórek) oraz liczba zapytań do bazy.
 
-⚠️ **Buforowanie werdyktu jest zakazane** przez [`dostepnosc.md`](../conventions/dostepnosc.md) §2
+⚠️ **Buforowanie werdyktu jest zakazane** przez [`dostepnosc.md`](../../conventions/dostepnosc.md) §2
 bez własnego uzasadnienia **pomiarowego**. Jeśli pomiar wypadnie źle, bufor jest **osobną decyzją
 z liczbami**, a nie odruchem przy implementacji. Tanie środki, które wolno zastosować od razu i które
 buforem nie są: jedna instancja `FishingDayCalendar` i jedna `PositionAvailability` na stanowisko,
@@ -329,7 +329,7 @@ zdanie. Nie próbuj zmieścić jednego w drugim.
 Zrealizowane w całości poza trzema rzeczami, wszystkie odnotowane świadomie:
 
 1. ⚠️ **Motyw panelu NIE został zarejestrowany, a widok siatki używa stylów wpisanych wprost.**
-   [ADR-016](../adr/ADR-016-wlasny-motyw-panelu.md) zakłada w opcji A, że rejestracja `viteTheme()`
+   [ADR-016](../../adr/ADR-016-wlasny-motyw-panelu.md) zakłada w opcji A, że rejestracja `viteTheme()`
    jest zmianą **pustą wizualnie**. W tym repozytorium to nieprawda: aplikacja kompiluje CSS
    **Tailwindem 3** przez PostCSS (`tailwind.config.js`, `postcss.config.js`, `@tailwind base`
    w `app.css`), a motyw Filamenta 5 wymaga **Tailwinda 4** (`@import 'tailwindcss' source(none)`).
@@ -497,7 +497,7 @@ Zrealizowane w całości poza trzema rzeczami, wszystkie odnotowane świadomie:
   `StaySellabilityVerdict`) są ustalone; nazwy z 018 były w chwili pisania propozycjami — sprawdź
   w kodzie zamiast zgadywać.
 - ⚠️ **Żaden panel nie rejestruje własnego motywu** (`viteTheme()`), więc klasy Tailwinda użyte
-  w widoku **nie mają skąd wziąć CSS-u** ([`panel-wlasciciela.md`](../conventions/panel-wlasciciela.md) §1).
+  w widoku **nie mają skąd wziąć CSS-u** ([`panel-wlasciciela.md`](../../conventions/panel-wlasciciela.md) §1).
   Siatka kalendarza jest pierwszym ekranem w tym projekcie, który realnie potrzebuje własnego układu.
 
 #### Rozpoznanie wtyczek (2026-09-22) — trzy drogi, dwie odrzucone
@@ -619,20 +619,20 @@ Ustalenia z wywiadu przy zakładaniu zadania (2026-09-22).
 
 ## Powiązane ADR-y
 
-- [ADR-016 — Własny motyw panelu i granica stosowania klas Tailwinda](../adr/ADR-016-wlasny-motyw-panelu.md)
+- [ADR-016 — Własny motyw panelu i granica stosowania klas Tailwinda](../../adr/ADR-016-wlasny-motyw-panelu.md)
   — **założony przy przeglądzie tego zadania**, sekcja „Decyzja" do wypełnienia. Bez niego 019 nie da
   się zaimplementować żadną z trzech rozważanych dróg.
 
-Zadanie **stosuje**, ale nie zmienia: [ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md)
-(jedno źródło prawdy o dostępności), [ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md)
-(spoiwo dób, przycinanie, zlewanie), [ADR-014](../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md)
-(cennik jako lista reguł) oraz [ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md) (warstwa oferty
+Zadanie **stosuje**, ale nie zmienia: [ADR-012](../../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md)
+(jedno źródło prawdy o dostępności), [ADR-013](../../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md)
+(spoiwo dób, przycinanie, zlewanie), [ADR-014](../../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md)
+(cennik jako lista reguł) oraz [ADR-015](../../adr/ADR-015-warstwa-oferty-pobytu.md) (warstwa oferty
 jako jedyne wejście).
 
 ## Otwarte pytania dla `/review-task`
 
 1. **Rejestracja motywu panelu — ADR założony, czeka na „Decyzję".**
-   [ADR-016](../adr/ADR-016-wlasny-motyw-panelu.md) opisuje trzy warianty i rekomenduje osobne małe
+   [ADR-016](../../adr/ADR-016-wlasny-motyw-panelu.md) opisuje trzy warianty i rekomenduje osobne małe
    zadanie przed 019. ⚠️ Kolejność jest wiążąca niezależnie od wyboru: **motyw musi istnieć przed
    implementacją 019**, bo bez niego nie działa żadna z trzech dróg budowy siatki.
 1a. **Czy 018 ma wystawić pakiety łowiska?** Przy przedefiniowaniu dołożono diagnostykę cennika,
