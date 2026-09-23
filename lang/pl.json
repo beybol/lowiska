@@ -656,7 +656,7 @@
     "The whole bundle runs :from–:to.": "Cały pakiet trwa :from–:to.",
     "The block covers :count position(s) selected by \":label\".": "Blokada obejmuje :count stanowisk wybranych po „:label”.",
     "The block covers :count position(s).": "Blokada obejmuje :count stanowisk.",
-    ":count rates match this night; the cheapest one wins.": "Do tej doby pasuje :count stawek; wygrywa najtańsza.",
     "Some rates never win": "Niektóre stawki nigdy nie wygrywają",
-    "The rate :amount never wins anywhere in its date range — a cheaper one covers all of it.": "Stawka :amount nie wygrywa nigdzie w swoim zakresie dat — tańsza pokrywa go w całości."
+    "The rate :amount never wins anywhere in its date range — a cheaper one covers all of it.": "Stawka :amount nie wygrywa nigdzie w swoim zakresie dat — tańsza pokrywa go w całości.",
+    "The cheapest rate wins: :winner. Also matching: :others.": "Wygrywa najtańsza stawka: :winner. Pasują też: :others."
 }

@@ -163,3 +163,69 @@ test('kalendarz nie dokłada polityki ani migracji', function () {
     expect(count(glob(base_path('app/Policies/*.php'))))->toBe(17)
         ->and(glob(database_path('migrations/*calendar*')))->toBe([]);
 });
+
+/**
+ * ⚠️ **Każda właściwość publiczna komponentu to dane od klienta** (`CLAUDE.md`). Atrybut `min`
+ * w HTML nie jest walidacją serwerową — bez klamry `nights = 0` leciało do warstwy oferty
+ * i kończyło się wyjątkiem, czyli piątką na całym ekranie.
+ */
+test('niepoprawna długość pobytu nie wywraca ekranu', function () {
+    Filament::setCurrentPanel('owner');
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    $this->actingAs($owner);
+
+    app()->setLocale('pl');
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+        ->set('nights', 0)
+        ->assertSuccessful()
+        // Zero podnosi się do jednej doby, a nie wysypuje warstwy oferty.
+        ->assertSee('70,00');
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+        ->set('nights', -5)
+        ->assertSuccessful();
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+        ->set('anglers', 0)
+        ->assertSuccessful();
+});
+
+/**
+ * ⚠️ `windowStart` też przychodzi od klienta: bez sprawdzenia kształtu parser dat rzucał
+ * `InvalidFormatException` i wywracał cały ekran.
+ */
+test('niepoprawna data okna wraca do kotwicy zamiast wywracać ekran', function () {
+    Filament::setCurrentPanel('owner');
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    $this->actingAs($owner);
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+        ->set('windowStart', 'nie-data')
+        ->assertSuccessful();
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+        ->set('windowStart', '2026-13-45')
+        ->assertSuccessful();
+});
+
+/**
+ * ⚠️ Sam licznik nie zamyka pytania „czemu widzę 70, skoro wpisałem 90" — kryterium 019
+ * i ADR-014 wymagają, żeby podpowiedź podała zwycięzcę I kwoty przegranych.
+ */
+test('podpowiedź nachodzenia podaje zwycięzcę i kwoty przegranych', function () {
+    Filament::setCurrentPanel('owner');
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    StayFixtures::rate($fishery, 90.00);
+    $this->actingAs($owner);
+
+    app()->setLocale('pl');
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+        ->assertSuccessful()
+        // Kwota przegranej musi być widoczna — inaczej operator nie wie, co przegrało.
+        ->assertSee('90.00');
+});

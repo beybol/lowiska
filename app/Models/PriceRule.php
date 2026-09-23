@@ -181,9 +181,11 @@ class PriceRule extends Model
     /**
      * Czy stawka jest BEZTERMINOWA, czyli jest „aktualnym cennikiem".
      *
-     * ⚠️ To rozróżnienie niesie całą mechanikę domykania okresów (`PriceRulePeriods`):
-     * stawka bez daty końca to deklaracja „tak jest teraz", stawka z datą końca to wstawka
-     * w istniejący cennik.
+     * ⚠️ Na tym rozróżnieniu stoi domykanie okresów: stawka bez daty końca to deklaracja
+     * „tak jest teraz", stawka z datą końca to wstawka w istniejący cennik.
+     * ⚠️ **Samo domykanie filtruje jednak w SQL-u** (`whereNull('last_day_on')`
+     * w `PriceRulePeriods`), a nie tą metodą — bo pracuje na zbiorze, nie na wczytanym modelu.
+     * Ta metoda jest predykatem dla kodu, który model już ma w ręku.
      */
     public function isOpenEnded(): bool
     {

@@ -81,9 +81,12 @@ final class StayOffer
 
         if (! $breakdown->isPriced()) {
             // ⚠️ Powód „brak ceny" nazywa TA warstwa, nie wycena — dzięki temu wycena zostaje
-            // wolna od słownika odmów sprzedaży. Obie przyczyny niepowodzenia wyceny (brak
-            // stawki i remis nierozstrzygalny) dają tę samą odmowę dla wędkarza; różnicę widzi
-            // operator w rozbiciu i w ostrzeżeniach cennika.
+            // wolna od słownika odmów sprzedaży. Powód TŁUMACZY SIĘ z `PricingFailure` i nie
+            // jest stały: brak pasującej stawki daje `NoPriceDefined`, brak kwoty za osobę
+            // towarzyszącą — `NoCompanionPrice`. To rozróżnienie jest sednem 018, bo pierwsze
+            // każe operatorowi dopisać regułę, a drugie poprawić pole w regule, która już jest.
+            // ⚠️ Remis nierozstrzygalny PRZESTAŁ ISTNIEĆ razem z priorytetami (ADR-014,
+            // sekcja „Aktualizacja") — nie wracaj z nim do tego opisu.
             return StayOfferVerdict::notPriced($breakdown);
         }
 

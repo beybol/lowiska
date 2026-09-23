@@ -31,6 +31,8 @@ use Carbon\CarbonImmutable;
  */
 final class SaleCalendar
 {
+    private ?FishingDayCalendar $calendar = null;
+
     public function __construct(private readonly Fishery $fishery) {}
 
     /**
@@ -139,6 +141,13 @@ final class SaleCalendar
         $rows = [];
 
         foreach ($positions as $position) {
+            // ⚠️ Łowisko wstrzykujemy W RELACJĘ, zamiast pozwolić jej się doczytać. Konstruktory
+            // `StayOffer`, `StaySellability` i `StayPricing` sięgają po `$position->fishery`,
+            // więc bez tego każde stanowisko wykonałoby własne zapytanie o łowisko, które
+            // trzymamy już w ręku — 26 zapytań za nic. Przy okazji wszystkie warstwy dostają
+            // TEN SAM obiekt, a nie 26 jego kopii.
+            $position->setRelation('fishery', $this->fishery);
+
             if ($position->status === PositionStatus::Withdrawn) {
                 $rows[] = SaleCalendarRow::withdrawn($position);
 
@@ -248,7 +257,11 @@ final class SaleCalendar
             $block = $this->blockCovering($blocks[$position->id] ?? [], $day);
 
             if ($block instanceof AvailabilityBlock) {
-                $count = $block->positions()->count();
+                // ⚠️ `positions` (właściwość), nie `positions()` (relacja): metoda relacji
+                // OMIJA eager-load z `blocksByPosition()` i wykonuje `select count(*)` dla
+                // każdej zablokowanej komórki. Przy trzydziestodobowej blokadzie na 26
+                // stanowiskach to 780 zapytań za odpowiedź, którą mamy już wczytaną.
+                $count = $block->positions->count();
                 // ⚠️ `selection_label` jest NULLABLE — zbiór zaznaczony ręcznie go nie ma,
                 // więc potrzebny jest wariant bez opisu kryterium, nigdy pusty nawias.
                 $label = filled($block->selection_label) ? (string) $block->selection_label : null;
@@ -259,27 +272,64 @@ final class SaleCalendar
     }
 
     /**
+     * Blokada, która wyłączyła sprzedaż tej doby — albo `null`.
+     *
+     * ⚠️ **Reguła przecięcia doby z oknem blokady ma JEDEN dom i nie jest nim ta klasa.**
+     * Liczy ją `FishingDay::overlaps()`, a granice okna ustala się dokładnie tak samo jak
+     * w `PositionAvailability`: „do odwołania" nie ma końca, więc przecięcie sprowadza się do
+     * tego, czy doba kończy się po otwarciu okna. Wcześniejsza wersja odtwarzała tę arytmetykę
+     * ręcznie na datach — i rozjeżdżała się z warstwą niżej na granicy doby kończącej się
+     * o północy ([`dostepnosc.md`](../../docs/conventions/dostepnosc.md) §1: drugi kod liczący
+     * doby jest defektem).
+     *
+     * ⚠️ To wyszukiwanie odpowiada WYŁĄCZNIE na pytanie „którą blokadą to było", żeby
+     * podpowiedź podała jej zasięg. O tym, czy doba jest sprzedawalna, rozstrzygnęła już
+     * warstwa oferty — tutaj nie ma prawa zapaść żadna decyzja o sprzedaży.
+     *
      * @param  array<int, AvailabilityBlock>  $blocks
      */
     private function blockCovering(array $blocks, CarbonImmutable $day): ?AvailabilityBlock
     {
-        foreach ($blocks as $block) {
-            $starts = $this->asLocalDay($block->starts_on);
-            $ends = $block->ends_on === null ? null : $this->asLocalDay($block->ends_on);
+        $night = $this->calendar()->dayStartingOn($day);
 
-            // ⚠️ Blokada działa przez PRZECIĘCIE z dobą, a okres sprzedaży przez ZAWIERANIE —
-            // ta asymetria jest udokumentowana w `dostepnosc.md` i nie wolno jej tu zgubić.
-            // Doba zaczynająca się dnia D kończy się nazajutrz, więc blokada dnia D+1 też ją tnie.
-            if ($day->addDay() < $starts) {
+        if (! $night instanceof FishingDay) {
+            return null;
+        }
+
+        $timezone = $this->timezone();
+        $covering = [];
+
+        foreach ($blocks as $block) {
+            $windowStart = CarbonImmutable::parse($block->starts_on->toDateString(), $timezone)->startOfDay();
+
+            if ($block->ends_on === null) {
+                if ($night->endsAt > $windowStart) {
+                    $covering[] = $block;
+                }
+
                 continue;
             }
 
-            if ($ends === null || $day <= $ends) {
-                return $block;
+            $windowEnd = CarbonImmutable::parse($block->ends_on->toDateString(), $timezone)->endOfDay();
+
+            if ($night->overlaps($windowStart, $windowEnd)) {
+                $covering[] = $block;
             }
         }
 
-        return null;
+        if ($covering === []) {
+            return null;
+        }
+
+        // ⚠️ Gdy dobę przykrywa kilka blokad, wybór musi być DETERMINISTYCZNY — inaczej
+        // podpowiedź podawałaby zasięg przypadkowej z nich i zmieniałaby się między renderami.
+        usort($covering, static fn (AvailabilityBlock $a, AvailabilityBlock $b): int => [
+            $a->starts_on->toDateString(), (int) $a->id,
+        ] <=> [
+            $b->starts_on->toDateString(), (int) $b->id,
+        ]);
+
+        return $covering[0];
     }
 
     /**
@@ -335,6 +385,15 @@ final class SaleCalendar
         }
 
         return [$candidates, (new PricingConfigurationAudit($this->fishery))->deadRates()];
+    }
+
+    /**
+     * Kalendarz dób — JEDNA instancja na render. To nie jest bufor werdyktu, tylko uniknięcie
+     * budowania tego samego obiektu raz na komórkę (`dostepnosc.md` §2).
+     */
+    private function calendar(): FishingDayCalendar
+    {
+        return $this->calendar ??= new FishingDayCalendar($this->fishery);
     }
 
     private function today(): CarbonImmutable

@@ -6,6 +6,7 @@ use App\Enums\CalendarWindow;
 use App\Enums\SaleUnavailabilityReason;
 use App\Filament\Resources\FisheryResource;
 use App\Models\Fishery;
+use App\Models\PriceRule;
 use App\Models\SalePeriod;
 use App\Services\FisheryNavigation;
 use App\Services\SaleCalendar;
@@ -49,12 +50,19 @@ class ManageCalendar extends Page
 
     public ?int $seasonId = null;
 
+    private ?SaleCalendar $calendar = null;
+
     public int $anglers = 1;
 
     public int $companions = 0;
 
     /** `null` = najkrótszy kupowalny pobyt, czyli widok „ceny od". */
     public ?int $nights = null;
+
+    /** Górne granice wejścia od klienta — patrz `clamp()`. */
+    private const MAX_PARTY = 50;
+
+    private const MAX_NIGHTS = 365;
 
     public static function getNavigationLabel(): string
     {
@@ -180,15 +188,42 @@ class ManageCalendar extends Page
         return $this->calendar()->grid(
             from: $this->currentStart(),
             unit: $this->unit(),
-            anglers: max(1, $this->anglers),
-            companions: max(0, $this->companions),
-            nights: $this->nights,
+            anglers: $this->clamp($this->anglers, 1, self::MAX_PARTY),
+            companions: $this->clamp($this->companions, 0, self::MAX_PARTY),
+            nights: $this->nights === null ? null : $this->clamp($this->nights, 1, self::MAX_NIGHTS),
         );
     }
 
     public function calendar(): SaleCalendar
     {
-        return new SaleCalendar($this->fishery());
+        // ⚠️ Memoizacja na czas JEDNEGO żądania — instancja ginie razem z nim, więc nie jest to
+        // bufor werdyktu zakazany przez `dostepnosc.md` §2. Bez niej widok tworzy kalendarz
+        // pięć razy na render i pięć razy odpytuje o sezony.
+        return $this->calendar ??= new SaleCalendar($this->fishery());
+    }
+
+    /**
+     * Treść podpowiedzi przy liczniku nachodzących stawek.
+     *
+     * ⚠️ **Sam licznik nie wystarcza** — kryterium 019 i ADR-014 wymagają, żeby podpowiedź
+     * zamykała pytanie „czemu widzę 70, skoro wpisałem 90". Dlatego wypisuje zwycięzcę
+     * i kwoty przegranych, a nie samą liczbę pasujących reguł.
+     *
+     * @param  array<int, PriceRule>  $rates  w kolejności rozstrzygania, zwycięzca pierwszy
+     */
+    public function overlapTooltip(array $rates): string
+    {
+        if ($rates === []) {
+            return '';
+        }
+
+        $winner = array_shift($rates);
+        $others = array_map(static fn ($rule): string => (string) $rule->amount, $rates);
+
+        return __('The cheapest rate wins: :winner. Also matching: :others.', [
+            'winner' => (string) $winner->amount,
+            'others' => implode(', ', $others),
+        ]);
     }
 
     /**
@@ -256,11 +291,36 @@ class ManageCalendar extends Page
         return CalendarWindow::tryFrom($this->window) ?? CalendarWindow::Month;
     }
 
+    /**
+     * ⚠️ **`windowStart` przychodzi OD KLIENTA**, więc nie wolno jej podać wprost parserowi dat:
+     * `$wire.set('windowStart', 'x')` rzuciłoby `InvalidFormatException` i wywróciło cały ekran.
+     * Kształt sprawdzamy wzorcem, a przy czymkolwiek innym wracamy do kotwicy — podgląd ma się
+     * wtedy pokazać, a nie wysypać.
+     */
     public function currentStart(): CarbonImmutable
     {
         $timezone = $this->fishery()->timezone ?: 'Europe/Warsaw';
 
-        return CarbonImmutable::parse($this->windowStart ?? 'today', $timezone)->startOfDay();
+        if (is_string($this->windowStart) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->windowStart) === 1) {
+            try {
+                return CarbonImmutable::parse($this->windowStart, $timezone)->startOfDay();
+            } catch (\Throwable) {
+                // Wzorzec przepuszcza „2026-13-45"; wtedy też schodzimy do kotwicy.
+            }
+        }
+
+        return $this->calendar()->anchor() ?? CarbonImmutable::now($timezone)->startOfDay();
+    }
+
+    /**
+     * ⚠️ **Każda właściwość publiczna komponentu to dane od klienta** (`CLAUDE.md`). Atrybut
+     * `min` w HTML nie jest walidacją serwerową: bez tej klamry `nights = 0` leciało do warstwy
+     * oferty i kończyło się wyjątkiem, czyli **piątką na całym ekranie**, a wartość rzędu stu
+     * tysięcy budowała tyleż dób **na każdą komórkę**.
+     */
+    private function clamp(mixed $value, int $min, int $max): int
+    {
+        return max($min, min($max, (int) $value));
     }
 
     public function fishery(): Fishery

@@ -112,10 +112,12 @@
                                         <div style="font-weight:400; opacity:.6">{{ $day->locale($locale)->isoFormat('dd') }}</div>
                                         @if ($grid->overlappingRates($day) > 1)
                                             {{-- ⚠️ Licznik przy KAŻDYM nachodzeniu, także przy identycznych kwotach:
-                                                 dwie stawki na tę samą dobę są pomyłką zawsze. --}}
+                                                 dwie stawki na tę samą dobę są pomyłką zawsze.
+                                                 ⚠️ Podpowiedź podaje ZWYCIĘZCĘ I KWOTY PRZEGRANYCH — sam licznik
+                                                 nie zamyka pytania „czemu widzę 70, skoro wpisałem 90". --}}
                                             <div
                                                 style="font-weight:600; color:#B45309"
-                                                title="{{ __(':count rates match this night; the cheapest one wins.', ['count' => $grid->overlappingRates($day)]) }}"
+                                                title="{{ $this->overlapTooltip($grid->ratesFor($day)) }}"
                                             >⚠ {{ $grid->overlappingRates($day) }}</div>
                                         @endif
                                     </th>

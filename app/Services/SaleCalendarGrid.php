@@ -29,7 +29,12 @@ final readonly class SaleCalendarGrid
     ) {}
 
     /**
-     * Ile stawek pasuje do tej doby.
+     * Ile stawek NACHODZI na siebie w tej dobie.
+     *
+     * ⚠️ **Zwraca 0 także wtedy, gdy pasuje dokładnie jedna stawka** — i to nie jest pomyłka
+     * w nazwie, tylko kształt danych: `SaleCalendar` zapisuje kandydatów wyłącznie przy
+     * nachodzeniu, bo tylko ono jest informacją dla operatora. Nie czytaj tej metody jako
+     * „ile stawek obowiązuje"; na to odpowiada `PriceRuleResolver`.
      *
      * ⚠️ **Licznik pokazuje się przy KAŻDYM nachodzeniu, także przy identycznych kwotach.**
      * Dwie stawki na tę samą dobę są pomyłką zawsze — a dwie identyczne to najczystszy
