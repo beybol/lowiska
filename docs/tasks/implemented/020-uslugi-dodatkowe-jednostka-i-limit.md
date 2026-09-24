@@ -1,6 +1,6 @@
 # 020 — Usługi dodatkowe: jednostka rozliczenia, zasięg i dostępność na stanowisku
 
-> **Pochodzenie:** numer z planu realizacji ([wymagania, §14.1](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)),
+> **Pochodzenie:** numer z planu realizacji ([wymagania, §14.1](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)),
 > zarezerwowany 20.09.2026 i uzupełniony przez `/create-task` 23.09.2026, po zadaniu 019.
 > Przerobiony dwukrotnie tego samego dnia po uwagach do definicji (patrz `## Rozstrzygnięcia`).
 > **Moduł:** M6 (zależy od doby M1 i stanowisk M5, oba zrealizowane). Rozstrzyga K18 po stronie
@@ -282,10 +282,10 @@ nie zmienia żadnego stanowiska (F5, O11). Dlatego **nie ma przypisania usługi 
       usługę"; pole zasięgu (zmiana na „całe łowisko" kasuje przypięcia) i wymagane cechy
       w formularzu usługi.
 - [ ] `docs/conventions/panel-admina.md` — nowe pola we wspólnym `AdditionalServiceResource`.
-- [x] `docs/project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md` — O13, O21, M6, F8, §6, P16 i §14.1
+- [x] `docs/project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md` — O13, O21, M6, F8, §6, P16 i §14.1
       zaktualizowane 23.09.2026 przy przeróbce tego zadania. Po implementacji: §0.1 — M6
       zrealizowane; K18 zamknięty po stronie usług.
-- [x] `docs/project/KONCEPCJA-SPRZEDAZ-DOBOWA.md` — M6 zaktualizowane 23.09.2026.
+- [x] `docs/project/etapy/00-konfiguracja-sprzedazy/KONCEPCJA-SPRZEDAZ-DOBOWA.md` — M6 zaktualizowane 23.09.2026.
 - [x] `docs/project/mockups/makieta-020-uslugi-dodatkowe.html` — przerobiona 23.09.2026: dwie
       jednostki, brak wyceny i „X z N", lista usług przy stanowisku.
 - [ ] `MANUAL.md` — jednostki, usługa bezpłatna, zasięg, wymagane cechy, znaczenie limitu i akcja

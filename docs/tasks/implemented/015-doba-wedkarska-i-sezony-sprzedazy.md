@@ -15,7 +15,7 @@ Drugi brak: nie da się powiedzieć „w tym okresie nie sprzedajemy". Dziś ło
 wcale, a zamknięcie sprzedaży na część roku jest stanem normalnym, nie awarią.
 
 Zadanie jest **pierwszym w pakiecie 014–021** i realizuje moduł **M1** oraz sezonową część **M2**,
-wraz z punktami elastyczności **F1** i **F2** z [Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md).
+wraz z punktami elastyczności **F1** i **F2** z [Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md).
 Uzasadnienia biznesowe i granice zakresu są tam.
 
 ## Wymagania
@@ -199,7 +199,7 @@ Nowe etykiety pól, tytuł strony ustawień i etykiety wartości enumu `SaleMode
 - **Uzasadnienie:** zadanie trafia w **jeden** wyzwalacz T3 z `CLAUDE.md` — migracje. Polityki nie
   dokłada (autoryzacja idzie przez istniejącą `FisheryPolicy`), a providerów paneli nie dotyka, bo
   strona ustawień jest stroną `FisheryResource`, zarejestrowanego w obu panelach już dziś. Odstępstwo jest **pakietowe, nie punktowe**:
-  rozdział 14.2 [wymagań](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) ustala T2 dla zadań
+  rozdział 14.2 [wymagań](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) ustala T2 dla zadań
   014–021 i pełny pakiet na trzech punktach kontrolnych; dla tego zadania jest to punkt **A**, po
   zadaniach 014–016. Zakres T2 obejmuje testy łowiska i jego formularza, zawężanie widoczności do
   własnych łowisk, granice obu paneli oraz klasy testowe nowe w tym zadaniu: wyliczanie dób, okresy

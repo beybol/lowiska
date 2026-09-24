@@ -20,7 +20,7 @@ przesądzają o sprzedaży:
    (K1a). To samo dotyczy dziur w cenniku (K2).
 
 Zadanie realizuje mechanizm **G4** z
-[Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)
+[Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)
 — „kalendarz podglądowy «co z tego wynika»: dla najbliższych N dni pokazuje, czy sprzedawalne, po
 jakiej cenie, a jeśli nie — dlaczego". Wymagania nazywają go **najtańszym mechanizmem
 antykonfliktowym** i **głównym narzędziem onboardingu concierge** (IDEA 10.1).
@@ -471,7 +471,7 @@ Zrealizowane w całości poza trzema rzeczami, wszystkie odnotowane świadomie:
 - [ ] `docs/conventions/panel-wlasciciela.md` — §6: ekran **podglądowy** obok stron ustawień; jego
       miejsce w kolejności sub-nawigacji oraz zasada, że podgląd **woła warstwę oferty**, a nie
       warstwy niższe
-- [ ] `docs/project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md` — trzy poprawki: §14.1 wiersz **019**
+- [ ] `docs/project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md` — trzy poprawki: §14.1 wiersz **019**
       (skreślić „bramka udostępnienia stawek warunkowych"; zawęzić „G4 dla M2–M4, M6" do **M2–M4**,
       z adnotacją, że usługi dokłada 020); §14.1 wiersz **020** — dopisać rozszerzenie kalendarza
       o usługi; §14.2 — **punkty kontrolne B i C zastąpione jednym wspólnym przeglądem po pakiecie

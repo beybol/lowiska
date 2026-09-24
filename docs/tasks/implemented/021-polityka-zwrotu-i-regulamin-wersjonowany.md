@@ -1,6 +1,6 @@
 # 021 — Polityka zwrotu progowa, regulamin wersjonowany i wymagania wobec wędkarza
 
-> **Pochodzenie:** numer z planu realizacji ([wymagania, §14.1](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)),
+> **Pochodzenie:** numer z planu realizacji ([wymagania, §14.1](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)),
 > zarezerwowany 20.09.2026 i uzupełniony przez `/create-task` 23.09.2026.
 > **Moduły:** M7 + M8. Powiązane: D1, D2 (§14.4 wymagań), D7 i TODO-1/TODO-3 w
 > [`DECYZJE-I-TODO-BIZNESOWE.md`](../../project/DECYZJE-I-TODO-BIZNESOWE.md).
@@ -272,7 +272,7 @@ i opisu oferty:
       wejścia w życie, kopia, domyślna data +14 dni), ekran polityki zwrotu, nowe pola łowiska.
 - [ ] `docs/conventions/panel-admina.md` — zasób szablonów dokumentów.
 - [ ] `docs/conventions/autoryzacja.md` — polityki nowych zasobów (jeśli powstaną).
-- [ ] `docs/project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md`:
+- [ ] `docs/project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md`:
   - [ ] §0.1: M7 i M8 zrealizowane;
   - [x] §5: zależność M8 → M7 zniesiona — zrobione przy decyzji D9 (24.09.2026);
   - [x] M8 i F10: wymagania wobec wędkarza jako pola **łowiska**, regulamin jako sama treść —

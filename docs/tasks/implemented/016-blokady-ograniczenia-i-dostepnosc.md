@@ -17,7 +17,7 @@ nie".** Dopóki go nie ma, poprzednie zadania da się sprawdzić wyłącznie po 
 zachowaniu, a każde kolejne będzie kuszone, żeby dorobić własne wyliczenie.
 
 Zadanie realizuje **M2** w części blokad wraz z punktem elastyczności **F3** i mechanizmami **G8**
-i **G11** z [Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md),
+i **G11** z [Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md),
 a przy okazji wnosi pierwsze wcielenie zasady **Z3** i mechanizmu **G5** — jednego źródła prawdy
 o dostępności.
 
@@ -194,7 +194,7 @@ Komunikat odmowy widzi wędkarz, więc jest częścią interfejsu, a nie treści
   administratora odkrywa je katalogiem (`discoverResources`), więc widzi nowy zasób sam i jego
   providera zadanie nie dotyka. Filtr obejmuje `AdminPanelTest` i `OwnerPanelTest`, czyli dokładnie
   to, co chroni tę zmianę. Odstępstwo jest **pakietowe, nie punktowe**: rozdział 14.2
-  [wymagań](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) ustala T2 dla zadań 014–021 i pełny
+  [wymagań](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) ustala T2 dla zadań 014–021 i pełny
   pakiet na trzech punktach kontrolnych; to zadanie **domyka punkt A**, więc pełny pakiet biegnie
   bezpośrednio po nim.
   ⚠️ Nazwy dwóch pierwszych klas w filtrze są **propozycją** — jeśli implementacja nazwie je inaczej,

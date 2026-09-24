@@ -22,7 +22,7 @@ Zasada przewodnia przy projektowaniu: **łowiska bardzo się od siebie różnią
 - **Klient**: właściciel Łowiska (podmiot, z którym Fisherya ma relację handlową).
 - **Operator**: właściciel Łowiska lub jego pracownik korzystający z systemu w celu zarządzania łowiskiem.
 - **Firma**: podmiot gospodarczy zarejestrowany w systemie i zweryfikowany, do którego przypisane są Łowiska i na którego konto trafiają płatności.
-- **Stanowisko**: wyznaczone miejsce do łowienia na danym łowisku (np. konkretny pomost, plaża, zatoczka lub wejście do wody). Ma własne atrybuty — dojazd autem, parking, miejsce do wodowania łodzi, prąd, miejsce na namiot, odległość do toalety — bo wędkarz pyta o konkretne miejsce, a nie o cały akwen (patrz [ANKIETA-WNIOSKI.md](ANKIETA-WNIOSKI.md), 4.1).
+- **Stanowisko**: wyznaczone miejsce do łowienia na danym łowisku (np. konkretny pomost, plaża, zatoczka lub wejście do wody). Ma własne atrybuty — dojazd autem, parking, miejsce do wodowania łodzi, prąd, miejsce na namiot, odległość do toalety — bo wędkarz pyta o konkretne miejsce, a nie o cały akwen (patrz [ANKIETA-WNIOSKI.md](badania/ANKIETA-WNIOSKI.md), 4.1).
 - **Pozwolenie**: uprawnienie nabywane komercyjnie, pozwalające na korzystanie z Łowiska i/lub Stanowiska.
 - **Pozwolenie długookresowe**: Pozwolenie na sezon lub kilka miesięcy. Pozwala na korzystanie z Łowiska w okresie, który obejmuje. Nie gwarantuje wolnego Stanowiska.
 - **Pozwolenie jednorazowe**: Pozwolenie na godziny lub dni, zawsze powiązane z konkretnym Stanowiskiem.
@@ -306,7 +306,7 @@ Do rozważenia są też uniwersalne systemy rezerwacyjne ([Bookero](https://book
 - **6** wymieniło jakikolwiek agregator — w tym dwie osoby szwedzką aplikację Ifiske;
 - **ani jedna osoba nie wymieniła fish.do ani zasiadki.pl.**
 
-Deklarowane przez tamte serwisy 500+ i 300+ łowisk nie przekłada się na żadną rozpoznawalność po stronie popytu. Rynek jest realnie otwarty, a **prawdziwym konkurentem nie jest inny portal, tylko fanpage łowiska na Facebooku.** Szczegóły w [ANKIETA-WNIOSKI.md](ANKIETA-WNIOSKI.md).
+Deklarowane przez tamte serwisy 500+ i 300+ łowisk nie przekłada się na żadną rozpoznawalność po stronie popytu. Rynek jest realnie otwarty, a **prawdziwym konkurentem nie jest inny portal, tylko fanpage łowiska na Facebooku.** Szczegóły w [ANKIETA-WNIOSKI.md](badania/ANKIETA-WNIOSKI.md).
 
 Zastrzeżenie: pytanie w ankiecie dotyczyło *stron do rezerwacji*, więc Zimorodek mógł nie pasować do kategorii w głowie respondenta — to aplikacja do zezwoleń i map, nie do rezerwacji. Zerowa liczba wskazań przy 100 tys. pobrań jest więc raczej artefaktem pytania niż dowodem braku zasięgu — ale też potwierdza, że **Zimorodek nie funkcjonuje w głowie wędkarza jako sposób na załatwienie wyjazdu.** W kolejnym badaniu trzeba zapytać osobno o znajomość aplikacji i osobno o to, do czego jest używana.
 

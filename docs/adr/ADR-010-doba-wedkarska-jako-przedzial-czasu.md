@@ -5,7 +5,7 @@
 - **Zadanie:** [015 — Doba wędkarska i kalendarz sezonów sprzedaży](../tasks/implemented/015-doba-wedkarska-i-sezony-sprzedazy.md)
 
 > **Charakter dokumentu.** Rozstrzygnięcie zapadło przy projektowaniu zadania 015 i jest już zapisane
-> w [Wymaganiach](../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) oraz w samym zadaniu. Ten ADR go
+> w [Wymaganiach](../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) oraz w samym zadaniu. Ten ADR go
 > **utrwala**, a nie otwiera od nowa: sekcja „Alternatywy" jest tu po to, żeby za rok było wiadomo,
 > czego świadomie nie wybraliśmy i dlaczego. Sekcja „Decyzja" zostaje, bo `/implement-task` na pustej
 > się zatrzymuje — wystarczy ją potwierdzić.
@@ -49,7 +49,7 @@ Pytania 1 i 3 wyglądają na ten sam problem („czy zakres dat pasuje do doby")
 
 Zasięg jest największy w całym pakiecie: z tej definicji korzystają zadania 016 (blokady), 017 (reguły
 sprzedaży), 018 (cennik) i 019 (kalendarz podglądowy), a potem każde zapytanie o dostępność w portalu
-wędkarza. Rozdział 14.3 [wymagań](../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) wskazuje to jako
+wędkarza. Rozdział 14.3 [wymagań](../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) wskazuje to jako
 kandydata na ADR z uzasadnieniem „odwrócenie oznacza przepisanie wszystkich zapytań o dostępność".
 
 ## Alternatywy

@@ -18,7 +18,7 @@ nie zobaczy skutku własnej konfiguracji.
 
 Zadanie realizuje moduł **M3** wraz z mechanizmem **G2** (deterministyczne rozstrzyganie)
 i częścią **G3** (walidacja konfiguracji przy zapisie) z
-[Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md).
+[Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md).
 Jest drugim zadaniem **punktu kontrolnego B**.
 
 **Podział pracy z 017 jest jednokierunkowy: 017 mówi, CO wolno kupić, 018 ILE to kosztuje.** Wycena
@@ -699,7 +699,7 @@ bezpieczeństwa; ratunkiem był test, nie czujność.
 - [ ] `MANUAL.md` — rozdział „Cennik" do przepisania: znikają priorytety i pułapka osoby
       towarzyszącej, dochodzi domykanie okresów, „wygrywa korzystniejsza dla wędkarza" oraz zdanie,
       że **cenę weekendową robi się dopłatą**
-- [ ] `docs/project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md` — §M3: odnotować, że rozstrzyganie po
+- [ ] `docs/project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md` — §M3: odnotować, że rozstrzyganie po
       priorytecie i szczegółowości zostało wycofane, warunek roli zastąpiony kolumną, a dni
       tygodnia są wyłącznie warunkiem dopłaty
 - [ ] `CHANGELOG.md` — wpis do **poprawienia, nie dopisania**: dzisiejszy opis 018 mówi

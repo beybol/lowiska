@@ -17,7 +17,7 @@ sprzedać na tym stanowisku":
 Żadne miejsce nie składa ich razem. Dopóki go nie ma, poprzednie zadania da się sprawdzić wyłącznie
 po zawartości tabel, a każde kolejne — cennik (018), kalendarz podglądowy (019), portal wędkarza —
 będzie kuszone, żeby dorobić własne wyliczenie. Rozdział 14.3
-[wymagań](../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) wskazuje to jako kandydata na ADR:
+[wymagań](../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) wskazuje to jako kandydata na ADR:
 zasięg obejmuje portal, panel, sprzedaż offline, cennik i kalendarz, a odwrócenie oznacza
 przepisanie każdego miejsca, które pyta o dostępność.
 

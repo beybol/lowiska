@@ -16,7 +16,7 @@ Po zadaniach 015, 014, 016 i 017 system wie, **czym** handluje, **czym** dysponu
 wyłączony** i **co wolno kupić**. Nie wie, **ile to kosztuje**: ceny istnieją dziś wyłącznie tam,
 gdzie nie rozstrzygają o sprzedaży doby (`additional_services.price`, `long_term_permits`).
 
-Rozdział 11 [wymagań](../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) rozstrzygnął już **biznesowo**,
+Rozdział 11 [wymagań](../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) rozstrzygnął już **biznesowo**,
 że stawki mają być warunkowe i samoobsługowe. Nierozstrzygnięte zostaje to, co przesądza o kształcie
 schematu i o każdym miejscu pytającym o cenę: **jak silnik wybiera stawkę i co robi, gdy nie umie
 wybrać.**

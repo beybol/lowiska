@@ -18,7 +18,7 @@ oraz horyzont sprzedaży.
 
 Zadanie realizuje moduł **M4** wraz z punktem elastyczności **F7** oraz mechanizmami **G3**
 (walidacja konfiguracji przy zapisie) i **G11** (wyjaśnialna odmowa) z
-[Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md).
+[Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md).
 Jest pierwszym zadaniem **punktu kontrolnego B**.
 
 ### Historia kształtu — dlaczego to jest wariant 2
@@ -424,7 +424,7 @@ dób, nigdy dnia wyjazdu.
   dokłada (autoryzacja idzie przez istniejącą `FisheryPolicy`), providerów paneli nie dotyka (strona
   należy do `FisheryResource`, zarejestrowanego w obu panelach) i nie rusza `tests/TestCase.php`,
   bo nie powstaje nowy zasób. Odstępstwo jest **pakietowe, nie punktowe**: rozdział 14.2
-  [wymagań](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) ustala T2 dla zadań 014–021 i pełny
+  [wymagań](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md) ustala T2 dla zadań 014–021 i pełny
   pakiet na punktach kontrolnych; dla tego zadania jest to punkt **B**, po zadaniach 017–019 — tak
   samo jak 014, 015 i 016 rozliczyły się na punkcie A. Zakres T2 obejmuje klasy nowe w tym zadaniu
   oraz wszystko, na czym one stoją albo co dzieli z nimi mechanikę: dostępność doby, wyliczanie dób,
@@ -496,7 +496,7 @@ dób, nigdy dnia wyjazdu.
       Cała ta zmiana należy do Części I; numeracja rozdziałów jest ciągła przez oba działy, więc nowa
       sekcja wchodzi między dzisiejsze §4 i §5 i **przenumerowuje wszystko dalej**, razem
       z odsyłaczami w §2 i w Części II
-- [x] `docs/project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md` — §0.1: M4 z „w trakcie
+- [x] `docs/project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md` — §0.1: M4 z „w trakcie
       przeprojektowania" na **„Zrealizowane"** z odsyłaczem do konwencji, wzorem M1/M2/M5
 - [x] `CHANGELOG.md` — wpis w changelogu
 

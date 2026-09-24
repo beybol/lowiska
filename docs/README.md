@@ -9,6 +9,9 @@ Cała dokumentacja jest **po polsku** (kod i UI po angielsku — patrz `CLAUDE.m
 | [`adr/`](adr/) | Decyzje architektoniczne `ADR-NNN-temat.md`. Szablon: [`_template.md`](adr/_template.md) | `/review-task` zakłada, **Decyzję wypełnia autor** |
 | [`conventions/`](conventions/) | Niezmienniki powierzchni aplikacji — „jak to jest zrobione i dlaczego akurat tak". Patrz [`conventions/README.md`](conventions/README.md) | `/implement-task` po zakończonym zadaniu |
 | [`operations/`](operations/) | Dokumentacja operacyjna: uruchamianie, kontenery, wdrożenie | autor / zadania |
+| [`project/`](project/) | Dokumentacja produktowa i biznesowa: roadmapa, zasady projektowe, idea, decyzje biznesowe, makiety, archiwum zamkniętych etapów. Spis: [`project/README.md`](project/README.md) | autor |
+| [`security/`](security/) | Raporty z przeglądów bezpieczeństwa (`RRRR-MM-DD-<temat>.md`) | `/security-audit`, przeglądy |
+| `screens/` | **Katalog roboczy, nie dokumentacja** — zrzuty ekranu na potrzeby bieżącej pracy; ignorowany przez git | autor |
 
 Katalog `reviews/` powstaje na żądanie — `/review-implementation` zapisuje tam raporty
 (`RRRR-MM-DD-<zakres>.md`), gdy użytkownik wybierze taką dyspozycję uwag.

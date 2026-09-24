@@ -13,7 +13,7 @@ i zachowanie historii po wycofanym stanowisku już działają. Brakuje trzech rz
    a część czynności operatora powtarza się na kilkunastu rekordach naraz.
 
 Zadanie realizuje moduł **M5** wraz z punktem elastyczności **F4** z
-[Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md).
+[Wymagań konfiguracji sprzedaży krótkoterminowej](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md).
 Makieta docelowych ekranów wraz z deltą pól:
 [`makieta-014-stanowiska-grupy-i-cechy.html`](../../project/mockups/makieta-014-stanowiska-grupy-i-cechy.html).
 
@@ -239,7 +239,7 @@ Nowe etykiety pól, nazwy zasobów i etykiety wartości enumów w `lang/pl.json`
 - **Uruchamiamy:** `docker compose exec app php artisan test --filter="PositionGroupTest|PositionAttributeTest|PositionAttributeValueRuleTest|BulkAttributeActionTest|PositionResourceTest|PositionAdditionalServicesTest|LongTermPermitResourceTest|AdditionalServiceResourceTest|ActivityLoggingTest|ShieldPermissionNamesTest|AdminPanelTest|OwnerPanelTest|HelperFisheryAccessTest"`
 - **Uzasadnienie:** patrz „Rozstrzygnięcia" — tier T2 utrzymany mimo trzech wyzwalaczy T3, na
   podstawie decyzji pakietowej z rozdziału 14.2
-  [wymagań](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md). Zakres T2 obejmuje testy stanowisk oraz
+  [wymagań](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md). Zakres T2 obejmuje testy stanowisk oraz
   wszystkiego, co ze stanowisk korzysta albo dzieli z nimi mechanikę: powiązania z pozwoleniami
   i usługami, dziennik zmian, nazwy uprawnień, granice obu paneli i zawężanie widoczności do własnych
   łowisk oraz klasy testowe nowe w tym zadaniu: grupy, słownik cech, regułę wartości i akcję zbiorczą.

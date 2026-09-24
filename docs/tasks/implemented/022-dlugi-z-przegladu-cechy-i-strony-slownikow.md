@@ -1,7 +1,7 @@
 # 022 — Długi z przeglądu: los wartości cech i nieosiągalne strony słowników
 
 > Numer **022**, nie 018: numery 018–021 są zarezerwowane dla planu z rozdziału 14.1
-> [wymagań](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md). To zadanie leży poza pakietem 014–021
+> [wymagań](../../project/etapy/00-konfiguracja-sprzedazy/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md). To zadanie leży poza pakietem 014–021
 > i poza jego punktami kontrolnymi.
 
 ## Opis problemu
