@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\SignInMethod;
 use App\Models\User;
 use App\Notifications\SendTwoFactorCode;
 use App\Services\OwnerRoleProvisioner;
@@ -64,8 +65,19 @@ class SocialAuthController extends Controller
         if (! $user instanceof User) {
             // ⚠️ Dopasowanie po adresie BEZ rozróżniania wielkości liter i bez normalizacji
             // kropek czy aliasów — `Jan@Example.com` to ten sam adres, `jan.k@` i `jank@` już nie.
-            // Wielkość liter załatwia kolacja kolumny (`utf8mb4_unicode_ci`); pilnuje tego test.
+            // Kolacja kolumny (`utf8mb4_unicode_ci`) załatwia wielkość liter — ale też ignoruje akcenty,
+            // stąd dokładne porównanie niżej.
             $existing = User::query()->where('email', $email)->first();
+
+            // ⚠️ Kolacja `utf8mb4_unicode_ci` ignoruje nie tylko wielkość liter, ale też AKCENTY
+            // (`josé@` = `jose@`), a to są różne skrzynki. Dopasowanie musi być DOKŁADNE po
+            // sprowadzeniu do małych liter — inaczej adres z akcentem zająłby cudze konto. Nowego
+            // konta też nie da się wtedy założyć (ta sama kolacja w indeksie unikalności).
+            if ($existing instanceof User && mb_strtolower($existing->email) !== mb_strtolower($email)) {
+                return redirect()->route('login')->withErrors([
+                    'email' => __('An account with a similar address already exists. Sign in with your password.'),
+                ]);
+            }
 
             // 2. Adres należy do konta, którego nikt jeszcze nie powiązał z dostawcą → DOWIĄZANIE
             //    (ADR-019). Wyłącznie gdy dostawca JAWNIE potwierdza adres — brak klucza nie
@@ -135,8 +147,17 @@ class SocialAuthController extends Controller
             return redirect()->route('verify.index')->with('status', $status);
         }
 
+        // ⚠️ Konto ma już OCZEKUJĄCY kod 2FA (np. z wcześniejszego logowania hasłem), więc kod nie
+        // jest generowany drugi raz. Komunikat o przejęciu i tak musi trafić na ekran 2FA:
+        // przy przekierowaniu na pulpit middleware 2FA odbija dalej i flash ginie.
+        if ($status !== null) {
+            session()->put('two_factor_source', $source);
+
+            return redirect()->route('verify.index')->with('status', $status);
+        }
+
         if ($source === 'breeze') {
-            return redirect()->route('dashboard')->with('status', $status);
+            return redirect()->route('dashboard');
         } else {
             $panel = Filament::getPanel($source);
 
@@ -189,7 +210,7 @@ class SocialAuthController extends Controller
         return $wasVerified
             ? null
             : __('Your account now signs in with :provider. To sign in with a password as well, set one with "Forgot your password?".', [
-                'provider' => ucfirst($provider),
+                'provider' => SignInMethod::providerName($provider),
             ]);
     }
 }

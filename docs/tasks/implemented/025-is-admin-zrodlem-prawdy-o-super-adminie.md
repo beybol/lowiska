@@ -136,5 +136,5 @@ Ustalone przy `/review-task`, 24.09.2026:
 
 ## Powiązane ADR-y
 
-- [ADR-018 — `is_admin` jako jedyne źródło prawdy o super adminie](../adr/ADR-018-is-admin-jako-zrodlo-prawdy-o-super-adminie.md) —
+- [ADR-018 — `is_admin` jako jedyne źródło prawdy o super adminie](../../adr/ADR-018-is-admin-jako-zrodlo-prawdy-o-super-adminie.md) —
   **Decyzja do wypełnienia przez autora** przed `/implement-task 025`.

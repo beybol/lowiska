@@ -759,9 +759,8 @@
     "Template": "Szablon",
     "Read only. Select a fragment and copy it with Ctrl+C.": "Tylko do odczytu. Zaznacz fragment i skopiuj go Ctrl+C.",
     "inactive": "nieaktywna",
-    "Provider only": "Tylko dostawca",
-    "Provider + password": "Dostawca + hasło",
     ":provider + password": ":provider + hasło",
     "Sign-in": "Logowanie",
-    "Your account now signs in with :provider. To sign in with a password as well, set one with \"Forgot your password?\".": "Twoje konto loguje się teraz przez :provider. Jeśli chcesz logować się także hasłem, ustaw je przez „Nie pamiętasz hasła?”."
+    "Your account now signs in with :provider. To sign in with a password as well, set one with \"Forgot your password?\".": "Twoje konto loguje się teraz przez :provider. Jeśli chcesz logować się także hasłem, ustaw je przez „Nie pamiętasz hasła?”.",
+    "An account with a similar address already exists. Sign in with your password.": "Istnieje już konto o podobnym adresie. Zaloguj się hasłem."
 }

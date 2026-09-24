@@ -1,8 +1,8 @@
 <?php
 
+use App\Services\HasPasswordBackfill;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -23,7 +23,7 @@ return new class extends Migration
             $table->boolean('has_password')->default(true)->after('password');
         });
 
-        DB::table('users')->whereNotNull('provider')->update(['has_password' => false]);
+        HasPasswordBackfill::run();
     }
 
     public function down(): void

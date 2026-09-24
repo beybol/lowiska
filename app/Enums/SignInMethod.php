@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Builder;
  */
 enum SignInMethod: string
 {
+    /** Dostawca, którego dowiązanie jest dziś możliwe — potwierdza adres (ADR-019). */
+    private const LINKABLE_PROVIDER = 'google';
+
     /** Konto bez dostawcy — wyłącznie hasło. */
     case Password = 'password';
 
@@ -44,15 +47,20 @@ enum SignInMethod: string
     }
 
     /**
+     * Wartości filtra — te same etykiety co w kolumnie. Dowiązać da się wyłącznie dostawcę, który
+     * potwierdza adres (ADR-019), czyli dziś Google, więc filtr nazywa go wprost.
+     *
      * @return array<string, string>
      */
     public static function options(): array
     {
-        return [
-            self::Password->value => __('Password'),
-            self::Provider->value => __('Provider only'),
-            self::ProviderAndPassword->value => __('Provider + password'),
-        ];
+        $options = [];
+
+        foreach (self::cases() as $case) {
+            $options[$case->value] = $case->labelFor(self::LINKABLE_PROVIDER);
+        }
+
+        return $options;
     }
 
     /**
@@ -68,7 +76,11 @@ enum SignInMethod: string
         };
     }
 
-    private static function providerName(?string $provider): string
+    /**
+     * Nazwa dostawcy do pokazania użytkownikowi — jedyne miejsce tej mapy (kolumna, filtr,
+     * komunikat po przejęciu konta w `SocialAuthController`).
+     */
+    public static function providerName(?string $provider): string
     {
         return match ($provider) {
             'google' => 'Google',

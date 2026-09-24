@@ -267,7 +267,9 @@ powierzchnia mass-assignment; zapis wyłącznie przez `forceFill`. Kontroler:
 - odrzuca payload bez `id` albo bez adresu;
 - odrzuca `email_verified` różne od `true`, jeśli dostawca tę flagę podaje;
 - **dowiązuje dostawcę do konta bez dostawcy o tym samym adresie** (bez rozróżniania wielkości
-  liter — załatwia to kolacja kolumny), ale **wyłącznie przy JAWNYM `email_verified === true`**;
+  liter), ale **wyłącznie przy JAWNYM `email_verified === true`**. ⚠️ Kolacja
+  `utf8mb4_unicode_ci` ignoruje też **akcenty** (`josé@` = `jose@`), więc zapytanie jest tylko
+  pierwszym sitem — adres musi się zgadzać **dokładnie** po `mb_strtolower`, inaczej odmowa;
   brak klucza (dostawca się nie wypowiada, np. Facebook) blokuje dowiązanie:
   - konto **zweryfikowane** → dostawca zapisany, hasło zostaje (konto hybrydowe);
   - konto **niezweryfikowane** → dostawca zapisany, weryfikacja ustawiona, hasło zastąpione losowym
