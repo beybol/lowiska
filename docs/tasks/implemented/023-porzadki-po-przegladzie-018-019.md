@@ -107,7 +107,7 @@ nie ma — to zapis z zadania 018, przyjęty świadomie.
 
 - dołożyć stawce **opcjonalną etykietę**, jak przy dopłacie — wtedy powiadomienie o domknięciu,
   rozbicie wyceny i lista martwych stawek zaczynają mówić „Cennik 2026" zamiast „70.00";
-- albo odnotować w [`cennik.md`](../conventions/cennik.md), że **rozbicie stawki jest bezetykietowe
+- albo odnotować w [`cennik.md`](../../conventions/cennik.md), że **rozbicie stawki jest bezetykietowe
   z założenia**, i zostawić fallback na kwotę.
 
 ⚠️ Makieta v2 rysuje stawki z nazwami („Cennik 2026", „Majówka taniej"), a zadanie mówi „pięć pól" —
@@ -181,7 +181,7 @@ rozpoczęcia** (ISO 1–7). Robią to dziś na dwa sposoby:
 **Cel:** bierzemy to, co najlepsze z obu. Wizualizacja pochodzi z dopłat: przyciski-chipy
 w jednym rzędzie, **bez checkboxów**. Informacja pochodzi z reguł sprzedaży: doba jako
 przedział plus podsumowanie. Układ informacji jest jak w
-[`makieta-017-reguly-sprzedazy-v2-spoiwo.html`](../project/mockups/makieta-017-reguly-sprzedazy-v2-spoiwo.html),
+[`makieta-017-reguly-sprzedazy-v2-spoiwo.html`](../../project/mockups/makieta-017-reguly-sprzedazy-v2-spoiwo.html),
 **sekcja 2 („Reguły sprzedaży"), blok „Weekend"**:
 
 1. **etykieta pola** nad chipami (np. „Zaznacz doby, które składają się na weekend");
@@ -328,7 +328,7 @@ jedno `--class` na klasę ze zbioru, albo kilka klas po przecinku.
 ## Zakres wyłączeń
 
 - **Rejestracja motywu panelu i migracja Tailwind 3 → 4** — osobny, większy temat; patrz
-  [ADR-016](../adr/ADR-016-wlasny-motyw-panelu.md) i „Stan po implementacji" w zadaniu 019.
+  [ADR-016](../../adr/ADR-016-wlasny-motyw-panelu.md) i „Stan po implementacji" w zadaniu 019.
 - **Wiersz „Pakiety" w kalendarzu** — wymaga, żeby warstwa oferty wystawiła pakiety łowiska przed
   przycięciem; to należy do 018 i czeka na decyzję autora.
 - **Wszystko, co przegląd zgłosił jako defekt** — poprawione w przebiegu z 2026-09-23.

@@ -71,10 +71,10 @@ test('the owner previews any template read-only, the matching type first', funct
 
     $page = Livewire::withQueryParams(['type' => DocumentType::Terms->value])
         ->test(PreviewDocumentTemplate::class, ['record' => $fishery->getRouteKey()])
-        ->assertSet('template', $terms->id)
+        ->assertSet('template', (string) $terms->id)
         ->assertSee('Tresc regulaminu');
 
-    $page->set('template', $privacy->id)->assertSee($privacy->name);
+    $page->set('template', (string) $privacy->id)->assertSee($privacy->name);
 
     $this->get(FisheryResource::getUrl('document-template-preview', ['record' => $fishery], panel: 'owner'))->assertSuccessful();
 });
@@ -117,4 +117,23 @@ test('the working terms template is seeded once and marked for legal review', fu
     expect($template->type)->toBe(DocumentType::Terms)
         ->and($template->content)->toContain('WERYFIKACJI PRAWNEJ')
         ->and(DocumentTemplate::query()->where('type', DocumentType::PrivacyPolicy->value)->exists())->toBeFalse();
+});
+
+test('an invalid template in the address means no choice, not an error', function () {
+    Filament::setCurrentPanel('owner');
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    $only = DocumentTemplate::factory()->create(['name' => 'Jedyny szablon']);
+    $this->actingAs($owner);
+
+    foreach (['abc', '-1', '0', '1.5'] as $invalid) {
+        $page = Livewire::withQueryParams(['template' => $invalid])
+            ->test(PreviewDocumentTemplate::class, ['record' => $fishery->getRouteKey()])
+            ->assertSuccessful();
+
+        // Nieprawidłowy wybór zastępuje pierwszy szablon z listy.
+        expect($page->instance()->templateId())->toBe($only->id);
+    }
+
+    $this->get(FisheryResource::getUrl('document-template-preview', ['record' => $fishery], panel: 'owner').'?template=abc')
+        ->assertSuccessful();
 });

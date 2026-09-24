@@ -1,6 +1,6 @@
 # 020 — Usługi dodatkowe: jednostka rozliczenia, zasięg i dostępność na stanowisku
 
-> **Pochodzenie:** numer z planu realizacji ([wymagania, §14.1](../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)),
+> **Pochodzenie:** numer z planu realizacji ([wymagania, §14.1](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)),
 > zarezerwowany 20.09.2026 i uzupełniony przez `/create-task` 23.09.2026, po zadaniu 019.
 > Przerobiony dwukrotnie tego samego dnia po uwagach do definicji (patrz `## Rozstrzygnięcia`).
 > **Moduł:** M6 (zależy od doby M1 i stanowisk M5, oba zrealizowane). Rozstrzyga K18 po stronie
@@ -11,7 +11,7 @@
 023 zmienia `SaleCalendar`, `SaleCalendarGrid` i `ManageCalendar`, a 020 rozszerza kalendarz na
 tych samych plikach i buduje na ich stanie po 023.
 
-Makieta: [`makieta-020-uslugi-dodatkowe.html`](../project/mockups/makieta-020-uslugi-dodatkowe.html)
+Makieta: [`makieta-020-uslugi-dodatkowe.html`](../../project/mockups/makieta-020-uslugi-dodatkowe.html)
 — **propozycja do przeglądu**, zgodna z tą wersją zadania (23.09.2026). Tam, gdzie odpowiada na
 pytania otwarte, niesie wariant rekomendowany, a nie decyzję. Staje się wiążąca po `/review-task`.
 ⚠️ **Po `/review-task` (24.09.2026) makieta rozjeżdża się z zadaniem w trzech miejscach, a wiążą

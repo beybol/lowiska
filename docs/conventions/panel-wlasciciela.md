@@ -132,7 +132,10 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
   `AdditionalServiceSync::syncRequiredAttributes()` wołaną ze stron `Create*`/`Edit*`, **nie**
   `->relationship()`: bramka przepuszcza tylko flagi, zachowuje wymóg cechy usuniętej miękko
   i zapisuje zmianę w dzienniku (relacja wiele-do-wielu nie przechodzi przez `LogsActivity`).
-- Repeater usług w formularzu stanowiska oferuje wyłącznie usługi „wybrane stanowiska".
+- Repeater usług w formularzu stanowiska oferuje wyłącznie usługi „wybrane stanowiska" — aktywne
+  oraz ⚠️ **nieaktywne, które są już przypięte w danym wierszu** (z dopiskiem „nieaktywna").
+  Przypięcie usługi nieaktywnej zostaje; bez tego wiersz miałby wartość spoza opcji, a zapis
+  stanowiska odpadałby na walidacji albo gubił przypięcie.
 
 ## 4. Skrypty w widokach Filamenta
 
@@ -334,6 +337,7 @@ Tutaj zostaje wyłącznie to, co dotyczy ekranów panelu:
   i jeden kod zapisu. Przypięcie ląduje **wprost** na każdym stanowisku jako **dopisanie**, nie
   `sync()` całej listy — inne przypięcia zostają, a istniejące dostaje nową wartość `is_required`.
   Po przypięciu akcja ostrzega, na ilu stanowiskach usługa jest martwa przez brak wymaganej cechy.
+  Każde zmienione stanowisko dostaje **wpis w dzienniku zmian** z listą przypięć przed i po.
   ⚠️ Przypisania usługi do grupy nie ma i mieć nie ma — działałoby jak dziedziczenie (F5, O11).
   Jawna autoryzacja: `update` na każdym stanowisku i na usłudze (bramka `AdditionalServiceSync`),
   a skrót z grupy dodatkowo `update` na grupie.

@@ -19,6 +19,7 @@ use App\Services\PositionServices;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Livewire;
+use Spatie\Activitylog\Models\Activity;
 
 /**
  * Akcje „Przypnij usługę" i „Odepnij usługę" — zamiast przypisania usługi do grupy (zadanie 020).
@@ -224,4 +225,37 @@ test('the service options of the action list only pinnable services of the fishe
     $options = PositionResource::serviceAssignmentSchema($fishery->id, withRequired: true)[0]->getOptions();
 
     expect($options)->toBe([$boat->id => 'Lodka']);
+});
+
+/**
+ * ⚠️ Relacja wiele-do-wielu nie loguje się sama (`dziennik-zmian.md` §4) — akcja zapisuje wpis
+ * jawnie, po jednym na stanowisko, i tylko wtedy, gdy coś się zmieniło.
+ */
+test('pinning and unpinning leave one activity entry per changed position', function () {
+    [$owner, $fishery, $positions] = pinOwnerFishery(2);
+    $boat = pinnableService($fishery);
+    $positions[0]->additionalServices()->attach($boat->id, ['is_required' => true]);
+
+    $this->actingAs($owner);
+
+    $entries = fn (Position $position) => Activity::query()
+        ->where('subject_type', $position->getMorphClass())
+        ->where('subject_id', $position->id)
+        ->get()
+        ->filter(fn ($activity): bool => isset($activity->attribute_changes['attributes']['additional_services']))
+        ->values();
+
+    // Pierwsze stanowisko ma już identyczne przypięcie — bez zmiany nie ma wpisu.
+    AdditionalServiceSync::pin($boat->id, $positions, true);
+
+    expect($entries($positions[0]))->toHaveCount(0)
+        ->and($entries($positions[1]))->toHaveCount(1)
+        ->and($entries($positions[1])[0]->attribute_changes['attributes']['additional_services'])->toBe([$boat->id => true])
+        ->and($entries($positions[1])[0]->causer_id)->toBe($owner->id);
+
+    AdditionalServiceSync::unpin($boat->id, $positions);
+
+    expect($entries($positions[0]))->toHaveCount(1)
+        ->and($entries($positions[0])[0]->attribute_changes['old']['additional_services'])->toBe([$boat->id => true])
+        ->and($entries($positions[0])[0]->attribute_changes['attributes']['additional_services'])->toBe([]);
 });

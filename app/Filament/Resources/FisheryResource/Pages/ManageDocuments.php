@@ -319,7 +319,10 @@ class ManageDocuments extends ManageRelatedRecords
     {
         $versions = [];
 
+        // ⚠️ `statusOf()` sięga po `$document->fishery` (strefa łowiska) — bez wstrzyknięcia
+        // relacji każda wersja dociągałaby łowisko osobnym zapytaniem, przy każdym renderze modalu.
         foreach ($this->fishery()->documents()->where('type', $type->value)->orderByDesc('effective_from')->get() as $document) {
+            $document->setRelation('fishery', $this->fishery());
             $versions['copy:'.$document->getKey()] = $document->title.' · '.$document->effective_from->format('d.m.Y')
                 .' · '.$this->documents()->statusOf($document)->label();
         }

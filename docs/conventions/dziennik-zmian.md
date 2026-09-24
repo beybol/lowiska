@@ -58,8 +58,10 @@ Zadania źródłowe: 010, 020, 021.
   robi to **jawnie**, w tym samym miejscu co zapis relacji:
   `activity()->performedOn($model)->event('updated')->withChanges(['old' => [...], 'attributes' => [...]])`.
   Format `old`/`attributes` jest ten sam co we wpisach automatycznych, więc czyta się je jednakowo.
-  Wzorce: wymagane cechy usługi (`AdditionalServiceSync::syncRequiredAttributes()`) i odpięcie
-  usługi przy zmianie zasięgu (`AdditionalService::dropPins()`), zadanie 020.
+  Wzorce: wymagane cechy usługi (`AdditionalServiceSync::syncRequiredAttributes()`), odpięcie
+  usługi przy zmianie zasięgu (`AdditionalService::dropPins()`) oraz przypięcie i odpięcie akcją
+  zbiorczą (`AdditionalServiceSync::pin()`/`unpin()` — wpis na stanowisku, tylko przy zmianie),
+  zadanie 020.
 - **Nowe modele z danymi operatora dostają `LogsActivity`** z `getActivitylogOptions()` wg §1 —
   tak jest przy `Document` i `DocumentTemplate` (zadanie 021): dziennik pokazuje, kto zapisał wersję
   dokumentu.

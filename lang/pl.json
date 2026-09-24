@@ -757,5 +757,6 @@
     "Campfires banned": "Zakaz ognisk",
     "There are no document templates yet.": "Nie ma jeszcze żadnych szablonów dokumentów.",
     "Template": "Szablon",
-    "Read only. Select a fragment and copy it with Ctrl+C.": "Tylko do odczytu. Zaznacz fragment i skopiuj go Ctrl+C."
+    "Read only. Select a fragment and copy it with Ctrl+C.": "Tylko do odczytu. Zaznacz fragment i skopiuj go Ctrl+C.",
+    "inactive": "nieaktywna"
 }

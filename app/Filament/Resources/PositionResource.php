@@ -196,12 +196,30 @@ class PositionResource extends Resource
                                 // usług cudzego łowiska.
                                 // ⚠️ Wyłącznie usługi „wybrane stanowiska" — ogólnołowiskowej nie da się
                                 // przypiąć (zadanie 020). Zapis pilnuje tego sam, niezależnie od listy.
+                                // ⚠️ Nieaktywna usługa, która JEST już przypięta w tym wierszu, zostaje
+                                // na liście (z dopiskiem) — inaczej wiersz miałby wartość spoza opcji,
+                                // a zapis stanowiska odpadałby na walidacji albo gubił przypięcie.
+                                // Przypięcia usługi nieaktywnej zostają (rozstrzygnięcie zadania 020).
+                                $pinned = $get('additional_service_id');
                                 $query = AdditionalService::forFishery($fisheryId)
-                                    ->isActive()
-                                    ->pinnable();
+                                    ->pinnable()
+                                    ->where(function ($query) use ($pinned): void {
+                                        $query->where('is_active', 1);
+
+                                        if (is_numeric($pinned)) {
+                                            $query->orWhere('id', (int) $pinned);
+                                        }
+                                    })
+                                    ->orderBy('name');
                                 FisheryAccess::scopeToOwnedFisheries($query);
 
-                                return $query->pluck('name', 'id')->toArray();
+                                return $query->get()
+                                    ->mapWithKeys(fn (AdditionalService $service): array => [
+                                        $service->id => $service->is_active
+                                            ? $service->name
+                                            : $service->name.' ('.__('inactive').')',
+                                    ])
+                                    ->toArray();
                             })
                             ->disableOptionsWhenSelectedInSiblingRepeaterItems(true)
                             ->required(),

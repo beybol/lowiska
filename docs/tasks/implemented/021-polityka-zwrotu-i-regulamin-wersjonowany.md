@@ -1,9 +1,9 @@
 # 021 — Polityka zwrotu progowa, regulamin wersjonowany i wymagania wobec wędkarza
 
-> **Pochodzenie:** numer z planu realizacji ([wymagania, §14.1](../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)),
+> **Pochodzenie:** numer z planu realizacji ([wymagania, §14.1](../../project/WYMAGANIA-SPRZEDAZ-KROTKOTERMINOWA.md)),
 > zarezerwowany 20.09.2026 i uzupełniony przez `/create-task` 23.09.2026.
 > **Moduły:** M7 + M8. Powiązane: D1, D2 (§14.4 wymagań), D7 i TODO-1/TODO-3 w
-> [`DECYZJE-I-TODO-BIZNESOWE.md`](../project/DECYZJE-I-TODO-BIZNESOWE.md).
+> [`DECYZJE-I-TODO-BIZNESOWE.md`](../../project/DECYZJE-I-TODO-BIZNESOWE.md).
 > **Przegląd:** wspólny przegląd po pakiecie 017–021 (§14.2) — 021 zamyka pakiet, więc przegląd
 > i `/review-implementation` idą zaraz po nim.
 
@@ -13,7 +13,7 @@ w `FisheryResource::getPages()` i sub-nawigacji, formularz łowiska, `lang/pl.js
 `MANUAL.md` i `panel-wlasciciela.md` — ale wspólna jest **baza testowa `lowiska_test`** i katalog
 roboczy (bez worktree), więc zadania idą po kolei, a nie równolegle.
 
-Makieta: [`makieta-021-dokumenty-i-zwroty.html`](../project/mockups/makieta-021-dokumenty-i-zwroty.html)
+Makieta: [`makieta-021-dokumenty-i-zwroty.html`](../../project/mockups/makieta-021-dokumenty-i-zwroty.html)
 — **propozycja do przeglądu**, poprawiona 24.09.2026 (podgląd szablonu w nowej karcie, kolejność
 w sub-nawigacji). Rysuje trzy nowe ekrany (dokumenty, progi zwrotu, szablony w `/admin`) oraz nowe
 pola łowiska. Tam, gdzie odpowiada na pytania otwarte,
@@ -100,7 +100,7 @@ niesie wariant rekomendowany, a nie decyzję.
 - **Admin Fisherya pracuje na dokumentach łowisk na tych samych zasadach co operator** — ta sama
   strona w sub-nawigacji łowiska w obu panelach. Nienaruszalność wersji i walidacja daty obowiązują
   także admina. Za treść odpowiada łowisko (D9), a dziennik zmian pokazuje, kto zapisał wersję.
-- **Kształt danych dokumentów** — patrz [ADR-017](../adr/ADR-017-dokumenty-i-wersje-dokumentow.md):
+- **Kształt danych dokumentów** — patrz [ADR-017](../../adr/ADR-017-dokumenty-i-wersje-dokumentow.md):
   jedna tabela `documents` (wiersz = wersja; `fishery_id` NOT NULL bez kaskady, `type`, `title`,
   `effective_from`, `content`, dwie flagi wymagalności, soft delete) oraz tabela
   `document_templates` (`type`, `name`, `content`). **Jedynym kluczem głównym obu tabel jest `id`
@@ -367,4 +367,4 @@ Ustalone przy `/review-task`, 24.09.2026:
 
 ## Powiązane ADR-y
 
-- [ADR-017 — Dokumenty łowiska jako jedna tabela wersji, niezależna od cyklu życia łowiska](../adr/ADR-017-dokumenty-i-wersje-dokumentow.md) — przyjęty 24.09.2026 (wariant opcji B).
+- [ADR-017 — Dokumenty łowiska jako jedna tabela wersji, niezależna od cyklu życia łowiska](../../adr/ADR-017-dokumenty-i-wersje-dokumentow.md) — przyjęty 24.09.2026 (wariant opcji B).

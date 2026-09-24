@@ -92,10 +92,14 @@ final class AdditionalServiceSync
         $pinned = [];
 
         foreach (self::positionsOf($service, $positions) as $position) {
+            $before = self::pinsOf($position);
+
             $position->additionalServices()->syncWithoutDetaching([
                 $service->getKey() => ['is_required' => $isRequired],
             ]);
             $pinned[] = $position;
+
+            self::logPins($position, $before);
         }
 
         return $pinned;
@@ -119,7 +123,13 @@ final class AdditionalServiceSync
         $removed = 0;
 
         foreach (self::positionsOf($service, $positions) as $position) {
-            $removed += $position->additionalServices()->detach($service->getKey());
+            $before = self::pinsOf($position);
+            $detached = $position->additionalServices()->detach($service->getKey());
+            $removed += $detached;
+
+            if ($detached > 0) {
+                self::logPins($position, $before);
+            }
         }
 
         return $removed;
@@ -193,6 +203,49 @@ final class AdditionalServiceSync
         sort($ids);
 
         return $ids;
+    }
+
+    /**
+     * Przypięcia stanowiska jako `id usługi => is_required` — postać wpisu w dzienniku.
+     *
+     * @return array<int, bool>
+     */
+    private static function pinsOf(Position $position): array
+    {
+        $pins = DB::table('additional_service_position')
+            ->where('position_id', $position->getKey())
+            ->pluck('is_required', 'additional_service_id')
+            ->mapWithKeys(fn ($required, $id): array => [(int) $id => (bool) $required])
+            ->all();
+
+        ksort($pins);
+
+        return $pins;
+    }
+
+    /**
+     * ⚠️ Relacja wiele-do-wielu nie przechodzi przez `LogsActivity` sama (`dziennik-zmian.md` §4):
+     * akcja zbiorcza zapisuje wpis JAWNIE, po jednym na stanowisko — jak „Ustaw cechę"
+     * (`panel-wlasciciela.md` §8). Bez zmiany nie ma wpisu.
+     *
+     * @param  array<int, bool>  $before
+     */
+    private static function logPins(Position $position, array $before): void
+    {
+        $after = self::pinsOf($position);
+
+        if ($after === $before) {
+            return;
+        }
+
+        activity()
+            ->performedOn($position)
+            ->event('updated')
+            ->withChanges([
+                'old' => ['additional_services' => $before],
+                'attributes' => ['additional_services' => $after],
+            ])
+            ->log('updated');
     }
 
     private static function pinnableService(mixed $serviceId): ?AdditionalService

@@ -87,14 +87,6 @@ class FisheryResource extends Resource
             });
     }
 
-    /**
-     * Wszystkie pola łowiska POZA wyborem firmy.
-     *
-     * Wydzielone, żeby ostatni krok kreatora (`Pages\CreateFishery`) mógł użyć
-     * dokładnie tych samych definicji, zamiast je powielać (zadanie 012).
-     *
-     * @return array<int, mixed>
-     */
     /** Flagi wymagań wobec wędkarza — z trzecim stanem „nie podano" (zadanie 021). */
     public const ANGLER_RULE_FLAGS = ['fishing_license_required', 'no_kill', 'campfires_banned'];
 
@@ -121,6 +113,14 @@ class FisheryResource extends Resource
         ];
     }
 
+    /**
+     * Wszystkie pola łowiska POZA wyborem firmy.
+     *
+     * Wydzielone, żeby ostatni krok kreatora (`Pages\CreateFishery`) mógł użyć
+     * dokładnie tych samych definicji, zamiast je powielać (zadanie 012).
+     *
+     * @return array<int, mixed>
+     */
     public static function fisheryDetailComponents(): array
     {
         return [

@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-09-24
-- **Zadanie:** [021 — Polityka zwrotu progowa, regulamin wersjonowany i wymagania wobec wędkarza](../tasks/021-polityka-zwrotu-i-regulamin-wersjonowany.md)
+- **Zadanie:** [021 — Polityka zwrotu progowa, regulamin wersjonowany i wymagania wobec wędkarza](../tasks/implemented/021-polityka-zwrotu-i-regulamin-wersjonowany.md)
 
 ## Kontekst
 

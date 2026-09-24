@@ -32,8 +32,14 @@ class PreviewDocumentTemplate extends Page
 
     protected string $view = 'filament.resources.fishery-resource.pages.preview-document-template';
 
-    /** Wybrany szablon — stan w adresie; to dane od klienta, więc rozwiązywany przez `find()`. */
-    public ?int $template = null;
+    /**
+     * Wybrany szablon — stan w adresie, czyli DANE OD KLIENTA.
+     *
+     * ⚠️ Łańcuch, nie `?int`: Livewire hydratuje właściwość z query stringu, a `?template=abc`
+     * przy typie `int` kończyło się twardym błędem zamiast brakiem wyboru. Wartość waliduje
+     * `templateId()` — nieprawidłowa znaczy „nic nie wybrano".
+     */
+    public ?string $template = null;
 
     /** Rodzaj dokumentu, od którego zaczyna lista (szablony pasujące na górze). */
     public ?string $type = null;
@@ -55,8 +61,9 @@ class PreviewDocumentTemplate extends Page
         abort_unless(auth()->user()?->can('view', $this->getRecord()) ?? false, 404);
         abort_unless(Gate::allows('viewAny', DocumentTemplate::class), 403);
 
-        if ($this->template === null) {
-            $this->template = $this->templates()[0]?->getKey();
+        if ($this->templateId() === null) {
+            $first = $this->templates()[0]?->getKey();
+            $this->template = $first === null ? null : (string) $first;
         }
     }
 
@@ -92,7 +99,17 @@ class PreviewDocumentTemplate extends Page
 
     public function selected(): ?DocumentTemplate
     {
-        return $this->template === null ? null : DocumentTemplate::query()->find($this->template);
+        $id = $this->templateId();
+
+        return $id === null ? null : DocumentTemplate::query()->find($id);
+    }
+
+    /** Identyfikator szablonu z adresu — dodatnia liczba całkowita albo `null`. */
+    public function templateId(): ?int
+    {
+        return is_string($this->template) && preg_match('/^[1-9]\d{0,18}$/', $this->template) === 1
+            ? (int) $this->template
+            : null;
     }
 
     public function sanitizedContent(): HtmlString
