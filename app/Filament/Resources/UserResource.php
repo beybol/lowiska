@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\SignInMethod;
 use App\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\Pages\ListUsers;
@@ -17,7 +18,9 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class UserResource extends Resource
 {
@@ -89,9 +92,20 @@ class UserResource extends Resource
                     ->badge()
                     ->label(__('Roles'))
                     ->searchable(),
+                // Sposób logowania (zadanie 028) — z `provider` i `has_password`, reguła w `SignInMethod`.
+                TextColumn::make('sign_in_method')
+                    ->label(__('Sign-in'))
+                    ->badge()
+                    ->state(fn (User $record): string => SignInMethod::of($record)->labelFor($record->provider))
+                    ->color(fn (User $record): string => SignInMethod::of($record) === SignInMethod::Password ? 'gray' : 'info'),
             ])
             ->filters([
-                //
+                SelectFilter::make('sign_in_method')
+                    ->label(__('Sign-in'))
+                    ->options(SignInMethod::options())
+                    ->query(fn (Builder $query, array $data): Builder => ($method = SignInMethod::tryFrom((string) ($data['value'] ?? ''))) === null
+                        ? $query
+                        : $method->scope($query)),
             ])
             ->recordActions([
                 EditAction::make(),

@@ -59,37 +59,47 @@ class SocialAuthController extends Controller
             ->where('provider_id', $providerId)
             ->first();
 
+        $status = null;
+
         if (! $user instanceof User) {
+            // ⚠️ Dopasowanie po adresie BEZ rozróżniania wielkości liter i bez normalizacji
+            // kropek czy aliasów — `Jan@Example.com` to ten sam adres, `jan.k@` i `jank@` już nie.
+            // Wielkość liter załatwia kolacja kolumny (`utf8mb4_unicode_ci`); pilnuje tego test.
             $existing = User::query()->where('email', $email)->first();
 
-            // 2. Adres należy do KONTA HASŁOWEGO, którego nikt jeszcze nie powiązał
-            //    z tym dostawcą. Nie logujemy cicho — to jest dokładnie ten scenariusz
-            //    przejęcia konta. Właściciel konta musi połączyć je świadomie.
+            // 2. Adres należy do konta, którego nikt jeszcze nie powiązał z dostawcą → DOWIĄZANIE
+            //    (ADR-019). Wyłącznie gdy dostawca JAWNIE potwierdza adres — brak klucza nie
+            //    wystarcza. Bezpieczeństwo stoi na trzech warunkach naraz: potwierdzenie
+            //    u dostawcy, weryfikacja adresu w obu panelach i 2FA wysyłane na adres KONTA.
+            //    Zmiana któregokolwiek wymaga ponownej oceny ADR-019.
             if ($existing instanceof User && $existing->provider === null) {
-                return redirect()->route('login')->withErrors([
-                    'email' => __('An account with this address already exists. Sign in with your password first.'),
-                ]);
-            }
+                if (($socialUser['email_verified'] ?? null) !== true) {
+                    return redirect()->route('login')->withErrors([
+                        'email' => __('Confirm your address with the provider before signing in this way.'),
+                    ]);
+                }
 
-            // 3. Adres powiązany z INNYM dostawcą — też nie jest to ta sama tożsamość.
-            if ($existing instanceof User) {
+                $status = $this->linkProvider($existing, $provider, $providerId);
+                $user = $existing;
+            } elseif ($existing instanceof User) {
+                // 3. Adres powiązany z INNYM dostawcą — jedno powiązanie na konto.
                 return redirect()->route('login')->withErrors([
                     'email' => __('This address is linked to a different sign-in provider.'),
                 ]);
+            } else {
+                // 4. Nowe konto. ⚠️ `provider`, `provider_id` i `has_password` NIE są w `$fillable`
+                // i mają tam nie trafić — to klucz tożsamości logowania i powierzchnia
+                // mass-assignment. Hasło jest LOSOWE, więc `has_password = false` (zadanie 028).
+                $user = new User([
+                    'email' => $email,
+                    'name' => $name,
+                    'surname' => $surname,
+                    'password' => bcrypt(str()->random(16)),
+                ]);
+                $user->forceFill(['provider' => $provider, 'provider_id' => $providerId, 'has_password' => false]);
+                $user->save();
+                $user->wasRecentlyCreated = true;
             }
-
-            // ⚠️ `provider` i `provider_id` NIE są w `$fillable` i mają tam nie trafić:
-            // to jest klucz tożsamości logowania, a `$fillable` to powierzchnia
-            // mass-assignment. Stąd jawne `forceFill` zamiast wpisu w tablicy tworzącej.
-            $user = new User([
-                'email' => $email,
-                'name' => $name,
-                'surname' => $surname,
-                'password' => bcrypt(str()->random(16)),
-            ]);
-            $user->forceFill(['provider' => $provider, 'provider_id' => $providerId]);
-            $user->save();
-            $user->wasRecentlyCreated = true;
         }
 
         if ($user->wasRecentlyCreated) {
@@ -120,11 +130,13 @@ class SocialAuthController extends Controller
             $user->notify(new SendTwoFactorCode);
             session()->put('two_factor_source', $source);
 
-            return redirect()->route('verify.index');
+            // Komunikat po przejęciu konta niezweryfikowanego trafia na ekran 2FA — to pierwszy
+            // ekran po powrocie od dostawcy (zadanie 028).
+            return redirect()->route('verify.index')->with('status', $status);
         }
 
         if ($source === 'breeze') {
-            return redirect()->route('dashboard');
+            return redirect()->route('dashboard')->with('status', $status);
         } else {
             $panel = Filament::getPanel($source);
 
@@ -134,5 +146,50 @@ class SocialAuthController extends Controller
 
             return redirect()->route('filament.admin.pages.dashboard');
         }
+    }
+
+    /**
+     * Dowiązanie dostawcy do istniejącego konta bez dostawcy (ADR-019).
+     *
+     * - konto ZWERYFIKOWANE → dostawca zapisany, hasło zostaje — konto hybrydowe;
+     * - konto NIEZWERYFIKOWANE → było martwe dla swojego twórcy (oba panele wymagają weryfikacji),
+     *   więc przejmuje je właściciel skrzynki: weryfikacja ustawiona, hasło zastąpione losowym.
+     *
+     * Wpis w dzienniku zmian zawiera wyłącznie NAZWĘ dostawcy, bez `provider_id` — identyfikator
+     * konta u dostawcy to dana osobowa, a do audytu wystarcza fakt i moment dowiązania.
+     *
+     * @return string|null komunikat dla użytkownika na ekranie 2FA
+     */
+    private function linkProvider(User $user, string $provider, string $providerId): ?string
+    {
+        $wasVerified = $user->email_verified_at !== null;
+
+        $user->forceFill(['provider' => $provider, 'provider_id' => $providerId]);
+
+        if (! $wasVerified) {
+            $user->forceFill([
+                'email_verified_at' => now(),
+                'password' => bcrypt(str()->random(16)),
+                'has_password' => false,
+            ]);
+        }
+
+        $user->save();
+
+        activity()
+            ->performedOn($user)
+            ->causedBy($user)
+            ->event('updated')
+            ->withChanges([
+                'old' => ['provider' => null],
+                'attributes' => ['provider' => $provider],
+            ])
+            ->log('updated');
+
+        return $wasVerified
+            ? null
+            : __('Your account now signs in with :provider. To sign in with a password as well, set one with "Forgot your password?".', [
+                'provider' => ucfirst($provider),
+            ]);
     }
 }

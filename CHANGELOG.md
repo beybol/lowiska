@@ -184,6 +184,13 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Zmienione
 
+- Na konto założone wcześniej hasłem można teraz zalogować się przez Google tym samym adresem —
+  Google zostaje dowiązany do konta, a hasło dalej działa. Wymaga to, żeby Google potwierdzał
+  adres; po zalogowaniu obowiązuje kod weryfikacyjny wysłany na adres konta. Konto, którego adresu
+  nigdy nie potwierdzono, przejmuje właściciel skrzynki — dotychczasowe hasło przestaje działać,
+  a nowe można ustawić przez „Nie pamiętasz hasła?".
+- Lista kont w panelu administratora pokazuje, jak konto się loguje („Hasło", „Google",
+  „Google + hasło"), i pozwala filtrować po tym.
 - Każde konto oznaczone jako administrator dostaje przy każdym wdrożeniu komplet uprawnień panelu
   administratora — nowe sekcje panelu (np. „Szablony dokumentów") są widoczne od razu, bez ręcznego
   uruchamiania komendy. Konto, któremu odebrano status administratora, traci te uprawnienia przy

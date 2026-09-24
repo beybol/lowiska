@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w `app/Filament/Resources/**`,
 `app/Providers/Filament/AdminPanelProvider.php`.
 
-Zadania źródłowe: 005, 009, 011, 013, 014, 020, 021, 022. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
+Zadania źródłowe: 005, 009, 011, 013, 014, 020, 021, 022, 028. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
 
 ---
 
@@ -301,3 +301,15 @@ Uzasadnienie kształtu wartości: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech
 - **Roboczy szablon regulaminu** sieje `DocumentTemplateSeeder` (idempotentnie, po nazwie) — oznaczony
   jako **do weryfikacji prawnej**. Szablonu polityki prywatności celowo nie ma, dopóki prawnik nie
   rozstrzygnie ról w RODO (TODO-3).
+
+---
+
+## 9. Lista kont — sposób logowania (zadanie 028)
+
+- **Kolumna i filtr „Logowanie" w `UserResource`** mają trzy wartości: **„Hasło"** (konto bez
+  dostawcy), **„Google"** (dostawca, hasło nieznane użytkownikowi) i **„Google + hasło"** (dostawca
+  i hasło ustawione przez człowieka). Reguła żyje w enumie `SignInMethod` (etykieta i zapytanie
+  filtra) i wynika z dwóch kolumn: `provider` oraz `has_password`.
+- ⚠️ **Nie wyprowadzaj sposobu logowania z samego `provider`** — konto założone przez Google ma
+  hasło losowe, więc bez `has_password` „Google" i „Google + hasło" są nie do odróżnienia
+  ([`autoryzacja.md`](autoryzacja.md) §6).

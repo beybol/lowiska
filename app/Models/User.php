@@ -64,14 +64,33 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'has_password' => 'boolean',
         ];
     }
+
+    /**
+     * Wartość domyślna kolumny `has_password` — lustro migracji dla modelu przed zapisem.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'has_password' => true,
+    ];
 
     protected static function booted(): void
     {
         static::saving(function (User $user) {
             if ($user->is_admin && ! $user->email_verified_at) {
                 $user->email_verified_at = now();
+            }
+
+            // ⚠️ JEDYNY dom reguły „czy użytkownik zna hasło" (zadanie 028). Zmiana hasła bez
+            // jawnego ustawienia `has_password` znaczy, że hasło ustawił człowiek — reset, profil,
+            // administrator. Hasło LOSOWE (konto założone przez dostawcę, przejęcie konta
+            // niezweryfikowanego) ustawia `SocialAuthController` razem z `has_password = false`.
+            // `has_password` jest poza `$fillable` — jak `provider`, zapis przez `forceFill`.
+            if ($user->exists && $user->isDirty('password') && ! $user->isDirty('has_password')) {
+                $user->has_password = true;
             }
         });
     }

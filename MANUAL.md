@@ -19,6 +19,10 @@ i chce wiedzieć, od czego zacząć i gdzie czego szukać.
 Każda zakładka odpowiada za jedną rzecz i można do niej wracać w dowolnym momencie — ustawienia
 zapisują się osobno i nie trzeba wypełniać wszystkiego za jednym razem.
 
+**Logowanie.** Do panelu logujesz się adresem e-mail i hasłem albo przez Google. Jeśli masz konto
+założone hasłem, możesz wejść na nie także przez Google — wystarczy, że to ten sam adres, a Google
+go potwierdza; hasło dalej działa. Po każdym logowaniu dostajesz na adres konta kod weryfikacyjny.
+
 ## 2. Kolejność wprowadzania danych
 
 Najwygodniej iść po kolei; każdy krok korzysta z tego, co ustawiłeś wcześniej.
@@ -476,11 +480,12 @@ wymagająca migracji danych, a nie porządek do zrobienia przy okazji.
 Grupa **Dostępy** zbiera konta i uprawnienia.
 
 - **Użytkownicy** — konta w portalu. Konto oznaczone jako administracyjne dostaje wstęp do panelu
-  administratora; pozostałe logują się do panelu właściciela.
-- **Role** — zestawy uprawnień. To rola, a nie sam znacznik konta, przesądza o tym, co użytkownik
-  widzi w panelu i co może w nim zrobić. Konto administracyjne bez roli wejdzie do panelu, ale nie
-  zobaczy w nim żadnej pozycji menu.
+  administratora i komplet jego uprawnień; pozostałe logują się do panelu właściciela. Kolumna
+  **Logowanie** mówi, jak konto się loguje: **„Hasło"**, **„Google"** (bez hasła znanego
+  użytkownikowi) albo **„Google + hasło"** — po tej kolumnie można też filtrować listę.
+- **Role** — zestawy uprawnień dla kont nieadministracyjnych (na przykład rola właściciela łowiska).
 
-⚠️ Uprawnienia są **wyprowadzane z listy elementów panelu**, nie wpisywane ręcznie. Po dołożeniu
-nowego elementu trzeba je przegenerować — inaczej nowa pozycja nie pojawi się w menu **nikomu**,
-łącznie z administratorem mającym komplet uprawnień sprzed zmiany.
+Uprawnienia administratorów **zgrywają się same przy każdym wdrożeniu**: każde konto oznaczone jako
+administracyjne dostaje komplet uprawnień, także do nowych elementów panelu, a konto, któremu ten
+znacznik zdjęto, traci je. ⚠️ Nie ograniczaj więc administratora, zmieniając jego rolę w panelu ról —
+najbliższe wdrożenie przywróci komplet.

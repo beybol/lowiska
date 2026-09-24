@@ -257,21 +257,42 @@ pojedynczo:
 2. licznik nieudanych prób w `TwoFactorController` (`RateLimiter`, klucz per użytkownik), który
    po pięciu pudłach **unieważnia kod**, a nie tylko odracza kolejną próbę.
 
-⚠️ **Logowanie społecznościowe wiąże konto po TOŻSAMOŚCI DOSTAWCY, nie po adresie e-mail.**
-`users.provider` + `users.provider_id` są kluczem tożsamości i mają **unikalny indeks**; nie ma
-ich w `$fillable` i mają tam nie trafić — to powierzchnia mass-assignment. Kontroler:
+⚠️ **Logowanie społecznościowe rozpoznaje konto najpierw po TOŻSAMOŚCI DOSTAWCY**
+(`users.provider` + `users.provider_id`, **unikalny indeks**, jedno powiązanie na konto), a adres
+e-mail służy wyłącznie **dowiązaniu** do konta, które dostawcy jeszcze nie ma
+([ADR-019](../adr/ADR-019-dowiazanie-dostawcy-logowania-do-istniejacego-konta.md)).
+`provider`, `provider_id` i `has_password` **nie są w `$fillable`** i mają tam nie trafić — to
+powierzchnia mass-assignment; zapis wyłącznie przez `forceFill`. Kontroler:
 
 - odrzuca payload bez `id` albo bez adresu;
-- wymaga `email_verified === true`, jeśli dostawca tę flagę podaje;
-- na adres należący do **konta hasłowego** nie loguje cicho, tylko odsyła do logowania hasłem —
-  inaczej ktokolwiek doprowadzi do potwierdzenia adresu równego adresowi cudzego konta (w tym
-  `is_admin`) dostaje do niego dostęp;
+- odrzuca `email_verified` różne od `true`, jeśli dostawca tę flagę podaje;
+- **dowiązuje dostawcę do konta bez dostawcy o tym samym adresie** (bez rozróżniania wielkości
+  liter — załatwia to kolacja kolumny), ale **wyłącznie przy JAWNYM `email_verified === true`**;
+  brak klucza (dostawca się nie wypowiada, np. Facebook) blokuje dowiązanie:
+  - konto **zweryfikowane** → dostawca zapisany, hasło zostaje (konto hybrydowe);
+  - konto **niezweryfikowane** → dostawca zapisany, weryfikacja ustawiona, hasło zastąpione losowym
+    (`has_password = false`), komunikat na ekranie 2FA o ustawieniu hasła przez reset;
+- odmawia, gdy adres ma już **innego** dostawcę;
+- zapisuje dowiązanie w dzienniku zmian **z nazwą dostawcy, bez `provider_id`**;
 - nadaje rolę `owner` wyłącznie przy zakładaniu konta.
+
+⚠️ **Dowiązanie po adresie jest bezpieczne wyłącznie dzięki TRZEM warunkom naraz** (ADR-019):
+jawne potwierdzenie adresu u dostawcy, `->emailVerification()` w **obu** panelach (konto
+niezweryfikowane jest martwe dla swojego twórcy) i **2FA wysyłane na adres konta** (konto u dostawcy
+na adres, do którego ktoś stracił skrzynkę, nie przejdzie drugiego kroku). **Zmiana kanału 2FA,
+wyłączenie 2FA na tej ścieżce albo zdjęcie weryfikacji adresu z któregoś panelu wymaga ponownej oceny
+ADR-019** — inaczej dowiązanie staje się przejęciem konta, także `is_admin`, bo konta administratorów
+dowiązują się na tych samych zasadach.
+
+- **`users.has_password` mówi, czy użytkownik ZNA hasło** — konto założone przez dostawcę ma hasło
+  losowe (kolumna `password` jest NOT NULL). Jeden dom reguły: hak `saving` w `User` — zmiana
+  `password` bez jawnego `has_password` ustawia `true` (reset, profil, administrator). Losowe hasło
+  ustawia wyłącznie `SocialAuthController`, razem z `has_password = false`.
 
 ⚠️ **2FA obowiązuje na tej ścieżce tak samo jak przy haśle** — `TwoFactorMiddleware` nie wyłapie
 braku, bo pusty kod traktuje jako „brak oczekującego wyzwania".
 
-Zadania źródłowe: 012, security-review 2026-09-20.
+Zadania źródłowe: 012, 028; security-review 2026-09-20.
 
 ---
 
