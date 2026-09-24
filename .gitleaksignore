@@ -1,0 +1,9 @@
+# Pojedyncze trafienia gitleaks uznane za FAŁSZYWE ALARMY — odciski `commit:plik:reguła:linia`.
+#
+# ⚠️ Wyłącznie konkretne trafienia w HISTORII, nigdy reguła ani ścieżka. Nowe testowe hasło
+# oznaczaj komentarzem `// gitleaks:allow` w tej samej linii, a nie kolejnym wpisem tutaj.
+#
+# 2026-09-24 — zadanie 028, `tests/Feature/SocialAuthTest.php`: testowe hasła przekazywane do fabryki
+# i do `update()` (`'password' => '…'`), wzięte przez `generic-api-key` za klucz API.
+dd7c6e5e87b35b74a578dabc49ef1180b288a478:tests/Feature/SocialAuthTest.php:generic-api-key:118
+dd7c6e5e87b35b74a578dabc49ef1180b288a478:tests/Feature/SocialAuthTest.php:generic-api-key:220

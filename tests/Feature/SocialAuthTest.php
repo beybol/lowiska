@@ -117,7 +117,7 @@ test('a verified password account gets Google linked and keeps its password', fu
  * je właściciel skrzynki, a stare hasło przestaje działać.
  */
 test('an unverified password account is taken over by the mailbox owner', function () {
-    $user = User::factory()->unverified()->create(['email' => 'jan@example.com', 'password' => 'haslo-intruza-1']);
+    $user = User::factory()->unverified()->create(['email' => 'jan@example.com', 'password' => 'haslo-intruza-1']); // gitleaks:allow — testowe hasło
     fakeGoogle('jan@example.com');
 
     googleCallback()
@@ -233,7 +233,7 @@ test('setting a password marks it as known, a random one from the provider does 
 
     expect($user->has_password)->toBeFalse();
 
-    $user->update(['password' => 'nowe-haslo-123']);
+    $user->update(['password' => 'nowe-haslo-123']); // gitleaks:allow — testowe hasło
 
     expect($user->fresh()->has_password)->toBeTrue()
         ->and(SignInMethod::of($user->fresh()))->toBe(SignInMethod::ProviderAndPassword);
