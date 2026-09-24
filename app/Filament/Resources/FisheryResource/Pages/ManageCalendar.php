@@ -383,7 +383,7 @@ class ManageCalendar extends Page
      */
     public function currentStart(): CarbonImmutable
     {
-        $timezone = $this->fishery()->timezone ?: 'Europe/Warsaw';
+        $timezone = $this->fishery()->timezoneName();
 
         if (is_string($this->windowStart) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->windowStart) === 1) {
             try {
@@ -428,7 +428,7 @@ class ManageCalendar extends Page
 
     private function asLocalDay(mixed $date): CarbonImmutable
     {
-        $timezone = $this->fishery()->timezone ?: 'Europe/Warsaw';
+        $timezone = $this->fishery()->timezoneName();
 
         return CarbonImmutable::parse((string) $date->toDateString(), $timezone)->startOfDay();
     }

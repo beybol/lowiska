@@ -97,7 +97,7 @@ final class StayPricing
             throw new InvalidArgumentException('A stay can not have a negative number of companions.');
         }
 
-        $timezone = $this->periods()->timezone();
+        $timezone = $this->fishery->timezoneName();
         $firstDate = CarbonImmutable::parse($startsOn, $timezone)->startOfDay();
         $pricedNights = [];
 

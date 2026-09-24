@@ -72,7 +72,7 @@ final class FisheryDocuments
         }
 
         $fishery = $document->fishery;
-        $timezone = $fishery instanceof Fishery ? self::timezoneOf($fishery) : 'Europe/Warsaw';
+        $timezone = $fishery instanceof Fishery ? $fishery->timezoneName() : Fishery::DEFAULT_TIMEZONE;
         $effective = CarbonImmutable::parse(substr((string) $stored, 0, 10), $timezone)->startOfDay();
 
         return $effective <= CarbonImmutable::now($timezone)->startOfDay();
@@ -81,17 +81,12 @@ final class FisheryDocuments
     /** „Dziś" w strefie łowiska — wspólne dla stanu wersji i reguł daty. */
     public static function today(Fishery $fishery): CarbonImmutable
     {
-        return CarbonImmutable::now(self::timezoneOf($fishery))->startOfDay();
+        return CarbonImmutable::now($fishery->timezoneName())->startOfDay();
     }
 
     /** Domyślna data wejścia w życie nowej i skopiowanej wersji: dziś + 14 dni. */
     public static function defaultEffectiveFrom(Fishery $fishery): CarbonImmutable
     {
         return self::today($fishery)->addDays(14);
-    }
-
-    private static function timezoneOf(Fishery $fishery): string
-    {
-        return $fishery->timezone ?: 'Europe/Warsaw';
     }
 }

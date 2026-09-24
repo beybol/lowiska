@@ -331,7 +331,7 @@ final class SaleCalendar
             return null;
         }
 
-        $timezone = $this->timezone();
+        $timezone = $this->fishery->timezoneName();
         $covering = [];
 
         foreach ($blocks as $block) {
@@ -448,16 +448,11 @@ final class SaleCalendar
 
     private function today(): CarbonImmutable
     {
-        return CarbonImmutable::now($this->timezone())->startOfDay();
+        return CarbonImmutable::now($this->fishery->timezoneName())->startOfDay();
     }
 
     private function asLocalDay(mixed $date): CarbonImmutable
     {
-        return CarbonImmutable::parse((string) $date->toDateString(), $this->timezone())->startOfDay();
-    }
-
-    private function timezone(): string
-    {
-        return $this->fishery->timezone ?: 'Europe/Warsaw';
+        return CarbonImmutable::parse((string) $date->toDateString(), $this->fishery->timezoneName())->startOfDay();
     }
 }

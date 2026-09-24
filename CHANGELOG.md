@@ -184,6 +184,9 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Zmienione
 
+- Łowisko bez ustawionej strefy czasowej liczy doby, horyzont sprzedaży, blokady, zwroty i daty
+  dokumentów wszędzie w tej samej strefie domyślnej (Europa/Warszawa) — ustalanej w jednym miejscu
+  zamiast osobno w każdej części aplikacji.
 - Liczba egzemplarzy usługi dodatkowej znaczy teraz liczbę sztuk dostępnych **w każdej dobie**.
   Brak limitu zaznacza się pustym polem — wpisane 0 nie oznacza już „bez limitu", a istniejące
   usługi z zerem dostały limit pusty.

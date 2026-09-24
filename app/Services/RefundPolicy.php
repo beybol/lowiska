@@ -65,7 +65,7 @@ final class RefundPolicy
 
     public function forCancellation(CarbonInterface|string $firstNight, CarbonInterface $cancelledAt): RefundDecision
     {
-        $timezone = $this->fishery->timezone ?: 'Europe/Warsaw';
+        $timezone = $this->fishery->timezoneName();
         $stayStartsOn = CarbonImmutable::parse($firstNight, $timezone)->startOfDay();
         $cancelled = CarbonImmutable::instance($cancelledAt)->setTimezone($timezone);
 

@@ -81,8 +81,26 @@ class Fishery extends Model
      */
     protected $attributes = [
         'sale_mode' => 'daily_period',
-        'timezone' => 'Europe/Warsaw',
+        'timezone' => self::DEFAULT_TIMEZONE,
     ];
+
+    /**
+     * Strefa łowiska, gdy kolumna jest pusta — JEDYNY literał strefy domyślnej w `app/`
+     * (zadanie 024). Migracja kolumny trzyma własny, historyczny literał.
+     */
+    public const DEFAULT_TIMEZONE = 'Europe/Warsaw';
+
+    /**
+     * Strefa, w której biegną WSZYSTKIE wyliczenia sprzedaży tego łowiska (`dostepnosc.md` §1).
+     *
+     * ⚠️ Jedyne miejsce z fallbackiem strefy — drugi `?: 'Europe/Warsaw'` w klasie to defekt.
+     * Nie akcesor `timezone`: to nazwa kolumny, a akcesor zmieniłby odczyt atrybutu także
+     * w formularzu „Sprzedaż i sezony".
+     */
+    public function timezoneName(): string
+    {
+        return filled($this->timezone) ? (string) $this->timezone : self::DEFAULT_TIMEZONE;
+    }
 
     public function getActivitylogOptions(): LogOptions
     {

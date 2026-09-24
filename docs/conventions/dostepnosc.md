@@ -23,7 +23,10 @@ i [ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md).
   dnia D do `day_end_time` dnia D+1, więc zawsze przechodzi przez północ, a przy zmianie czasu
   trwa 23 albo 25 godzin i mimo to jest jedną dobą. Identyfikuje ją dzień rozpoczęcia.
 - **Wyliczenia biegną w strefie czasowej ŁOWISKA** (`fisheries.timezone`). Strefa aplikacji
-  (`config/app.php`) nie bierze w nich udziału. Momenty graniczne porównuj jako punkty w czasie,
+  (`config/app.php`) nie bierze w nich udziału.
+  ⚠️ **Strefę czyta się wyłącznie przez `Fishery::timezoneName()`**, a strefa domyślna ma jeden dom —
+  `Fishery::DEFAULT_TIMEZONE`. Drugi `?: 'Europe/Warsaw'` w klasie usługi to defekt; pilnuje tego
+  `tests/Feature/FisheryTimezoneTest.php`. Wyjątkiem jest wyłącznie historyczna migracja kolumny. Momenty graniczne porównuj jako punkty w czasie,
   nie jako daty lokalne — inaczej wynik zależy od kolejności rzutowania i rozjeżdża się dopiero
   przy zmianie czasu.
 - ⚠️ **Dwie reguły dopasowania zakresu dat są CELOWO ASYMETRYCZNE** i nie wolno zastąpić jednej

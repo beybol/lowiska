@@ -27,7 +27,7 @@ final class DocumentEffectiveDateIsAhead implements ValidationRule
         }
 
         try {
-            $date = CarbonImmutable::parse(substr((string) $value, 0, 10), $this->fishery->timezone ?: 'Europe/Warsaw')->startOfDay();
+            $date = CarbonImmutable::parse(substr((string) $value, 0, 10), $this->fishery->timezoneName())->startOfDay();
         } catch (Throwable) {
             $fail(__('Enter a valid date.'));
 

@@ -179,7 +179,7 @@ final class PositionAvailability
      */
     private function blocksIntersecting(FishingDay $day, BlockEffect $effect): Collection
     {
-        $timezone = $this->position->fishery->timezone ?: 'Europe/Warsaw';
+        $timezone = $this->position->fishery->timezoneName();
 
         return $this->blocksWithEffect($effect)
             ->filter(function (AvailabilityBlock $block) use ($day, $timezone): bool {

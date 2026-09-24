@@ -52,7 +52,7 @@ final class PricingConfigurationAudit
             return null;
         }
 
-        $timezone = $this->fishery->timezone ?: 'Europe/Warsaw';
+        $timezone = $this->fishery->timezoneName();
         $today = CarbonImmutable::now($timezone)->startOfDay();
         $calendar = new FishingDayCalendar($this->fishery);
         $resolver = new PriceRuleResolver($this->rules());
@@ -138,7 +138,7 @@ final class PricingConfigurationAudit
         // ⚠️ Strefa ŁOWISKA, jak w reszcie pakietu. `coversDay()` porównuje dziś łańcuchy `Y-m-d`,
         // więc strefa aplikacji niczego nie psuła — ale zaczęłaby kłamać przy pierwszym
         // porównaniu momentów zamiast dat (zadanie 023, poz. 7).
-        $timezone = $this->timezone();
+        $timezone = $this->fishery->timezoneName();
 
         // ⚠️ Rzut `date` oddaje `Illuminate\Support\Carbon` (mutowalny), a nie `CarbonImmutable`
         // — bez jawnej zamiany arytmetyka na datach modyfikowałaby atrybut modelu w miejscu.
@@ -183,11 +183,6 @@ final class PricingConfigurationAudit
         }
 
         return $largest;
-    }
-
-    private function timezone(): string
-    {
-        return $this->fishery->timezone ?: 'Europe/Warsaw';
     }
 
     /**

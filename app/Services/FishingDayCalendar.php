@@ -46,7 +46,7 @@ final class FishingDayCalendar
             return null;
         }
 
-        $timezone = $this->timezone();
+        $timezone = $this->fishery->timezoneName();
         $startsOn = CarbonImmutable::parse($date, $timezone)->startOfDay();
 
         return new FishingDay(
@@ -73,7 +73,7 @@ final class FishingDayCalendar
             return [];
         }
 
-        $timezone = $this->timezone();
+        $timezone = $this->fishery->timezoneName();
         $windowStart = CarbonImmutable::parse($from, $timezone)->startOfDay();
         $windowEnd = CarbonImmutable::parse($to, $timezone)->endOfDay();
 
@@ -158,7 +158,7 @@ final class FishingDayCalendar
      */
     private function windowOf(SalePeriod $period): array
     {
-        $timezone = $this->timezone();
+        $timezone = $this->fishery->timezoneName();
 
         return [
             CarbonImmutable::parse($period->starts_on->toDateString(), $timezone)->startOfDay(),
@@ -197,12 +197,7 @@ final class FishingDayCalendar
         // doba biegnie po ZEGARZE LOKALNYM — stąd 23 albo 25 godzin przy zmianie czasu.
         return CarbonImmutable::parse(
             $date->format('Y-m-d').' '.substr($time, 0, 8),
-            $this->timezone(),
+            $this->fishery->timezoneName(),
         );
-    }
-
-    private function timezone(): string
-    {
-        return $this->fishery->timezone ?: 'Europe/Warsaw';
     }
 }

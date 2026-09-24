@@ -39,7 +39,7 @@ final class SalePeriodFinder
      */
     public function forNight(FishingDay $night): ?SalePeriod
     {
-        $timezone = $this->timezone();
+        $timezone = $this->fishery->timezoneName();
 
         foreach ($this->periods() as $period) {
             $windowStart = CarbonImmutable::parse($period->starts_on->toDateString(), $timezone)->startOfDay();
@@ -66,17 +66,12 @@ final class SalePeriodFinder
             return false;
         }
 
-        $timezone = $this->timezone();
+        $timezone = $this->fishery->timezoneName();
         $now = CarbonImmutable::now($timezone);
         $opensAt = CarbonImmutable::parse($period->presale_opens_on->toDateString(), $timezone)->startOfDay();
         $closesAt = CarbonImmutable::parse($period->presale_closes_on->toDateString(), $timezone)->endOfDay();
 
         return $now >= $opensAt && $now <= $closesAt;
-    }
-
-    public function timezone(): string
-    {
-        return $this->fishery->timezone ?: 'Europe/Warsaw';
     }
 
     /**

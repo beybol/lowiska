@@ -118,7 +118,7 @@ class ManageSaleSettings extends EditRecord
                             \DateTimeZone::listIdentifiers(),
                         ))
                         ->searchable()
-                        ->default('Europe/Warsaw')
+                        ->default(Fishery::DEFAULT_TIMEZONE)
                         ->required(),
                 ])
                 ->columns(2),

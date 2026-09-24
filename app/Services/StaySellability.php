@@ -107,7 +107,7 @@ final class StaySellability
             throw new InvalidArgumentException("A stay must last at least one night, {$nights} given.");
         }
 
-        $firstDate = CarbonImmutable::parse($startsOn, $this->timezone())->startOfDay();
+        $firstDate = CarbonImmutable::parse($startsOn, $this->fishery->timezoneName())->startOfDay();
 
         // 1. Dostępność KAŻDEJ doby pobytu. Nie powtarzamy tu żadnego z warunków
         //    `PositionAvailability` — stan stanowiska, okres sprzedaży i blokady
@@ -198,7 +198,7 @@ final class StaySellability
      */
     public function bundleAround(CarbonInterface|string $date): ?array
     {
-        $date = CarbonImmutable::parse($date, $this->timezone())->startOfDay();
+        $date = CarbonImmutable::parse($date, $this->fishery->timezoneName())->startOfDay();
 
         if (! $this->isGluedAndSellable($date)) {
             return null;
@@ -331,7 +331,7 @@ final class StaySellability
             return null;
         }
 
-        $lastSellableDay = CarbonImmutable::now($this->timezone())->startOfDay()->addDays($horizon);
+        $lastSellableDay = CarbonImmutable::now($this->fishery->timezoneName())->startOfDay()->addDays($horizon);
 
         foreach ($days as $day) {
             if ($day->startsOn <= $lastSellableDay) {
@@ -504,10 +504,5 @@ final class StaySellability
     private function availability(): PositionAvailability
     {
         return $this->availability ??= new PositionAvailability($this->position);
-    }
-
-    private function timezone(): string
-    {
-        return $this->fishery->timezone ?: 'Europe/Warsaw';
     }
 }
