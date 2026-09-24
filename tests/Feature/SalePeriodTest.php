@@ -5,7 +5,13 @@ namespace Tests\Feature;
 use App\Models\Fishery;
 use App\Models\SalePeriod;
 use App\Rules\SalePeriodsDoNotOverlap;
+use App\Services\FishingDayCalendar;
+use App\Services\SalePeriodFinder;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
+use Tests\Support\StayFixtures;
 
 /**
  * Reguła nienachodzenia okresów sprzedaży i kaskada klucza obcego.
@@ -115,4 +121,72 @@ test('a sale period logs attribute changes', function () {
 
     expect($activity->attribute_changes['old']['name'] ?? null)->toBe('Sezon główny')
         ->and($activity->attribute_changes['attributes']['name'] ?? null)->toBe('Sezon poprawiony');
+});
+
+/*
+ * Testy dopisane po mutacjach zadania 023.
+ */
+
+test('przedsprzedaż jest włączona tylko przy OBU datach okna', function () {
+    expect((new SalePeriod(['presale_opens_on' => '2026-01-01']))->hasPresale())->toBeFalse()
+        ->and((new SalePeriod(['presale_closes_on' => '2026-01-31']))->hasPresale())->toBeFalse()
+        ->and((new SalePeriod(['presale_opens_on' => '2026-01-01', 'presale_closes_on' => '2026-01-31']))->hasPresale())->toBeTrue();
+});
+
+/**
+ * ⚠️ Okno obejmuje CAŁE dni brzegowe w strefie łowiska: od północy dnia otwarcia do ostatniej
+ * mikrosekundy dnia zamknięcia.
+ */
+test('okno przedsprzedaży jest domknięte na obu brzegach i liczone w strefie łowiska', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition(['timezone' => 'America/New_York']);
+    $fishery->salePeriods()->update(['presale_opens_on' => '2026-01-01', 'presale_closes_on' => '2026-01-31']);
+    $period = $fishery->salePeriods()->firstOrFail();
+    $finder = fn () => new SalePeriodFinder($fishery->fresh());
+
+    Date::setTestNow(CarbonImmutable::parse('2026-01-01 00:00:00', 'America/New_York'));
+    $atOpening = $finder()->hasOpenPresale($period);
+
+    Date::setTestNow(CarbonImmutable::parse('2026-01-31 23:59:59.999999', 'America/New_York'));
+    $atClosing = $finder()->hasOpenPresale($period);
+
+    // 01.02 03:00 w Warszawie to jeszcze 31.01 w Nowym Jorku — okno wciąż otwarte.
+    Date::setTestNow(CarbonImmutable::parse('2026-02-01 03:00', 'Europe/Warsaw'));
+    $inFisheryZone = $finder()->hasOpenPresale($period);
+
+    Date::setTestNow();
+
+    expect($atOpening)->toBeTrue()
+        ->and($atClosing)->toBeTrue()
+        ->and($inFisheryZone)->toBeTrue();
+});
+
+/**
+ * ⚠️ Okresy wczytuje się RAZ na instancję — pytanie o zakres dób zadawałoby je inaczej raz
+ * na dobę.
+ */
+test('okresy sprzedaży wczytuje się raz na instancję, nie raz na dobę', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+    $fishery = $fishery->fresh();
+
+    $calendar = new FishingDayCalendar($fishery);
+    $finder = new SalePeriodFinder($fishery);
+    $nights = [
+        $calendar->dayStartingOn('2026-06-10'),
+        $calendar->dayStartingOn('2026-06-11'),
+        $calendar->dayStartingOn('2026-06-12'),
+    ];
+
+    $periodQueries = 0;
+
+    DB::listen(function ($query) use (&$periodQueries): void {
+        if (str_contains($query->sql, 'from `sale_periods`')) {
+            $periodQueries++;
+        }
+    });
+
+    foreach ($nights as $night) {
+        expect($finder->forNight($night))->not->toBeNull();
+    }
+
+    expect($periodQueries)->toBe(1);
 });

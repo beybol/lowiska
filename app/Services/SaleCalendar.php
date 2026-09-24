@@ -33,6 +33,14 @@ final class SaleCalendar
 {
     private ?FishingDayCalendar $calendar = null;
 
+    private bool $setupChecked = false;
+
+    /** @var 'fishing_day'|'sale_period'|'position'|null */
+    private ?string $missingSetup = null;
+
+    /** @var array<int, PriceRule>|null */
+    private ?array $rules = null;
+
     public function __construct(private readonly Fishery $fishery) {}
 
     /**
@@ -68,20 +76,18 @@ final class SaleCalendar
      */
     public function anchor(): ?CarbonImmutable
     {
-        $today = $this->today();
+        // Wystarczy pierwszy sezon: lista jest posortowana po początku i odfiltrowana po
+        // `ends_on >= dziś`, więc pierwszy albo trwa, albo jest najbliższym przyszłym.
+        $first = $this->seasons()[0] ?? null;
 
-        foreach ($this->seasons() as $period) {
-            $starts = $this->asLocalDay($period->starts_on);
-            $ends = $this->asLocalDay($period->ends_on);
-
-            if ($today->betweenIncluded($starts, $ends)) {
-                return $today;
-            }
-
-            return $starts;
+        if ($first === null) {
+            return null;
         }
 
-        return null;
+        $today = $this->today();
+        $starts = $this->asLocalDay($first->starts_on);
+
+        return $today->betweenIncluded($starts, $this->asLocalDay($first->ends_on)) ? $today : $starts;
     }
 
     /**
@@ -94,6 +100,21 @@ final class SaleCalendar
      * @return 'fishing_day'|'sale_period'|'position'|null
      */
     public function missingSetup(): ?string
+    {
+        // ⚠️ Pyta o to i widok, i `getGrid()` — w tym samym renderze. Wynik na żądanie, nie
+        // bufor werdyktu: instancja żyje tyle, co jedno żądanie (`dostepnosc.md` §2).
+        if (! $this->setupChecked) {
+            $this->missingSetup = $this->detectMissingSetup();
+            $this->setupChecked = true;
+        }
+
+        return $this->missingSetup;
+    }
+
+    /**
+     * @return 'fishing_day'|'sale_period'|'position'|null
+     */
+    private function detectMissingSetup(): ?string
     {
         if (blank($this->fishery->day_start_time) || blank($this->fishery->day_end_time)) {
             return 'fishing_day';
@@ -154,9 +175,11 @@ final class SaleCalendar
                 continue;
             }
 
-            // ⚠️ JEDNA instancja warstwy oferty na stanowisko — blokady, okresy i cennik
-            // wczytują się wtedy raz, a nie raz na komórkę. To nie jest bufor werdyktu.
-            $offer = new StayOffer($position);
+            // ⚠️ JEDNA instancja warstwy oferty na stanowisko — blokady i okresy wczytują się
+            // wtedy raz, a nie raz na komórkę. Cennik dostaje GOTOWY, wspólny dla wszystkich
+            // stanowisk: bez tego każde wczytywało go osobno (28 razy przy 26 stanowiskach,
+            // zadanie 023). To nie jest bufor werdyktu.
+            $offer = new StayOffer($position, $this->rules());
             $cells = [];
 
             foreach ($days as $day) {
@@ -369,9 +392,7 @@ final class SaleCalendar
      */
     private function pricingDiagnostics(array $days): array
     {
-        /** @var array<int, PriceRule> $rules */
-        $rules = $this->fishery->priceRules()->get()->all();
-        $resolver = new PriceRuleResolver($rules);
+        $resolver = new PriceRuleResolver($this->rules());
 
         $candidates = [];
 
@@ -383,7 +404,24 @@ final class SaleCalendar
             }
         }
 
-        return [$candidates, (new PricingConfigurationAudit($this->fishery))->deadRates()];
+        return [$candidates, (new PricingConfigurationAudit($this->fishery, $this->rules()))->deadRates()];
+    }
+
+    /**
+     * Cennik łowiska — JEDNO wczytanie na render, wspólne dla warstwy oferty wszystkich
+     * stanowisk, diagnostyki i audytu (zadanie 023, poz. 8).
+     *
+     * @return array<int, PriceRule>
+     */
+    private function rules(): array
+    {
+        if ($this->rules === null) {
+            /** @var array<int, PriceRule> $rules */
+            $rules = $this->fishery->priceRules()->get()->all();
+            $this->rules = $rules;
+        }
+
+        return $this->rules;
     }
 
     /**

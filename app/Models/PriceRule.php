@@ -102,23 +102,16 @@ class PriceRule extends Model
     }
 
     /**
-     * Czy ta STAWKA obowiązuje w tej dobie.
+     * Czy ta STAWKA obowiązuje w dobie zaczynającej się tego dnia.
      *
      * ⚠️ Stawka nie zna ani dni tygodnia, ani obsady, ani roli — wyłącznie daty. Gdyby
      * kiedykolwiek przybyło jej warunków, wróciłoby pytanie „która stawka wygrywa", które
      * przedefiniowanie z 22.09.2026 usunęło razem z priorytetami.
-     */
-    public function coversNight(FishingDay $night): bool
-    {
-        return $this->coversDay($night->startsOn);
-    }
-
-    /**
-     * To samo pytanie, ale zadane samą datą — bez konstruowania doby.
      *
-     * ⚠️ Istnieje, bo analiza martwych stawek (`PricingConfigurationAudit`) jest **arytmetyką
-     * przedziałów dat**, a nie przebiegiem po kalendarzu: pyta o granice okresów, w których
-     * nikt nie nocuje, i budowanie dla nich `FishingDay` byłoby pracą bez odbiorcy.
+     * ⚠️ Pytanie zadaje się samą datą, bez konstruowania doby, bo analiza martwych stawek
+     * (`PricingConfigurationAudit`) jest **arytmetyką przedziałów dat**, a nie przebiegiem po
+     * kalendarzu: pyta o granice okresów, w których nikt nie nocuje, i budowanie dla nich
+     * `FishingDay` byłoby pracą bez odbiorcy.
      */
     public function coversDay(CarbonImmutable $day): bool
     {
@@ -208,6 +201,31 @@ class PriceRule extends Model
         }
 
         return array_values(array_map(static fn (mixed $day): int => (int) $day, $this->weekdays));
+    }
+
+    /**
+     * Zakres dób reguły jako tekst: „2026-07-01–2026-08-31", „od 2026-01-01", „do 2026-12-31"
+     * albo `null`, gdy reguła nie ma dat.
+     *
+     * ⚠️ Statyczna i na łańcuchach, bo pytają o to dwa miejsca o różnym kształcie danych:
+     * nagłówek wiersza w formularzu cennika (stan formularza) i lista martwych stawek
+     * w kalendarzu (model). Jeden dom zapisu zakresu zamiast dwóch literałów (zadanie 023).
+     */
+    public static function periodText(?string $firstDayOn, ?string $lastDayOn): ?string
+    {
+        if ($firstDayOn !== null && $lastDayOn !== null) {
+            return $firstDayOn.'–'.$lastDayOn;
+        }
+
+        if ($firstDayOn !== null) {
+            return __('from').' '.$firstDayOn;
+        }
+
+        if ($lastDayOn !== null) {
+            return __('until').' '.$lastDayOn;
+        }
+
+        return null;
     }
 
     /**

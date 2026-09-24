@@ -168,3 +168,16 @@ test('the whole term period model does not get a policy of its own', function ()
     expect(file_exists(base_path('app/Policies/WholeTermPeriodPolicy.php')))->toBeFalse()
         ->and(count(glob(base_path('app/Policies/*.php'))))->toBe(17);
 });
+
+/*
+ * Test dopisany po mutacjach zadania 023: pod chipami weekendu stoi podsumowanie wyboru.
+ */
+test('pod chipami weekendu widać podsumowanie zaznaczonych dób', function () {
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition(['weekend_days' => [5, 6]]);
+    $this->actingAs($owner);
+    app()->setLocale('pl');
+
+    Livewire::test(ManageSaleRules::class, ['record' => $fishery->getRouteKey()])
+        ->assertSeeText('Od pt 15:00 do ndz 15:00 · 2 doby')
+        ->assertSeeText('pt → sob');
+});

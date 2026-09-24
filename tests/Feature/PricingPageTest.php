@@ -41,6 +41,7 @@ function rateRow(array $overrides = []): array
     return array_merge([
         'amount' => '70.00',
         'amount_companion' => '0.00',
+        'label' => null,
         'is_suspended' => false,
         'first_day_on' => null,
         'last_day_on' => null,
@@ -87,6 +88,33 @@ test('an owner can add a rate and a surcharge on separate lists', function () {
         // Przecinek i kropka zapisują się tak samo; asercja przez `DB::table`, nie przez akcesor.
         ->and((float) DB::table('price_rules')->where('id', $surcharge->id)->value('amount'))->toBe(20.0)
         ->and((float) DB::table('price_rules')->where('id', $rate->id)->value('amount'))->toBe(70.0);
+});
+
+/**
+ * Opcjonalna nazwa stawki (zadanie 023, poz. 6). Pusta nazwa zapisuje się jako `null`,
+ * żeby rozbicie wyceny i powiadomienie o domknięciu zachowały dawny fallback na kwotę.
+ */
+test('a rate saves an optional name and shows it in the row heading', function () {
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    $this->actingAs($owner);
+
+    Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
+        ->fillForm(['rateRules' => [
+            rateRow(['amount' => '70.00', 'label' => 'Cennik 2026', 'first_day_on' => '2026-01-01']),
+            rateRow(['amount' => '60.00', 'label' => '', 'first_day_on' => '2025-01-01', 'last_day_on' => '2025-12-31']),
+        ]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $named = PriceRule::where('fishery_id', $fishery->id)->where('amount', 70)->firstOrFail();
+    $unnamed = PriceRule::where('fishery_id', $fishery->id)->where('amount', 60)->firstOrFail();
+
+    expect($named->label)->toBe('Cennik 2026')
+        ->and($unnamed->label)->toBeNull();
+
+    // Nagłówek wiersza zaczyna się od nazwy, gdy stawka ją ma.
+    Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
+        ->assertSeeText('Cennik 2026 · 70');
 });
 
 /**
@@ -332,4 +360,18 @@ test('the pricing gap warning names the weekday and points at the dates', functi
         );
 
     Date::setTestNow();
+});
+
+/*
+ * Test dopisany po mutacjach zadania 023: pole dób dopłaty pokazuje i podsumowanie, i podpowiedź.
+ */
+test('pole dób dopłaty pokazuje podsumowanie i podpowiedź pod chipami', function () {
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    StayFixtures::surcharge($fishery, 20.00, 'Weekend', ['weekdays' => [5, 6]]);
+    $this->actingAs($owner);
+    app()->setLocale('pl');
+
+    Livewire::test(ManagePricing::class, ['record' => $fishery->getRouteKey()])
+        ->assertSeeText('Od pt 15:00 do ndz 15:00 · 2 doby')
+        ->assertSeeText('Dobę wskazuje dzień, w którym się zaczyna.');
 });

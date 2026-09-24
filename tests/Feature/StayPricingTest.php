@@ -11,6 +11,7 @@ use App\Services\StayPriceItem;
 use App\Services\StayPricing;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Tests\Support\StayFixtures;
 
 /**
@@ -343,4 +344,143 @@ test('wycena nie woła sprzedawalności — zmiana reguł pobytu nie zmienia cen
     $fishery->update(['min_nights' => 5, 'max_nights' => 7]);
 
     expect(StayFixtures::pricing($position)->breakdown('2026-05-10', 1)->totalInCents())->toBe($before);
+});
+
+/*
+ * Testy dopisane po mutacjach zadania 023 — granice wejścia, pozycja osoby towarzyszącej
+ * i warunki przedsprzedaży. Każdy celuje w mutanta, który przeżył pełny pakiet.
+ */
+
+test('wycena odrzuca zero dób i ujemną liczbę osób towarzyszących, ale przyjmuje jedną dobę', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    $pricing = StayFixtures::pricing($position);
+
+    expect(fn () => $pricing->breakdown('2026-05-07', 0))->toThrow(InvalidArgumentException::class)
+        ->and(fn () => $pricing->breakdown('2026-05-07', 1, companions: -1))->toThrow(InvalidArgumentException::class)
+        ->and($pricing->breakdown('2026-05-07', 1)->totalInCents())->toBe(7000);
+});
+
+test('bez godzin doby wycena rzuca czytelny wyjątek, a nie błąd typu', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition(['day_start_time' => null, 'day_end_time' => null]);
+    StayFixtures::rate($fishery, 70.00);
+
+    expect(fn () => StayFixtures::pricing($position)->breakdown('2026-05-07', 1))
+        ->toThrow(InvalidArgumentException::class, 'has no fishing day configured');
+});
+
+test('bez osób towarzyszących rozbicie nie ma pozycji osoby towarzyszącej', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00, ['amount_companion' => 25.00]);
+
+    $night = StayFixtures::pricing($position)->breakdown('2026-05-07', 1)->nights[0];
+
+    expect($night->items)->toHaveCount(1)
+        ->and(itemsOf($night, ParticipantRole::Companion, PriceRuleKind::Rate))->toBe([]);
+});
+
+test('doba poza okresem sprzedaży wycenia się bez obniżki i bez błędu', function () {
+    Date::setTestNow(CarbonImmutable::parse('2026-01-10 09:00', 'Europe/Warsaw'));
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    $fishery->salePeriods()->update([
+        'presale_opens_on' => '2026-01-01',
+        'presale_closes_on' => '2026-01-31',
+        'presale_discount_percent' => 10.00,
+    ]);
+
+    // Wycena nie pyta o sprzedawalność, więc doba spoza okresu nadal ma cenę.
+    $night = StayFixtures::pricing($position)->breakdown('2027-02-01', 1)->nights[0];
+
+    expect($night->discountInCents)->toBe(0)
+        ->and($night->discountPercent)->toBeNull()
+        ->and($night->totalInCents())->toBe(7000);
+
+    Date::setTestNow();
+});
+
+test('obniżka wymaga OBU: procentu i otwartego okna przedsprzedaży', function () {
+    Date::setTestNow(CarbonImmutable::parse('2026-01-10 09:00', 'Europe/Warsaw'));
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+
+    // Okno otwarte, ale bez procentu.
+    $fishery->salePeriods()->update([
+        'presale_opens_on' => '2026-01-01',
+        'presale_closes_on' => '2026-01-31',
+        'presale_discount_percent' => null,
+    ]);
+    $withoutPercent = StayFixtures::pricing($position)->breakdown('2026-05-07', 1)->nights[0];
+
+    // Procent jest, ale okno już zamknięte.
+    $fishery->salePeriods()->update([
+        'presale_opens_on' => '2025-12-01',
+        'presale_closes_on' => '2025-12-31',
+        'presale_discount_percent' => 10.00,
+    ]);
+    $closedWindow = StayFixtures::pricing($position)->breakdown('2026-05-07', 1)->nights[0];
+
+    expect($withoutPercent->discountInCents)->toBe(0)
+        ->and($withoutPercent->discountPercent)->toBeNull()
+        ->and($closedWindow->discountInCents)->toBe(0)
+        ->and($closedWindow->discountPercent)->toBeNull();
+
+    Date::setTestNow();
+});
+
+test('podstawą obniżki jest dokładnie suma pozycji doby — bez przesunięcia o grosz', function () {
+    Date::setTestNow(CarbonImmutable::parse('2026-01-10 09:00', 'Europe/Warsaw'));
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    $fishery->salePeriods()->update([
+        'presale_opens_on' => '2026-01-01',
+        'presale_closes_on' => '2026-01-31',
+        'presale_discount_percent' => 10.00,
+    ]);
+
+    // 14 gr → 1,4 gr → 1 gr; 15 gr → 1,5 gr → 2 gr. Granica połówki odróżnia podstawę o grosz.
+    $rate = StayFixtures::rate($fishery, 0.14);
+    $fourteen = StayFixtures::pricing($position)->breakdown('2026-05-07', 1)->nights[0];
+
+    $rate->update(['amount' => 0.15]);
+    $fifteen = StayFixtures::pricing($position)->breakdown('2026-05-07', 1)->nights[0];
+
+    expect($fourteen->discountInCents)->toBe(1)
+        ->and($fifteen->discountInCents)->toBe(2)
+        ->and($fifteen->discountPercent)->toBe('10.00');
+
+    Date::setTestNow();
+});
+
+test('arytmetyka obniżki: setne części procenta, dzielnik i progi zera', function () {
+    // Procent z ułamkiem, którego iloczyn przez 100 w zmiennym przecinku wypada TUŻ OBOK
+    // liczby całkowitej — zaokrąglenie musi być do najbliższej, nie w dół ani w górę.
+    expect(StayPricing::discountInCents(10000, '0.29'))->toBe(29)
+        ->and(StayPricing::discountInCents(10000, '1.10'))->toBe(110)
+        // Najmniejszy dodatni procent i najmniejsza dodatnia podstawa nadal dają obniżkę.
+        ->and(StayPricing::discountInCents(1_000_000, '0.01'))->toBe(100)
+        ->and(StayPricing::discountInCents(1, '100.00'))->toBe(1)
+        // Pełna podstawa przy 100% — pilnuje dzielnika.
+        ->and(StayPricing::discountInCents(1_000_000, '100.00'))->toBe(1_000_000)
+        // Procent ujemny i zerowy nie dają obniżki (ani dopłaty).
+        ->and(StayPricing::discountInCents(1000, '-10.00'))->toBe(0)
+        ->and(StayPricing::discountInCents(1000, '0.00'))->toBe(0)
+        ->and(StayPricing::discountInCents(0, '10.00'))->toBe(0);
+});
+
+test('wycena z cennikiem podanym z zewnątrz nie czyta go z bazy', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+
+    $rules = $fishery->priceRules()->get()->all();
+    $pricing = new StayPricing($position->fresh(), $rules);
+    $priceRuleQueries = 0;
+
+    DB::listen(function ($query) use (&$priceRuleQueries): void {
+        if (str_contains($query->sql, 'from `price_rules`')) {
+            $priceRuleQueries++;
+        }
+    });
+
+    expect($pricing->breakdown('2026-05-07', 2)->totalInCents())->toBe(14000)
+        ->and($priceRuleQueries)->toBe(0);
 });

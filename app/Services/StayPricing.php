@@ -47,8 +47,16 @@ final class StayPricing
 
     private ?SalePeriodFinder $periods = null;
 
-    public function __construct(private readonly Position $position)
-    {
+    /**
+     * @param  array<int, PriceRule>|null  $rules  cennik łowiska wczytany przez wołającego;
+     *                                             `null` = wczytanie przy pierwszej wycenie.
+     *                                             ⚠️ To jedno wczytanie na żądanie, nie bufor
+     *                                             werdyktu (`dostepnosc.md` §2).
+     */
+    public function __construct(
+        private readonly Position $position,
+        private readonly ?array $rules = null,
+    ) {
         // ⚠️ Jawny wyjątek, nie `assert()` — tak samo jak w `PositionAvailability`
         // i `StaySellability`, bo asercje są wyłączone w obrazie produkcyjnym.
         if ($position->fishery === null) {
@@ -266,7 +274,7 @@ final class StayPricing
         }
 
         /** @var array<int, PriceRule> $rules */
-        $rules = $this->fishery->priceRules()->get()->all();
+        $rules = $this->rules ?? $this->fishery->priceRules()->get()->all();
 
         return $this->resolver = new PriceRuleResolver($rules);
     }

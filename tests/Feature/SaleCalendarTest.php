@@ -14,6 +14,7 @@ use App\Services\SaleCalendarGrid;
 use App\Services\SaleCalendarRow;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Tests\Support\StayFixtures;
 
 /**
@@ -423,4 +424,193 @@ test('brak stawek jest osobnym sygnałem, nie zastępuje siatki', function () {
     StayFixtures::rate($fishery, 70.00);
 
     expect((new SaleCalendar($fishery->fresh()))->hasNoRates())->toBeFalse();
+});
+
+/**
+ * ⚠️ Cennik wczytuje się RAZ na render, a nie raz na stanowisko (zadanie 023, poz. 8).
+ * Wcześniej każda instancja warstwy oferty wczytywała go osobno, a diagnostyka i audyt
+ * dokładały po jednym wczytaniu — przy 26 stanowiskach 28 zapytań o ten sam cennik.
+ */
+test('siatka wczytuje cennik jeden raz niezależnie od liczby stanowisk', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    StayFixtures::rate($fishery, 90.00, ['first_day_on' => '2026-07-01', 'last_day_on' => '2026-08-31']);
+    Position::factory()->count(4)->create(['fishery_id' => $fishery->id, 'status' => PositionStatus::Available]);
+
+    $calendar = new SaleCalendar($fishery->fresh());
+    $priceRuleQueries = 0;
+
+    DB::listen(function ($query) use (&$priceRuleQueries): void {
+        if (str_contains($query->sql, 'from `price_rules`')) {
+            $priceRuleQueries++;
+        }
+    });
+
+    $calendar->grid(CarbonImmutable::parse('2026-07-01'), CalendarWindow::Week);
+
+    expect($priceRuleQueries)->toBe(1);
+});
+
+test('stan pusty jest liczony raz na instancję, choć pytają o niego i widok, i siatka', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+    $calendar = new SaleCalendar($fishery->fresh());
+    $queries = 0;
+
+    DB::listen(function () use (&$queries): void {
+        $queries++;
+    });
+
+    $calendar->missingSetup();
+    $afterFirst = $queries;
+    $calendar->missingSetup();
+
+    expect($afterFirst)->toBeGreaterThan(0)
+        ->and($queries)->toBe($afterFirst);
+});
+
+/*
+ * Testy dopisane po mutacjach zadania 023.
+ */
+
+test('brak JEDNEJ z godzin doby wystarcza, żeby kalendarz pokazał stan pusty', function () {
+    [$noStart] = StayFixtures::fisheryWithPosition(['day_start_time' => null]);
+    [$noEnd] = StayFixtures::fisheryWithPosition(['day_end_time' => null]);
+
+    expect((new SaleCalendar($noStart->fresh()))->missingSetup())->toBe('fishing_day')
+        ->and((new SaleCalendar($noEnd->fresh()))->missingSetup())->toBe('fishing_day');
+});
+
+test('stanowisko wycofane przed dostępnym nie ucina reszty wierszy', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    $position->update(['name' => 'B dostepne']);
+    Position::factory()->create([
+        'fishery_id' => $fishery->id,
+        'name' => 'A wycofane',
+        'status' => PositionStatus::Withdrawn,
+    ]);
+
+    $grid = (new SaleCalendar($fishery->fresh()))->grid(CarbonImmutable::parse('2026-05-04'), CalendarWindow::Week);
+
+    expect($grid->rows)->toHaveCount(2)
+        ->and($grid->rows[0]->withdrawn)->toBeTrue()
+        ->and($grid->rows[1]->withdrawn)->toBeFalse()
+        ->and($grid->rows[1]->cells)->toHaveCount(7);
+});
+
+test('siatka nie doczytuje łowiska dla każdego stanowiska', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    Position::factory()->count(3)->create(['fishery_id' => $fishery->id, 'status' => PositionStatus::Available]);
+
+    $calendar = new SaleCalendar($fishery->fresh());
+    $fisheryQueries = 0;
+
+    DB::listen(function ($query) use (&$fisheryQueries): void {
+        if (str_contains($query->sql, 'from `fisheries`')) {
+            $fisheryQueries++;
+        }
+    });
+
+    $calendar->grid(CarbonImmutable::parse('2026-05-04'), CalendarWindow::Week);
+
+    expect($fisheryQueries)->toBe(0);
+});
+
+test('stała długość bez ceny za osobę towarzyszącą daje odmowę, a nie kwotę z rozbicia odmowy', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00, ['amount_companion' => null]);
+
+    $grid = (new SaleCalendar($fishery->fresh()))
+        ->grid(CarbonImmutable::parse('2026-05-04'), CalendarWindow::Week, companions: 1, nights: 1);
+
+    $cell = cellOn($grid, '2026-05-06');
+
+    expect($cell->sellable)->toBeFalse()
+        ->and($cell->reason)->toBe(SaleUnavailabilityReason::NoCompanionPrice);
+});
+
+test('blokada do odwołania też podaje swój zasięg', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    StayFixtures::blockSale($fishery, $position, '2026-05-06');
+
+    $grid = (new SaleCalendar($fishery->fresh()))->grid(CarbonImmutable::parse('2026-05-04'), CalendarWindow::Week, nights: 1);
+    $cell = cellOn($grid, '2026-05-08');
+
+    expect($cell->reason)->toBe(SaleUnavailabilityReason::SaleBlocked)
+        ->and($cell->blockedPositionsCount)->toBe(1);
+});
+
+/**
+ * ⚠️ Przy kilku blokadach na jednej dobie podpowiedź bierze tę, która zaczęła się NAJWCZEŚNIEJ,
+ * a przy równym początku — starszą. Kolejność zapisu jest celowo odwrotna.
+ */
+test('z kilku blokad wybiera najwcześniejszą, a przy równym początku starszą', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+
+    $later = StayFixtures::blockSale($fishery, $position, '2026-05-06', '2026-05-10');
+    $later->update(['selection_label' => 'Pozniejsza']);
+    $earlier = StayFixtures::blockSale($fishery, $position, '2026-05-05', '2026-05-10');
+    $earlier->update(['selection_label' => 'Wczesniejsza']);
+
+    $grid = (new SaleCalendar($fishery->fresh()))->grid(CarbonImmutable::parse('2026-05-04'), CalendarWindow::Week, nights: 1);
+
+    expect(cellOn($grid, '2026-05-07')->blockSelectionLabel)->toBe('Wczesniejsza');
+
+    [$tie, $tiePosition] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($tie, 70.00);
+    $older = StayFixtures::blockSale($tie, $tiePosition, '2026-05-06', '2026-05-10');
+    $older->update(['selection_label' => 'Starsza']);
+    $newer = StayFixtures::blockSale($tie, $tiePosition, '2026-05-06', '2026-05-10');
+    $newer->update(['selection_label' => 'Nowsza']);
+
+    $tieGrid = (new SaleCalendar($tie->fresh()))->grid(CarbonImmutable::parse('2026-05-04'), CalendarWindow::Week, nights: 1);
+
+    expect(cellOn($tieGrid, '2026-05-07')->blockSelectionLabel)->toBe('Starsza');
+});
+
+test('kotwica liczy „dziś" w strefie łowiska', function () {
+    // 01:00 w Warszawie to jeszcze 3 maja w Nowym Jorku.
+    Date::setTestNow(CarbonImmutable::parse('2026-05-04 01:00', 'Europe/Warsaw'));
+    [$fishery] = StayFixtures::fisheryWithPosition(['timezone' => 'America/New_York']);
+
+    expect((new SaleCalendar($fishery->fresh()))->anchor()?->toDateString())->toBe('2026-05-03');
+});
+
+/**
+ * ⚠️ Stała długość to INNE pytanie niż „ceny od". Gdy zadany pobyt jest za krótki, komórka ma
+ * powiedzieć „za krótki", a nie podmienić go po cichu na najkrótszy kupowalny.
+ */
+test('odmowa przy stałej długości nie przechodzi w widok „ceny od"', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition(['min_nights' => 2]);
+    StayFixtures::rate($fishery, 70.00);
+
+    $grid = (new SaleCalendar($fishery->fresh()))
+        ->grid(CarbonImmutable::parse('2026-05-04'), CalendarWindow::Week, nights: 1);
+
+    $cell = cellOn($grid, '2026-05-06');
+
+    expect($cell->sellable)->toBeFalse()
+        ->and($cell->reason)->toBe(SaleUnavailabilityReason::StayTooShort);
+});
+
+/**
+ * ⚠️ Blokada do odwołania, zapisana PIERWSZA, nie może zakończyć przeglądu blokad — dalej
+ * może leżeć blokada o wcześniejszym początku i to ona ma trafić do podpowiedzi.
+ */
+test('blokada do odwołania nie przerywa przeglądu pozostałych blokad', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+
+    $open = StayFixtures::blockSale($fishery, $position, '2026-05-06');
+    $open->update(['selection_label' => 'Do odwolania']);
+    $earlier = StayFixtures::blockSale($fishery, $position, '2026-05-05', '2026-05-10');
+    $earlier->update(['selection_label' => 'Wczesniejsza']);
+
+    $grid = (new SaleCalendar($fishery->fresh()))
+        ->grid(CarbonImmutable::parse('2026-05-04'), CalendarWindow::Week, nights: 1);
+
+    expect(cellOn($grid, '2026-05-07')->blockSelectionLabel)->toBe('Wczesniejsza');
 });

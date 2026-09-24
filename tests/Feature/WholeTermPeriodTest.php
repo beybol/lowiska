@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Fishery;
+use App\Models\SalePeriod;
 use App\Models\WholeTermPeriod;
 use App\Rules\WholeTermPeriodsFitTheSeason;
 use App\Services\FishingDayCalendar;
@@ -168,4 +169,81 @@ test('deleting a fishery for good takes its terms with it', function () {
     $fishery->forceDelete();
 
     expect(WholeTermPeriod::withTrashed()->whereKey($term->id)->count())->toBe(0);
+});
+
+/*
+ * Testy dopisane po mutacjach zadania 023.
+ */
+
+test('wartość, która nie jest listą, i niepełne wiersze nie są błędem', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+
+    expect(termFailures($fishery->fresh(), []))->toBe([]);
+
+    $failures = [];
+    (new WholeTermPeriodsFitTheSeason($fishery->fresh()))->validate(
+        'wholeTermPeriods',
+        'nie-lista',
+        function (string $message) use (&$failures): void {
+            $failures[] = $message;
+        },
+    );
+
+    expect($failures)->toBe([])
+        // Wiersz w trakcie wypełniania — jedna data — nie jest jeszcze świętem.
+        ->and(termFailures($fishery->fresh(), [['first_day_on' => '2026-05-01', 'last_day_on' => null]]))->toBe([])
+        ->and(termFailures($fishery->fresh(), [['first_day_on' => null, 'last_day_on' => '2026-05-03']]))->toBe([]);
+});
+
+test('data z godziną porównuje się jako sama data', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+
+    expect(termFailures($fishery->fresh(), [['first_day_on' => '2026-05-03', 'last_day_on' => '2026-05-03 12:00:00']]))
+        ->toBe([__('A term sold whole has to cover at least two nights.')]);
+});
+
+test('po pierwszym błędzie reguła kończy — nie dokłada kolejnych komunikatów', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition(['day_start_time' => null, 'day_end_time' => null]);
+
+    expect(termFailures($fishery->fresh(), [
+        ['first_day_on' => '2026-05-03', 'last_day_on' => '2026-05-03'],
+        ['first_day_on' => '2026-06-01', 'last_day_on' => '2026-06-03'],
+    ]))->toHaveCount(1);
+});
+
+test('brak JEDNEJ z godzin doby też blokuje święta', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition(['day_end_time' => null]);
+
+    expect(termFailures($fishery->fresh(), [['first_day_on' => '2026-05-01', 'last_day_on' => '2026-05-03']]))
+        ->toBe([__('Set the fishing day hours before adding terms sold whole.')]);
+});
+
+/**
+ * ⚠️ Każde święto sprawdza się we WŁASNYM zakresie dat. Dwa święta mieszczące się w dwóch
+ * okresach sprzedaży z przerwą między nimi są poprawne — przerwy nie wolno „dociągnąć"
+ * do zakresu pierwszego święta.
+ */
+test('dwa święta w dwóch okresach z przerwą są poprawne', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+    $fishery->salePeriods()->update(['starts_on' => '2026-01-01', 'ends_on' => '2026-06-30']);
+    SalePeriod::factory()->create([
+        'fishery_id' => $fishery->id,
+        'starts_on' => '2026-08-01',
+        'ends_on' => '2026-12-31',
+    ]);
+
+    expect(termFailures($fishery->fresh(), [
+        ['first_day_on' => '2026-05-01', 'last_day_on' => '2026-05-02'],
+        ['first_day_on' => '2026-08-10', 'last_day_on' => '2026-08-11'],
+    ]))->toBe([]);
+});
+
+/**
+ * ⚠️ Same niewypełnione wiersze nie są jeszcze żadnym świętem, więc nie mogą wywołać błędu
+ * o brakujących godzinach doby — nawet na łowisku, które tych godzin nie ma.
+ */
+test('rows still being filled in do not demand fishing day hours', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition(['day_start_time' => null, 'day_end_time' => null]);
+
+    expect(termFailures($fishery->fresh(), [['first_day_on' => '2026-05-01', 'last_day_on' => null]]))->toBe([]);
 });

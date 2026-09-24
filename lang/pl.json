@@ -521,7 +521,6 @@
     "Weekend sold whole": "Weekend sprzedawany w całości",
     "Mark the nights that go together. A stay touching the weekend has to cover all of them.": "Zaznacz doby, które idą razem. Pobyt dotykający weekendu musi objąć je wszystkie.",
     "The weekend is sold whole": "Weekend sprzedawany wyłącznie w całości",
-    "Nights of the weekend": "Doby weekendu",
     "Set the fishing day hours in Sale and seasons first.": "Najpierw ustaw godziny doby w „Sprzedaż i sezony”.",
     "No weekend nights chosen yet.": "Nie zaznaczono jeszcze żadnej doby.",
     "From :startDay :startTime to :endDay :endTime": "Od :startDay :startTime do :endDay :endTime",
@@ -657,6 +656,11 @@
     "The block covers :count position(s) selected by \":label\".": "Blokada obejmuje :count stanowisk wybranych po „:label”.",
     "The block covers :count position(s).": "Blokada obejmuje :count stanowisk.",
     "Some rates never win": "Niektóre stawki nigdy nie wygrywają",
-    "The rate :amount never wins anywhere in its date range — a cheaper one covers all of it.": "Stawka :amount nie wygrywa nigdzie w swoim zakresie dat — tańsza pokrywa go w całości.",
-    "The cheapest rate wins: :winner. Also matching: :others.": "Wygrywa najtańsza stawka: :winner. Pasują też: :others."
+    "The cheapest rate wins: :winner. Also matching: :others.": "Wygrywa najtańsza stawka: :winner. Pasują też: :others.",
+    "Select the nights that make up the weekend": "Zaznacz doby, które składają się na weekend",
+    "From :startDay to :endDay": "Od :startDay do :endDay",
+    "Every night.": "Każda doba.",
+    "Rate name": "Nazwa stawki",
+    "Optional, e.g. \"Price list 2026\". Names this rate in the price breakdown, the calendar and notifications.": "Opcjonalna, np. „Cennik 2026”. Tak stawka będzie nazwana w rozbiciu ceny, w kalendarzu i w powiadomieniach.",
+    "The rate :rate never wins anywhere in its date range — a cheaper one covers all of it.": "Stawka :rate nie wygrywa nigdzie w swoim zakresie dat — tańsza pokrywa go w całości."
 }

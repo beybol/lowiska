@@ -52,18 +52,6 @@ final readonly class NightPriceResolution
         return $this->failure === null;
     }
 
-    /**
-     * Czy do tej doby pasuje więcej niż jedna stawka.
-     *
-     * ⚠️ Nachodzenie NIE jest błędem — jest stanem, który kalendarz (019) ma pokazać
-     * i oznaczyć. Liczą się też stawki o IDENTYCZNEJ kwocie: dwie po 70,00 zł to nadal
-     * nachodzenie, bo operator zobaczy dwa wpisy tam, gdzie spodziewał się jednego.
-     */
-    public function hasOverlappingRates(): bool
-    {
-        return count($this->candidates) > 1;
-    }
-
     /** Kwota doby dla jednej osoby ŁOWIĄCEJ, bez dopłat, w groszach. */
     public function anglerAmountInCents(): int
     {

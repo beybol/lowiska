@@ -6,18 +6,19 @@ use App\Enums\PriceRuleKind;
 use App\Enums\SurchargeAudience;
 use App\Filament\Resources\FisheryResource;
 use App\Models\Fishery;
+use App\Models\PriceRule;
 use App\Rules\PriceRuleDatesAreOrdered;
 use App\Services\FisheryNavigation;
 use App\Services\PriceRulePeriods;
 use App\Services\PricingConfigurationAudit;
 use App\Services\SharedFormComponents;
+use App\Services\WeekdayNights;
 use Carbon\CarbonImmutable;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Schemas\Components\Section;
@@ -30,7 +31,7 @@ use Filament\Schemas\Schema;
  * stawki i dopłaty — bo operator myśli o nich osobno, a po przedefiniowaniu z 22.09.2026
  * różnią się także KSZTAŁTEM, nie tylko flagą `kind`:
  *
- * - **stawka** ma pięć pól i żadnego warunku poza datami;
+ * - **stawka** ma sześć pól i żadnego warunku poza datami (nazwa jest opisem, nie warunkiem);
  * - **dopłata** ma osiem pól i niesie cały ciężar warunkowy.
  *
  * Kto chce różnicować cenę dniami tygodnia, robi to dopłatą. Zniknęły priorytet, rola
@@ -140,7 +141,11 @@ class ManagePricing extends EditRecord
     }
 
     /**
-     * Pięć pól stawki — kwoty i daty, nic więcej.
+     * Sześć pól stawki — kwoty, opcjonalna nazwa i daty, nic więcej.
+     *
+     * ⚠️ **Nazwa nie jest warunkiem.** Mówi wyłącznie, jak stawka nazywa się w powiadomieniu
+     * o domknięciu, w rozbiciu wyceny, w nagłówku wiersza i w kalendarzu. Pusta zachowuje
+     * dawne zachowanie: rozbicie niesie `null`, a powiadomienie pokazuje kwotę (zadanie 023).
      *
      * @return array<int, mixed>
      */
@@ -155,6 +160,10 @@ class ManagePricing extends EditRecord
                 ->required()
                 ->default(0)
                 ->helperText(__('Enter 0.00 if companions stay for free. Leaving this empty means the night can not be sold to anyone bringing a companion.')),
+            TextInput::make('label')
+                ->label(__('Rate name'))
+                ->helperText(__('Optional, e.g. "Price list 2026". Names this rate in the price breakdown, the calendar and notifications.'))
+                ->maxLength(255),
             Toggle::make('is_suspended')
                 ->label(__('Suspended'))
                 ->helperText(__('Stays in the price list and takes no part in pricing.')),
@@ -205,13 +214,16 @@ class ManagePricing extends EditRecord
                 ->label(__('Only with exactly this many anglers'))
                 ->options($this->anglerCountOptions())
                 ->helperText(__('Empty means any number. Only anglers count — a companion does not raise it.')),
-            ToggleButtons::make('weekdays')
-                ->label(__('Only on these nights'))
-                ->helperText(__('Nights are identified by the day they start on. Selecting none means every night.'))
-                ->multiple()
-                ->inline()
-                ->options($this->weekdayOptions())
-                ->columnSpanFull(),
+            // ⚠️ Ten sam komponent co weekend na „Regułach sprzedaży" (zadanie 023). Bez godzin
+            // doby pole NIE jest wyłączane: dopłata wybiera doby po dniu rozpoczęcia, więc
+            // znika tylko linia godzin na chipach.
+            SharedFormComponents::weekdayNightsInput(
+                'weekdays',
+                $this->weekdayNights(),
+                __('Only on these nights'),
+                __('Every night.'),
+                __('Nights are identified by the day they start on. Selecting none means every night.'),
+            ),
         ];
     }
 
@@ -273,25 +285,9 @@ class ManagePricing extends EditRecord
         }
     }
 
-    /**
-     * Siedem dób jako dni rozpoczęcia — ta sama zasada co przy weekendzie na „Regułach
-     * sprzedaży": zaznacza się DOBY, identyfikowane dniem rozpoczęcia.
-     *
-     * @return array<int, string>
-     */
-    private function weekdayOptions(): array
+    private function weekdayNights(): WeekdayNights
     {
-        $options = [];
-
-        foreach (range(1, 7) as $isoDay) {
-            $options[$isoDay] = CarbonImmutable::now()
-                ->startOfWeek(CarbonImmutable::MONDAY)
-                ->addDays($isoDay - 1)
-                ->locale(app()->getLocale())
-                ->isoFormat('ddd');
-        }
-
-        return $options;
+        return WeekdayNights::forFishery($this->fishery());
     }
 
     /**
@@ -315,7 +311,7 @@ class ManagePricing extends EditRecord
     }
 
     /**
-     * Nagłówek wiersza stawki: `70,00 zł · od 01.01.2026` albo `· okno` przy datowanej.
+     * Nagłówek wiersza stawki: `[Cennik 2026 · ]70,00 · od 2026-01-01` albo `· okno` przy datowanej.
      *
      * @param  array<string, mixed>  $state
      */
@@ -330,17 +326,28 @@ class ManagePricing extends EditRecord
         $from = $state['first_day_on'] ?? null;
         $to = $state['last_day_on'] ?? null;
 
-        $label = (string) $amount;
+        $parts = [];
 
-        if (filled($from) && filled($to)) {
-            $label .= ' · '.$from.'–'.$to.' · '.__('window');
-        } elseif (filled($from)) {
-            $label .= ' · '.__('from').' '.$from;
-        } elseif (filled($to)) {
-            $label .= ' · '.__('until').' '.$to;
+        if (filled($state['label'] ?? null)) {
+            $parts[] = (string) $state['label'];
         }
 
-        return $label.$this->suspendedSuffix($state);
+        $parts[] = (string) $amount;
+
+        $period = PriceRule::periodText(
+            filled($from) ? (string) $from : null,
+            filled($to) ? (string) $to : null,
+        );
+
+        if ($period !== null) {
+            $parts[] = $period;
+        }
+
+        if (filled($from) && filled($to)) {
+            $parts[] = __('window');
+        }
+
+        return implode(' · ', $parts).$this->suspendedSuffix($state);
     }
 
     /**
@@ -369,14 +376,12 @@ class ManagePricing extends EditRecord
             $parts[] = __('anglers: :count', ['count' => $state['anglers_count']]);
         }
 
-        $weekdays = $state['weekdays'] ?? [];
+        // ⚠️ Krótka forma z domu dób, nie „pierwszy–ostatni" — tamto przekłamywało zbiór
+        // nieciągły („pn + śr" wyglądało jak „pn–śr").
+        $weekdays = $this->weekdayNights()->shortForm($state['weekdays'] ?? []);
 
-        if (is_array($weekdays) && $weekdays !== []) {
-            $names = $this->weekdayOptions();
-            $parts[] = implode('–', array_map(
-                static fn (mixed $day): string => $names[(int) $day] ?? (string) $day,
-                [reset($weekdays), end($weekdays)],
-            ));
+        if ($weekdays !== '') {
+            $parts[] = $weekdays;
         }
 
         return implode(' · ', $parts).$this->suspendedSuffix($state);

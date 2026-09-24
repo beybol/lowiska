@@ -137,8 +137,20 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   w swoim okresie.
 - Łowisko bez godzin doby, bez okresu sprzedaży albo bez stanowisk dostaje **komunikat, czego
   brakuje i dokąd pójść**, zamiast siatki samych odmów.
+- Stawka w cenniku może mieć **nazwę**, np. „Cennik 2026". Nazwa jest opcjonalna i nie zmienia
+  ceny — pokazuje się w nagłówku wiersza, w powiadomieniu o domknięciu poprzedniej stawki,
+  w rozbiciu ceny i na kalendarzu. Stawka bez nazwy nadal pokazuje się kwotą.
 
 ### Zmienione
+
+- Lista stawek, które nigdy nie wygrywają, opisuje teraz każdą z nich **nazwą, kwotą z walutą
+  i zakresem dat** zamiast samej kwoty w rodzaju „90.00" — po tym łatwo trafić do właściwego
+  wiersza w cenniku.
+- Doby tygodnia przy dopłacie i przy weekendzie sprzedawanym w całości wybiera się teraz tak samo:
+  siedmioma przyciskami, z których każdy pokazuje dobę od dnia do dnia i jej godziny, a pod nimi
+  jest podsumowanie wyboru. Wcześniej weekend miał listę pól do zaznaczenia, a dopłata same nazwy
+  dni, bez informacji, że chodzi o doby. Przy dopłacie przyciski działają także bez ustawionych
+  godzin doby.
 
 - Ekran „Sprzedaż i sezony" odpowiada teraz na pytanie, **kiedy** łowisko sprzedaje: doszły do niego
   przedsprzedaż przy każdym okresie oraz horyzont sprzedaży. Reguły mówiące, **jaki pobyt** wolno
@@ -200,6 +212,8 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Poprawione
 
+- Nagłówek dopłaty w cenniku poprawnie pokazuje doby, które nie idą po kolei — dopłata na poniedziałek
+  i środę widnieje jako „pon, śr", a nie jako „pon–śr", które sugerowało także wtorek.
 - Naprawiono podgląd mapy w formularzu łowiska — nie dawało się go pokazać. Mapa pojawia się
   teraz sama, gdy adres jest kompletny, i nadąża za zmianami w polach adresu.
 - Naprawiono dodawanie usługi dodatkowej — zapis formularza kończył się błędem aplikacji

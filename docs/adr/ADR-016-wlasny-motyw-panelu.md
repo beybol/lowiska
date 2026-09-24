@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-09-23
-- **Zadanie:** [019 — Kalendarz podglądowy konfiguracji](../tasks/019-kalendarz-podgladowy-konfiguracji.md)
+- **Zadanie:** [019 — Kalendarz podglądowy konfiguracji](../tasks/implemented/019-kalendarz-podgladowy-konfiguracji.md)
 
 ## Kontekst
 

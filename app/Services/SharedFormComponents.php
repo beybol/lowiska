@@ -7,6 +7,8 @@ use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 
@@ -95,6 +97,47 @@ final class SharedFormComponents
                 ? (float) str_replace(',', '.', $state)
                 : null)
             ->default(null);
+    }
+
+    /**
+     * Wybór dób tygodnia — JEDEN komponent dla weekendu i dla warunku dopłaty (zadanie 023).
+     *
+     * ⚠️ **Chipy, nie `CheckboxList`, i przedziały, nie nazwy dni** (`panel-wlasciciela.md` §6).
+     * Wiedza o dobach mieszka w `WeekdayNights`; tu jest wyłącznie budowa pola: rząd siedmiu
+     * dwuwierszowych chipów i podsumowanie pod nimi. Podsumowanie wymaga `live()`, inaczej
+     * odświeżałoby się dopiero przy innym żądaniu.
+     *
+     * ⚠️ `ToggleButtons` przysyła wartości jako łańcuchy — rzutowanie na `int` należy do
+     * wołającego, bo tylko on wie, gdzie powstaje zapisywany stan.
+     *
+     * @param  string  $whenEmpty  co znaczy pusty zbiór na TYM ekranie
+     */
+    public static function weekdayNightsInput(
+        string $name,
+        WeekdayNights $nights,
+        string $label,
+        string $whenEmpty,
+        ?string $helperText = null,
+    ): ToggleButtons {
+        return ToggleButtons::make($name)
+            ->label($label)
+            ->multiple()
+            ->inline()
+            // ⚠️ Domknięcie, nie tablica: sygnatura `options()` deklaruje etykiety jako
+            // łańcuchy, a chipy są `Htmlable` — renderer przyjmuje oba, bo przepuszcza
+            // etykietę przez `e()`, które `Htmlable` zostawia nietknięte.
+            ->options(static fn (): array => $nights->options())
+            ->live()
+            ->belowContent(static function (mixed $state) use ($nights, $whenEmpty, $helperText): array {
+                $content = [Text::make($nights->summary($state, $whenEmpty))];
+
+                if (filled($helperText)) {
+                    $content[] = Text::make($helperText);
+                }
+
+                return $content;
+            })
+            ->columnSpanFull();
     }
 
     public static function getRichEditorOptions()

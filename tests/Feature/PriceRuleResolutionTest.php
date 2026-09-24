@@ -60,8 +60,7 @@ it('niesie KOMPLET kandydatów, nie samego zwycięzcę — to z tego 019 rysuje 
 
     expect($resolution->candidates)->toHaveCount(2)
         ->and($resolution->candidates[0]->id)->toBe($cheap->id)
-        ->and($resolution->candidates[1]->id)->toBe($expensive->id)
-        ->and($resolution->hasOverlappingRates())->toBeTrue();
+        ->and($resolution->candidates[1]->id)->toBe($expensive->id);
 });
 
 it('przy jednej pasującej stawce lista kandydatów ma jedną pozycję i nie ma nachodzenia', function (): void {
@@ -71,8 +70,7 @@ it('przy jednej pasującej stawce lista kandydatów ma jedną pozycję i nie ma 
 
     $resolution = resolverFor([$only])->resolve(nightOn($fishery, '2026-05-10'), 1);
 
-    expect($resolution->candidates)->toHaveCount(1)
-        ->and($resolution->hasOverlappingRates())->toBeFalse();
+    expect($resolution->candidates)->toHaveCount(1);
 });
 
 it('identyczne kwoty też są w komplecie — dwie stawki to nadal nachodzenie', function (): void {
@@ -83,8 +81,7 @@ it('identyczne kwoty też są w komplecie — dwie stawki to nadal nachodzenie',
 
     $resolution = resolverFor([$first, $second])->resolve(nightOn($fishery, '2026-05-10'), 1);
 
-    expect($resolution->candidates)->toHaveCount(2)
-        ->and($resolution->hasOverlappingRates())->toBeTrue();
+    expect($resolution->candidates)->toHaveCount(2);
 });
 
 it('przy równych kwotach rozstrzyga deterministycznie i zawsze tak samo', function (): void {
@@ -345,4 +342,50 @@ it('reguła zna swój rodzaj i nie miesza go przy zapisie', function (): void {
 
     expect($rate->kind)->toBe(PriceRuleKind::Rate)
         ->and($surcharge->kind)->toBe(PriceRuleKind::Surcharge);
+});
+
+/*
+ * Testy dopisane po mutacjach zadania 023.
+ */
+
+it('powiadomienie o domknięciu nazywa stawkę jej nazwą, a bez nazwy — kwotą', function (): void {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00, ['first_day_on' => '2026-01-01', 'label' => 'Cennik 2026']);
+    $new = StayFixtures::rate($fishery, 80.00, ['first_day_on' => '2027-01-01']);
+
+    $closed = (new PriceRulePeriods($fishery))->closeSupersededRates([$new->id]);
+
+    expect($closed)->toBe([['label' => 'Cennik 2026', 'until' => '2026-12-31']]);
+
+    [$unnamed] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($unnamed, 70.00, ['first_day_on' => '2026-01-01']);
+    $newer = StayFixtures::rate($unnamed, 80.00, ['first_day_on' => '2027-01-01']);
+
+    expect((new PriceRulePeriods($unnamed))->closeSupersededRates([$newer->id]))
+        ->toBe([['label' => '70.00', 'until' => '2026-12-31']]);
+});
+
+it('kandydaci i dopłaty wracają jako lista od zera, także po odfiltrowaniu pierwszej reguły', function (): void {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+
+    $outside = StayFixtures::rate($fishery, 50.00, ['first_day_on' => '2027-01-01']);
+    StayFixtures::rate($fishery, 70.00);
+    StayFixtures::rate($fishery, 90.00);
+    $suspended = StayFixtures::surcharge($fishery, 5.00, 'Zawieszona', ['is_suspended' => true]);
+    StayFixtures::surcharge($fishery, 20.00, 'Prad');
+
+    $resolver = resolverFor([$outside, ...$fishery->priceRules()->whereKeyNot($outside->id)->get()->all()]);
+
+    expect(array_keys($resolver->candidatesForDay(CarbonImmutable::parse('2026-05-10'))))->toBe([0, 1])
+        ->and(array_keys($resolver->resolve(nightOn($fishery, '2026-05-10'), 1)->surcharges))->toBe([0])
+        ->and($suspended->is_suspended)->toBeTrue();
+});
+
+it('rozstrzygnięcie bez stawki ma zerową kwotę łowiącego i brak kwoty towarzyszącej', function (): void {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+
+    $resolution = resolverFor([])->resolve(nightOn($fishery, '2026-05-10'), 1);
+
+    expect($resolution->anglerAmountInCents())->toBe(0)
+        ->and($resolution->companionAmountInCents())->toBeNull();
 });

@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Enums\SaleUnavailabilityReason;
 use App\Models\Position;
+use App\Models\PriceRule;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use LogicException;
 
 /**
  * Warstwa oferty pobytu — **jedyne wejście** dla kalendarza podglądowego (019), przyszłego
@@ -57,7 +59,15 @@ final class StayOffer
 
     private ?StayPricing $pricing = null;
 
-    public function __construct(private readonly Position $position) {}
+    /**
+     * @param  array<int, PriceRule>|null  $rules  cennik łowiska wczytany przez wołającego —
+     *                                             kalendarz (019) podaje go raz dla wszystkich
+     *                                             stanowisk; `null` = wycena wczyta go sama
+     */
+    public function __construct(
+        private readonly Position $position,
+        private readonly ?array $rules = null,
+    ) {}
 
     /**
      * @param  int  $anglers  liczba łowiących
@@ -93,15 +103,6 @@ final class StayOffer
         return StayOfferVerdict::offered($breakdown);
     }
 
-    public function isAvailable(
-        CarbonInterface|string $startsOn,
-        int $nights,
-        int $anglers = 1,
-        int $companions = 0,
-    ): bool {
-        return $this->offer($startsOn, $nights, $anglers, $companions)->available;
-    }
-
     /**
      * Najkrótszy KUPOWALNY pobyt rozpoczynający się tą dobą — druga odpowiedź tej warstwy,
      * potrzebna kalendarzowi (019) do widoku „ceny od".
@@ -129,7 +130,13 @@ final class StayOffer
             $verdict = $this->offer($startsOn, $nights, $anglers, $companions);
 
             if ($verdict->available) {
-                return ShortestStayVerdict::found($nights, $verdict->breakdown);
+                // ⚠️ Niezmiennik spoza sygnatury, więc sprawdzany w runtime: oferta dostępna
+                // zawsze niesie rozbicie. Jawny wyjątek, nie `assert()` — asercje są wyłączone
+                // w obrazie produkcyjnym (zadanie 023).
+                return ShortestStayVerdict::found(
+                    $nights,
+                    $verdict->breakdown ?? throw new LogicException('An available offer always carries a price breakdown.'),
+                );
             }
 
             $sellability = $verdict->sellability;
@@ -139,7 +146,10 @@ final class StayOffer
                 $first = CarbonImmutable::parse($startsOn, $sellability->bundleFirstDay->timezone)->startOfDay();
 
                 if ($sellability->bundleFirstDay->lt($first)) {
-                    return ShortestStayVerdict::startsEarlier($verdict->reason, $sellability->bundleFirstDay);
+                    return ShortestStayVerdict::startsEarlier(
+                        $verdict->reason ?? throw new LogicException('A refused offer always carries a reason.'),
+                        $sellability->bundleFirstDay,
+                    );
                 }
 
                 $nights = max($nights + 1, (int) $first->diffInDays($sellability->bundleLastDay) + 1);
@@ -168,6 +178,6 @@ final class StayOffer
 
     private function pricing(): StayPricing
     {
-        return $this->pricing ??= new StayPricing($this->position);
+        return $this->pricing ??= new StayPricing($this->position, $this->rules);
     }
 }

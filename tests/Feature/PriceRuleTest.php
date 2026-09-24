@@ -6,7 +6,9 @@ use App\Enums\PriceRuleKind;
 use App\Enums\SurchargeAudience;
 use App\Models\PriceRule;
 use App\Rules\PresaleDiscountIsPercentage;
+use App\Rules\PresaleWindowsAreOrdered;
 use App\Rules\PriceRuleDatesAreOrdered;
+use App\Rules\StayLengthRangeIsOrdered;
 use App\Services\FishingDayCalendar;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -43,8 +45,8 @@ test('stawka nie ma zadnych warunkow poza datami', function () {
     $outside = $calendar->dayStartingOn(CarbonImmutable::parse('2026-06-10', 'Europe/Warsaw'));
 
     // Kolumny dopłaty na stawce nie istnieją i nie wolno ich czytać przy dopasowaniu.
-    expect($rate->coversNight($inside))->toBeTrue()
-        ->and($rate->coversNight($outside))->toBeFalse()
+    expect($rate->coversDay($inside->startsOn))->toBeTrue()
+        ->and($rate->coversDay($outside->startsOn))->toBeFalse()
         ->and($rate->weekdays)->toBeNull()
         ->and($rate->anglers_count)->toBeNull()
         ->and($rate->applies_to)->toBeNull();
@@ -84,7 +86,7 @@ test('reguła zawieszona nie obowiazuje w zadnej dobie', function () {
     $night = (new FishingDayCalendar($fishery->fresh()))
         ->dayStartingOn(CarbonImmutable::parse('2026-05-10', 'Europe/Warsaw'));
 
-    expect($rate->coversNight($night))->toBeFalse()
+    expect($rate->coversDay($night->startsOn))->toBeFalse()
         ->and($surcharge->appliesToNight($night, 1))->toBeFalse();
 });
 
@@ -200,4 +202,85 @@ test('deleting a fishery for good takes its price rules with it', function () {
     $fishery->forceDelete();
 
     expect(PriceRule::withTrashed()->whereKey($rule->id)->count())->toBe(0);
+});
+
+/*
+ * Testy dopisane po mutacjach zadania 023.
+ */
+
+/**
+ * ⚠️ Kwoty z bazy są łańcuchami dziesiętnymi, a ich iloczyn przez 100 w zmiennym przecinku
+ * wypada TUŻ OBOK liczby całkowitej (0,29 → 28,999…, 1,10 → 110,000…1). Grosze muszą
+ * wychodzić przez zaokrąglenie do najbliższej, nie w dół ani w górę.
+ */
+test('kwoty zamieniają się na grosze bez błędu zmiennego przecinka', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+
+    $low = StayFixtures::rate($fishery, 0.29, ['amount_companion' => 0.29])->fresh();
+    $high = StayFixtures::rate($fishery, 1.10, ['amount_companion' => 1.10])->fresh();
+
+    expect($low->amountInCents())->toBe(29)
+        ->and($low->companionAmountInCents())->toBe(29)
+        ->and($high->amountInCents())->toBe(110)
+        ->and($high->companionAmountInCents())->toBe(110);
+});
+
+test('dni tygodnia dopłaty zapisane jako łańcuchy wracają jako liczby, w kolejnej liście', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+    $surcharge = StayFixtures::surcharge($fishery, 20.00, 'Weekend', ['weekdays' => [3 => '5', 7 => '6']]);
+
+    expect($surcharge->fresh()->weekdayNumbers())->toBe([5, 6]);
+});
+
+test('zakres dat reguły jako tekst', function () {
+    app()->setLocale('pl');
+
+    expect(PriceRule::periodText('2026-07-01', '2026-08-31'))->toBe('2026-07-01–2026-08-31')
+        ->and(PriceRule::periodText('2026-01-01', null))->toBe('od 2026-01-01')
+        ->and(PriceRule::periodText(null, '2026-12-31'))->toBe('do 2026-12-31')
+        ->and(PriceRule::periodText(null, null))->toBeNull();
+});
+
+/**
+ * ⚠️ Reguły kolejności dat porównują SAME DATY (pierwsze 10 znaków), więc data z godziną,
+ * ten sam dzień i daty różniące się ostatnią cyfrą muszą dawać właściwy wynik.
+ */
+test('reguły kolejności dat porównują pełne daty, bez godzin', function (object $rule, string $from, string $to) {
+    $row = fn (?string $a, ?string $b): array => [[$from => $a, $to => $b]];
+
+    // Ten sam dzień jest poprawny — również gdy jedna z dat niesie godzinę.
+    expect(priceRuleFailures($rule, $row('2026-01-10', '2026-01-10')))->toBe([])
+        ->and(priceRuleFailures($rule, $row('2026-01-10 00:00:00', '2026-01-10')))->toBe([])
+        // Różnica wyłącznie na ostatniej cyfrze dnia.
+        ->and(priceRuleFailures($rule, $row('2026-01-15', '2026-01-19')))->toBe([])
+        ->and(priceRuleFailures($rule, $row('2026-01-19', '2026-01-10')))->toHaveCount(1)
+        // Niepełna para to „bez granicy", nie błąd.
+        ->and(priceRuleFailures($rule, $row('2026-01-19', null)))->toBe([])
+        ->and(priceRuleFailures($rule, $row(null, '2026-01-10')))->toBe([]);
+})->with([
+    'okno przedsprzedaży' => [new PresaleWindowsAreOrdered, 'presale_opens_on', 'presale_closes_on'],
+    'daty reguły cenowej' => [new PriceRuleDatesAreOrdered, 'first_day_on', 'last_day_on'],
+]);
+
+test('obniżka nienumeryczna kończy sprawdzanie jednym komunikatem', function () {
+    expect(priceRuleFailures(new PresaleDiscountIsPercentage, [
+        ['presale_discount_percent' => 'abc'],
+        ['presale_discount_percent' => 150],
+    ]))->toHaveCount(1);
+});
+
+test('najdłuższy pobyt równy najkrótszemu jest poprawny, a pusty nie jest porównywany', function () {
+    $failures = function (mixed $max, mixed $min): array {
+        $failures = [];
+        (new StayLengthRangeIsOrdered($min))->validate('max_nights', $max, function (string $message) use (&$failures): void {
+            $failures[] = $message;
+        });
+
+        return $failures;
+    };
+
+    expect($failures(3, 3))->toBe([])
+        ->and($failures(null, 3))->toBe([])
+        ->and($failures(5, null))->toBe([])
+        ->and($failures(2, 3))->toHaveCount(1);
 });

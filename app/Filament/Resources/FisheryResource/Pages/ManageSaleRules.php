@@ -10,8 +10,8 @@ use App\Rules\WholeTermPeriodsFitTheSeason;
 use App\Services\FisheryNavigation;
 use App\Services\FishingDay;
 use App\Services\FishingDayCalendar;
-use Carbon\CarbonImmutable;
-use Filament\Forms\Components\CheckboxList;
+use App\Services\SharedFormComponents;
+use App\Services\WeekdayNights;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
@@ -119,17 +119,18 @@ class ManageSaleRules extends EditRecord
                             : __('Set the fishing day hours in Sale and seasons first.'))
                         ->disabled(! $this->hasFishingDay())
                         ->live(),
-                    CheckboxList::make('weekend_days')
-                        // ⚠️ Doby, NIE dni. Etykieta pokazuje przedział liczony z godzin
-                        // doby łowiska, żeby operator nie zaznaczał „trzech dni" tam,
-                        // gdzie weekend to dwie doby (zadanie 017, rozstrzygnięcie 6).
-                        ->label(__('Nights of the weekend'))
-                        ->options($this->weekendNightOptions())
-                        ->columns(2)
+                    // ⚠️ Doby, NIE dni. Chip pokazuje przedział liczony z godzin doby łowiska,
+                    // żeby operator nie zaznaczał „trzech dni" tam, gdzie weekend to dwie doby
+                    // (zadanie 017, rozstrzygnięcie 6). Ten sam komponent buduje warunek dopłaty
+                    // w „Cenniku" — wiedza o dobach ma jeden dom (`WeekdayNights`, zadanie 023).
+                    SharedFormComponents::weekdayNightsInput(
+                        'weekend_days',
+                        WeekdayNights::forFishery($this->fishery()),
+                        __('Select the nights that make up the weekend'),
+                        __('No weekend nights chosen yet.'),
+                    )
                         ->visible(fn (Get $get): bool => (bool) $get(self::WEEKEND_TOGGLE))
                         ->rules([new WeekendDaysAreContiguous]),
-                    Text::make(fn (Get $get): string => $this->weekendSummary($get('weekend_days')))
-                        ->visible(fn (Get $get): bool => (bool) $get(self::WEEKEND_TOGGLE)),
                 ]),
             Section::make(__('Terms sold whole'))
                 // ⚠️ Bez godzin doby sekcja jest WYŁĄCZONA, tak samo jak przełącznik
@@ -198,8 +199,8 @@ class ManageSaleRules extends EditRecord
         if (! ($data[self::WEEKEND_TOGGLE] ?? false)) {
             $data['weekend_days'] = null;
         } elseif (is_array($data['weekend_days'] ?? null)) {
-            // Kolumna JSON oddaje to, co w niej zapisano, a `CheckboxList` zapisuje
-            // łańcuchy — bez tego zbiór wracał jako `["5","6"]`.
+            // Kolumna JSON oddaje to, co w niej zapisano, a chipy zapisują łańcuchy —
+            // bez tego zbiór wracał jako `["5","6"]`.
             $data['weekend_days'] = array_values(array_map(
                 static fn (mixed $day): int => (int) $day,
                 $data['weekend_days'],
@@ -264,80 +265,6 @@ class ManageSaleRules extends EditRecord
     }
 
     /**
-     * Siedem dób jako PRZEDZIAŁY liczone z godzin doby łowiska.
-     *
-     * ⚠️ Etykieta „pt → sob · 15:00 → 15:00" jest zabezpieczeniem, nie ozdobą: przy
-     * samych nazwach dni operator zaznaczałby „piątek, sobotę i niedzielę" dla weekendu,
-     * który składa się z dwóch dób (zadanie 017, rozstrzygnięcie 6).
-     *
-     * @return array<int, string>
-     */
-    private function weekendNightOptions(): array
-    {
-        $fishery = $this->fishery();
-        $startTime = $this->timeLabel($fishery->day_start_time);
-        $endTime = $this->timeLabel($fishery->day_end_time);
-        $options = [];
-
-        foreach (range(1, 7) as $isoDay) {
-            $options[$isoDay] = sprintf(
-                '%s → %s · %s → %s',
-                $this->dayName($isoDay),
-                $this->dayName($isoDay === 7 ? 1 : $isoDay + 1),
-                $startTime,
-                $endTime,
-            );
-        }
-
-        return $options;
-    }
-
-    /**
-     * Podsumowanie zaznaczonego weekendu: „od piątku 15:00 do niedzieli 15:00 (2 doby)".
-     */
-    private function weekendSummary(mixed $weekendDays): string
-    {
-        if (! is_array($weekendDays) || $weekendDays === []) {
-            return __('No weekend nights chosen yet.');
-        }
-
-        $days = array_map(static fn (mixed $day): int => (int) $day, $weekendDays);
-        $nights = count($days);
-        $fishery = $this->fishery();
-
-        // Pierwsza doba ciągu to ta, której poprzednik do zbioru NIE należy. Przy
-        // zbiorze cyklicznym (`{7, 1}`) nie da się tego wziąć z `min()`.
-        $firstDay = null;
-
-        foreach ($days as $day) {
-            $previous = $day === 1 ? 7 : $day - 1;
-
-            if (! in_array($previous, $days, true)) {
-                $firstDay = $day;
-
-                break;
-            }
-        }
-
-        if ($firstDay === null) {
-            return trans_choice(':count night|:count nights', $nights, ['count' => $nights]);
-        }
-
-        $lastDay = $firstDay;
-
-        for ($step = 1; $step < $nights; $step++) {
-            $lastDay = $lastDay === 7 ? 1 : $lastDay + 1;
-        }
-
-        return __('From :startDay :startTime to :endDay :endTime', [
-            'startDay' => $this->dayName($firstDay),
-            'startTime' => $this->timeLabel($fishery->day_start_time),
-            'endDay' => $this->dayName($lastDay === 7 ? 1 : $lastDay + 1),
-            'endTime' => $this->timeLabel($fishery->day_end_time),
-        ]).' · '.trans_choice(':count night|:count nights', $nights, ['count' => $nights]);
-    }
-
-    /**
      * „Czyli pobyt": czw 30.04 15:00 → nd 3.05 15:00 · 3 doby.
      *
      * ⚠️ Liczone przez `FishingDayCalendar`, nie różnicą dat — inaczej powstałby drugi
@@ -368,20 +295,6 @@ class ManageSaleRules extends EditRecord
             'from' => $firstNight->startsAt->isoFormat('ddd D.MM HH:mm'),
             'to' => $lastNight->endsAt->isoFormat('ddd D.MM HH:mm'),
         ]).' · '.trans_choice(':count night|:count nights', $nights, ['count' => $nights]);
-    }
-
-    private function dayName(int $isoDay): string
-    {
-        return CarbonImmutable::now()
-            ->startOfWeek(CarbonImmutable::MONDAY)
-            ->addDays($isoDay - 1)
-            ->locale(app()->getLocale())
-            ->isoFormat('ddd');
-    }
-
-    private function timeLabel(mixed $time): string
-    {
-        return blank($time) ? '—' : substr((string) $time, 0, 5);
     }
 
     /**

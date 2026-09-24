@@ -142,7 +142,7 @@
                                             <td style="padding:4px; text-align:center; white-space:nowrap">
                                                 @if ($cell->sellable)
                                                     <span title="{{ __('A stay of :nights night(s) starting on this night.', ['nights' => $cell->nights]) }}">
-                                                        {{ number_format($cell->totalInCents / 100, 2, ',', ' ') }}
+                                                        {{ \App\Services\AmountFormatter::cents($cell->totalInCents) }}
                                                         <div style="opacity:.6">{{ trans_choice(':count night|:count nights', $cell->nights, ['count' => $cell->nights]) }}</div>
                                                     </span>
                                                 @elseif ($cell->startsEarlierElsewhere())
@@ -170,7 +170,7 @@
                         <strong>{{ __('Some rates never win') }}</strong>
                         <ul style="margin:6px 0 0; padding-left:18px">
                             @foreach ($grid->deadRates as $rule)
-                                <li>{{ __('The rate :amount never wins anywhere in its date range — a cheaper one covers all of it.', ['amount' => $rule->amount]) }}</li>
+                                <li>{{ __('The rate :rate never wins anywhere in its date range — a cheaper one covers all of it.', ['rate' => $this->deadRateDescription($rule)]) }}</li>
                             @endforeach
                         </ul>
                     </div>

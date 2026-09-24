@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-09-22
-- **Zadanie:** [018 — Cennik regułowy](../tasks/018-cennik-regulowy.md)
+- **Zadanie:** [018 — Cennik regułowy](../tasks/implemented/018-cennik-regulowy.md)
 
 ## Kontekst
 

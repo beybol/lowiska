@@ -5,14 +5,14 @@ namespace App\Enums;
 /**
  * Rodzaj reguły cenowej — jedna mechanika wpisu z flagą, nie dwa byty (O3, ADR-014).
  *
- * ⚠️ Różnią się WYŁĄCZNIE tym, co robią z kwotą: stawka zastępuje, dopłata dodaje się.
- * Warunki, priorytet, zawieszenie i okres obowiązywania działają identycznie w obu.
+ * ⚠️ Różnią się tym, co robią z kwotą — stawka zastępuje, dopłata dodaje się — oraz
+ * kształtem: stawka zna wyłącznie daty, dopłata niesie cały ciężar warunkowy (`cennik.md` §1).
  */
 enum PriceRuleKind: string
 {
     /**
-     * ZASTĘPUJE stawkę. Dla jednej doby i jednej roli wygrywa dokładnie jedna —
-     * po priorytecie, a przy remisie po szczegółowości.
+     * ZASTĘPUJE cenę doby. Dla jednej doby wygrywa dokładnie jedna — najtańsza dla
+     * wędkarza (ADR-014, sekcja „Aktualizacja").
      */
     case Rate = 'rate';
 
@@ -28,19 +28,5 @@ enum PriceRuleKind: string
             self::Rate => __('Rate'),
             self::Surcharge => __('Surcharge'),
         };
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public static function options(): array
-    {
-        $options = [];
-
-        foreach (self::cases() as $case) {
-            $options[$case->value] = $case->label();
-        }
-
-        return $options;
     }
 }

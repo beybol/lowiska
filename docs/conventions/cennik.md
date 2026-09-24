@@ -30,6 +30,10 @@ i [ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md).
   albo nie dodać znaną kwotę. Powrót warunków na stawkę przywraca pytanie „która stawka wygrywa",
   a z nim priorytety — patrz [ADR-014](../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md),
   sekcja „Aktualizacja".
+- **Stawka ma opcjonalną NAZWĘ (`label`), która nie jest warunkiem** — formularz stawki ma sześć
+  pól: dwie kwoty, nazwę, dwie daty i zawieszenie. Nazwa trafia do nagłówka wiersza, powiadomienia
+  o domknięciu, rozbicia wyceny i listy martwych stawek. **Pusta nazwa zapisuje się jako `null`**:
+  rozbicie niesie wtedy `null`, a powiadomienie o domknięciu i nagłówek pokazują kwotę.
 - **Pusty warunek dopłaty znaczy „bez warunku na tej osi", NIE „warunek fałszywy".**
 - ⚠️ **Pusty `Select` z formularza przysyła PUSTY ŁAŃCUCH, nie `null`** — i to jest stan normalny.
   Normalizacja mieszka w `ManagePricing::withoutBlankValues()`; bez niej rzut enuma na pusty łańcuch
@@ -154,6 +158,10 @@ StaySellability           ciąg dób: spoiwo, długość, horyzont     (ADR-013)
   konfiguracyjny nadal woła to, co odpowiada na jego pytanie — sam cennik albo samą sprzedawalność.
 - **Kolejność: najpierw sprzedawalność, potem cena.** Pobyt niesprzedawalny **nie jest wyceniany**,
   więc odmowa niesie przyczynę trwalszą („stanowisko wycofane" przed „brak ceny").
+- **Cennik może przyjść GOTOWY od wołającego** — `StayOffer`, `StayPricing`
+  i `PricingConfigurationAudit` przyjmują opcjonalną tablicę reguł. Kalendarz (019) wczytuje cennik
+  raz i podaje go wszystkim stanowiskom; pozostali wołający nie podają nic i wycena wczytuje go
+  sama. To jedno wczytanie na żądanie, nie bufor werdyktu.
 - **Warstwa oferty konstruuje się PER STANOWISKO**, jak `PositionAvailability` i `StaySellability`.
   Gdyby budowała zależności przy każdym wywołaniu, memoizacja z [`dostepnosc.md`](dostepnosc.md) §2
   przestałaby działać — a pomiar kosztu w 019 wyszedłby zły **z powodu kształtu konstruktora, nie
@@ -222,4 +230,6 @@ reguła walidacji potrafi tylko odrzucić zapis.
 - ⚠️ **Remis nierozstrzygalny przestał istnieć** razem z priorytetami. Jego powrót do `app/Rules/`
   znaczyłby, że wróciła konkurencja między stawkami.
 - **Martwe stawki** (niewygrywające w żadnej dobie swojego okresu) wskazuje
-  `PricingConfigurationAudit::deadRates()` — dla kalendarza, nie dla formularza.
+  `PricingConfigurationAudit::deadRates()` — dla kalendarza, nie dla formularza. Kalendarz opisuje
+  każdą nazwą (gdy jest), kwotą z walutą łowiska i zakresem dat, żeby operator trafił do właściwego
+  wiersza cennika.

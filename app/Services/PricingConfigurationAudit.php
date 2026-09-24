@@ -22,7 +22,15 @@ use Carbon\CarbonImmutable;
  */
 final class PricingConfigurationAudit
 {
-    public function __construct(private readonly Fishery $fishery) {}
+    /**
+     * @param  array<int, PriceRule>|null  $rules  cennik wczytany przez wołającego — kalendarz
+     *                                             (019) podaje ten sam zbiór co warstwie oferty;
+     *                                             `null` = sprawdzenie wczyta go samo
+     */
+    public function __construct(
+        private readonly Fishery $fishery,
+        private readonly ?array $rules = null,
+    ) {}
 
     /**
      * Pierwsza znaleziona dziura w cenniku albo `null`.
@@ -127,24 +135,28 @@ final class PricingConfigurationAudit
     private function representativeDays(array $rates): array
     {
         $boundaries = [];
+        // ⚠️ Strefa ŁOWISKA, jak w reszcie pakietu. `coversDay()` porównuje dziś łańcuchy `Y-m-d`,
+        // więc strefa aplikacji niczego nie psuła — ale zaczęłaby kłamać przy pierwszym
+        // porównaniu momentów zamiast dat (zadanie 023, poz. 7).
+        $timezone = $this->timezone();
 
         // ⚠️ Rzut `date` oddaje `Illuminate\Support\Carbon` (mutowalny), a nie `CarbonImmutable`
         // — bez jawnej zamiany arytmetyka na datach modyfikowałaby atrybut modelu w miejscu.
         foreach ($rates as $rule) {
             if ($rule->first_day_on !== null) {
-                $from = CarbonImmutable::parse($rule->first_day_on->toDateString())->startOfDay();
+                $from = CarbonImmutable::parse($rule->first_day_on->toDateString(), $timezone)->startOfDay();
                 $boundaries[$from->toDateString()] = $from;
             }
 
             if ($rule->last_day_on !== null) {
-                $after = CarbonImmutable::parse($rule->last_day_on->toDateString())->addDay()->startOfDay();
+                $after = CarbonImmutable::parse($rule->last_day_on->toDateString(), $timezone)->addDay()->startOfDay();
                 $boundaries[$after->toDateString()] = $after;
             }
         }
 
         if ($boundaries === []) {
             // Same stawki bezterminowe bez dat — jeden przedział na wszystko.
-            return [CarbonImmutable::now($this->fishery->timezone ?: 'Europe/Warsaw')->startOfDay()];
+            return [CarbonImmutable::now($timezone)->startOfDay()];
         }
 
         ksort($boundaries);
@@ -173,11 +185,20 @@ final class PricingConfigurationAudit
         return $largest;
     }
 
+    private function timezone(): string
+    {
+        return $this->fishery->timezone ?: 'Europe/Warsaw';
+    }
+
     /**
      * @return array<int, PriceRule>
      */
     private function rules(): array
     {
+        if ($this->rules !== null) {
+            return $this->rules;
+        }
+
         /** @var array<int, PriceRule> $rules */
         $rules = $this->fishery->priceRules()->get()->all();
 

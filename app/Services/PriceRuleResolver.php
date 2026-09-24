@@ -18,7 +18,7 @@ use Carbon\CarbonImmutable;
  *
  * ⚠️ **Kolejność rozstrzygania jest umową, nie szczegółem implementacji:**
  *
- *   1. odrzuć reguły zawieszone (robią to `coversNight()` / `appliesToNight()`),
+ *   1. odrzuć reguły zawieszone (robią to `coversDay()` / `appliesToNight()`),
  *   2. odrzuć reguły, których warunek nie jest spełniony **dla tej doby** — stawka zna
  *      wyłącznie daty, dopłata także dni tygodnia i obsadę,
  *   3. spośród `rate` wygrywa **najniższa kwota za osobę łowiącą**,

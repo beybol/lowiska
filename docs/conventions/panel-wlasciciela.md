@@ -244,6 +244,17 @@ oraz „Reguły sprzedaży"; makieta zapowiada kolejne (Cennik, Zwroty, Regulami
   nigdy jako same nazwy dni. To zabezpieczenie, nie ozdoba: przy nazwach dni operator zaznacza
   „piątek, sobotę i niedzielę" dla weekendu, który składa się z **dwóch** dób. Ten sam zabieg przy
   świętach (`Placeholder` „czyli pobyt"), liczony przez `FishingDayCalendar`, nigdy różnicą dat.
+- ⚠️ **Wybór dób tygodnia to JEDEN komponent** — `SharedFormComponents::weekdayNightsInput()`,
+  a wiedza o dobach (nazwa dnia, przedział, godziny, podsumowanie, krótka forma do nagłówka)
+  mieszka wyłącznie w `WeekdayNights`. Korzystają z niego weekend na „Regułach sprzedaży" i warunek
+  dopłaty w „Cenniku". Kształt: rząd siedmiu chipów `ToggleButtons` (dwuwierszowych: przedział
+  i godziny), pod nimi podsumowanie jako lista maksymalnych ciągów cyklicznych z łączną liczbą dób.
+  Nie wracaj do `CheckboxList`, do samych nazw dni ani do własnej listy opcji na stronie.
+  - Etykieta chipa jest `HtmlString`, więc **każda wartość przechodzi przez `e()`**.
+  - Bez godzin doby chip traci linię godzin. Weekend jest wtedy wyłączony (sekcja zależna
+    od innego ekranu), ale **dopłata nie** — wybiera doby po dniu rozpoczęcia.
+  - Chipy przysyłają łańcuchy; rzutowanie na `int` robi strona w miejscu, gdzie powstaje
+    zapisywany stan.
 - **Autoryzacja jest jawna.** `EditRecord::authorizeAccess()` pyta `FisheryPolicy::update()`,
   a wiązanie rekordu przechodzi przez `FisheryResource::getEloquentQuery()` z `forCurrentUser()`.
 
@@ -336,8 +347,14 @@ obowiązuje każdy przyszły ekran podglądowy.
 
 ⚠️ **Ekran podglądowy nie buforuje werdyktu** ([`dostepnosc.md`](dostepnosc.md) §2). Wolno wyłącznie
 to, co buforem nie jest: jedna instancja warstwy oferty na stanowisko, jedno wczytanie cennika
-i blokad na cały render, diagnostyka cennika pobierana raz na okno. Pomiar dla 806 komórek: 191
-zapytań, ≈ 876 ms — patrz zadanie 019.
+i blokad na cały render, diagnostyka cennika pobierana raz na okno. Cennik wczytuje `SaleCalendar`
+i podaje go warstwie oferty każdego stanowiska oraz audytowi (opcjonalny parametr konstruktorów
+`StayOffer`, `StayPricing`, `PricingConfigurationAudit`) — bez tego każde stanowisko wczytywało
+go osobno. Pomiar kosztu: zadanie 019.
+
+**Kwoty na ekranach formatuje `AmountFormatter`**, nigdy `number_format` w widoku. Waluta jest
+opcjonalna: siatka jej nie pokazuje, lista martwych stawek — tak. Zakres dat reguły jako tekst
+składa `PriceRule::periodText()`, wspólny dla nagłówka wiersza cennika i kalendarza.
 
 ⚠️ **Strona podglądowa dziedziczy po `Page`, więc NIE MA z definicji pojęcia rekordu.** Potrzebuje
 cechy `InteractsWithRecord` (to z niej biorą się `resolveRecord()` i `getRecord()`), a autoryzację

@@ -226,3 +226,16 @@ test('a night of another period is not opened by a window of the period next to 
 
     Date::setTestNow();
 });
+
+/*
+ * Testy dopisane po mutacjach zadania 023 — komunikat ma nazywać WŁAŚCIWĄ przyczynę.
+ */
+test('reguła weekendu podaje właściwy powód odrzucenia', function () {
+    // Doba spoza 1–7 to błąd zakresu, a nie „doby nie następują po sobie".
+    expect(weekendFailures([7, 8]))->toBe([__('A weekend night has to be a day of the week.')])
+        // Duplikat to wciąż JEDNA doba — za mało na pakiet, a nie „nieciągłość".
+        ->and(weekendFailures(['5', '5']))->toBe([__('A weekend sold whole has to cover at least two nights.')])
+        // Sześć dób to jeszcze poprawny weekend; dopiero siedem jest pakietem nieskończonym.
+        ->and(weekendFailures([1, 2, 3, 4, 5, 6]))->toBe([])
+        ->and(weekendFailures([1, 2, 3, 4, 5, 6, 7]))->toBe([__('A weekend can not cover every night of the week.')]);
+});

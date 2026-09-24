@@ -110,3 +110,71 @@ test('a price below the minimum is rejected by the closure rule', function () {
         ->call('create')
         ->assertHasFormErrors(['price']);
 });
+
+/*
+ * Testy dopisane po mutacjach zadania 023.
+ */
+
+function createServiceWithPrice(Fishery $fishery, string $name, ?string $price)
+{
+    return Livewire::withQueryParams(['fishery' => $fishery->id])
+        ->test(CreateAdditionalService::class)
+        ->fillForm([
+            'fishery_id' => $fishery->id,
+            'name' => $name,
+            'is_active' => true,
+            'price' => $price,
+        ])
+        ->call('create');
+}
+
+test('the minimum in the price error is shown with two decimals', function () {
+    $fishery = priceTestFishery();
+
+    $errors = createServiceWithPrice($fishery, 'Za tania usługa', '0,00')
+        ->assertHasFormErrors(['price'])
+        ->errors()
+        ->get('data.price');
+
+    expect(implode(' ', $errors))->toMatch('/(?<![\d.])0\.01(?!\d)/');
+});
+
+/**
+ * ⚠️ Przecinek zamienia się na kropkę PRZED porównaniem z minimum. Bez tego „0,50” czytałoby
+ * się jako 0 i usługa za pięćdziesiąt groszy odpadałaby jako za tania.
+ */
+test('a price below one with a decimal comma passes the minimum', function () {
+    $fishery = priceTestFishery();
+
+    createServiceWithPrice($fishery, 'Kawa', '0,50')->assertHasNoFormErrors();
+
+    expect(DB::table('additional_services')->where('name', 'Kawa')->value('price'))->toBe('0.50');
+});
+
+test('a service can be saved without a price', function () {
+    $fishery = priceTestFishery();
+
+    createServiceWithPrice($fishery, 'Bez ceny', null)->assertHasNoFormErrors();
+
+    expect(DB::table('additional_services')->where('name', 'Bez ceny')->exists())->toBeTrue()
+        ->and(DB::table('additional_services')->where('name', 'Bez ceny')->value('price'))->toBeNull();
+});
+
+test('a price with more than two decimals is rejected', function () {
+    $fishery = priceTestFishery();
+
+    createServiceWithPrice($fishery, 'Za dokładna', '12.345')->assertHasFormErrors(['price']);
+});
+
+test('the price field takes the label it is given', function () {
+    expect(SharedFormComponents::getPriceInput('amount', 'Kwota za dobę')->getLabel())->toBe('Kwota za dobę')
+        ->and(SharedFormComponents::getPriceInput()->getLabel())->toBe(__('Price'));
+});
+
+test('the fishery name is filled in from the fishery the form was opened for', function () {
+    $fishery = priceTestFishery();
+
+    Livewire::withQueryParams(['fishery' => $fishery->id])
+        ->test(CreateAdditionalService::class)
+        ->assertFormSet(['fishery_name' => $fishery->name]);
+});

@@ -86,9 +86,10 @@ dowolnej długości, więc pusta strona też jest poprawnym ustawieniem.
 granicy", a nie zero.
 
 **Weekend sprzedawany wyłącznie w całości** — po włączeniu przełącznika zaznaczasz doby, które idą
-razem. ⚠️ Zaznaczasz **doby, nie dni**: każda pozycja na liście to pobyt od godziny do godziny
-(„pt → sob · 15:00 → 15:00"), więc weekend od piątku 15:00 do niedzieli 15:00 to **dwie** doby —
-piątkowa i sobotnia — a nie trzy dni. Pod listą widzisz podsumowanie, żeby to sprawdzić. Pobyt,
+razem. ⚠️ Zaznaczasz **doby, nie dni**: każdy z siedmiu przycisków to pobyt od godziny do godziny
+(„pt → sob", a pod spodem „15:00 → 15:00"), więc weekend od piątku 15:00 do niedzieli 15:00 to
+**dwie** doby — piątkowa i sobotnia — a nie trzy dni. Pod przyciskami widzisz podsumowanie („Od pt
+15:00 do ndz 15:00 · 2 doby"), żeby to sprawdzić. Pobyt,
 który dotyka takiego weekendu, musi objąć go w całości: samej soboty kupić się nie da, ale piątek
 z sobotą i dwoma dniami dalej — owszem. Doba niedzielna (niedziela 15:00 → poniedziałek 15:00) leży
 poza weekendem i sprzedaje się jak zwykły dzień.
@@ -117,8 +118,12 @@ reguł** — i te reguły są dwojakiego rodzaju, a różni je coś więcej niż
 - **Stawka** — *zastępuje* cenę doby. Dla jednej doby wygrywa dokładnie jedna.
 - **Dopłata** — *dodaje się* do stawki. Wszystkie pasujące sumują się.
 
-**Stawka ma pięć pól i żadnych warunków poza datami:** kwotę za osobę łowiącą, kwotę za osobę
-towarzyszącą, „obowiązuje od", „obowiązuje do" i zawieszenie. To wszystko.
+**Stawka ma sześć pól i żadnych warunków poza datami:** kwotę za osobę łowiącą, kwotę za osobę
+towarzyszącą, nazwę, „obowiązuje od", „obowiązuje do" i zawieszenie. To wszystko.
+
+**Nazwa stawki jest opcjonalna** (np. „Cennik 2026") i niczego nie zmienia w cenie — mówi tylko, jak
+stawka nazywa się w nagłówku wiersza, w powiadomieniu o domknięciu, w rozbiciu ceny i na kalendarzu.
+Bez nazwy w tych miejscach zobaczysz samą kwotę.
 
 ⚠️ **Chcesz policzyć więcej w weekend? Zrób to dopłatą, nie stawką.** Stawka nie umie rozróżniać
 dni tygodnia i to jest zamierzone — dzięki temu zawsze wiadomo, ile wynosi cena bazowa, a różnica
@@ -126,6 +131,11 @@ jest widoczna jako różnica.
 
 **Dopłata ma osiem pól** i to ona niesie wszystkie warunki: kwotę, opis dla wędkarza, **„dla
 kogo"**, zakres dat, doby tygodnia, „tylko przy obsadzie N" i zawieszenie.
+
+**Doby tygodnia przy dopłacie** wybierasz tymi samymi przyciskami co weekend na „Regułach sprzedaży"
+— każdy to doba od godziny do godziny, a pod nimi jest podsumowanie. Doby nie muszą iść po kolei:
+„pon + śr" to dwa osobne odcinki. Nic nie zaznaczone znaczy **każda doba**. Tutaj działa to także
+bez ustawionych godzin doby — przyciski pokazują wtedy same dni.
 
 **Która stawka wygrywa.** Gdy do doby pasuje kilka stawek, wygrywa **tańsza dla wędkarza**. Nie ma
 priorytetów i nie ma błędu — nachodzenie jest dozwolone, a to, co naprawdę wychodzi w cenie każdej
@@ -187,7 +197,8 @@ akurat otwarte. Właśnie po to ten ekran istnieje: żebyś zobaczył **wynik**,
 **Kalendarz pokazuje też bałagan w cenniku.** Gdy do jednej doby pasuje więcej niż jedna stawka,
 przy kolumnie pojawia się ostrzeżenie z ich liczbą — wygrywa wtedy tańsza. Osobno wypisujemy
 **stawki, które nie wygrywają nigdzie** w swoim okresie: taka stawka jest martwym wpisem, a Ty
-prawdopodobnie myślisz, że coś nią ustawiłeś.
+prawdopodobnie myślisz, że coś nią ustawiłeś. Każdą opisujemy nazwą (jeśli ją ma), kwotą z walutą
+i zakresem dat — po tym trafisz do właściwego wiersza w „Cenniku".
 
 ⚠️ **Dołożenie jednej osoby towarzyszącej potrafi przestawić całą siatkę w „brak ceny dla
 towarzyszącej".** To nie usterka, tylko najszybsza diagnoza, jaką ten ekran daje: znaczy, że

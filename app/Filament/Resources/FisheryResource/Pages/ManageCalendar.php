@@ -8,6 +8,7 @@ use App\Filament\Resources\FisheryResource;
 use App\Models\Fishery;
 use App\Models\PriceRule;
 use App\Models\SalePeriod;
+use App\Services\AmountFormatter;
 use App\Services\FisheryNavigation;
 use App\Services\SaleCalendar;
 use App\Services\SaleCalendarCell;
@@ -224,6 +225,28 @@ class ManageCalendar extends Page
             'winner' => (string) $winner->amount,
             'others' => implode(', ', $others),
         ]);
+    }
+
+    /**
+     * Wpis listy martwych stawek: „[Cennik 2026 — ]90,00 PLN · 2026-07-01–2026-08-31".
+     *
+     * ⚠️ **Kwota bez kontekstu nie wystarcza** — stawka nie musi mieć nazwy, więc operator ma
+     * trafić do właściwego wiersza cennika po kwocie I zakresie dat (zadanie 023, poz. 4).
+     */
+    public function deadRateDescription(PriceRule $rule): string
+    {
+        $text = AmountFormatter::cents($rule->amountInCents(), $this->fishery()->currency?->name);
+
+        $period = PriceRule::periodText(
+            $rule->first_day_on?->toDateString(),
+            $rule->last_day_on?->toDateString(),
+        );
+
+        if ($period !== null) {
+            $text .= ' · '.$period;
+        }
+
+        return filled($rule->label) ? $rule->label.' — '.$text : $text;
     }
 
     /**

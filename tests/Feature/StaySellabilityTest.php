@@ -291,3 +291,74 @@ test('the horizon is checked for every night of the stay, not only the first', f
 
     Date::setTestNow();
 });
+
+/*
+ * Testy dopisane po mutacjach zadania 023.
+ */
+
+/**
+ * ⚠️ „Dziś" horyzontu liczy się w strefie ŁOWISKA. O 01:00 w Warszawie w Nowym Jorku jest
+ * jeszcze poprzedni dzień, więc ostatnia sprzedawalna doba wypada dzień wcześniej.
+ */
+test('horyzont liczy „dziś" w strefie łowiska', function () {
+    Date::setTestNow(CarbonImmutable::parse('2026-06-02 01:00', 'Europe/Warsaw'));
+
+    [, $position] = StayFixtures::fisheryWithPosition([
+        'sale_horizon_days' => 30,
+        'timezone' => 'America/New_York',
+    ]);
+
+    // W Nowym Jorku jest 01.06, więc granicą jest 01.07, a nie 02.07.
+    expect(StayFixtures::stay($position)->isSellable('2026-07-01', 1))->toBeTrue()
+        ->and(StayFixtures::stay($position)->verdict('2026-07-02', 1)->reason)
+        ->toBe(SaleUnavailabilityReason::BeyondSaleHorizon);
+
+    Date::setTestNow();
+});
+
+test('weekend zapisany jako łańcuchy nadal sprzedaje się w całości', function () {
+    [, $position] = StayFixtures::fisheryWithPosition(['weekend_days' => ['5', '6']]);
+
+    // 09.05.2026 to sobota — sama doba sobotnia rozbija weekend pt+sob.
+    $verdict = StayFixtures::stay($position)->verdict('2026-05-09', 1);
+
+    expect($verdict->sellable)->toBeFalse()
+        ->and($verdict->reason)->toBe(SaleUnavailabilityReason::WeekendBroken);
+});
+
+/**
+ * ⚠️ Powód odmowy pakietu zlanego z weekendu i święta to „święto", nawet gdy święto
+ * obejmuje wyłącznie OSTATNIĄ dobę pakietu — pętla sprawdza pakiet domknięty z obu stron.
+ */
+test('święto na ostatniej dobie zlanego pakietu nadaje mu powód „święto"', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition(['weekend_days' => [5, 6]]);
+    // Pakiet weekendowy to doby 08.05 (pt) i 09.05 (sob); święto obejmuje tylko sobotę.
+    StayFixtures::wholeTerm($fishery, '2026-05-09', 1);
+
+    $verdict = StayFixtures::stay($position)->verdict('2026-05-08', 1);
+
+    expect($verdict->sellable)->toBeFalse()
+        ->and($verdict->reason)->toBe(SaleUnavailabilityReason::WholeTermBroken)
+        ->and($verdict->bundleFirstDay?->toDateString())->toBe('2026-05-08')
+        ->and($verdict->bundleLastDay?->toDateString())->toBe('2026-05-09');
+});
+
+test('a fishery without a fishing day refuses the stay without pointing at a night', function () {
+    [, $position] = StayFixtures::fisheryWithPosition(['day_start_time' => null, 'day_end_time' => null]);
+
+    $verdict = StayFixtures::stay($position)->verdict('2026-06-10', 2);
+
+    expect($verdict->sellable)->toBeFalse()
+        ->and($verdict->reason)->toBe(SaleUnavailabilityReason::FishingDayNotConfigured)
+        ->and($verdict->day)->toBeNull();
+});
+
+test('a fishery without a sale horizon sells nights far in the future', function () {
+    Date::setTestNow(CarbonImmutable::parse('2026-01-02 09:00', 'Europe/Warsaw'));
+
+    [, $position] = StayFixtures::fisheryWithPosition(['sale_horizon_days' => null]);
+
+    expect(StayFixtures::stay($position)->isSellable('2026-12-20', 3))->toBeTrue();
+
+    Date::setTestNow();
+});

@@ -3,7 +3,7 @@
 - **Status:** ⚠️ **częściowo odwrócona** (accepted → superseded-in-part, 2026-09-22) —
   patrz [Aktualizacja](#aktualizacja-2026-09-22--odwrócenie-decyzji-o-rozstrzyganiu)
 - **Data:** 2026-09-22
-- **Zadanie:** [018 — Cennik regułowy](../tasks/018-cennik-regulowy.md)
+- **Zadanie:** [018 — Cennik regułowy](../tasks/implemented/018-cennik-regulowy.md)
 
 > ⚠️ **Czytasz ADR, którego decyzja została częściowo odwrócona tego samego dnia, po pierwszej
 > implementacji.** Treść poniżej **zostaje nietknięta** jako zapis tego, co rozważano i dlaczego
@@ -182,7 +182,7 @@ Decyzja: A
 **Co się stało:** Opcja A została zaimplementowana (commit `08c8d38`), a następnie **odrzucona
 w części dotyczącej rozstrzygania i osi warunku**. Decyzję odwrócił autor projektu po zetknięciu
 z gotowym formularzem. Pełne streszczenie rozmowy jest w
-[zadaniu 018](../tasks/018-cennik-regulowy.md), sekcja „Historia kształtu".
+[zadaniu 018](../tasks/implemented/018-cennik-regulowy.md), sekcja „Historia kształtu".
 
 ### Co pozostaje w mocy
 

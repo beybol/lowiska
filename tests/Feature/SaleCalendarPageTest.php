@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\CalendarWindow;
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\FisheryResource\Pages\ManageCalendar;
+use App\Models\Currency;
 use App\Models\User;
 use App\Services\OwnerRoleProvisioner;
 use Carbon\CarbonImmutable;
@@ -228,4 +229,25 @@ test('podpowiedź nachodzenia podaje zwycięzcę i kwoty przegranych', function 
         ->assertSuccessful()
         // Kwota przegranej musi być widoczna — inaczej operator nie wie, co przegrało.
         ->assertSee('90.00');
+});
+
+/**
+ * ⚠️ Wpis listy martwych stawek ma pozwolić trafić do właściwego wiersza cennika — stąd
+ * nazwa (gdy jest), kwota z walutą łowiska i zakres dat, a nie surowe `90.00` (zadanie 023).
+ */
+test('martwa stawka jest opisana nazwą, kwotą z walutą i zakresem dat', function () {
+    Filament::setCurrentPanel('owner');
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    $currency = Currency::factory()->create(['name' => 'PLN']);
+    $fishery->update(['currency_id' => $currency->id]);
+
+    StayFixtures::rate($fishery, 70.00);
+    $named = StayFixtures::rate($fishery, 90.00, ['label' => 'Wakacje', 'first_day_on' => '2026-07-01', 'last_day_on' => '2026-08-31']);
+    $unnamed = StayFixtures::rate($fishery, 80.00, ['first_day_on' => '2026-09-01']);
+    $this->actingAs($owner);
+
+    $page = Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])->instance();
+
+    expect($page->deadRateDescription($named))->toBe('Wakacje — 90,00 PLN · 2026-07-01–2026-08-31')
+        ->and($page->deadRateDescription($unnamed))->toBe('80,00 PLN · od 2026-09-01');
 });

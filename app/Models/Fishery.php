@@ -131,6 +131,9 @@ class Fishery extends Model
         $query->where('user_id', auth()->id());
     }
 
+    /**
+     * @return BelongsTo<Currency, $this>
+     */
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);
