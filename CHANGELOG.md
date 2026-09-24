@@ -184,6 +184,10 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Zmienione
 
+- Każde konto oznaczone jako administrator dostaje przy każdym wdrożeniu komplet uprawnień panelu
+  administratora — nowe sekcje panelu (np. „Szablony dokumentów") są widoczne od razu, bez ręcznego
+  uruchamiania komendy. Konto, któremu odebrano status administratora, traci te uprawnienia przy
+  najbliższym wdrożeniu.
 - Łowisko bez ustawionej strefy czasowej liczy doby, horyzont sprzedaży, blokady, zwroty i daty
   dokumentów wszędzie w tej samej strefie domyślnej (Europa/Warszawa) — ustalanej w jednym miejscu
   zamiast osobno w każdej części aplikacji.

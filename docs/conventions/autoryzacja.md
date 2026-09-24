@@ -2,12 +2,24 @@
 
 Obowiązuje przy zmianach w `app/Policies/**`, rolach i uprawnieniach Shielda, `User`.
 
-Zadania źródłowe: 008, 009, 012, 013, 015, 021; security-review 2026-09-20.
+Zadania źródłowe: 008, 009, 012, 013, 015, 021, 025; security-review 2026-09-20.
 
 ---
 
 ## 1. Uprawnienia super admina
 
+- ⚠️ **`users.is_admin` jest JEDYNYM źródłem prawdy o super adminie**
+  ([ADR-018](../adr/ADR-018-is-admin-jako-zrodlo-prawdy-o-super-adminie.md)). Rola `super_admin`
+  Shielda jest jej **pochodną** — kierunek zależności flaga → rola, nigdy odwrotnie. Zgrywa je
+  **`php artisan admins:sync`** (`AdminPermissionSync`, jedyny dom tej reguły): generuje
+  uprawnienia Shielda dla obu paneli, daje roli **wszystkie**, przypisuje ją każdemu kontu
+  z `is_admin` i **zdejmuje** z kont bez flagi. `deploy.yml` uruchamia ją przy **każdym**
+  wdrożeniu, po migracjach i przed wdrożeniem usługi — nowy zasób jest widoczny dla administratora
+  od pierwszego żądania. Brak kont z `is_admin` to ostrzeżenie z kodem 0, nie błąd.
+  - ⚠️ **Ręczna zmiana uprawnień roli `super_admin` w panelu Shielda jest cofana** przy następnym
+    wdrożeniu. Nie ogranicza się administratora przez Shielda; administrator o węższych prawach,
+    gdy będzie potrzebny, to **osobna rola**, a nie ograniczone `is_admin`.
+  - Nowej flagi „super admin" na kontach nie ma i mieć nie ma — dublowałaby `is_admin`.
 - **Rola super admina (`config('filament-shield.super_admin.name')`) musi mieć fizycznie
   przypisane uprawnienia** — `config/filament-shield.php` ma `super_admin.define_via_gate = false`,
   więc Shield **nie** rejestruje `Gate::before()` przepuszczającego wszystko. Pusta rola daje
@@ -17,18 +29,19 @@ Zadania źródłowe: 008, 009, 012, 013, 015, 021; security-review 2026-09-20.
 - ⚠️ **Uprawnienia trzeba najpierw wygenerować, dopiero potem przypisać.** `shield:generate`
   nigdzie w tym projekcie nie uruchamia się samo (nie ma go w seederze ani w pipeline'u
   wdrożeniowym) — na świeżej bazie `Permission::all()` zwraca pustkę albo tylko uprawnienia
-  nadane ręcznie gdzie indziej (`OwnerRoleProvisioner::addOwnerRole()`). `php artisan MakeAdmin` woła
-  `shield:generate` dla obu paneli (`--option=permissions --silent`, bez nadpisywania istniejących
-  polityk) **przed** synchronizacją roli — nie wracaj do samego `syncPermissions(Permission::all())`
-  bez tego kroku.
+  nadane ręcznie gdzie indziej (`OwnerRoleProvisioner::addOwnerRole()`). `AdminPermissionSync`
+  (wołane przez `admins:sync` i `MakeAdmin`) woła `shield:generate` dla obu paneli
+  (`--option=permissions --silent`, bez nadpisywania istniejących polityk) **przed** synchronizacją
+  roli — nie wracaj do samego `syncPermissions(Permission::all())` bez tego kroku.
 - **Nazwa roli super admina ma jedno źródło prawdy: `config('filament-shield.super_admin.name')`.**
-  Zarówno `MakeAdminCommand`, jak i `tests/TestCase.php::createSuperAdmin()` czytają tę samą
+  Zarówno `AdminPermissionSync`, jak i `tests/TestCase.php::createSuperAdmin()` czytają tę samą
   wartość. Przed zadaniem 008 testy tworzyły osobną rolę `'Super Admin'` (literał), różną od
   produkcyjnej `'super_admin'` z konfiguracji — dwie różne role o zbliżonej nazwie, więc testy nie
   pokrywały tego, co robiła produkcja. Nie wprowadzaj drugiego miejsca z nazwą roli na sztywno.
-- `MakeAdmin` jest **idempotentne**: uruchomione na koncie/roli z kompletem uprawnień nie zmienia
-  stanu i informuje o tym wprost; uruchomione na roli niepełnej (dzisiejszy stan produkcyjny przed
-  zadaniem 008) uzupełnia braki bez tworzenia duplikatów.
+- **`MakeAdmin` zakłada albo promuje konto** (ustawia `is_admin`), a rolę i uprawnienia deleguje do
+  `AdminPermissionSync`. Obie komendy są **idempotentne**: na komplecie nie zmieniają stanu i mówią
+  to wprost, na roli niepełnej uzupełniają braki bez duplikatów. Ręczne `MakeAdmin` jest dziś
+  potrzebne wyłącznie do założenia (albo wskazania) konta administratora.
 
 ---
 

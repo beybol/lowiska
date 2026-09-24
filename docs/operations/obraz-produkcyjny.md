@@ -271,9 +271,17 @@ jednak uruchomić **ręcznie**, na przykład przez `gcloud run jobs execute` alb
 kontenera. **`deploy.yml` tego nie robi automatycznie** — świadomie odłożone poza zakres zadania
 008, bo to decyzja operacyjna (kto i kiedy zakłada pierwsze konto), nie techniczna.
 
-⚠️ Bez tego kroku świeżo wdrożone środowisko ma dokładnie ten sam objaw, który zadanie 008
-naprawiło lokalnie: zero uprawnień w bazie, dopóki `MakeAdmin` (albo `shield:generate`) nie
-zostanie uruchomione choć raz.
+**Uprawnienia administratorów zgrywa `deploy.yml` przy każdym wdrożeniu** (zadanie 025, ADR-018):
+krok „Sync admin permissions" uruchamia Cloud Run job `<service>-admins-sync` z
+`php artisan admins:sync` — **po** migracjach i **przed** wdrożeniem usługi. Komenda generuje
+uprawnienia Shielda, daje roli `super_admin` wszystkie i przypisuje ją dokładnie kontom
+z `is_admin`. Błąd zatrzymuje wdrożenie, zanim ruszy nowa rewizja; brak kont z `is_admin` to
+ostrzeżenie w logu joba (kod 0). Ręczne `MakeAdmin` jest więc potrzebne **wyłącznie do założenia
+pierwszego konta** — nowe zasoby nie wymagają już żadnego kroku ręcznego.
+
+⚠️ Na świeżym środowisku pierwsze wdrożenie kończy się ostrzeżeniem „nikt nie ma dostępu do /admin"
+— to oczekiwane, dopóki `MakeAdmin` nie założy pierwszego konta (kolejne wdrożenie albo samo
+`MakeAdmin` nada mu komplet uprawnień).
 
 **SAST** stosuje strategię **„ratchet"**: `phpstan-baseline.neon` zamraża naruszenia istniejące
 w chwili włączenia bramki, więc CI czerwienieje **wyłącznie na nowe**. ⚠️ Baseline **zmniejsza

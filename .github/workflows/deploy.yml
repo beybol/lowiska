@@ -215,6 +215,27 @@ jobs:
             --max-retries 1 --task-timeout 600
           gcloud run jobs execute "${{ steps.env.outputs.service }}-migrate" --region "${REGION}" --wait
 
+      # is_admin is the single source of truth about super admins (ADR-018, task 025):
+      # `admins:sync` regenerates Shield permissions, gives the super admin role all of
+      # them and assigns the role to exactly the accounts flagged is_admin. It runs
+      # AFTER migrations (new permissions may need new tables) and BEFORE the service
+      # deploy, so the new revision sees every permission from its first request and a
+      # failure here stops the rollout before it starts. No admin account yet is a
+      # warning with exit 0 — the first admin is created with MakeAdmin afterwards.
+      - name: Sync admin permissions
+        run: |
+          gcloud run jobs deploy "${{ steps.env.outputs.service }}-admins-sync" \
+            --image "${{ steps.env.outputs.image }}" \
+            --region "${REGION}" \
+            --service-account "${{ steps.env.outputs.runtime_sa }}" \
+            --set-cloudsql-instances "${{ steps.env.outputs.sql_conn }}" \
+            --set-secrets "${{ steps.args.outputs.secrets }}" \
+            --set-env-vars "${{ steps.args.outputs.envvars }}" \
+            --command php \
+            --args artisan,admins:sync \
+            --max-retries 1 --task-timeout 600
+          gcloud run jobs execute "${{ steps.env.outputs.service }}-admins-sync" --region "${REGION}" --wait
+
       # No queue-worker service deploy step: this environment runs
       # QUEUE_CONNECTION=sync (Filament's CountryImporter runs inline), so
       # there is nothing to consume a queue. No cron/scheduler either —
