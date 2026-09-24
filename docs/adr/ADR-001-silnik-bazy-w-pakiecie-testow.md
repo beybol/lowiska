@@ -159,3 +159,44 @@ Konsekwencje wiążące implementację zadania 004:
 - **Zrównoleglenie pozostaje poza zakresem**, ale uprawnienia do schematów `lowiska\_test\_%` nadaje
   skrypt startowy od razu (rozstrzygnięcie zadania 004) — na istniejącym wolumenie danych nie da się
   tego zrobić bez ręcznej interwencji.
+
+## Aktualizacja — 2026-09-24, zadanie 026: tryb mutacji i zrównoleglenie mutacji
+
+**Silnik bez zmian: testy zostają na MySQL-u.** Zadanie 026 rozważyło przejście na SQLite, żeby
+przyspieszyć testy mutacyjne, i je odrzuciło na podstawie pomiaru. SQLite przyspieszyłby wyłącznie
+migracje w procesie mutanta, a to samo daje tryb opisany niżej — bez utraty zgodności z produkcją.
+Argumenty z tej decyzji są dziś mocniejsze niż w zadaniu 004: kolumny JSON, sortowanie tekstu
+z polskimi znakami i reguły oparte na kolacji `utf8mb4_unicode_ci` (np. unikalność nazw stanowisk).
+
+**Co zmieniło się w pakiecie testów:**
+- **Tryb procesów mutantów.** Pest uruchamia każdego mutanta w nowym procesie, więc
+  `RefreshDatabase` robiło w każdym pełne `migrate:fresh` (ok. 8–12 s, 60–85% czasu mutanta).
+  Trait `tests/Concerns/RefreshTestDatabase.php` (dołączany w `tests/Pest.php`) w procesie
+  mutanta (`PEST_MUTATION_TESTING`) robi `migrate`, a poza nim `migrate:fresh` jak dotąd.
+- **Zrównoleglenie mutacji** (`--parallel`) — punkt, który ta decyzja zostawiła „poza zakresem”
+  i do którego przygotowała uprawnienia `lowiska\_test\_%`. Każdy proces pracuje na własnym
+  schemacie `lowiska_test_test_{N}`, który tworzy Laravel.
+- **Bramka (warstwa 3) ma drugą kontrolę.** Obie kontrole korzystają z jednej funkcji
+  (`tests/Support/TestDatabaseGuard.php`), która dopuszcza wyłącznie `lowiska_test`
+  i `^lowiska_test_test_[0-9]+$`. Druga kontrola działa w callbacku
+  `ParallelTesting::setUpTestCase`: widzi schemat już przełączony przez Laravel, a działa przed
+  migracjami. Pierwsza kontrola w `createApplication()` przełączonego schematu nie widzi.
+- **Czyszczenie schematów równoległych** w procesie zwykłym niezrównoleglonym — ściśle według tego
+  samego wzorca. Proces równoległy go nie wykonuje, bo usuwałby schematy sąsiadom.
+
+**Pomiar** (klasa `App\Rules\PriceRuleDatesAreOrdered`, 27 mutantów, ten sam kontener):
+
+| Przebieg | Faza pokrycia | Mutanty | Na mutanta | Razem |
+|---|---|---|---|---|
+| Przed zadaniem, sekwencyjnie | 555 s | 379 s | 14,0 s | 939 s |
+| Po zadaniu, sekwencyjnie | 337 s | 97 s | 3,6 s | 436 s |
+| Po zadaniu, `--parallel` (8 procesów) | 141 s | 23 s | 0,8 s | 176 s |
+
+Wynik mutacji identyczny we wszystkich przebiegach (4 ocalałe, 85,19%).
+
+⚠️ **Bez `--processes=N`.** Wtyczka mutacji przekazuje tę flagę procesom mutantów, a tam zwykły
+Pest kończy się błędem, który Pest liczy jako zabitego mutanta — wychodzi fałszywe 100%. Liczbę
+procesów wyznacza sam `--parallel` (liczba rdzeni).
+
+Pięć warstw izolacji zostaje w całości; `force="true"`, brak `DB_*` w Compose i zakaz
+`.env.testing` bez zmian.

@@ -197,8 +197,8 @@ docker compose exec app php artisan test --filter="NazwaKlasy" # pojedyncza klas
 docker build --target prod -t lowiska:prod .   # obraz produkcyjny (FrankenPHP)
 ```
 
-**Testy** biegną na **Pest 5**. `tests/Pest.php` rozszerza `Tests\TestCase` i dokłada `RefreshDatabase`
-całemu katalogowi `Feature`, więc **każdy** test funkcjonalny czyści bazę, do której akurat wskazuje
+**Testy** biegną na **Pest 5**. `tests/Pest.php` rozszerza `Tests\TestCase` i dokłada `RefreshTestDatabase`
+(`RefreshDatabase` z trybem procesów mutantów, `tests/Concerns/`) całemu katalogowi `Feature`, więc **każdy** test funkcjonalny czyści bazę, do której akurat wskazuje
 połączenie.
 
 ## Bezpieczeństwo bazy danych — twarda zasada
@@ -217,7 +217,11 @@ połączenie — dlatego izolacja stoi na **pięciu warstwach naraz**:
 2. `docker-compose.yml` — usługi `app`, `queue`, `scheduler` **nie dostają zmiennych `DB_*`** ani
    `env_file`; zmienne z listy `environment:` trafiają do `$_SERVER` i przebiłyby `phpunit.xml`.
 3. `tests/TestCase.php` — bramka w `createApplication()` sprawdzająca **rozwiązane** połączenie;
-   niezgodność przerywa cały pakiet przez `exit(1)`.
+   niezgodność przerywa cały pakiet przez `exit(1)`. Dozwolone wyłącznie `lowiska_test`
+   i schematy równoległe `lowiska_test_test_{N}` (jedna funkcja: `tests/Support/TestDatabaseGuard.php`);
+   w przebiegu równoległym **druga kontrola** w callbacku `ParallelTesting::setUpTestCase`
+   sprawdza schemat faktycznie używany, przed migracjami. Proces zwykły niezrównoleglony czyści
+   pozostałe schematy `lowiska_test_test_{N}` (ściśle ten wzorzec) — zadanie 026.
 4. `tests/Unit/PhpunitConfigInvariantTest.php` — czerwienieje, gdy ktoś zdejmie `force="true"`.
 5. Uprawnienia w bazie — skrypt `docker/mysql/initdb/01-test-schema.sql`.
 

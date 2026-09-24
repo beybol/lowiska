@@ -191,11 +191,16 @@ tu wprowadzać.
      do `Dockerfile.dev`. Nie instaluj niczego w locie.
    - Zawęź zestaw do plików źródłowych: `grep -E '^app/.*\.php$'`. Brak takich → „nic do
      mutowania", zapamiętaj `mutacje: pominięte`.
-3. **Oszacuj koszt zgrubnie, bez uruchamiania:** liczba mutantów rośnie z rozmiarem i rozgałęzieniem
-   klasy, a koszt jednego mutanta to czas testów **pokrywających** tę klasę. Klasa pokryta szybkimi
-   testami `tests/Unit` (reguły, walidatory, usługi) → grosze za mutanta; klasa pokryta testami
-   `tests/Feature`, które bootują panele Filamenta → drogo. Podaj przedział per plik i sumę,
-   zaznaczając, że to rząd wielkości, nie pomiar.
+3. **Oszacuj koszt zgrubnie, bez uruchamiania.** Przebieg ma dwa składniki (pomiar z zadania 026):
+   - **faza pokrycia — RAZ na przebieg:** Pest uruchamia najpierw **cały pakiet** z pomiarem
+     pokrycia, niezależnie od liczby mutowanych klas — ok. 9–10 min;
+   - **mutanty:** każdy w osobnym procesie; koszt to start procesu plus testy **pokrywające**
+     zmutowaną linię (z `--bail`). Klasa pokryta szybkimi testami `tests/Unit` → grosze za
+     mutanta; klasa pokryta testami `tests/Feature`, które bootują panele Filamenta → drożej.
+     Mutanty biegną równolegle w tylu procesach, ile rdzeni ma kontener (dziś 8), więc sumę
+     czasu mutantów dziel przez liczbę rdzeni. Faza pokrycia też biegnie wtedy równolegle.
+   Podaj przedział per plik i sumę (faza pokrycia + mutanty), zaznaczając, że to rząd wielkości,
+   nie pomiar.
 4. **Rekomendacja per plik** — kryterium to **wartość mutacji, nie sam czas**:
    - **Kluczowa → TAK, nawet przy długim czasie:** klasy **liczące i walidujące**
      (`app/Rules/`, `app/Services/`) oraz **bramkujące** (`app/Policies/`, role
@@ -239,11 +244,31 @@ punktowo, bo przyczyną jest wyścig.
 1. Jeśli **oba** pod-etapy mają `pominięte` → poinformuj, że Krok 3 pominięty w całości,
    przejdź do Kroku 4.
 2. Uruchom zatwierdzone pod-etapy **po kolei, każdy w osobnej turze**, w tej kolejności:
-   1. **Testy mutacyjne** — `Bash` (poczekaj na wynik, ZANIM ruszysz security):
+   1. **Testy mutacyjne** — `Bash` (poczekaj na wynik, ZANIM ruszysz security). **Jedno
+      wywołanie dla wszystkich zatwierdzonych klas**, lista po przecinku, równolegle:
       ```bash
-      docker compose exec -T app vendor/bin/pest --mutate --covered-only --class="App\\Rules\\NazwaKlasy"
+      docker compose exec -T app vendor/bin/pest --mutate --covered-only --parallel --class="App\\Rules\\KlasaA,App\\Services\\KlasaB"
       ```
+      ⚠️ **Nigdy `--processes=N`.** Wtyczka przekazuje tę flagę także procesom mutantów, a tam
+      zwykły Pest kończy się błędem `Unknown option "--processes"`. Pest liczy każdy nieudany
+      proces jako **zabitego** mutanta, więc wychodzi **fałszywe 100%** w sekundę (zmierzone
+      w zadaniu 026). Liczbę procesów wyznacza sam `--parallel` (liczba rdzeni).
+      ⚠️ **Wynik podejrzanie dobry = sprawdź czas.** 100% przy czasie mutacji rzędu sekund to
+      objaw padających procesów, nie mocnych testów.
+      ⚠️ **Nigdy osobnego wywołania na klasę** — każde wywołanie płaci od nowa fazę pokrycia
+      (cały pakiet, ok. 9–10 min), zanim powstanie pierwszy mutant.
+      ⚠️ **Trzy pułapki dopasowania `--class`** (`MutationGenerator::doesNotContainClassToMutate()`
+      dopasowuje wyrażeniem regularnym po treści pliku, nie po pełnej nazwie):
+      - **nazwa klasy jest prefiksem** — `StayOffer` obejmuje też `StayOfferVerdict`,
+        `SaleCalendar` także `SaleCalendarCell`/`Grid`/`Row`. Przy celowo zawężonym przebiegu
+        dojdą mutanty spoza zakresu;
+      - **pusta pozycja na liście (np. przecinek na końcu) mutuje CAŁĄ aplikację** — wzorzec
+        z pustą nazwą pasuje do każdego pliku. Sklejaj listę bez pustych pozycji;
+      - **przestrzeń nazw jest prefiksem** — `App\\Services` obejmuje cały katalog
+        z podkatalogami.
       **Bez progu `--min`** — nie stawiamy bramki; raportujemy wynik.
+      Procesy mutantów robią `migrate` zamiast `migrate:fresh`, a każdy proces równoległy pracuje
+      na własnym schemacie `lowiska_test_test_{N}` (zadanie 026, `docs/operations/docker.md` §4).
       ⚠️ Długi przebieg przekroczy domyślny timeout `Bash` (600 s) i poleci w tło — to w porządku,
       odczytaj wynik, gdy przyjdzie powiadomienie. **Nie uruchamiaj w tym czasie niczego innego,
       co dotyka bazy testowej** (w tym `docker compose exec app php artisan test`).

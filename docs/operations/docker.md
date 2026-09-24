@@ -142,8 +142,9 @@ docker compose exec app php artisan MakeAdmin Jan Kowalski jan@example.com
 ⚠️ `docker compose down -v` **kasuje dane robocze**. Zgodnie z `CLAUDE.md` operacje czyszczące bazę
 wykonuje się wyłącznie po wyraźnej zgodzie.
 
-Grant na `lowiska\_test\_%` jest nadawany z góry, choć zrównoleglenie testów jest jeszcze poza
-zakresem — dołożenie go później wymagałoby ręcznego wejścia do bazy w każdym istniejącym środowisku.
+Grant na `lowiska\_test\_%` obsługuje schematy równoległe `lowiska_test_test_{N}`, z których
+korzystają testy mutacyjne z `--parallel` (sekcja 4, zadanie 026). Nadano go z góry w zadaniu 004 —
+dołożenie później wymagałoby ręcznego wejścia do bazy w każdym istniejącym środowisku.
 Backslash escapuje tu `_`, które w tym wzorcu jest inaczej znakiem „dowolny znak".
 
 Sprawdzenie, czy uprawnienia są na miejscu:
@@ -161,8 +162,8 @@ tymczasowo bazę `lowiska_test_1` i spróbuj się do niej odwołać kontem `lowi
 ## 4. Izolacja pakietu testów — pięć warstw
 
 Testy biegną na **MySQL-u, w schemacie `lowiska_test`** ([ADR-001](../adr/ADR-001-silnik-bazy-w-pakiecie-testow.md)).
-Ponieważ `tests/Pest.php` dokłada `RefreshDatabase` całemu katalogowi `Feature`, **każdy** test
-funkcjonalny czyści bazę, do której akurat wskazuje połączenie. Stąd pięć warstw — żadna nie jest
+Ponieważ `tests/Pest.php` dokłada `RefreshTestDatabase` (`RefreshDatabase` z trybem procesów
+mutantów) całemu katalogowi `Feature`, **każdy** test funkcjonalny czyści bazę, do której akurat wskazuje połączenie. Stąd pięć warstw — żadna nie jest
 ozdobna:
 
 1. **`phpunit.xml`** — komplet zmiennych `DB_*` z `force="true"`, w tym **`DB_URL` wymuszony
@@ -173,7 +174,11 @@ ozdobna:
    z `phpunit.xml` przegrywałaby z Compose'em.
 3. **`tests/TestCase.php`** — bramka w `createApplication()` sprawdzająca **rozwiązane** połączenie
    (nie same zmienne). Niezgodność przerywa **cały** pakiet przez `exit(1)`; nieudana asercja
-   przerwałaby tylko jeden test i wpuściła następny na złą bazę.
+   przerwałaby tylko jeden test i wpuściła następny na złą bazę. Dozwolone są wyłącznie
+   `lowiska_test` i schematy równoległe `lowiska_test_test_{N}` (`tests/Support/TestDatabaseGuard.php`).
+   **Druga kontrola** siedzi w callbacku `ParallelTesting::setUpTestCase` i sprawdza schemat
+   **faktycznie używany** (`select database()`): w przebiegu równoległym Laravel przełącza schemat
+   dopiero po `createApplication()`, ale przed traitami, czyli przed migracjami.
 4. **`tests/Unit/PhpunitConfigInvariantTest.php`** — czerwienieje, gdy ktoś zdejmie `force="true"`
    z dowolnej zmiennej `DB_*` albo zmieni schemat testowy. Dziedziczy po klasie bazowej PHPUnit,
    nie po `Tests\TestCase`, żeby działać także przy zepsutej konfiguracji.
@@ -185,6 +190,36 @@ Komenda testów:
 docker compose exec app php artisan test
 docker compose exec app php artisan test --filter="NazwaKlasy"
 ```
+
+### Testy mutacyjne — schematy równoległe i tryb mutanta
+
+Mutacje uruchamia się jednym wywołaniem dla listy klas, równolegle (procedura
+`/review-implementation`, Krok 3C):
+
+```bash
+docker compose exec -T app vendor/bin/pest --mutate --covered-only --parallel --class="App\\Rules\\KlasaA,App\\Services\\KlasaB"
+```
+
+- **Faza pokrycia** (pierwszy etap, cały pakiet z PCOV) biegnie zwykłym trybem, czyli
+  `migrate:fresh`. Przy `--parallel` biegnie w procesach równoległych, a każdy odświeża **własny**
+  schemat `lowiska_test_test_{N}` — tych samych numerów, których potem używają mutanty. Dzięki
+  temu migracja poprawiona w miejscu (bez nowej nazwy) nie zostawia starego kształtu tabel.
+- Proces zwykły **niezrównoleglony** (przebieg sekwencyjny, zwykły pakiet) przed `migrate:fresh`
+  usuwa pozostałe schematy równoległe — tylko nazwy pasujące dokładnie do
+  `^lowiska_test_test_[0-9]+$`. Proces równoległy tego nie robi, bo usuwałby schematy sąsiadom.
+- **Procesy mutantów** (Pest ustawia im `PEST_MUTATION_TESTING`) robią **`migrate`**, nie
+  `migrate:fresh` — trait `tests/Concerns/RefreshTestDatabase.php`. Przy aktualnym schemacie to
+  jedno zapytanie zamiast ok. 8–12 s migracji na mutanta.
+- Przy `--parallel` każdy proces dostaje od Laravela własny schemat `lowiska_test_test_{N}`
+  (Pest ustawia `LARAVEL_PARALLEL_TESTING` i `TEST_TOKEN`); liczba procesów to liczba rdzeni.
+  Uprawnienia do schematów nadaje skrypt startowy MySQL-a (`lowiska\_test\_%`, sekcja 3).
+- ⚠️ **Bez `--processes=N`** — wtyczka przekazuje flagę procesom mutantów, te kończą się błędem,
+  a Pest liczy to jako zabite mutanty: fałszywe 100% w sekundę.
+- Przerwany przebieg nie zostawia danych: MySQL wycofuje niezatwierdzoną transakcję testu po
+  zerwaniu połączenia, a następny przebieg zaczyna od czyszczenia schematów równoległych.
+
+⚠️ **Nie ustawiaj ręcznie `PEST_MUTATION_TESTING`** — Pest podmienia wtedy plik klasy na wskazany
+w `PEST_MUTATION_FILE`, więc przebieg bez prawdziwego mutanta się wysypie.
 
 ⚠️ **`test.sh` już nie istnieje.** Był jedyną realnie działającą ochroną w poprzednim układzie
 (`export DB_DATABASE=test`) i został usunięty dopiero razem z kompletem warstw wyżej. Nie

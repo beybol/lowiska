@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\RefreshTestDatabase;
 use Tests\TestCase;
 
 /*
@@ -14,8 +14,11 @@ use Tests\TestCase;
 |
 */
 
+// ⚠️ `RefreshTestDatabase` = `RefreshDatabase` + tryb procesów mutantów (`migrate` zamiast
+// `migrate:fresh`) i czyszczenie schematów równoległych — zadanie 026. Zwykły przebieg działa
+// dokładnie jak z `RefreshDatabase`.
 pest()->extend(TestCase::class)
-    ->use(RefreshDatabase::class)
+    ->use(RefreshTestDatabase::class)
     ->in('Feature');
 
 /*

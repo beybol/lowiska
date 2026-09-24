@@ -4,16 +4,13 @@ namespace Tests;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Testing\ParallelTesting;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Tests\Support\TestDatabaseGuard;
 
 abstract class TestCase extends BaseTestCase
 {
-    /**
-     * Schemat, w którym wolno uruchamiać pakiet testów.
-     */
-    private const TEST_DATABASE = 'lowiska_test';
-
     /**
      * Deklaruje język klienta testowego (zadanie 009).
      *
@@ -45,6 +42,16 @@ abstract class TestCase extends BaseTestCase
      * Niezgodność przerywa CAŁY pakiet przez exit(1): nieudana asercja
      * przerwałaby tylko jeden test i wpuściła następny na złą bazę, a
      * RefreshDatabase czyści tę bazę, do której akurat wskazuje połączenie.
+     *
+     * ⚠️ Kontrole są DWIE, obie na jednej funkcji (`TestDatabaseGuard::isAllowed()`, zadanie 026):
+     * - tutaj — konfiguracja tuż po zbudowaniu aplikacji;
+     * - w callbacku `ParallelTesting::setUpTestCase` — schemat FAKTYCZNIE używany przez
+     *   połączenie. W przebiegu równoległym Laravel przełącza schemat na `lowiska_test_test_{N}`
+     *   dopiero w swoim callbacku, czyli PO tej metodzie; tu widać jeszcze `lowiska_test`.
+     *   Nasz callback jest rejestrowany po callbacku Laravela (ten powstaje przy starcie
+     *   aplikacji), więc widzi już przełączony schemat, a Laravel wywołuje oba PRZED traitami —
+     *   czyli przed jakimkolwiek `migrate:fresh`. Poza przebiegiem równoległym callbacki
+     *   w ogóle się nie wykonują.
      */
     public function createApplication()
     {
@@ -54,26 +61,41 @@ abstract class TestCase extends BaseTestCase
         $connection = $app['config']->get('database.default');
         $database = $app['config']->get("database.connections.{$connection}.database");
 
-        if ($environment !== 'testing' || $database !== self::TEST_DATABASE) {
-            fwrite(STDERR, PHP_EOL.implode(PHP_EOL, [
-                '╔════════════════════════════════════════════════════════════════════╗',
-                '║  PAKIET TESTÓW ZATRZYMANY — połączenie wskazuje niewłaściwą bazę.  ║',
-                '╚════════════════════════════════════════════════════════════════════╝',
-                '',
-                "  Środowisko:  {$environment}  (wymagane: testing)",
-                "  Połączenie:  {$connection}",
-                "  Baza:        {$database}  (wymagana: ".self::TEST_DATABASE.')',
-                '',
-                '  Uruchomienie testów na tej bazie skasowałoby jej zawartość',
-                '  (RefreshDatabase). Sprawdź, czy zmienne DB_* ze środowiska nie',
-                '  przesłaniają deklaracji z phpunit.xml — patrz docs/operations/docker.md.',
-                '',
-            ]).PHP_EOL);
-
-            exit(1);
+        if ($environment !== 'testing' || ! TestDatabaseGuard::isAllowed($database)) {
+            self::stopSuite($environment, $connection, $database);
         }
 
+        $app->make(ParallelTesting::class)->setUpTestCase(function () use ($app): void {
+            $connection = $app['config']->get('database.default');
+            $database = $app['db']->connection($connection)->selectOne('select database() as name')?->name;
+
+            if (! TestDatabaseGuard::isAllowed($database)) {
+                self::stopSuite($app->environment(), $connection, $database);
+            }
+        });
+
         return $app;
+    }
+
+    private static function stopSuite(string $environment, ?string $connection, ?string $database): never
+    {
+        fwrite(STDERR, PHP_EOL.implode(PHP_EOL, [
+            '╔════════════════════════════════════════════════════════════════════╗',
+            '║  PAKIET TESTÓW ZATRZYMANY — połączenie wskazuje niewłaściwą bazę.  ║',
+            '╚════════════════════════════════════════════════════════════════════╝',
+            '',
+            "  Środowisko:  {$environment}  (wymagane: testing)",
+            "  Połączenie:  {$connection}",
+            "  Baza:        {$database}  (dozwolone: ".TestDatabaseGuard::TEST_DATABASE
+                .' albo '.TestDatabaseGuard::TEST_DATABASE.'_test_{N})',
+            '',
+            '  Uruchomienie testów na tej bazie skasowałoby jej zawartość',
+            '  (RefreshDatabase). Sprawdź, czy zmienne DB_* ze środowiska nie',
+            '  przesłaniają deklaracji z phpunit.xml — patrz docs/operations/docker.md.',
+            '',
+        ]).PHP_EOL);
+
+        exit(1);
     }
 
     private array $companyPermissions = [
