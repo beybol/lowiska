@@ -48,6 +48,11 @@ class Fishery extends Model
         'max_nights',
         'weekend_days',
         'sale_horizon_days',
+        'refund_policy',
+        'fishing_license_required',
+        'rods_included',
+        'no_kill',
+        'campfires_banned',
     ];
 
     protected $casts = [
@@ -56,6 +61,15 @@ class Fishery extends Model
         // Zbiór dni ISO-8601 rozpoczęcia dób składających się na weekend sprzedawany
         // w całości. Kolumna JSON, nie tabela — uzasadnienie w migracji (zadanie 017).
         'weekend_days' => 'array',
+        // Progi zwrotu `{days, percent}` — kolumna JSON wzorem `weekend_days` (zadanie 021).
+        // Pusta = „polityka nieustawiona"; czyta je `RefundPolicy`.
+        'refund_policy' => 'array',
+        // ⚠️ Trzy flagi z trzecim stanem: `null` = „nie podano", nie „nie" (zadanie 021).
+        // Formularz dostaje je jako 1/0 — `EditFishery::mutateFormDataBeforeFill()`.
+        'fishing_license_required' => 'boolean',
+        'no_kill' => 'boolean',
+        'campfires_banned' => 'boolean',
+        'rods_included' => 'integer',
     ];
 
     /**
@@ -161,6 +175,16 @@ class Fishery extends Model
     public function positions(): HasMany
     {
         return $this->hasMany(Position::class);
+    }
+
+    /**
+     * Wersje dokumentów łowiska — regulaminu i polityki prywatności (zadanie 021, ADR-017).
+     *
+     * @return HasMany<Document, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
     }
 
     /**

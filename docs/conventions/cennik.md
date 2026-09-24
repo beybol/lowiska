@@ -10,7 +10,7 @@ miejscu, które pyta, ile kosztuje doba albo pobyt**.
 odpowiada [`dostepnosc.md`](dostepnosc.md) — inna oś, osobny plik. Obie warstwy dzielą enum
 powodów odmowy i pojęcie doby, ale nie znają siebie nawzajem; składa je warstwa oferty (§5).
 
-Zadania źródłowe: 018, 020. Uzasadnienia w
+Zadania źródłowe: 018, 020, 021. Uzasadnienia w
 [ADR-014](../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md)
 i [ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md).
 
@@ -260,3 +260,31 @@ Zadanie źródłowe: 020. Dostępność usługi na stanowisku opisuje [`dostepno
   deklarację wędkarza i limit egzemplarzy. Pokazuje się jako **„bezpłatna"**, nie „0,00 zł / doba".
 - **Cenę z jednostką jako tekst składa `AdditionalService::priceLabel()`** („20,00 zł / doba") —
   jeden dom dla tabeli usług i kalendarza; kwotę formatuje `AmountFormatter`.
+
+---
+
+## 8. Polityka zwrotu
+
+Zadanie źródłowe: 021. Ekran: [`panel-wlasciciela.md`](panel-wlasciciela.md) §9.
+
+- ⚠️ **Na pytanie „jaki procent zwrotu przy odwołaniu w chwili D pobytu od doby S" odpowiada
+  WYŁĄCZNIE [`RefundPolicy`](../../app/Services/RefundPolicy.php).** Progi to lista `{days, percent}`
+  w kolumnie JSON łowiska — bieżąca, bez wersji, jak cennik; zamrożenie w chwili zakupu robi
+  snapshot transakcji (G1, Z1).
+- **„N dni przed" to różnica DAT KALENDARZOWYCH w strefie łowiska** między dniem rozpoczęcia
+  pierwszej doby a dniem odwołania — godziny doby nie grają roli. ⚠️ Liczona na datach, nie na
+  momentach: doba przy zmianie czasu ma 23 albo 25 godzin i `diffInDays()` na momentach ucinałby dzień.
+- **Granica domknięta**: próg „N dni" obowiązuje przy różnicy **co najmniej N**. Odwołanie dalej niż
+  najdalszy próg podlega najdalszemu; bliżej niż najbliższy — **0%**. Łowisko, które chce zwracać coś
+  do ostatniej chwili, ustawia próg „0 dni".
+- **Odwołać można wyłącznie przed rozpoczęciem pierwszej doby** (moment z `FishingDayCalendar`);
+  później to przerwanie pobytu (`RefundOutcome::StayStarted`), poza zakresem.
+- ⚠️ **Brak progów = „polityka nieustawiona"** (`RefundOutcome::PolicyNotSet`) — ani 0%, ani 100%.
+  Co wtedy ze sprzedażą, rozstrzyga koszyk.
+- **Procent liczy się od całej zapłaconej kwoty, ze wszystkimi usługami dodatkowymi**; samo liczenie
+  kwoty i podział prowizji powstają z płatnościami (D1, D7).
+- ⚠️ **Polityka dotyczy wyłącznie odwołania przez wędkarza.** Odwołanie przez łowisko (blokada na
+  sprzedany termin, G8) to **zawsze pełny zwrot** i nie przechodzi przez progi.
+- **Zapis:** liczby całkowite (dni 0–365, procent 0–100), bez duplikatów dni, procent **nie rośnie**
+  w miarę zbliżania się pobytu (`RefundTiersAreValid`). Portal nie narzuca widełek — „0% zawsze" jest
+  poprawne, a panel tylko ostrzega (D2).

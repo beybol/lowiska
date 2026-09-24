@@ -160,6 +160,27 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   w pokazywanym okresie niedostępna, plakietka zmienia kolor i dostaje dopisek „1 niedostępna".
   Po najechaniu widać listę usług z ceną, oznaczeniem „obowiązkowa", liczbą egzemplarzy i — przy
   niedostępnej — przyczyną wraz z datami ograniczenia. Ceny w komórkach kalendarza się nie zmieniły.
+- Łowisko ma ekran **„Dokumenty"** z regulaminem i polityką prywatności. Każdy dokument ma wersje
+  z tytułem, treścią i datą wejścia w życie; obowiązuje wersja, która weszła w życie najpóźniej, od
+  północy tego dnia. Lista pokazuje, która wersja jest obowiązująca, zaplanowana, a która archiwalna,
+  a gdy łowisko nie ma obowiązującego regulaminu — informuje o tym.
+- Nową wersję dokumentu zaczyna się od kopii dowolnej wersji albo od szablonu. Data wejścia w życie
+  podpowiada się na dziś plus 14 dni i musi być co najmniej jutrzejsza; dwie wersje jednego dokumentu
+  nie mogą wejść w życie tego samego dnia. Od dnia wejścia w życie wersji nie da się zmienić ani
+  usunąć — poza przełącznikami „wymagany przy zakupie" i „wymagany przy rejestracji na łowisku".
+  Wersję zaplanowaną można edytować i usunąć.
+- Podgląd szablonu dokumentu otwiera się w nowej karcie, tylko do odczytu, żeby móc skopiować z niego
+  fragment do edytowanej wersji.
+- Administrator prowadzi w panelu **szablony dokumentów** (regulaminy i polityki prywatności, dowolnie
+  wiele). Łowiska widzą je tylko do odczytu. Zmiana albo usunięcie szablonu nie zmienia dokumentów
+  łowisk. W systemie jest roboczy szablon regulaminu, oznaczony jako wymagający weryfikacji prawnej.
+- Łowisko ma ekran **„Polityka zwrotu"**: dowolna liczba progów „co najmniej N dni przed pobytem →
+  procent zwrotu". Brak progów pokazuje się jako „polityka nieustawiona", a polityka, która nigdy
+  niczego nie zwraca, zapisuje się z ostrzeżeniem. Progi nie mogą się powtarzać, a zwrot nie może
+  rosnąć w miarę zbliżania się pobytu.
+- Dane łowiska mają cztery nowe pola: **karta wędkarska wymagana, liczba wędek w cenie, no-kill
+  i zakaz ognisk** — w formularzu i w kreatorze zakładania łowiska. Każde można zostawić jako
+  „nie podano", co nie oznacza „nie".
 
 ### Zmienione
 

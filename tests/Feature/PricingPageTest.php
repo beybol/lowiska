@@ -317,7 +317,7 @@ test('an owner can not open the pricing of a fishery he does not own', function 
  */
 test('the price rule model does not get a policy of its own', function () {
     expect(file_exists(base_path('app/Policies/PriceRulePolicy.php')))->toBeFalse()
-        ->and(count(glob(base_path('app/Policies/*.php'))))->toBe(17);
+        ->and(count(glob(base_path('app/Policies/*.php'))))->toBe(18);
 });
 
 /**

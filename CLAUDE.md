@@ -36,13 +36,13 @@ Aplikacja jest w fazie tworzenia i nie działa jeszcze produkcyjnie.
 Jedna aplikacja Laravel, **dwa panele Filament**:
 
 - **`/admin`** ([`AdminPanelProvider`](app/Providers/Filament/AdminPanelProvider.php)) — panel
-  administracyjny; trzynaście zasobów w [`app/Filament/Resources/`](app/Filament/Resources/)
+  administracyjny; siedemnaście zasobów w [`app/Filament/Resources/`](app/Filament/Resources/)
   pokrywających cały model domenowy i słowniki.
 - **`/owner`** ([`OwnerPanelProvider`](app/Providers/Filament/OwnerPanelProvider.php)) — panel
   właściciela łowiska; strony w [`app/Filament/Owner/Pages/`](app/Filament/Owner/Pages/).
 
 **Autoryzacja** stoi na dwóch warstwach naraz i obie trzeba respektować: `bezhansalleh/filament-shield`
-(role i uprawnienia, stąd `RolePolicy`) oraz czternaście polityk w [`app/Policies/`](app/Policies/) —
+(role i uprawnienia, stąd `RolePolicy`) oraz osiemnaście polityk w [`app/Policies/`](app/Policies/) —
 po jednej na **zasób Filamenta**, nie na model (model bez zasobu autoryzuje się przez rodzica). Pokrycie testowe granic paneli żyje w `tests/Feature/AdminPanelTest.php`
 i `tests/Feature/OwnerPanelTest.php`.
 
@@ -69,8 +69,8 @@ da się odtworzyć z samego kodu.
 | `app/Policies/**`, role i uprawnienia Shielda, `User` | `docs/conventions/autoryzacja.md` |
 | `app/Services/CSOService.php`, `app/Rules/IbanValidation.php`, `app/Helpers/**` | `docs/conventions/integracje.md` ⛏️ |
 | Modele z traitem `LogsActivity`, `config/activitylog.php` | `docs/conventions/dziennik-zmian.md` |
-| `app/Services/FishingDay*`, `PositionAvailability`, `StaySellability*`, `AvailabilityBlock*`, każde miejsce pytające o sprzedawalność doby albo pobytu | `docs/conventions/dostepnosc.md` |
-| `app/Services/StayPricing*`, `PriceRule*`, `StayOffer*`, `app/Models/PriceRule.php`, każde miejsce pytające o cenę | `docs/conventions/cennik.md` |
+| `app/Services/FishingDay*`, `PositionAvailability`, `StaySellability*`, `AvailabilityBlock*`, `PositionServices*`, każde miejsce pytające o sprzedawalność doby albo pobytu albo o usługi stanowiska | `docs/conventions/dostepnosc.md` |
+| `app/Services/StayPricing*`, `PriceRule*`, `StayOffer*`, `RefundPolicy*`, `app/Models/PriceRule.php`, jednostka usług dodatkowych, każde miejsce pytające o cenę albo zwrot | `docs/conventions/cennik.md` |
 | `routes/**`, widoki Breeze, `resources/views/**` | `docs/conventions/strona-publiczna.md` ⛏️ |
 
 **Dokumentacja projektu** - znajduje się w katalogu docs

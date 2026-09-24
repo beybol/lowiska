@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `app/Filament/Owner/**`,
 `app/Providers/Filament/OwnerPanelProvider.php` oraz w zasobach współdzielonych,
 gdy dotykasz ich zachowania **w panelu właściciela**.
 
-Zadania źródłowe: 012, 013, 014, 015, 016, 019, 020. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
+Zadania źródłowe: 012, 013, 014, 015, 016, 019, 020, 021. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
 i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 
 ---
@@ -404,3 +404,63 @@ w widoku nie ma skąd wziąć CSS-u. Rejestracja motywu okazała się wymagać m
 z Tailwinda 3 na 4 (patrz [ADR-016](../adr/ADR-016-wlasny-motyw-panelu.md) i uwaga w zadaniu 019),
 więc czeka na własne zadanie. Po jego wykonaniu ten widok przepisuje się na klasy.
 
+---
+
+## 9. Dokumenty łowiska i polityka zwrotu (zadanie 021)
+
+Uzasadnienie kształtu danych dokumentów: [ADR-017](../adr/ADR-017-dokumenty-i-wersje-dokumentow.md).
+
+### Dokumenty — regulamin i polityka prywatności
+
+- **Jedna strona „Dokumenty"** (`ManageDocuments`, `ManageRelatedRecords` po relacji `documents`)
+  z **zakładką na rodzaj** — rodzaje działają identycznie. Stoi **na samym końcu** sub-nawigacji.
+  Wersje mają stan **liczony**, nie zapisany: obowiązująca / zaplanowana / archiwalna
+  (`FisheryDocuments::statusOf()`).
+- ⚠️ **Za treść odpowiada łowisko** (D9): ekran niczego nie generuje z konfiguracji, nie wstawia
+  zasad zwrotu ani parametrów łowiska i nie sprawdza zgodności. Brak obowiązującego dokumentu to
+  **sama informacja** nad tabelą, bez oceny treści.
+- **Obowiązuje wersja o najpóźniejszej dacie wejścia w życie ≤ dziś** w strefie łowiska, od północy.
+  Liczy ją **jedna** metoda — `FisheryDocuments::current()`.
+- ⚠️ **Od dnia wejścia w życie wersja jest NIENARUSZALNA** (tytuł, treść, data, rodzaj) i
+  **nieusuwalna** — pilnują tego **haki modelu `Document`** po dacie **zapisanej w bazie**, nie
+  wyłączone pola formularza. **Flagi wymagalności** („przy zakupie", „przy rejestracji na łowisku")
+  są edytowalne **zawsze**; kopia je przenosi.
+  ⚠️ Filament **waliduje także pola wyłączone** — przy wersji obowiązującej reguły daty są zdjęte,
+  inaczej odrzuciłyby sam zapis flag.
+- **Data wejścia w życie: najwcześniej jutro** w strefie łowiska (`DocumentEffectiveDateIsAhead`,
+  przy tworzeniu i edycji); domyślnie **dziś + 14 dni**, z komunikatem obok pola, że od tej daty
+  edycja nie będzie możliwa. **Dwie wersje rodzaju z tą samą datą** blokuje reguła
+  `DocumentEffectiveDateIsFree` — reguła, nie indeks, bo pomija wersje usunięte miękko.
+- **Nowa wersja: źródło do wyboru** — kopia **dowolnej** wersji (domyślnie obowiązującej) albo
+  **dowolny szablon**, także innego rodzaju; system tego nie kontroluje. Treść jest **kopią**.
+  Wersję do skopiowania szuka się **wyłącznie w dokumentach tego łowiska** — identyfikator
+  źródła przychodzi od klienta.
+- **Podgląd szablonu** to osobna strona tylko do odczytu (`PreviewDocumentTemplate`), otwierana
+  przyciskiem **w nowej karcie** — z listy wersji i z formularza wersji. Treść przechodzi przez
+  `Str::sanitizeHtml()`. Bez przycisku „kopiuj": zaznaczenie i Ctrl+C.
+- **Formularz wersji to modal `slideOver` na pełną szerokość** — świadomie, mimo reguły „akcje
+  prowadzą na pełne strony" (§2): `Document` nie ma własnego zasobu, rekord akcji pochodzi z tabeli
+  po relacji łowiska, a `fishery_id` nowej wersji bierze się z rekordu strony. Każda akcja pyta
+  jawnie `FisheryPolicy::update()`.
+- **Admin pracuje na dokumentach łowisk na tych samych zasadach** — ta sama strona w obu panelach,
+  ta sama nienaruszalność; dziennik zmian pokazuje autora wersji.
+
+### Polityka zwrotu
+
+- **Ekran „Polityka zwrotu"** (`ManageRefundPolicy`, strona ustawień) stoi **za „Kalendarzem"** —
+  niczego w nim nie zmienia. Repeater na kolumnie JSON `fisheries.refund_policy`; zapis
+  normalizuje progi do liczb całkowitych od najdalszego, a brak progów zapisuje jako `null`.
+- ⚠️ **Brak progów = „polityka nieustawiona"**, pokazana wprost — nie 0% ani 100%.
+- **„0% zawsze" to ostrzeżenie, nie blokada** (D2). Warunek i brzmienie są **robocze** i czekają na
+  prawnika (TODO-3); jeden dom warunku: `RefundPolicy::refundsNothingIn()`.
+- Znaczenie progów ma jeden dom — `RefundPolicy` ([`cennik.md`](cennik.md) §8); ekran niczego nie liczy.
+
+### Wymagania wobec wędkarza
+
+- **Karta wędkarska, liczba wędek w cenie, no-kill, zakaz ognisk** to pola **łowiska** obok
+  „Fishing methods", w formularzu i w kreatorze (`FisheryResource::anglerRuleComponents()`).
+  Bieżące, bez wersji; spójność z treścią regulaminu jest po stronie operatora (D9).
+- ⚠️ **Każde ma stan „nie podano"**: flagi to `Select` z pustą opcją, nie `Toggle`; liczba wędek
+  jest pusta, dopóki operator jej nie wpisze. `EditFishery::mutateFormDataBeforeFill()` zamienia
+  `bool` na 1/0 ([`panel-admina.md`](panel-admina.md) §2 — bez tego „nie" ginęło przy zapisie).
+  Zakaz ognisk to pole łowiska, **nie** pozycja słownika udogodnień.

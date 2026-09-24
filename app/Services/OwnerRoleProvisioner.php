@@ -27,6 +27,15 @@ final class OwnerRoleProvisioner
     private const ROLE = 'owner';
 
     /**
+     * Szablony dokumentów właściciel wyłącznie CZYTA — listę przy nowej wersji i podgląd
+     * (zadanie 021). Tworzenie, edycja i usuwanie zostają przy administratorze.
+     */
+    private const DOCUMENT_TEMPLATE_PERMISSIONS = [
+        'view_any:document_template',
+        'view:document_template',
+    ];
+
+    /**
      * Przypisuje rolę `owner` użytkownikowi. Istniejącej roli NIE dotyka.
      */
     public static function addOwnerRole(User $user): void
@@ -89,9 +98,31 @@ final class OwnerRoleProvisioner
             Permission::firstOrCreate(['name' => $permission]);
         }
 
+        foreach (self::DOCUMENT_TEMPLATE_PERMISSIONS as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
+
         $role = Role::firstOrCreate(['name' => self::ROLE]);
-        $role->syncPermissions(array_merge($companyPermissions, $fisheryPermissions));
+        $role->syncPermissions(array_merge($companyPermissions, $fisheryPermissions, self::DOCUMENT_TEMPLATE_PERMISSIONS));
 
         return $role;
+    }
+
+    /**
+     * Dokłada odczyt szablonów dokumentów roli `owner`, która JUŻ istnieje — bez ruszania jej
+     * pozostałych uprawnień (migracja zadania 021). Roli jeszcze nie ma → nic do zrobienia:
+     * `provisionRole()` nada je razem z resztą.
+     */
+    public static function grantDocumentTemplateReading(): void
+    {
+        $role = Role::where('name', self::ROLE)->first();
+
+        if (! $role instanceof Role) {
+            return;
+        }
+
+        foreach (self::DOCUMENT_TEMPLATE_PERMISSIONS as $permission) {
+            $role->givePermissionTo(Permission::firstOrCreate(['name' => $permission]));
+        }
     }
 }

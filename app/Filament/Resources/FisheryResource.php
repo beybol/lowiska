@@ -8,13 +8,16 @@ use App\Filament\Resources\FisheryResource\Pages\ListFisheries;
 use App\Filament\Resources\FisheryResource\Pages\ManageAdditionalServices;
 use App\Filament\Resources\FisheryResource\Pages\ManageAvailabilityBlocks;
 use App\Filament\Resources\FisheryResource\Pages\ManageCalendar;
+use App\Filament\Resources\FisheryResource\Pages\ManageDocuments;
 use App\Filament\Resources\FisheryResource\Pages\ManageFishery;
 use App\Filament\Resources\FisheryResource\Pages\ManageLongTermPermits;
 use App\Filament\Resources\FisheryResource\Pages\ManagePositionGroups;
 use App\Filament\Resources\FisheryResource\Pages\ManagePositions;
 use App\Filament\Resources\FisheryResource\Pages\ManagePricing;
+use App\Filament\Resources\FisheryResource\Pages\ManageRefundPolicy;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleRules;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleSettings;
+use App\Filament\Resources\FisheryResource\Pages\PreviewDocumentTemplate;
 use App\Models\Company;
 use App\Models\Convenience;
 use App\Models\Fish;
@@ -92,6 +95,32 @@ class FisheryResource extends Resource
      *
      * @return array<int, mixed>
      */
+    /** Flagi wymagań wobec wędkarza — z trzecim stanem „nie podano" (zadanie 021). */
+    public const ANGLER_RULE_FLAGS = ['fishing_license_required', 'no_kill', 'campfires_banned'];
+
+    /**
+     * @return array<int, mixed>
+     */
+    public static function anglerRuleComponents(): array
+    {
+        $flag = static fn (string $name, string $label): Select => Select::make($name)
+            ->label($label)
+            ->options([1 => __('Yes'), 0 => __('No')])
+            ->placeholder(__('Not specified'));
+
+        return [
+            $flag('fishing_license_required', __('Fishing licence required')),
+            TextInput::make('rods_included')
+                ->label(__('Rods included in the price'))
+                ->integer()
+                ->minValue(0)
+                ->maxValue(20)
+                ->placeholder(__('Not specified')),
+            $flag('no_kill', __('No-kill (fish can not be taken)')),
+            $flag('campfires_banned', __('Campfires banned')),
+        ];
+    }
+
     public static function fisheryDetailComponents(): array
     {
         return [
@@ -235,6 +264,11 @@ class FisheryResource extends Resource
                         })
                         ->label(__('Fishing methods'))
                         ->hidden(FishingMethod::count() === 0),
+                    // ⚠️ Wymagania wobec wędkarza (zadanie 021) — bieżące dane łowiska, bez wersji.
+                    // Każde ma stan „nie podano": flagi to `Select` z pustą opcją, nie `Toggle`,
+                    // który zawsze niesie „nie". Spójność z treścią regulaminu jest po stronie
+                    // operatora (D9).
+                    ...self::anglerRuleComponents(),
                     TextInput::make('positions_count')
                         ->label(__('Positions count'))
                         ->required()
@@ -350,11 +384,15 @@ class FisheryResource extends Resource
             ManagePricing::class,
             // Kalendarz stoi ZARAZ ZA konfiguracja: trzy ekrany ustawien, a po nich ich skutek.
             ManageCalendar::class,
+            // Polityka zwrotu za kalendarzem — niczego w nim nie zmienia (zadanie 021).
+            ManageRefundPolicy::class,
             ManagePositions::class,
             ManagePositionGroups::class,
             ManageAdditionalServices::class,
             ManageLongTermPermits::class,
             ManageAvailabilityBlocks::class,
+            // Dokumenty na samym końcu — zmieniają się najrzadziej (zadanie 021).
+            ManageDocuments::class,
         ]);
     }
 
@@ -396,6 +434,9 @@ class FisheryResource extends Resource
             'availability-blocks' => ManageAvailabilityBlocks::route('/{record}/availability-blocks'),
             'additional-services' => ManageAdditionalServices::route('/{record}/additional-services'),
             'long-term-permits' => ManageLongTermPermits::route('/{record}/long-term-permits'),
+            'refund-policy' => ManageRefundPolicy::route('/{record}/refund-policy'),
+            'documents' => ManageDocuments::route('/{record}/documents'),
+            'document-template-preview' => PreviewDocumentTemplate::route('/{record}/document-templates/preview'),
         ];
     }
 

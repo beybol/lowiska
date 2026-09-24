@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w `app/Filament/Resources/**`,
 `app/Providers/Filament/AdminPanelProvider.php`.
 
-Zadania źródłowe: 005, 009, 011, 013, 014, 020, 022. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
+Zadania źródłowe: 005, 009, 011, 013, 014, 020, 021, 022. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
 
 ---
 
@@ -285,3 +285,19 @@ Uzasadnienie kształtu wartości: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech
   w `modifyQueryUsing()` (nie dziedziczy zapytania zasobu, [`panel-wlasciciela.md`](panel-wlasciciela.md) §2).
 - **Wymagane cechy wybiera się ze słownika wspólnego** (§5) — bez zawężenia do łowiska, bo cechy
   go nie mają; zawężenie dotyczy wyłącznie flag.
+
+---
+
+## 8. Szablony dokumentów (zadanie 021)
+
+- **`DocumentTemplateResource` żyje WYŁĄCZNIE w `/admin`** (grupa „Słowniki") — nie ma go na liście
+  `OwnerPanelProvider`. Szablon to **typ** (ten sam enum co rodzaj dokumentu), **nazwa** i **treść**;
+  dowolnie wiele. Pełne strony (`ListRecords` + `create`/`edit`), bo treść to długi tekst z edytora;
+  zapis wraca na listę (§4).
+- ⚠️ **Typ porządkuje i podpowiada, nie ogranicza** — przy nowej wersji dokumentu łowiska lista
+  pokazuje najpierw szablony pasującego typu, ale wolno wybrać dowolny.
+- ⚠️ **Zmiana i usunięcie szablonu NIE ruszają dokumentów łowisk** — wersja dostaje kopię treści,
+  bez klucza obcego (ADR-017).
+- **Roboczy szablon regulaminu** sieje `DocumentTemplateSeeder` (idempotentnie, po nazwie) — oznaczony
+  jako **do weryfikacji prawnej**. Szablonu polityki prywatności celowo nie ma, dopóki prawnik nie
+  rozstrzygnie ról w RODO (TODO-3).

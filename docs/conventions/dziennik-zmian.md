@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w modelach z traitem `LogsActivity`
 (`Spatie\Activitylog\Models\Concerns\LogsActivity`) i w `config/activitylog.php`.
 
-Zadania źródłowe: 010.
+Zadania źródłowe: 010, 020, 021.
 
 ---
 
@@ -50,3 +50,16 @@ Zadania źródłowe: 010.
   ⚠️ **Zawężenie zakresu (`config('activitylog.default_except_attributes')` albo
   `logExcept()` per model) to osobna decyzja produktowa, celowo poza tym zadaniem** — nie
   wprowadzaj jej przy okazji niepowiązanej zmiany w modelu.
+
+## 4. Relacje wiele-do-wielu nie logują się same
+
+- ⚠️ **`LogsActivity` widzi wyłącznie kolumny modelu** — `sync()`/`attach()`/`detach()` na relacji
+  wiele-do-wielu nie zostawiają żadnego wpisu. Gdy zmiana relacji ma być w dzienniku, zapis
+  robi to **jawnie**, w tym samym miejscu co zapis relacji:
+  `activity()->performedOn($model)->event('updated')->withChanges(['old' => [...], 'attributes' => [...]])`.
+  Format `old`/`attributes` jest ten sam co we wpisach automatycznych, więc czyta się je jednakowo.
+  Wzorce: wymagane cechy usługi (`AdditionalServiceSync::syncRequiredAttributes()`) i odpięcie
+  usługi przy zmianie zasięgu (`AdditionalService::dropPins()`), zadanie 020.
+- **Nowe modele z danymi operatora dostają `LogsActivity`** z `getActivitylogOptions()` wg §1 —
+  tak jest przy `Document` i `DocumentTemplate` (zadanie 021): dziennik pokazuje, kto zapisał wersję
+  dokumentu.

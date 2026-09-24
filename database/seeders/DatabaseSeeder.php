@@ -58,5 +58,7 @@ class DatabaseSeeder extends Seeder
         Currency::factory()->create(['name' => 'EUR']);
         Currency::factory()->create(['name' => 'USD']);
         Currency::factory()->create(['name' => 'GBP']);
+
+        $this->call(DocumentTemplateSeeder::class);
     }
 }

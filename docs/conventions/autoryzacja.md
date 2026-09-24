@@ -2,7 +2,7 @@
 
 Obowiązuje przy zmianach w `app/Policies/**`, rolach i uprawnieniach Shielda, `User`.
 
-Zadania źródłowe: 008, 009, 012, 013, 015; security-review 2026-09-20.
+Zadania źródłowe: 008, 009, 012, 013, 015, 021; security-review 2026-09-20.
 
 ---
 
@@ -197,9 +197,9 @@ Wzorzec: `tests/Feature/OwnerPanelTest.php`, przypadki „Owner can not…".
 ## 5. Polityka odpowiada zasobowi Filamenta; model bez zasobu autoryzuje się przez rodzica
 
 - **Niezmiennik:** plik w `app/Policies/` istnieje dla modelu, który ma **zarejestrowany zasób
-  Filamenta**. Dziś czternaście polityk odpowiada trzynastu zasobom z `app/Filament/Resources/`
+  Filamenta**. Dziś osiemnaście polityk odpowiada siedemnastu zasobom z `app/Filament/Resources/`
   **plus zasobowi ról dostarczanemu przez Shielda** (stąd `RolePolicy` bez pliku w katalogu
-  zasobów) — licznik zgadza się dopiero z tym czternastym.
+  zasobów) — licznik zgadza się dopiero z tym osiemnastym.
 - **Model bez własnego zasobu autoryzuje się przez rodzica.** `SalePeriod` istnieje wyłącznie
   przez łowisko: edytuje się go `Repeaterem` na stronie ustawień, a dostępu pilnuje
   `FisheryPolicy` — kto może edytować łowisko, ten edytuje jego sezony.
@@ -259,3 +259,19 @@ ich w `$fillable` i mają tam nie trafić — to powierzchnia mass-assignment. K
 braku, bo pusty kod traktuje jako „brak oczekującego wyzwania".
 
 Zadania źródłowe: 012, security-review 2026-09-20.
+
+---
+
+## 7. Szablony i dokumenty łowiska (zadanie 021)
+
+- **`DocumentTemplatePolicy`** odpowiada zasobowi szablonów w `/admin`. ⚠️ **Rola `owner` dostaje
+  wyłącznie `view_any:document_template` i `view:document_template`** (lista przy nowej wersji
+  i podgląd); tworzenie, edycja i usuwanie zostają przy administratorze.
+  ⚠️ `provisionRole()` ustawia uprawnienia tylko roli, której nie ma (§4 — „Rola nadawana przy
+  zakładaniu konta"), więc istniejącej roli `owner` dokłada je migracja przez
+  `OwnerRoleProvisioner::grantDocumentTemplateReading()` — bez ruszania pozostałych uprawnień.
+  Kolejne uprawnienie dla istniejącej roli idzie tą samą drogą, nie przez `syncPermissions()`.
+- **`Document` nie ma polityki** — nie ma zasobu (§5). Stronę „Dokumenty" i każdą jej akcję
+  autoryzuje `FisheryPolicy::update()`, podgląd szablonu — `FisheryPolicy::view()` plus
+  `DocumentTemplatePolicy::viewAny()`. Nienaruszalność wersji to reguła **danych**, nie dostępu —
+  pilnuje jej model, także wobec administratora.

@@ -166,7 +166,7 @@ test('an owner can not open the sale rules of a fishery he does not own', functi
  */
 test('the whole term period model does not get a policy of its own', function () {
     expect(file_exists(base_path('app/Policies/WholeTermPeriodPolicy.php')))->toBeFalse()
-        ->and(count(glob(base_path('app/Policies/*.php'))))->toBe(17);
+        ->and(count(glob(base_path('app/Policies/*.php'))))->toBe(18);
 });
 
 /*

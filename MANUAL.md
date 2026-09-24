@@ -29,11 +29,13 @@ Najwygodniej iść po kolei; każdy krok korzysta z tego, co ustawiłeś wcześn
 4. [Cennik](#6-cennik) — powiedz, ile to kosztuje.
 5. [Kalendarz](#7-kalendarz) — **sprawdź, co z tego wyszło.** To jedyny krok, w którym niczego nie
    wypełniasz: pokazuje skutek wszystkiego, co ustawiłeś wyżej.
-6. [Stanowiska](#8-stanowiska) — wprowadź miejsca, które sprzedajesz.
-7. [Grupy stanowisk](#9-grupy-stanowisk) — pogrupuj stanowiska, jeśli to ułatwi Ci pracę.
-8. [Usługi dodatkowe](#10-usługi-dodatkowe) — dodaj to, co wędkarz może dokupić.
-9. [Pozwolenia długoterminowe](#11-pozwolenia-długoterminowe) — dodaj sezonówki, jeśli je sprzedajesz.
-10. [Blokady i ograniczenia](#12-blokady-i-ograniczenia) — wracaj tutaj, ilekroć coś wypada z użytku.
+6. [Polityka zwrotu](#8-polityka-zwrotu) — ustal, ile wędkarz odzyska, gdy odwoła pobyt.
+7. [Stanowiska](#9-stanowiska) — wprowadź miejsca, które sprzedajesz.
+8. [Grupy stanowisk](#10-grupy-stanowisk) — pogrupuj stanowiska, jeśli to ułatwi Ci pracę.
+9. [Usługi dodatkowe](#11-usługi-dodatkowe) — dodaj to, co wędkarz może dokupić.
+10. [Pozwolenia długoterminowe](#12-pozwolenia-długoterminowe) — dodaj sezonówki, jeśli je sprzedajesz.
+11. [Blokady i ograniczenia](#13-blokady-i-ograniczenia) — wracaj tutaj, ilekroć coś wypada z użytku.
+12. [Dokumenty](#14-dokumenty) — wprowadź regulamin i politykę prywatności łowiska.
 
 Usługi dodatkowe o zasięgu „wybrane stanowiska" i pozwolenia przypisuje się do konkretnych stanowisk —
 na formularzu stanowiska albo (usługi) działaniem „Przypnij usługę" na liście stanowisk. Dlatego po ich
@@ -51,7 +53,14 @@ Część pól na tym formularzu to **wybór ze słownika prowadzonego przez admi
 łowiska, metody łowienia, udogodnienia, występujące ryby, waluta rozliczenia, kraj i województwo.
 Nie dopisujesz do nich własnych pozycji — zaznaczasz te, które pasują do Twojego obiektu. Jeśli
 któregoś z tych pól w ogóle nie widzisz, znaczy to, że odpowiedni słownik jest jeszcze pusty
-(patrz [Słowniki](#15-słowniki--wspólne-dla-całego-portalu)).
+(patrz [Słowniki](#17-słowniki--wspólne-dla-całego-portalu)).
+
+**Wymagania wobec wędkarza** — czy potrzebna jest karta wędkarska, ile wędek jest w cenie, czy
+obowiązuje zakaz zabierania ryb (no-kill) i czy obowiązuje zakaz ognisk. Po tych polach wędkarz będzie
+wybierał łowisko. Każde możesz zostawić jako **„nie podano"** — to co innego niż „nie": niewypełnione
+pole nie ogłasza, że karta jest niewymagana albo że można zabrać rybę. Pamiętaj, żeby te ustawienia
+zgadzały się z treścią Twojego regulaminu — system tego nie sprawdza. Szczegółowe zasady (wymagany
+sprzęt, limit zanęty, zdjęcia) opisujesz w samym regulaminie.
 
 ## 4. Sprzedaż i sezony
 
@@ -212,7 +221,29 @@ i zakresem dat — po tym trafisz do właściwego wiersza w „Cenniku".
 towarzyszącej".** To nie usterka, tylko najszybsza diagnoza, jaką ten ekran daje: znaczy, że
 w cenniku nie wpisałeś kwoty za osobę towarzyszącą. Wpisz tam 0,00, jeśli ma być za darmo.
 
-## 8. Stanowiska
+## 8. Polityka zwrotu
+
+Tu ustalasz, **ile wędkarz odzyska, gdy sam odwoła pobyt**. Polityka to lista progów: „co najmniej
+N dni przed pobytem → X% zwrotu". Na przykład: 100% do 7 dni, 50% do 3 dni, a bliżej — nic.
+
+- **Dni liczymy po datach**, w strefie czasowej łowiska: od dnia odwołania do dnia rozpoczęcia pierwszej
+  doby pobytu. Godzina nie ma znaczenia. Przy progu „7 dni" i pobycie od 10.07 odwołanie do 03.07
+  włącznie daje ten próg.
+- **Odwołanie bliżej niż najbliższy próg nie daje zwrotu.** Jeśli chcesz zwracać coś do ostatniej
+  chwili, dodaj próg „0 dni".
+- **Odwołać można tylko przed rozpoczęciem pierwszej doby** — na przykład przed 15:00 w dniu przyjazdu.
+- **Procent liczy się od całej zapłaconej kwoty**, razem z usługami dodatkowymi.
+- Procent **nie może rosnąć** w miarę zbliżania się pobytu, a dwa progi nie mogą mieć tej samej
+  liczby dni.
+- **Gdy to Ty odwołujesz pobyt** (na przykład blokadą na sprzedany termin), wędkarz zawsze dostaje
+  pełny zwrot — tego nie da się zmienić progami.
+
+⚠️ **Brak progów to „polityka nieustawiona"**, a nie „bez zwrotu" ani „pełny zwrot" — ekran mówi
+o tym wprost. Możesz ustawić politykę, która nigdy niczego nie zwraca; zobaczysz wtedy ostrzeżenie, że
+takie postanowienie może być wobec konsumenta bezskuteczne (brzmienie tego ostrzeżenia czeka jeszcze
+na weryfikację prawną). Zmiana progów działa od razu i dotyczy kolejnych zakupów.
+
+## 9. Stanowiska
 
 Lista miejsc, które sprzedajesz. Przy każdym podajesz nazwę, stan („w sprzedaży" albo „wycofane"),
 pojemność — ilu wędkarzy może na nim łowić i ile osób może na nim przebywać łącznie — oraz opis
@@ -224,9 +255,9 @@ dodatkowych. Jeśli tę samą cechę chcesz ustawić wielu miejscom naraz, zazna
 działania **Ustaw cechę** — przed zapisem zobaczysz, ilu stanowisk dotyczy.
 
 Sekcja z cechami pojawia się dopiero wtedy, gdy administrator dopisał do słownika choć jedną cechę
-(patrz [Cechy stanowisk](#16-cechy-stanowisk)).
+(patrz [Cechy stanowisk](#18-cechy-stanowisk)).
 
-## 9. Grupy stanowisk
+## 10. Grupy stanowisk
 
 Grupa to nazwana etykieta, którą łączysz stanowiska mające ze sobą coś wspólnego — brzeg, dojazd,
 część obiektu. W opisie grupy mieści się wszystko, czego nie da się zapisać pojedynczą cechą: jak się
@@ -237,7 +268,7 @@ służą do opisu i do szybkiego wskazywania większej liczby miejsc. Z poziomu 
 cechę wszystkim jej stanowiskom naraz albo przypiąć czy odpiąć im usługę. Grupa niczego przy tym nie
 zapamiętuje: stanowisko dodane do grupy później tej cechy ani usługi nie dostaje.
 
-## 10. Usługi dodatkowe
+## 11. Usługi dodatkowe
 
 Wszystko, co wędkarz **dokupuje** do pobytu: łódka, hamak, postawienie przyczepy, pellet, drewno. Przy
 każdej usłudze podajesz nazwę, opis, cenę, **jednostkę rozliczenia**, liczbę egzemplarzy, **gdzie jest
@@ -284,7 +315,7 @@ usługi tych stanowisk zostają bez zmian. To samo działanie znajdziesz przy ka
 obejmuje wtedy stanowiska należące do grupy w chwili kliknięcia. Po przypięciu zobaczysz ostrzeżenie,
 jeśli na części stanowisk brakuje wymaganej cechy.
 
-## 11. Pozwolenia długoterminowe
+## 12. Pozwolenia długoterminowe
 
 Pozwolenia na dłuższy okres, na przykład sezonowe. Podajesz opis, okres ważności, cenę, limit sprzedaży
 oraz to, czy pozwolenie jest aktywne.
@@ -292,7 +323,7 @@ oraz to, czy pozwolenie jest aktywne.
 Podobnie jak usługi, pozwolenie wiążesz ze stanowiskami na formularzu stanowiska — dzięki temu wiadomo,
 gdzie dane pozwolenie obowiązuje.
 
-## 12. Blokady i ograniczenia
+## 13. Blokady i ograniczenia
 
 Tutaj wyłączasz coś na określony czas: zawody, zarybianie, remont, decyzja urzędu. Wpis ma dwa możliwe
 skutki — albo **blokuje sprzedaż** wskazanych stanowisk, albo **zawiesza jedną cechę** (na przykład
@@ -308,11 +339,38 @@ Skutek „zawieszenie cechy" i kryterium „stanowiska z cechą" widać tylko wt
 choć jedna cecha typu **tak/nie** — tylko taka da się zawiesić. Przy pustym słowniku obie opcje są
 ukryte, bo nie miałyby czego dotyczyć.
 
+## 14. Dokumenty
+
+Tu prowadzisz **regulamin** i **politykę prywatności** łowiska — każdy w osobnej zakładce. Stroną
+umowy z wędkarzem jest łowisko, więc **za treść obu dokumentów odpowiadasz Ty**; system niczego do
+nich nie dopisuje i nie sprawdza, czy zgadzają się z ustawieniami łowiska.
+
+Każdy dokument ma **wersje**. Wersja to tytuł, treść i **data wejścia w życie**. Obowiązuje ta, która
+weszła w życie najpóźniej — od północy w dniu wejścia w życie. Wędkarza wiąże wersja obowiązująca
+**w chwili zakupu**, a nie w dniu pobytu. Na liście przy każdej wersji widać, czy jest
+**obowiązująca**, **zaplanowana** czy **archiwalna**. Jeśli łowisko nie ma obowiązującego regulaminu,
+zobaczysz nad listą samą informację o tym.
+
+**Nowa wersja.** Kliknij **Nowa wersja** i wybierz, od czego zaczynasz: od kopii istniejącej wersji
+(domyślnie obowiązującej) albo od dowolnego szablonu przygotowanego przez Fisheryę. Kopię możesz też
+zrobić z listy, z dowolnej wersji — także archiwalnej. Data wejścia w życie podpowiada się na dziś
+plus 14 dni; może być najwcześniej **jutrzejsza**, a dwie wersje jednego dokumentu nie mogą wchodzić
+w życie tego samego dnia.
+
+⚠️ **Od dnia wejścia w życie wersji nie da się już zmienić ani usunąć** — ani tytułu, ani treści,
+ani daty. Poprawiasz ją, tworząc nową wersję. Wersję zaplanowaną możesz swobodnie edytować i usunąć
+aż do dnia jej wejścia w życie. Przy każdej wersji — także obowiązującej — zmienisz natomiast zawsze
+dwa przełączniki: **„wymagany przy zakupie"** i **„wymagany przy rejestracji na łowisku"**.
+
+**Podgląd szablonu** otwiera się w nowej karcie — możesz tam zaznaczyć fragment dowolnego szablonu
+i skopiować go do swojej wersji (Ctrl+C, Ctrl+V). Szablon regulaminu jest roboczy i czeka na
+weryfikację prawną; szablonu polityki prywatności jeszcze nie ma.
+
 ---
 
 # Część II — Admin (panel administratora)
 
-## 13. Do czego służy panel administratora
+## 15. Do czego służy panel administratora
 
 Panel administratora jest narzędziem **prowadzących portal**, nie operatorów łowisk. Odpowiada za
 trzy rzeczy:
@@ -324,7 +382,7 @@ trzy rzeczy:
 Właściciel łowiska nie ma tu wstępu i nie edytuje niczego z tej listy. Odwrotnie też: administrator
 nie ustawia za niego cen, sezonów ani stanowisk — to należy do panelu właściciela.
 
-## 14. Firmy i łowiska
+## 16. Firmy i łowiska
 
 **Firmy** to podmioty gospodarcze prowadzące łowiska. Dane adresowe da się pobrać automatycznie
 z rejestru GUS po numerze NIP albo REGON, zamiast przepisywać je ręcznie. Numer rachunku bankowego
@@ -333,7 +391,7 @@ jest sprawdzany jako IBAN — błędny nie przejdzie zapisu.
 **Łowiska** to widok wszystkich obiektów w portalu, niezależnie od tego, kto je założył. Służy do
 przeglądu i do interwencji; codzienna konfiguracja obiektu odbywa się po stronie właściciela.
 
-## 15. Słowniki — wspólne dla całego portalu
+## 17. Słowniki — wspólne dla całego portalu
 
 Grupa **Słowniki** w menu zbiera listy, z których korzystają formularze właścicieli. Zasada jest
 jedna i ważna: **słownik jest wspólny dla całego portalu, a właściciel tylko z niego wybiera**.
@@ -355,7 +413,14 @@ wcale. Właściciel nie dostaje żadnego komunikatu i nie ma jak się domyślić
 w ogóle istnieje. Dlatego każdy słownik, który ma być używany, wymaga zestawu startowego wpisanego
 przez administratora.
 
-## 16. Cechy stanowisk
+**Szablony dokumentów.** W grupie „Słowniki" prowadzisz szablony regulaminów i polityk prywatności —
+dowolnie wiele, każdy z typem, nazwą i treścią (na przykład „Regulamin — łowisko karpiowe"). Łowiska
+widzą je wyłącznie do odczytu: wybierają szablon jako punkt wyjścia nowej wersji i oglądają go
+w podglądzie. Typ porządkuje listę i podpowiada, ale nie ogranicza wyboru. Wersja dokumentu dostaje
+**kopię** treści, więc zmiana albo usunięcie szablonu nie rusza dokumentów łowisk. Roboczy szablon
+regulaminu jest oznaczony jako wymagający weryfikacji prawnej.
+
+## 18. Cechy stanowisk
 
 Najmłodsza i najbogatsza pozycja słownikowa. Cecha opisuje **pojedyncze stanowisko**, a nie cały
 obiekt: pomost, zadaszenie, wjazd samochodem, odległość do parkingu, rodzaj dna.
@@ -380,7 +445,7 @@ Dodatkowo:
 - Tylko cecha typu **tak/nie** da się zawiesić wpisem w „Blokadach i ograniczeniach". Zawieszenie
   liczby albo wyboru z listy byłoby nadpisaniem wartości, czyli czymś innym niż czasowe wyłączenie.
 
-## 17. Udogodnienia a cechy stanowisk — gdzie przebiega granica
+## 19. Udogodnienia a cechy stanowisk — gdzie przebiega granica
 
 Oba słowniki opisują „co tu jest", więc łatwo je pomylić. Różni je **przedmiot opisu**:
 
@@ -406,7 +471,7 @@ Gdyby kiedyś przyszła decyzja o połączeniu obu słowników w jeden, kierunek
 udogodnienia stają się cechami na poziomie łowiska, nie odwrotnie. Jest to jednak osobna decyzja
 wymagająca migracji danych, a nie porządek do zrobienia przy okazji.
 
-## 18. Dostępy: użytkownicy i role
+## 20. Dostępy: użytkownicy i role
 
 Grupa **Dostępy** zbiera konta i uprawnienia.
 

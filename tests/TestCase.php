@@ -184,6 +184,15 @@ abstract class TestCase extends BaseTestCase
         'delete:state',
     ];
 
+    private array $documentTemplatePermissions = [
+        'view_any:document_template',
+        'view:document_template',
+        'create:document_template',
+        'update:document_template',
+        'delete:document_template',
+        'delete_any:document_template',
+    ];
+
     private array $userPermissions = [
         'view_any:user',
         'view:user',
@@ -209,6 +218,7 @@ abstract class TestCase extends BaseTestCase
             $this->fishingMethodPermissions,
             $this->statePermissions,
             $this->userPermissions,
+            $this->documentTemplatePermissions,
         );
 
         foreach ($requiredPermissions as $permission) {

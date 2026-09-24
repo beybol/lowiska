@@ -165,7 +165,7 @@ test('właściciel nie otwiera kalendarza cudzego łowiska', function () {
  * uprawnień Shielda, bo dostępu pilnuje `FisheryPolicy` (`autoryzacja.md` §5).
  */
 test('kalendarz nie dokłada polityki ani migracji', function () {
-    expect(count(glob(base_path('app/Policies/*.php'))))->toBe(17)
+    expect(count(glob(base_path('app/Policies/*.php'))))->toBe(18)
         ->and(glob(database_path('migrations/*calendar*')))->toBe([]);
 });
 
