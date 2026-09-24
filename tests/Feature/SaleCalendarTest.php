@@ -5,7 +5,11 @@ namespace Tests\Feature;
 use App\Enums\CalendarWindow;
 use App\Enums\PositionStatus;
 use App\Enums\SaleUnavailabilityReason;
+use App\Models\AdditionalService;
+use App\Models\AvailabilityBlock;
 use App\Models\Position;
+use App\Models\PositionAttribute;
+use App\Models\PositionAttributeValue;
 use App\Models\PriceRule;
 use App\Models\SalePeriod;
 use App\Services\SaleCalendar;
@@ -613,4 +617,83 @@ test('blokada do odwołania nie przerywa przeglądu pozostałych blokad', functi
         ->grid(CarbonImmutable::parse('2026-05-04'), CalendarWindow::Week, nights: 1);
 
     expect(cellOn($grid, '2026-05-07')->blockSelectionLabel)->toBe('Wczesniejsza');
+});
+
+/*
+ * Usługi przy stanowisku — zadanie 020.
+ */
+
+test('wiersz niesie usługi stanowiska, a komórki i „ceny od" ich nie doliczają', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    $boat = AdditionalService::factory()->create([
+        'fishery_id' => $fishery->id, 'name' => 'Lodka', 'is_active' => true, 'price' => '20.00',
+    ]);
+    $position->additionalServices()->attach($boat->id, ['is_required' => true]);
+
+    $grid = (new SaleCalendar($fishery->fresh()))->grid(CarbonImmutable::parse('2026-05-04'), CalendarWindow::Week, nights: 1);
+
+    expect($grid->rows[0]->services)->toHaveCount(1)
+        ->and($grid->rows[0]->services[0]->service->name)->toBe('Lodka')
+        ->and($grid->rows[0]->unavailableServices())->toBe(0)
+        ->and(cellOn($grid, '2026-05-06')->totalInCents)->toBe(7000);
+});
+
+test('niedostępność usługi liczy się w pokazywanym oknie', function () {
+    [$fishery, $position] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    $vehicle = PositionAttribute::factory()->create();
+    $trailer = AdditionalService::factory()->create(['fishery_id' => $fishery->id, 'is_active' => true]);
+    $trailer->requiredAttributes()->attach($vehicle->id);
+    $position->additionalServices()->attach($trailer->id, ['is_required' => false]);
+    PositionAttributeValue::query()->create([
+        'position_id' => $position->id, 'position_attribute_id' => $vehicle->id, 'value_flag' => true,
+    ]);
+    $block = AvailabilityBlock::factory()->suspending($vehicle)->create([
+        'fishery_id' => $fishery->id, 'starts_on' => '2026-06-01', 'ends_on' => '2026-06-30',
+    ]);
+    $block->positions()->attach($position->id);
+
+    $calendar = new SaleCalendar($fishery->fresh());
+
+    expect($calendar->grid(CarbonImmutable::parse('2026-05-04'), CalendarWindow::Week)->rows[0]->unavailableServices())->toBe(0)
+        ->and($calendar->grid(CarbonImmutable::parse('2026-06-01'), CalendarWindow::Week)->rows[0]->unavailableServices())->toBe(1);
+});
+
+/**
+ * ⚠️ Liczba zapytań na render nie rośnie z liczbą usług ani dób (zadanie 020).
+ */
+test('liczba zapytań siatki nie rośnie z liczbą usług ani dób', function () {
+    $measure = function (int $services, CalendarWindow $window, bool $onlyServiceTables): int {
+        [$fishery, $position] = StayFixtures::fisheryWithPosition();
+        StayFixtures::rate($fishery, 70.00);
+        $vehicle = PositionAttribute::factory()->create();
+
+        foreach (range(1, $services) as $i) {
+            $service = AdditionalService::factory()->create(['fishery_id' => $fishery->id, 'is_active' => true]);
+            $service->requiredAttributes()->attach($vehicle->id);
+            $position->additionalServices()->attach($service->id, ['is_required' => false]);
+        }
+
+        $calendar = new SaleCalendar($fishery->fresh());
+        $queries = 0;
+        DB::listen(function ($query) use (&$queries, $onlyServiceTables): void {
+            $serviceTable = str_contains($query->sql, 'additional_service')
+                || str_contains($query->sql, 'position_attribute_values')
+                || str_contains($query->sql, 'availability_blocks');
+
+            if (! $onlyServiceTables || $serviceTable) {
+                $queries++;
+            }
+        });
+
+        $calendar->grid(CarbonImmutable::parse('2026-06-01'), $window);
+
+        return $queries;
+    };
+
+    // Cała siatka: pięć usług kosztuje tyle samo zapytań co jedna.
+    expect($measure(5, CalendarWindow::Week, false))->toBe($measure(1, CalendarWindow::Week, false))
+        // Część usługowa: miesiąc kosztuje tyle samo co tydzień.
+        ->and($measure(3, CalendarWindow::Month, true))->toBe($measure(3, CalendarWindow::Week, true));
 });

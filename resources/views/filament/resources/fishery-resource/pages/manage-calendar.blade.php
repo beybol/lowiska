@@ -129,6 +129,16 @@
                                 <tr style="border-top:1px solid rgba(120,120,120,.2)">
                                     <th style="text-align:left; padding:6px 8px; font-weight:500; white-space:nowrap; position:sticky; left:0; background:inherit">
                                         {{ $row->position->name }}
+                                        @if ($row->services !== [])
+                                            {{-- ⚠️ Plakietka, nie rozwijany wiersz: siatka nie rośnie, a niedostępność
+                                                 widać bez klikania — kolor i dopisek (zadanie 020). Pełna lista
+                                                 w podpowiedzi. Komórki dób usług nie doliczają. --}}
+                                            <span
+                                                data-services-badge
+                                                title="{{ $this->servicesTooltip($row) }}"
+                                                style="display:inline-block; margin-left:6px; padding:1px 6px; border-radius:999px; font-size:11px; font-weight:500; {{ $row->unavailableServices() > 0 ? 'background:rgba(180,83,9,.15); color:#B45309' : 'background:rgba(120,120,120,.15)' }}"
+                                            >{{ $this->servicesBadge($row) }}</span>
+                                        @endif
                                     </th>
 
                                     @if ($row->withdrawn)

@@ -35,8 +35,10 @@ Najwygodniej iść po kolei; każdy krok korzysta z tego, co ustawiłeś wcześn
 9. [Pozwolenia długoterminowe](#11-pozwolenia-długoterminowe) — dodaj sezonówki, jeśli je sprzedajesz.
 10. [Blokady i ograniczenia](#12-blokady-i-ograniczenia) — wracaj tutaj, ilekroć coś wypada z użytku.
 
-Usługi dodatkowe i pozwolenia przypisuje się do konkretnych stanowisk na formularzu stanowiska —
-dlatego po ich wprowadzeniu warto wrócić na chwilę do zakładki „Stanowiska".
+Usługi dodatkowe o zasięgu „wybrane stanowiska" i pozwolenia przypisuje się do konkretnych stanowisk —
+na formularzu stanowiska albo (usługi) działaniem „Przypnij usługę" na liście stanowisk. Dlatego po ich
+wprowadzeniu warto wrócić na chwilę do zakładki „Stanowiska". Usługę dostępną na całym łowisku
+wystarczy dodać.
 
 ## 3. Dane łowiska
 
@@ -194,6 +196,12 @@ długi pobyt. Domyślnie widzisz **„ceny od"** — jeden łowiący i najkróts
 stawka, wszystkie pasujące dopłaty oraz obniżka przedsprzedażowa, jeśli okno przedsprzedaży jest
 akurat otwarte. Właśnie po to ten ekran istnieje: żebyś zobaczył **wynik**, a nie składniki.
 
+**Usługi przy stanowisku.** Obok nazwy stanowiska widzisz plakietkę z liczbą jego usług, na przykład
+„3 usługi". Gdy któraś jest w pokazywanym okresie niedostępna, plakietka zmienia kolor i dostaje
+dopisek „1 niedostępna". Najedź na nią kursorem, żeby zobaczyć listę: nazwę, cenę z jednostką (albo
+„bezpłatna"), czy jest obowiązkowa, liczbę egzemplarzy i — przy niedostępnej — dlaczego i od kiedy, na
+przykład „wjazd pojazdem — ograniczenie od 01.06 do 30.06". Ceny w komórkach usług **nie obejmują**.
+
 **Kalendarz pokazuje też bałagan w cenniku.** Gdy do jednej doby pasuje więcej niż jedna stawka,
 przy kolumnie pojawia się ostrzeżenie z ich liczbą — wygrywa wtedy tańsza. Osobno wypisujemy
 **stawki, które nie wygrywają nigdzie** w swoim okresie: taka stawka jest martwym wpisem, a Ty
@@ -226,15 +234,55 @@ dojeżdża, gdzie stoi szlaban, czym różni się ten fragment łowiska.
 
 Stanowisko może należeć do kilku grup naraz, a grupy nie nadają stanowiskom żadnych właściwości —
 służą do opisu i do szybkiego wskazywania większej liczby miejsc. Z poziomu grupy możesz też ustawić
-cechę wszystkim jej stanowiskom naraz.
+cechę wszystkim jej stanowiskom naraz albo przypiąć czy odpiąć im usługę. Grupa niczego przy tym nie
+zapamiętuje: stanowisko dodane do grupy później tej cechy ani usługi nie dostaje.
 
 ## 10. Usługi dodatkowe
 
-Wszystko, co wędkarz **dokupuje** do pobytu: łódka, prysznic, wypożyczenie sprzętu. Przy każdej usłudze
-podajesz nazwę, opis, cenę, liczbę dostępnych sztuk oraz to, czy usługa jest aktywna.
+Wszystko, co wędkarz **dokupuje** do pobytu: łódka, hamak, postawienie przyczepy, pellet, drewno. Przy
+każdej usłudze podajesz nazwę, opis, cenę, **jednostkę rozliczenia**, liczbę egzemplarzy, **gdzie jest
+dostępna** i to, czy jest aktywna.
 
-Samo dodanie usługi jej nie udostępnia — przypisujesz ją do konkretnych stanowisk na formularzu
-stanowiska, gdzie możesz też oznaczyć, że jest dla danego miejsca obowiązkowa.
+**Jednostka rozliczenia** mówi, jak liczy się cena:
+
+- **za dobę** — cena × liczba dób pobytu × liczba egzemplarzy. Tak rozliczasz wypożyczenia i to,
+  co stoi przez cały pobyt: łódkę, hamak, postawienie przyczepy, wywózkę pontonem;
+- **za pobyt** — cena × liczba egzemplarzy, bez względu na długość pobytu. Tak rozliczasz towar:
+  pellet, lód, drewno.
+
+Opłaty za każde użycie (na przykład prysznic płatny za wejście) nie da się sprzedać z góry, bo wędkarz
+nie wie, ile razy skorzysta — pobierasz ją na miejscu i opisujesz w treści oferty łowiska.
+
+**Usługa może być bezpłatna.** Wpisz cenę 0,00 — w tabeli zobaczysz „bezpłatna". Ma to sens, gdy usługa
+niczego nie kosztuje, ale chcesz wiedzieć, kto z niej korzysta, albo ma ograniczoną liczbę miejsc
+(na przykład postawienie przyczepy).
+
+**Liczba egzemplarzy** to liczba sztuk dostępnych **w każdej dobie**. Łódka wzięta na pobyt jest zajęta
+w każdej jego dobie. Zostaw pole puste, jeśli usługa nie ma limitu — tak zwykle jest z towarem.
+
+**Gdzie usługa jest dostępna** ustawiasz w polu **„Dostępna na"**:
+
+- **całe łowisko** — usługa jest na każdym stanowisku, także na tych, które dodasz później. Taka
+  usługa nie może być obowiązkowa;
+- **wybrane stanowiska** — usługa jest tylko tam, gdzie ją przypniesz: na formularzu stanowiska albo
+  działaniem **Przypnij usługę** (niżej). ⚠️ Dopóki nie przypniesz jej nigdzie, **nie jest dostępna
+  nigdzie** — formularz i lista usług Cię o tym ostrzegą.
+
+⚠️ **Zmiana na „całe łowisko" odpina usługę od wszystkich stanowisk**, razem z oznaczeniem
+„obowiązkowa". Formularz poprosi o potwierdzenie i poda, ilu stanowisk to dotyczy. Jeśli potem wrócisz
+do „wybranych stanowisk", zaczynasz od pustej listy.
+
+**Wymagane cechy stanowiska.** Usługę możesz powiązać z cechami typu „tak/nie" — na przykład przyczepę
+z „wjazdem pojazdem". Usługa jest wtedy niedostępna na stanowisku, któremu tej cechy brakuje: jest
+ustawiona na „nie", **nie jest w ogóle wypełniona** albo ograniczenie ją zawiesza. W tym ostatnim
+przypadku usługa znika tylko na czas ograniczenia. Nieaktywna usługa nie jest dostępna nigdzie, ale
+jej ustawienia i przypięcia zostają.
+
+**Przypnij usługę / Odepnij usługę.** Zaznacz stanowiska na liście i wybierz usługę — zostanie
+przypięta do każdego z nich (możesz od razu oznaczyć ją jako obowiązkową) albo od nich odpięta. Inne
+usługi tych stanowisk zostają bez zmian. To samo działanie znajdziesz przy każdej grupie stanowisk —
+obejmuje wtedy stanowiska należące do grupy w chwili kliknięcia. Po przypięciu zobaczysz ostrzeżenie,
+jeśli na części stanowisk brakuje wymaganej cechy.
 
 ## 11. Pozwolenia długoterminowe
 

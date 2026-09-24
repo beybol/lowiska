@@ -105,6 +105,9 @@ class ManagePositionGroups extends ManageRelatedRecords
                     ->url(fn (PositionGroup $record): string => PositionGroupResource::getUrl('edit', [
                         'record' => $record,
                     ])),
+                // Skróty akcji zbiorczych z tabeli stanowisk — modal niczego tu nie omija: zapis
+                // idzie przez tę samą bramkę co z tabeli stanowisk (zadanie 020).
+                ...PositionGroupResource::serviceShortcutActions(),
             ]);
     }
 }

@@ -84,7 +84,8 @@ class ManageAdditionalServices extends ManageRelatedRecords
             // ⚠️ Strona jedzie po relacji `ownerRecord`, więc NIE przechodzi przez
             // `getEloquentQuery()` zasobu i nie dziedziczy stamtąd eager-loadu. Bez tego
             // `visible()` akcji pyta politykę per wiersz, a ta sięga po `$record->fishery`.
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('fishery'))
+            // Waluta i licznik przypięć — kolumny ceny i zasięgu czytają je na każdym wierszu.
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('fishery.currency')->withCount('positions'))
             ->headerActions([
                 Action::make('create')
                     ->label(__('Create'))

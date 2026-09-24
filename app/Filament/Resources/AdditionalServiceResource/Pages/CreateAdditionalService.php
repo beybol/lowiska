@@ -4,6 +4,8 @@ namespace App\Filament\Resources\AdditionalServiceResource\Pages;
 
 use App\Filament\Resources\AdditionalServiceResource;
 use App\Filament\Resources\FisheryResource\Pages\ManageAdditionalServices;
+use App\Models\AdditionalService;
+use App\Services\AdditionalServiceSync;
 use App\Services\FisheryAccess;
 use App\Services\FisheryNavigation;
 use Filament\Resources\Pages\CreateRecord;
@@ -18,9 +20,27 @@ class CreateAdditionalService extends CreateRecord
         parent::mount();
     }
 
+    /**
+     * Wymagane cechy nie są kolumną — zapisuje je bramka po utworzeniu rekordu, w tym samym
+     * żądaniu (dlatego wystarcza właściwość chroniona).
+     *
+     * @var array<int, mixed>
+     */
+    protected array $requiredAttributeIds = [];
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $this->requiredAttributeIds = (array) ($data['required_attribute_ids'] ?? []);
+        unset($data['required_attribute_ids']);
+
         return FisheryAccess::forceVerifiedFishery($data);
+    }
+
+    protected function afterCreate(): void
+    {
+        if ($this->record instanceof AdditionalService) {
+            AdditionalServiceSync::syncRequiredAttributes($this->record, $this->requiredAttributeIds);
+        }
     }
 
     public function getTitle(): string

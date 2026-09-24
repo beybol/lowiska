@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `app/Filament/Owner/**`,
 `app/Providers/Filament/OwnerPanelProvider.php` oraz w zasobach współdzielonych,
 gdy dotykasz ich zachowania **w panelu właściciela**.
 
-Zadania źródłowe: 012, 013, 014, 015, 016. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
+Zadania źródłowe: 012, 013, 014, 015, 016, 019, 020. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
 i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 
 ---
@@ -119,6 +119,20 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
   z modelu formularza — pola firmy renderowane wewnątrz kreatora łowiska sprawdzałyby
   unikalność w tabeli `fisheries`. Stąd `->unique(table: Company::class, …)`
   w `CompanyResource::formComponents()`.
+
+### Formularz usługi dodatkowej (zadanie 020)
+
+- **Jednostka rozliczenia to `ToggleButtons`** (za dobę / za pobyt), spójnie z wyborem dób.
+  Cena przez `getPriceInput()` z minimum **0,00**; tabela pokazuje cenę z jednostką albo „bezpłatna".
+- **Pole „Dostępna na"** (całe łowisko / wybrane stanowiska). Przy „wybranych" bez przypięć formularz
+  i lista pokazują ostrzeżenie „dostępna nigdzie". ⚠️ Zmiana na „całe łowisko" przy istniejących
+  przypięciach wymaga **zaznaczenia zgody z liczbą przypięć, które znikną** — bez niej zapis nie
+  przechodzi; samo odpięcie robi hak modelu.
+- **Wymagane cechy** — `Select` wielokrotny z wyłącznie flagami, zapisywany przez bramkę
+  `AdditionalServiceSync::syncRequiredAttributes()` wołaną ze stron `Create*`/`Edit*`, **nie**
+  `->relationship()`: bramka przepuszcza tylko flagi, zachowuje wymóg cechy usuniętej miękko
+  i zapisuje zmianę w dzienniku (relacja wiele-do-wielu nie przechodzi przez `LogsActivity`).
+- Repeater usług w formularzu stanowiska oferuje wyłącznie usługi „wybrane stanowiska".
 
 ## 4. Skrypty w widokach Filamenta
 
@@ -314,6 +328,15 @@ Tutaj zostaje wyłącznie to, co dotyczy ekranów panelu:
   wypełnionym stanowiskami grupy — jeden schemat pól, jedna metoda zapisu, dwa wejścia.
   ⚠️ Nie dorabiaj wariantu „ustaw wszystkim" bez wskazania wartości: to dziedziczenie tylnymi
   drzwiami, tylko niewidoczne.
+- **Usługę przypina się do stanowisk AKCJĄ ZBIORCZĄ, nie przez grupę** — „Przypnij usługę"
+  i „Odepnij usługę" (zadanie 020), ten sam prymityw co „Ustaw cechę": dwa wejścia (zaznaczenie
+  w tabeli stanowisk i skrót z poziomu grupy — także na stronie grup łowiska), jeden schemat pól
+  i jeden kod zapisu. Przypięcie ląduje **wprost** na każdym stanowisku jako **dopisanie**, nie
+  `sync()` całej listy — inne przypięcia zostają, a istniejące dostaje nową wartość `is_required`.
+  Po przypięciu akcja ostrzega, na ilu stanowiskach usługa jest martwa przez brak wymaganej cechy.
+  ⚠️ Przypisania usługi do grupy nie ma i mieć nie ma — działałoby jak dziedziczenie (F5, O11).
+  Jawna autoryzacja: `update` na każdym stanowisku i na usłudze (bramka `AdditionalServiceSync`),
+  a skrót z grupy dodatkowo `update` na grupie.
 - **Dziennik zmian dostaje N wpisów, po jednym na stanowisko.** Wpis opisuje zmianę atrybutów
   jednego rekordu i ten niezmiennik zostaje — pytanie „co się działo z TYM stanowiskiem" jest
   zadawane najczęściej.
@@ -344,6 +367,19 @@ Sub-nawigacja łowiska niesie dziś dwa rodzaje ekranów i warto je odróżniać
 `StaySellability`, `PositionAvailability` ani wyceny wprost — inaczej stałby się drugim miejscem
 składania odpowiedzi, czyli dokładnie tym, czego zakazują ADR-013 i ADR-015. Ta sama zasada
 obowiązuje każdy przyszły ekran podglądowy.
+
+⚠️ **Jedyny wyjątek: lista usług przy stanowisku** (zadanie 020). Reguła dotyczy **komórek** —
+sprzedawalności i ceny pobytu. Lista usług jest odczytem konfiguracji, nie ofertą, więc pochodzi
+z [`PositionServices`](../../app/Services/PositionServices.php) ([`dostepnosc.md`](dostepnosc.md) §5):
+- przy nazwie stanowiska **plakietka** z liczbą usług („3 usługi"), a przy usłudze niedostępnej
+  w pokazywanym oknie — **kolor ostrzegawczy i dopisek** („3 usługi · 1 niedostępna"), bo tę
+  informację ma być widać bez klikania; stanowisko bez usług plakietki nie dostaje;
+- **pełna lista w podpowiedzi**: nazwa, cena podstawowa z jednostką albo „bezpłatna", „obowiązkowa",
+  limit egzemplarzy informacyjnie, a dla niedostępnej — przyczyna i daty ograniczenia; kolejność:
+  obowiązkowe, potem alfabetycznie;
+- ⚠️ **siatka nie rośnie i komórki się nie zmieniają** — „ceny od" nie doliczają usług, a kalendarz
+  nie pokazuje wolnych egzemplarzy („X z N") ani kwot zależnych od liczby dób czy osób. Dokładne
+  wyliczenia należą do modułu zakładania rezerwacji. Liczba zapytań nie rośnie z liczbą usług ani dób.
 
 ⚠️ **Ekran podglądowy nie buforuje werdyktu** ([`dostepnosc.md`](dostepnosc.md) §2). Wolno wyłącznie
 to, co buforem nie jest: jedna instancja warstwy oferty na stanowisko, jedno wczytanie cennika

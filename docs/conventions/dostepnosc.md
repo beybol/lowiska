@@ -2,6 +2,7 @@
 
 Obowiązuje przy zmianach w `app/Services/FishingDay*.php`, `app/Services/PositionAvailability.php`,
 `app/Services/AvailabilityBlockSelectionResolver.php`, `app/Services/StaySellability*.php`,
+`app/Services/PositionServices.php`,
 modelach `SalePeriod`, `AvailabilityBlock` i `WholeTermPeriod` oraz w **każdym miejscu, które pyta,
 czy dobę albo pobyt można sprzedać** — w panelu, w portalu wędkarza, w cenniku i w kalendarzu.
 
@@ -9,7 +10,7 @@ czy dobę albo pobyt można sprzedać** — w panelu, w portalu wędkarza, w cen
 portal, sprzedaż wpisywaną ręcznie i zadania 017–019. Dlatego mieszkają osobno, a nie w pliku
 o panelu właściciela.
 
-Zadania źródłowe: 015, 016, 017. Uzasadnienia w
+Zadania źródłowe: 015, 016, 017, 020. Uzasadnienia w
 [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md),
 [ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md)
 i [ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md).
@@ -159,6 +160,7 @@ Zadanie źródłowe: 017. Uzasadnienie i odrzucone warianty:
   | ciąg dób kupowany razem | `StaySellability` |
   | **ile ten pobyt kosztuje** | `StayPricing` ([`cennik.md`](cennik.md)) |
   | **czy pobyt jest w ofercie** | `StayOffer` ([`cennik.md`](cennik.md) §5) |
+  | **jakie usługi ma stanowisko** | `PositionServices` (§5) |
 
   ⚠️ **`StaySellability` NIE jest już bezpośrednim wejściem dla cennika, kalendarza ani portalu** —
   zostaje jedynym źródłem prawdy o **sprzedawalności pobytu**, a wołającym jest warstwa oferty
@@ -298,3 +300,43 @@ daty po swojemu (§1).
   zlanych świadomie nie ma.
 - **Zmiana reguł obowiązuje od daty zapisu i nie rusza tego, co sprzedane.** Ponieważ nic nie jest
   zmaterializowane, nie ma „otwartych tygodni" do migrowania.
+
+---
+
+## 5. Usługi dodatkowe na stanowisku
+
+Zadanie źródłowe: 020. Jednostka rozliczenia i cena usług: [`cennik.md`](cennik.md) §7.
+
+- ⚠️ **Na pytanie „jakie usługi ma to stanowisko w dobie (albo ciągu dób) i czy każda jest dostępna
+  — a jeśli nie, to dlaczego" odpowiada WYŁĄCZNIE [`PositionServices`](../../app/Services/PositionServices.php).**
+  Składa: `is_active` usługi, **zasięg**, przypięcia z `is_required` i **wymagane cechy**. Doby bierze
+  z `FishingDayCalendar`, a wpisy zawieszające cechy z `PositionAvailability::attributeSuspensions()`
+  — **nie pyta o blokady sama**, bo reguła przecięcia wpisu z dobą ma jeden dom (§2, §3).
+  To przyszłe wejście modułu rezerwacji; warstwa oferty jeszcze z niego nie korzysta.
+- **Niedostępna usługa nie jest odmową sprzedaży** stanowiska ani pobytu — ma własny powód
+  (`ServiceUnavailabilityReason`), nie dokłada wartości do `SaleUnavailabilityReason`.
+- **Zasięg jest JAWNYM polem** (`ServiceScope`): **całe łowisko** obejmuje każde stanowisko, także
+  dodane później; **wybrane stanowiska** czyta przypięcia z `additional_service_position`.
+  - ⚠️ **„Wybrane stanowiska" bez przypięć = dostępna NIGDZIE**, z ostrzeżeniem w formularzu i na
+    liście. Odpięcie ostatniego stanowiska nie zmienia usługi po cichu w ogólnołowiskową.
+  - ⚠️ **Usługa ogólnołowiskowa nie ma przypięć, więc nie bywa obowiązkowa** (`is_required` żyje na
+    przypięciu). Zmiana zasięgu na „całe łowisko" **usuwa przypięcia** — robi to hak modelu
+    `AdditionalService`, więc obowiązuje także z pominięciem formularza; ślad trafia do dziennika
+    zmian. Powrót na „wybrane" zaczyna od pustej listy.
+  - Przypiąć da się **wyłącznie usługę „wybrane stanowiska"** — pilnuje tego `AdditionalServiceSync`
+    w każdym wejściu zapisu (repeater stanowiska, akcje „Przypnij"/„Odepnij"), nie lista opcji.
+- **Wymagane cechy to wyłącznie FLAGI** (`additional_service_required_attribute`). Usługa jest na
+  stanowisku niedostępna, gdy brakuje **którejkolwiek**:
+  - wartość „nie" **albo brak wartości** — ⚠️ trzeci stan liczy się tu jako brak (odwrotnie niż
+    w filtrowaniu, gdzie nie bierze udziału): bezpieczniej nie sprzedać przyczepy tam, gdzie nikt
+    nie potwierdził wjazdu;
+  - **zawieszenie** cechy ograniczeniem w danej dobie — przyczyna niesie wpis, czyli powód i daty.
+  - ⚠️ **Wymóg cechy usuniętej miękko ze słownika jest POMIJANY** (globalny zakres `SoftDeletes`
+    w relacji), a wiersz pośredni **zostaje** — zapis usługi go nie kasuje, więc `restore()` cechy
+    przywraca wymóg. Bramka zapisu przepuszcza wyłącznie istniejące flagi.
+- **`available_count` to liczba egzemplarzy dostępnych w KAŻDEJ dobie**; egzemplarz wzięty do pobytu
+  jest zajęty w każdej jego dobie, przy obu jednostkach. `null` = bez limitu. Przełącznika „limit
+  globalny" nie ma i mieć nie ma — pula globalna nie odpowiada na pytanie „czy w tę dobę jest wolna
+  łódka". Odliczanie sprzedanych egzemplarzy powstaje z modelem rezerwacji.
+- **Usługi, przypięcia i wartości cech wczytuje się RAZ na instancję**, dla wszystkich stanowisk
+  łowiska — to odczyt w obrębie jednego pytania, nie bufor werdyktu (§2).

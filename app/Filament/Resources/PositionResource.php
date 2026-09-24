@@ -13,8 +13,10 @@ use App\Models\Position;
 use App\Models\PositionAttribute;
 use App\Models\PositionGroup;
 use App\Rules\RecordsBelongToFishery;
+use App\Services\AdditionalServiceSync;
 use App\Services\FisheryAccess;
 use App\Services\PositionAttributeWriter;
+use App\Services\PositionServices;
 use App\Services\SharedFormComponents;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -27,6 +29,7 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -191,8 +194,11 @@ class PositionResource extends Resource
 
                                 // ⚠️ Jak wyżej — bez zawężenia lista pokazywała nazwy
                                 // usług cudzego łowiska.
+                                // ⚠️ Wyłącznie usługi „wybrane stanowiska" — ogólnołowiskowej nie da się
+                                // przypiąć (zadanie 020). Zapis pilnuje tego sam, niezależnie od listy.
                                 $query = AdditionalService::forFishery($fisheryId)
-                                    ->isActive();
+                                    ->isActive()
+                                    ->pinnable();
                                 FisheryAccess::scopeToOwnedFisheries($query);
 
                                 return $query->pluck('name', 'id')->toArray();
@@ -288,6 +294,8 @@ class PositionResource extends Resource
             ->toolbarActions([
                 BulkActionGroup::make([
                     static::setAttributeBulkAction(),
+                    static::pinServiceBulkAction(),
+                    static::unpinServiceBulkAction(),
                     DeleteBulkAction::make(),
                 ]),
             ]);
@@ -401,6 +409,174 @@ class PositionResource extends Resource
             ->send();
 
         return $count;
+    }
+
+    /**
+     * Akcja zbiorcza „Przypnij usługę" — przypięcie WPROST na każdym zaznaczonym stanowisku,
+     * zamiast przypisania usługi do grupy (F5, O11: grupa niczego nie przekazuje stanowiskom).
+     * Ten sam prymityw co „Ustaw cechę": zaznaczenie liczy się w chwili wykonania, a akcja
+     * z poziomu grupy jest skrótem do tego samego kodu (zadanie 020).
+     */
+    public static function pinServiceBulkAction(): BulkAction
+    {
+        return BulkAction::make('pinAdditionalService')
+            ->label(__('Pin a service'))
+            ->icon('heroicon-m-link')
+            ->schema(fn (mixed $livewire): array => static::serviceAssignmentSchema(self::fisheryIdOf($livewire), withRequired: true))
+            ->requiresConfirmation()
+            ->modalDescription(fn (Collection $records): string => trans_choice(
+                'The service will be pinned to :count position|The service will be pinned to :count positions',
+                $records->count(),
+                ['count' => $records->count()],
+            ))
+            ->action(fn (Collection $records, array $data) => static::applyServicePin($records, $data))
+            ->deselectRecordsAfterCompletion();
+    }
+
+    /**
+     * Akcja zbiorcza „Odepnij usługę" — ten sam schemat wejść i ta sama bramka co przypięcie.
+     */
+    public static function unpinServiceBulkAction(): BulkAction
+    {
+        return BulkAction::make('unpinAdditionalService')
+            ->label(__('Unpin a service'))
+            ->icon('heroicon-m-link-slash')
+            ->schema(fn (mixed $livewire): array => static::serviceAssignmentSchema(self::fisheryIdOf($livewire), withRequired: false))
+            ->requiresConfirmation()
+            ->modalDescription(fn (Collection $records): string => trans_choice(
+                'The service will be unpinned from :count position|The service will be unpinned from :count positions',
+                $records->count(),
+                ['count' => $records->count()],
+            ))
+            ->action(fn (Collection $records, array $data) => static::applyServiceUnpin($records, $data))
+            ->deselectRecordsAfterCompletion();
+    }
+
+    /**
+     * Pola akcji przypięcia i odpięcia — WSPÓLNE dla tabeli stanowisk i poziomu grupy.
+     *
+     * ⚠️ Lista opcji zawiera wyłącznie usługi „wybrane stanowiska" łowiska bieżącego operatora,
+     * ale nie jest walidacją — o zapisie rozstrzyga bramka `AdditionalServiceSync`.
+     *
+     * @return array<int, mixed>
+     */
+    public static function serviceAssignmentSchema(mixed $fisheryId, bool $withRequired): array
+    {
+        $fields = [
+            Select::make('additional_service_id')
+                ->label(__('Additional service'))
+                ->options(function () use ($fisheryId): array {
+                    if (! is_numeric($fisheryId)) {
+                        return [];
+                    }
+
+                    $query = AdditionalService::forFishery((int) $fisheryId)->pinnable()->orderBy('name');
+                    FisheryAccess::scopeToOwnedFisheries($query);
+
+                    return $query->pluck('name', 'id')->toArray();
+                })
+                ->required(),
+        ];
+
+        if ($withRequired) {
+            $fields[] = Checkbox::make('is_required')
+                ->label(__('Is required'));
+        }
+
+        return $fields;
+    }
+
+    /**
+     * @param  iterable<int, mixed>  $positions  rekordy tabeli albo stanowiska grupy
+     * @param  array<string, mixed>  $data
+     */
+    public static function applyServicePin(iterable $positions, array $data): int
+    {
+        $pinned = AdditionalServiceSync::pin(
+            $data['additional_service_id'] ?? null,
+            self::positionsFrom($positions),
+            (bool) ($data['is_required'] ?? false),
+        );
+
+        if ($pinned === []) {
+            Notification::make()
+                ->danger()
+                ->title(__('The service was not pinned'))
+                ->send();
+
+            return 0;
+        }
+
+        $service = AdditionalService::query()->findOrFail($data['additional_service_id']);
+        $lacking = PositionServices::countLackingRequiredAttributes($service, $pinned);
+
+        $notification = Notification::make()
+            ->title(trans_choice(
+                'The service was pinned to :count position|The service was pinned to :count positions',
+                count($pinned),
+                ['count' => count($pinned)],
+            ));
+
+        // ⚠️ Ostrzeżenie bez ograniczeń czasowych — te pokazuje kalendarz. Tu chodzi o
+        // stanowiska, na których usługa jest martwa zawsze: brakuje im wymaganej cechy.
+        if ($lacking > 0) {
+            $notification->warning()->body(trans_choice(
+                'It is unavailable on :count of them, because a required attribute is missing.|It is unavailable on :count of them, because a required attribute is missing.',
+                $lacking,
+                ['count' => $lacking],
+            ));
+        } else {
+            $notification->success();
+        }
+
+        $notification->send();
+
+        return count($pinned);
+    }
+
+    /**
+     * @param  iterable<int, mixed>  $positions  rekordy tabeli albo stanowiska grupy
+     * @param  array<string, mixed>  $data
+     */
+    public static function applyServiceUnpin(iterable $positions, array $data): int
+    {
+        $removed = AdditionalServiceSync::unpin($data['additional_service_id'] ?? null, self::positionsFrom($positions));
+
+        Notification::make()
+            ->success()
+            ->title(trans_choice(
+                'The service was unpinned from :count position|The service was unpinned from :count positions',
+                $removed,
+                ['count' => $removed],
+            ))
+            ->send();
+
+        return $removed;
+    }
+
+    /**
+     * @param  iterable<int, mixed>  $records
+     * @return array<int, Position>
+     */
+    private static function positionsFrom(iterable $records): array
+    {
+        return array_values(array_filter(
+            is_array($records) ? $records : iterator_to_array($records, false),
+            fn (mixed $record): bool => $record instanceof Position,
+        ));
+    }
+
+    /**
+     * Łowisko tabeli, na której wywołano akcję: strona sekcji łowiska niesie je jako rekord
+     * nadrzędny, samodzielna lista — jako parametr `?fishery=` sprawdzony w `mount()`.
+     */
+    private static function fisheryIdOf(mixed $livewire): mixed
+    {
+        if ($livewire instanceof ManageRelatedRecords) {
+            return $livewire->getOwnerRecord()->getKey();
+        }
+
+        return is_object($livewire) && property_exists($livewire, 'fisheryId') ? $livewire->fisheryId : null;
     }
 
     private static function attributeTypeOf(mixed $attributeId): ?PositionAttributeType

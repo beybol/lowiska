@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w `app/Filament/Resources/**`,
 `app/Providers/Filament/AdminPanelProvider.php`.
 
-Zadania źródłowe: 005, 009, 011, 013, 014, 022. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
+Zadania źródłowe: 005, 009, 011, 013, 014, 020, 022. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
 
 ---
 
@@ -270,3 +270,18 @@ Uzasadnienie kształtu wartości: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech
   podrzucenia klucza `localStorage` przed startem Alpine — czyli kodu opartego na szczególe
   implementacyjnym `$persist`, dokładnie tej klasy, która wywróciła podgląd mapy
   ([`panel-wlasciciela.md`](panel-wlasciciela.md) §4). Nie wprowadzaj tego bez świadomej decyzji.
+
+---
+
+## 7. Usługi dodatkowe — formularz wspólny dla obu paneli
+
+- **`AdditionalServiceResource` jest jedną klasą dla obu paneli** (§4), więc pola z zadania 020 —
+  jednostka rozliczenia, zasięg „Dostępna na", wymagane cechy stanowiska i cena od **0,00** —
+  administrator i właściciel widzą identycznie. Reguły tych pól: [`panel-wlasciciela.md`](panel-wlasciciela.md) §3
+  („Formularz usługi dodatkowej"), znaczenie — [`dostepnosc.md`](dostepnosc.md) §5
+  i [`cennik.md`](cennik.md) §7.
+- ⚠️ **Tabela usług czyta walutę łowiska i licznik przypięć na każdym wierszu** — `getEloquentQuery()`
+  dokłada `with('fishery.currency')->withCount('positions')`, a strona sekcji łowiska to samo
+  w `modifyQueryUsing()` (nie dziedziczy zapytania zasobu, [`panel-wlasciciela.md`](panel-wlasciciela.md) §2).
+- **Wymagane cechy wybiera się ze słownika wspólnego** (§5) — bez zawężenia do łowiska, bo cechy
+  go nie mają; zawężenie dotyczy wyłącznie flag.

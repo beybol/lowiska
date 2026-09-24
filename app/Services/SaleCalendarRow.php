@@ -16,23 +16,38 @@ final readonly class SaleCalendarRow
 {
     /**
      * @param  array<int, SaleCalendarCell>  $cells  puste, gdy stanowisko jest wycofane
+     * @param  array<int, PositionServiceStatus>  $services  usługi stanowiska w pokazywanym oknie
      */
     private function __construct(
         public Position $position,
         public array $cells,
         public bool $withdrawn,
+        public array $services,
     ) {}
 
     /**
      * @param  array<int, SaleCalendarCell>  $cells
+     * @param  array<int, PositionServiceStatus>  $services
      */
-    public static function of(Position $position, array $cells): self
+    public static function of(Position $position, array $cells, array $services = []): self
     {
-        return new self($position, $cells, false);
+        return new self($position, $cells, false, $services);
     }
 
-    public static function withdrawn(Position $position): self
+    /**
+     * @param  array<int, PositionServiceStatus>  $services
+     */
+    public static function withdrawn(Position $position, array $services = []): self
     {
-        return new self($position, [], true);
+        return new self($position, [], true, $services);
+    }
+
+    /** Ile usług stanowiska jest w pokazywanym oknie niedostępnych — kolor plakietki. */
+    public function unavailableServices(): int
+    {
+        return count(array_filter(
+            $this->services,
+            static fn (PositionServiceStatus $status): bool => ! $status->isAvailable(),
+        ));
     }
 }

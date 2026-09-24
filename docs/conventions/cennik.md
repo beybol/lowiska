@@ -3,13 +3,14 @@
 Obowiązuje przy zmianach w `app/Services/StayPricing.php`, `app/Services/PriceRuleResolver.php`,
 `app/Services/PriceRulePeriods.php`, `app/Services/StayOffer.php`,
 `app/Services/PricingConfigurationAudit.php`, modelu `PriceRule`, regułach cenowych
-w `app/Rules/` oraz w **każdym miejscu, które pyta, ile kosztuje doba albo pobyt**.
+w `app/Rules/`, jednostce rozliczenia usług dodatkowych (`ServiceBillingUnit`) oraz w **każdym
+miejscu, które pyta, ile kosztuje doba albo pobyt**.
 
 ⚠️ Ten plik odpowiada na pytanie **„ile to kosztuje"**. Na pytanie **„czy wolno sprzedać"**
 odpowiada [`dostepnosc.md`](dostepnosc.md) — inna oś, osobny plik. Obie warstwy dzielą enum
 powodów odmowy i pojęcie doby, ale nie znają siebie nawzajem; składa je warstwa oferty (§5).
 
-Zadanie źródłowe: 018. Uzasadnienia w
+Zadania źródłowe: 018, 020. Uzasadnienia w
 [ADR-014](../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md)
 i [ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md).
 
@@ -99,8 +100,8 @@ Dla jednej doby:
 
 - **Cena osoby towarzyszącej to KOLUMNA `amount_companion` na stawce**, nie osobna reguła. Nie
   dorabiaj dla niej gałęzi ani konkurencyjnego wpisu.
-  ⚠️ Pole kwoty dopuszcza **0,00**, inaczej niż przy usługach dodatkowych — i to jest powód, dla
-  którego minimum jest parametrem `SharedFormComponents::getPriceInput()`.
+  ⚠️ Pole kwoty dopuszcza **0,00** — minimum jest parametrem `SharedFormComponents::getPriceInput()`,
+  bo należy do kontekstu, nie do komponentu. Tak samo cena usługi dodatkowej (§7).
 - ⚠️ **`amount_companion = null` znaczy BRAK CENY, nie cenę zerową.** Zapytanie z osobą
   towarzyszącą dostaje wtedy odmowę `NoCompanionPrice` — **osobną** od `NoPriceDefined`, bo obie
   każą operatorowi zrobić co innego: tam dopisać stawkę, tu poprawić jedno pole w istniejącej.
@@ -233,3 +234,29 @@ reguła walidacji potrafi tylko odrzucić zapis.
   `PricingConfigurationAudit::deadRates()` — dla kalendarza, nie dla formularza. Kalendarz opisuje
   każdą nazwą (gdy jest), kwotą z walutą łowiska i zakresem dat, żeby operator trafił do właściwego
   wiersza cennika.
+
+---
+
+## 7. Usługi dodatkowe: jednostka rozliczenia i cena
+
+Zadanie źródłowe: 020. Dostępność usługi na stanowisku opisuje [`dostepnosc.md`](dostepnosc.md) §5.
+
+- **Usługa ma WYMAGANĄ jednostkę rozliczenia z dwóch wartości** (`ServiceBillingUnit`), a obie
+  mnożą się przez **liczbę egzemplarzy** wybraną przez wędkarza (policzalne — „liczba", nie „ilość"):
+
+  | Jednostka | Rachunek | Przykłady |
+  |---|---|---|
+  | **za dobę** (`per_night`) | cena × liczba dób pobytu × liczba | łódka, hamak, postawienie przyczepy, wywózka pontonem |
+  | **za pobyt** (`per_stay`) | cena × liczba | pellet, lód, drewno |
+
+- ⚠️ **„Za sztukę" i „za wejście" nie istnieją i nie mają wracać.** „Za sztukę" to jedna z dwóch
+  jednostek razy liczba. Opłaty za każde użycie (prysznic płacony za wejście) nie da się sprzedać
+  z góry, bo wędkarz nie zna liczby wejść — zostaje **na miejscu** i opisuje ją treść oferty łowiska.
+- ⚠️ **Egzemplarz usługi „za dobę" zajmuje WSZYSTKIE doby pobytu** — nie ma wyboru części dób.
+- **Rachunek z tabeli jest regułą jednostki**; kod liczący kwotę usługi dla pobytu powstaje razem
+  z modułem zakładania rezerwacji, jego pierwszym odbiorcą. Warstwa oferty i „ceny od" w kalendarzu
+  usług **nie doliczają**, a obniżka przedsprzedażowa ich nie obejmuje (§4).
+- **Cena usługi może wynosić 0,00** — usługa darmowa („postawienie przyczepy") nadal niesie
+  deklarację wędkarza i limit egzemplarzy. Pokazuje się jako **„bezpłatna"**, nie „0,00 zł / doba".
+- **Cenę z jednostką jako tekst składa `AdditionalService::priceLabel()`** („20,00 zł / doba") —
+  jeden dom dla tabeli usług i kalendarza; kwotę formatuje `AmountFormatter`.

@@ -10,9 +10,11 @@ use App\Models\PriceRule;
 use App\Models\SalePeriod;
 use App\Services\AmountFormatter;
 use App\Services\FisheryNavigation;
+use App\Services\PositionServiceProblem;
 use App\Services\SaleCalendar;
 use App\Services\SaleCalendarCell;
 use App\Services\SaleCalendarGrid;
+use App\Services\SaleCalendarRow;
 use Carbon\CarbonImmutable;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
@@ -228,7 +230,66 @@ class ManageCalendar extends Page
     }
 
     /**
-     * Wpis listy martwych stawek: „[Cennik 2026 — ]90,00 PLN · 2026-07-01–2026-08-31".
+     * Plakietka przy nazwie stanowiska: „3 usługi", a przy niedostępnej „3 usługi · 1 niedostępna".
+     *
+     * ⚠️ Najważniejsza informacja — że coś jest niedostępne — ma być widoczna BEZ klikania, więc
+     * dopisek siedzi w samej plakietce, a nie tylko w podpowiedzi (zadanie 020).
+     */
+    public function servicesBadge(SaleCalendarRow $row): string
+    {
+        $count = count($row->services);
+        $text = trans_choice(':count service|:count services', $count, ['count' => $count]);
+        $unavailable = $row->unavailableServices();
+
+        if ($unavailable > 0) {
+            $text .= ' · '.trans_choice(':count unavailable|:count unavailable', $unavailable, ['count' => $unavailable]);
+        }
+
+        return $text;
+    }
+
+    /**
+     * Pełna lista usług stanowiska w podpowiedzi plakietki — w kolejności z `PositionServices`
+     * (obowiązkowe, potem alfabetycznie): nazwa, cena podstawowa z jednostką albo „bezpłatna",
+     * „obowiązkowa", limit egzemplarzy informacyjnie, a dla niedostępnej — przyczyna i daty.
+     *
+     * ⚠️ Kalendarz pokazuje OBRAZ KONFIGURACJI, nie liczy rachunku: bez kwot zależnych od liczby
+     * dób czy osób i bez wolnych egzemplarzy („X z N") — to należy do modułu rezerwacji.
+     */
+    public function servicesTooltip(SaleCalendarRow $row): string
+    {
+        $currency = $this->fishery()->currency?->name;
+        $lines = [];
+
+        foreach ($row->services as $status) {
+            $service = $status->service;
+            $parts = [$service->name, $service->priceLabel($currency)];
+
+            if ($status->isRequired) {
+                $parts[] = __('required');
+            }
+
+            if ($service->available_count !== null) {
+                $parts[] = __(':count pcs', ['count' => $service->available_count]);
+            }
+
+            $line = implode(' · ', $parts);
+
+            if (! $status->isAvailable()) {
+                $line .= ' — '.__('unavailable').': '.implode('; ', array_map(
+                    static fn (PositionServiceProblem $problem): string => $problem->description(),
+                    $status->problems,
+                ));
+            }
+
+            $lines[] = $line;
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Wpis listy martwych stawek:„[Cennik 2026 — ]90,00 PLN · 2026-07-01–2026-08-31".
      *
      * ⚠️ **Kwota bez kontekstu nie wystarcza** — stawka nie musi mieć nazwy, więc operator ma
      * trafić do właściwego wiersza cennika po kwocie I zakresie dat (zadanie 023, poz. 4).

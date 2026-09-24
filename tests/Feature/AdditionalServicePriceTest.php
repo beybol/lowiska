@@ -12,6 +12,7 @@ use App\Services\SharedFormComponents;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
+use Tests\Support\PriceInputForm;
 
 /**
  * Regresja dla zadania 012: zapis usługi dodatkowej kończył się błędem 500
@@ -94,20 +95,32 @@ test('a price with a decimal comma is accepted and stored with its decimal part'
     expect(rawPrice('Wypożyczenie łódki'))->toBe('49.50');
 });
 
-test('a price below the minimum is rejected by the closure rule', function () {
+/**
+ * ⚠️ Od zadania 020 usługa może być darmowa (O21, „postawienie przyczepy") — pole ceny usługi ma
+ * minimum 0,00. Reguła-domknięcie nadal BIEGNIE przy zapisie (to był błąd z zadania 012), tylko
+ * zero jej nie łamie. Samo minimum jako kontrakt komponentu pilnuje `PriceInputForm` niżej.
+ */
+test('a free additional service at 0,00 passes the closure rule', function () {
     $fishery = priceTestFishery();
 
-    // Ta asercja dowodzi, że reguła-domknięcie naprawdę DZIAŁA, a nie tylko
-    // przestała wywalać wyjątek.
     Livewire::withQueryParams(['fishery' => $fishery->id])
         ->test(CreateAdditionalService::class)
         ->fillForm([
             'fishery_id' => $fishery->id,
-            'name' => 'Za tania usługa',
+            'name' => 'Darmowa usługa',
             'is_active' => true,
             'price' => '0,00',
         ])
         ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(rawPrice('Darmowa usługa'))->toBe('0.00');
+});
+
+test('a price below the minimum of the component is rejected by the closure rule', function () {
+    Livewire::test(PriceInputForm::class)
+        ->fillForm(['price' => '0,00'])
+        ->call('save')
         ->assertHasFormErrors(['price']);
 });
 
@@ -129,9 +142,9 @@ function createServiceWithPrice(Fishery $fishery, string $name, ?string $price)
 }
 
 test('the minimum in the price error is shown with two decimals', function () {
-    $fishery = priceTestFishery();
-
-    $errors = createServiceWithPrice($fishery, 'Za tania usługa', '0,00')
+    $errors = Livewire::test(PriceInputForm::class)
+        ->fillForm(['price' => '0,00'])
+        ->call('save')
         ->assertHasFormErrors(['price'])
         ->errors()
         ->get('data.price');
@@ -144,11 +157,11 @@ test('the minimum in the price error is shown with two decimals', function () {
  * się jako 0 i usługa za pięćdziesiąt groszy odpadałaby jako za tania.
  */
 test('a price below one with a decimal comma passes the minimum', function () {
-    $fishery = priceTestFishery();
-
-    createServiceWithPrice($fishery, 'Kawa', '0,50')->assertHasNoFormErrors();
-
-    expect(DB::table('additional_services')->where('name', 'Kawa')->value('price'))->toBe('0.50');
+    Livewire::test(PriceInputForm::class)
+        ->fillForm(['price' => '0,50'])
+        ->call('save')
+        ->assertHasNoFormErrors()
+        ->assertSet('saved.price', 0.5);
 });
 
 test('a service can be saved without a price', function () {

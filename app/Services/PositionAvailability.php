@@ -110,6 +110,52 @@ final class PositionAvailability
     }
 
     /**
+     * WPISY zawieszające cechy stanowiska w dobie albo w ciągu dób — z powodem i datami.
+     *
+     * ⚠️ `suspendedAttributes()` mówi, KTÓRE cechy są zawieszone; ta metoda mówi, KTÓRE WPISY je
+     * zawieszają, bo przyczyna niedostępności usługi ma nieść powód i zakres dat ograniczenia
+     * (G11, zadanie 020). Reguła przecięcia wpisu z dobą zostaje tu, w jednym domu — klasa
+     * usług stanowiska nie pyta o blokady sama.
+     *
+     * Zakres podaje się dniami rozpoczęcia PIERWSZEJ i OSTATNIEJ doby (obie włącznie), tak jak
+     * kolumny siatki kalendarza — to nie jest reguła zawierania z `sellableDaysBetween()`.
+     * Wpisy czyta to samo jedno zapytanie na instancję co reszta tej klasy.
+     *
+     * @return Collection<int, AvailabilityBlock>
+     */
+    public function attributeSuspensions(
+        FishingDay|CarbonInterface|string $firstNight,
+        FishingDay|CarbonInterface|string|null $lastNight = null,
+    ): Collection {
+        $calendar = $this->calendar();
+        $first = $firstNight instanceof FishingDay ? $firstNight : $calendar->dayStartingOn($firstNight);
+
+        if (! $first instanceof FishingDay) {
+            return collect();
+        }
+
+        $last = $lastNight === null
+            ? $first
+            : ($lastNight instanceof FishingDay ? $lastNight : $calendar->dayStartingOn($lastNight));
+
+        if (! $last instanceof FishingDay) {
+            return collect();
+        }
+
+        $found = collect();
+
+        for ($date = $first->startsOn; $date <= $last->startsOn; $date = $date->addDay()) {
+            $day = $calendar->dayStartingOn($date);
+
+            if ($day instanceof FishingDay) {
+                $found = $found->merge($this->blocksIntersecting($day, BlockEffect::AttributeSuspended));
+            }
+        }
+
+        return $found->unique('id')->values();
+    }
+
+    /**
      * Doby z zakresu dat, które wolno sprzedać na tym stanowisku.
      *
      * @return array<int, FishingDay>

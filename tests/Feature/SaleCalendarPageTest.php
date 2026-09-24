@@ -3,9 +3,13 @@
 namespace Tests\Feature;
 
 use App\Enums\CalendarWindow;
+use App\Enums\ServiceBillingUnit;
+use App\Enums\ServiceScope;
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\FisheryResource\Pages\ManageCalendar;
+use App\Models\AdditionalService;
 use App\Models\Currency;
+use App\Models\PositionAttribute;
 use App\Models\User;
 use App\Services\OwnerRoleProvisioner;
 use Carbon\CarbonImmutable;
@@ -250,4 +254,44 @@ test('martwa stawka jest opisana nazwą, kwotą z walutą i zakresem dat', funct
 
     expect($page->deadRateDescription($named))->toBe('Wakacje — 90,00 PLN · 2026-07-01–2026-08-31')
         ->and($page->deadRateDescription($unnamed))->toBe('80,00 PLN · od 2026-09-01');
+});
+
+/*
+ * Usługi przy stanowisku — zadanie 020.
+ */
+
+test('przy stanowisku widać plakietkę usług z dopiskiem o niedostępnej i pełną listę w podpowiedzi', function () {
+    Filament::setCurrentPanel('owner');
+    [$fishery, $position, $owner] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    $vehicle = PositionAttribute::factory()->create(['name' => 'Wjazd pojazdem']);
+
+    $trailer = AdditionalService::factory()->create([
+        'fishery_id' => $fishery->id, 'name' => 'Przyczepa', 'is_active' => true, 'price' => '0.00', 'available_count' => 3,
+    ]);
+    $trailer->requiredAttributes()->attach($vehicle->id);
+    $position->additionalServices()->attach($trailer->id, ['is_required' => true]);
+    AdditionalService::factory()->create([
+        'fishery_id' => $fishery->id, 'name' => 'Drewno', 'is_active' => true, 'price' => '15.00',
+        'billing_unit' => ServiceBillingUnit::PerStay->value,
+        'scope' => ServiceScope::WholeFishery->value,
+    ]);
+
+    $this->actingAs($owner);
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+        ->assertSee(trans_choice(':count service|:count services', 2, ['count' => 2]).' · '.trans_choice(':count unavailable|:count unavailable', 1, ['count' => 1]))
+        ->assertSee('Przyczepa · '.__('free').' · '.__('required').' · '.__(':count pcs', ['count' => 3]))
+        ->assertSee(__(':attribute — not specified on this position', ['attribute' => 'Wjazd pojazdem']))
+        ->assertSee('Drewno · 15,00');
+});
+
+test('stanowisko bez usług nie dostaje plakietki', function () {
+    Filament::setCurrentPanel('owner');
+    [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
+    StayFixtures::rate($fishery, 70.00);
+    $this->actingAs($owner);
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+        ->assertDontSee('data-services-badge', escape: false);
 });

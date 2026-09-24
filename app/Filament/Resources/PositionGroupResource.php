@@ -125,12 +125,62 @@ class PositionGroupResource extends Resource
                         $record->positions()->get(),
                         $data,
                     )),
+                ...static::serviceShortcutActions(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Skróty „Przypnij usługę" i „Odepnij usługę" z poziomu grupy — ten sam schemat pól i ten sam
+     * kod zapisu co akcje zbiorcze tabeli stanowisk, z zaznaczeniem wypełnionym stanowiskami
+     * grupy w chwili wykonania. Grupa niczego nie dziedziczy i po wykonaniu nie trzyma żadnego
+     * stanu (F5, O11, zadanie 020).
+     *
+     * ⚠️ Jawna autoryzacja na GRUPIE (`update`), jak „Ustaw cechę"; bramka zapisu sprawdza
+     * dodatkowo każde stanowisko i usługę.
+     *
+     * @return array<int, Action>
+     */
+    public static function serviceShortcutActions(): array
+    {
+        return [
+            Action::make('pinAdditionalService')
+                ->label(__('Pin a service'))
+                ->icon('heroicon-m-link')
+                ->schema(fn (PositionGroup $record): array => PositionResource::serviceAssignmentSchema($record->fishery_id, withRequired: true))
+                ->requiresConfirmation()
+                ->modalDescription(fn (PositionGroup $record): string => trans_choice(
+                    'The service will be pinned to :count position|The service will be pinned to :count positions',
+                    $record->positions()->count(),
+                    ['count' => $record->positions()->count()],
+                ))
+                ->visible(fn (PositionGroup $record): bool => Gate::allows('update', $record))
+                ->authorize(fn (PositionGroup $record): bool => Gate::allows('update', $record))
+                ->action(fn (PositionGroup $record, array $data) => PositionResource::applyServicePin(
+                    $record->positions()->get(),
+                    $data,
+                )),
+            Action::make('unpinAdditionalService')
+                ->label(__('Unpin a service'))
+                ->icon('heroicon-m-link-slash')
+                ->schema(fn (PositionGroup $record): array => PositionResource::serviceAssignmentSchema($record->fishery_id, withRequired: false))
+                ->requiresConfirmation()
+                ->modalDescription(fn (PositionGroup $record): string => trans_choice(
+                    'The service will be unpinned from :count position|The service will be unpinned from :count positions',
+                    $record->positions()->count(),
+                    ['count' => $record->positions()->count()],
+                ))
+                ->visible(fn (PositionGroup $record): bool => Gate::allows('update', $record))
+                ->authorize(fn (PositionGroup $record): bool => Gate::allows('update', $record))
+                ->action(fn (PositionGroup $record, array $data) => PositionResource::applyServiceUnpin(
+                    $record->positions()->get(),
+                    $data,
+                )),
+        ];
     }
 
     public static function getPages(): array

@@ -28,6 +28,11 @@ use Carbon\CarbonImmutable;
  * ⚠️ **Nie buforuje werdyktu** — zakazane przez `dostepnosc.md` §2 bez uzasadnienia
  * pomiarowego. Wolno wyłącznie to, co buforem nie jest: jedna instancja warstwy oferty na
  * stanowisko i jedno wczytanie cennika oraz blokad na cały render.
+ *
+ * ⚠️ **Wyjątek od „wyłącznie warstwa oferty": lista usług stanowiska** (zadanie 020). Reguła
+ * dotyczy KOMÓREK — sprzedawalności i ceny pobytu. Lista usług jest odczytem konfiguracji, nie
+ * ofertą, więc pochodzi z domu „usług stanowiska" (`PositionServices`), a komórki i „ceny od"
+ * usług nie doliczają (`panel-wlasciciela.md` §8).
  */
 final class SaleCalendar
 {
@@ -161,6 +166,12 @@ final class SaleCalendar
         $blocks = $this->blocksByPosition();
         $rows = [];
 
+        // ⚠️ JEDNA instancja na render: usługi, przypięcia i wartości cech wczytuje raz dla
+        // wszystkich stanowisk — liczba zapytań nie rośnie z liczbą usług ani dób.
+        $services = new PositionServices($this->fishery);
+        $firstNight = $days[0];
+        $lastNight = $days[count($days) - 1];
+
         foreach ($positions as $position) {
             // ⚠️ Łowisko wstrzykujemy W RELACJĘ, zamiast pozwolić jej się doczytać. Konstruktory
             // `StayOffer`, `StaySellability` i `StayPricing` sięgają po `$position->fishery`,
@@ -169,8 +180,10 @@ final class SaleCalendar
             // TEN SAM obiekt, a nie 26 jego kopii.
             $position->setRelation('fishery', $this->fishery);
 
+            $positionServices = $services->forNights($position, $firstNight, $lastNight);
+
             if ($position->status === PositionStatus::Withdrawn) {
-                $rows[] = SaleCalendarRow::withdrawn($position);
+                $rows[] = SaleCalendarRow::withdrawn($position, $positionServices);
 
                 continue;
             }
@@ -186,7 +199,7 @@ final class SaleCalendar
                 $cells[] = $this->cellFor($offer, $position, $day, $anglers, $companions, $nights, $blocks);
             }
 
-            $rows[] = SaleCalendarRow::of($position, $cells);
+            $rows[] = SaleCalendarRow::of($position, $cells, $positionServices);
         }
 
         [$candidates, $deadRates] = $this->pricingDiagnostics($days);

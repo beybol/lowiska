@@ -140,8 +140,34 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - Stawka w cenniku może mieć **nazwę**, np. „Cennik 2026". Nazwa jest opcjonalna i nie zmienia
   ceny — pokazuje się w nagłówku wiersza, w powiadomieniu o domknięciu poprzedniej stawki,
   w rozbiciu ceny i na kalendarzu. Stawka bez nazwy nadal pokazuje się kwotą.
+- Usługa dodatkowa ma **jednostkę rozliczenia**: „za dobę" (cena razy liczba dób pobytu i liczba
+  egzemplarzy — łódka, hamak, postawienie przyczepy) albo „za pobyt" (cena razy liczba egzemplarzy —
+  pellet, drewno). Lista usług pokazuje cenę z jednostką, np. „20,00 zł / doba".
+- Usługa może być **bezpłatna**: cena 0,00 pokazuje się jako „bezpłatna", a usługa nadal ma limit
+  egzemplarzy.
+- Usługa ma pole **„Dostępna na"**: całe łowisko (każde stanowisko, także dodane później) albo
+  wybrane stanowiska. Usługa „wybrane stanowiska", której nie przypięto nigdzie, jest niedostępna
+  i formularz oraz lista o tym ostrzegają. Zmiana na „całe łowisko" odpina usługę od stanowisk —
+  po potwierdzeniu z podaną liczbą przypięć.
+- Usługę można powiązać z **wymaganymi cechami stanowiska** typu tak/nie, np. przyczepę z wjazdem
+  pojazdem. Na stanowisku, które takiej cechy nie ma, nie ma jej wypełnionej albo ma ją zawieszoną
+  ograniczeniem, usługa jest niedostępna — w przypadku ograniczenia tylko na jego czas.
+- Działania **„Przypnij usługę"** i **„Odepnij usługę"** na liście stanowisk i przy każdej grupie
+  stanowisk: usługa trafia na wszystkie zaznaczone stanowiska naraz (od razu z oznaczeniem
+  „obowiązkowa" albo bez), a pozostałe usługi tych stanowisk zostają bez zmian. Po przypięciu widać,
+  na ilu stanowiskach usługa jest martwa z powodu brakującej cechy.
+- Kalendarz pokazuje przy każdym stanowisku **plakietkę z liczbą jego usług**; gdy któraś jest
+  w pokazywanym okresie niedostępna, plakietka zmienia kolor i dostaje dopisek „1 niedostępna".
+  Po najechaniu widać listę usług z ceną, oznaczeniem „obowiązkowa", liczbą egzemplarzy i — przy
+  niedostępnej — przyczyną wraz z datami ograniczenia. Ceny w komórkach kalendarza się nie zmieniły.
 
 ### Zmienione
+
+- Liczba egzemplarzy usługi dodatkowej znaczy teraz liczbę sztuk dostępnych **w każdej dobie**.
+  Brak limitu zaznacza się pustym polem — wpisane 0 nie oznacza już „bez limitu", a istniejące
+  usługi z zerem dostały limit pusty.
+- Na formularzu stanowiska do przypięcia są już tylko usługi dostępne na wybranych stanowiskach —
+  usługa dostępna na całym łowisku jest na nim zawsze i nie da się jej oznaczyć jako obowiązkowej.
 
 - Lista stawek, które nigdy nie wygrywają, opisuje teraz każdą z nich **nazwą, kwotą z walutą
   i zakresem dat** zamiast samej kwoty w rodzaju „90.00" — po tym łatwo trafić do właściwego
