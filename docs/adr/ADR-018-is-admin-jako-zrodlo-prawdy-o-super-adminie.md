@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-09-24
-- **Zadanie:** [025 — `is_admin` jedynym źródłem prawdy o super adminie](../tasks/025-is-admin-zrodlem-prawdy-o-super-adminie.md)
+- **Zadanie:** [025 — `is_admin` jedynym źródłem prawdy o super adminie](../tasks/implemented/025-is-admin-zrodlem-prawdy-o-super-adminie.md)
 
 ## Kontekst
 
