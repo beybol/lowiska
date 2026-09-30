@@ -114,7 +114,7 @@
             <select 
                 id="country_id" 
                 name="country_id" 
-                class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-xs"
             >
                 <option value="">{{ __('Select from list') }}</option>
 
@@ -155,7 +155,7 @@
         <div class="flex flex-col items-center justify-center mt-4">
             <div class="flex items-center">
                 <a 
-                    class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" 
+                    class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" 
                     href="{{ route('login') }}"
                 >
                     {{ __('Already registered?') }}

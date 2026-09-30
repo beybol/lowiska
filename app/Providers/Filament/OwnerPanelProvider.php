@@ -41,6 +41,8 @@ class OwnerPanelProvider extends PanelProvider
             ->emailVerification()
             ->brandName(__('Fisherya owner panel'))
             ->topNavigation()
+            // ADR-016 A: jeden wspólny motyw dla obu paneli (resources/css/filament/theme.css).
+            ->viteTheme('resources/css/filament/theme.css')
             ->colors([
                 'primary' => Color::Green,
             ])

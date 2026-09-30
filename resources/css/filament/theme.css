@@ -1,0 +1,8 @@
+/*
+ * Wspólny motyw paneli Filamenta (administratora i właściciela) — ADR-016 A.
+ * Wejście nie ładuje stylów Breeze ani portalu. `@source` obejmuje wyłącznie kod panelowy.
+ */
+@import '../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../app/Filament/**/*';
+@source '../../../resources/views/filament/**/*';

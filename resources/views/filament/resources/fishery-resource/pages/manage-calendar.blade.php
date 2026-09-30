@@ -1,11 +1,11 @@
 {{--
     Kalendarz podglądowy konfiguracji — zadanie 019.
 
-    ⚠️ Widok używa STYLÓW WPISANYCH WPROST, a nie klas Tailwinda, i to jest świadome:
-    panel nie rejestruje własnego motywu (ADR-016 czeka na migrację potoku zasobów
-    z Tailwinda 3 na 4), więc klasa użyta tutaj nie miałaby skąd wziąć CSS-u i komponent
-    wyglądałby poprawnie tylko przypadkiem. Po dołożeniu motywu to miejsce przepisuje się
-    na klasy — treść i dane pozostają te same.
+    Układ siatki to klasy Tailwinda z motywu paneli (`resources/css/filament/theme.css`,
+    ADR-016): widoku nie da się złożyć ze standardowych komponentów, bo tabele Filamenta
+    nie znają `colspan`. Klasa użyta w tym pliku trafia do arkusza dzięki `@source` motywu.
+    ⚠️ Klasy piszemy w całości (`'bg-amber-700/15 text-amber-700'`), nigdy sklejane
+    z fragmentów — skaner Tailwinda nie wykona kodu Blade.
 
     ⚠️ Widok NICZEGO NIE LICZY. Wszystkie odpowiedzi pochodzą z `SaleCalendar`, a ten pyta
     wyłącznie warstwy oferty. Pierwsza reguła sprzedażowa zapisana tutaj zrobiłaby z widoku
@@ -47,10 +47,10 @@
         @endif
 
         <x-filament::section>
-            <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end">
-                <label style="display:flex; flex-direction:column; gap:4px; font-size:12px">
+            <div class="flex flex-wrap items-end gap-4">
+                <label class="flex flex-col gap-1 text-xs">
                     <span>{{ __('Season') }}</span>
-                    <select wire:model.live="seasonId" style="padding:6px 8px; border-radius:8px; border:1px solid rgba(120,120,120,.4); background:transparent">
+                    <select wire:model.live="seasonId" class="rounded-lg border border-gray-500/40 bg-transparent px-2 py-1.5">
                         @foreach ($seasons as $season)
                             <option value="{{ $season->id }}">
                                 {{ $season->name ?: $season->starts_on->translatedFormat('d.m.Y') }}
@@ -60,31 +60,31 @@
                     </select>
                 </label>
 
-                <label style="display:flex; flex-direction:column; gap:4px; font-size:12px">
+                <label class="flex flex-col gap-1 text-xs">
                     <span>{{ __('Window') }}</span>
-                    <select wire:model.live="window" style="padding:6px 8px; border-radius:8px; border:1px solid rgba(120,120,120,.4); background:transparent">
+                    <select wire:model.live="window" class="rounded-lg border border-gray-500/40 bg-transparent px-2 py-1.5">
                         @foreach (\App\Enums\CalendarWindow::options() as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </select>
                 </label>
 
-                <label style="display:flex; flex-direction:column; gap:4px; font-size:12px">
+                <label class="flex flex-col gap-1 text-xs">
                     <span>{{ __('Anglers') }}</span>
-                    <input type="number" min="1" wire:model.live="anglers" style="width:80px; padding:6px 8px; border-radius:8px; border:1px solid rgba(120,120,120,.4); background:transparent">
+                    <input type="number" min="1" wire:model.live="anglers" class="w-20 rounded-lg border border-gray-500/40 bg-transparent px-2 py-1.5">
                 </label>
 
-                <label style="display:flex; flex-direction:column; gap:4px; font-size:12px">
+                <label class="flex flex-col gap-1 text-xs">
                     <span>{{ __('Companions') }}</span>
-                    <input type="number" min="0" wire:model.live="companions" style="width:80px; padding:6px 8px; border-radius:8px; border:1px solid rgba(120,120,120,.4); background:transparent">
+                    <input type="number" min="0" wire:model.live="companions" class="w-20 rounded-lg border border-gray-500/40 bg-transparent px-2 py-1.5">
                 </label>
 
-                <label style="display:flex; flex-direction:column; gap:4px; font-size:12px">
+                <label class="flex flex-col gap-1 text-xs">
                     <span>{{ __('Stay length') }}</span>
-                    <input type="number" min="1" placeholder="{{ __('shortest possible') }}" wire:model.live="nights" style="width:140px; padding:6px 8px; border-radius:8px; border:1px solid rgba(120,120,120,.4); background:transparent">
+                    <input type="number" min="1" placeholder="{{ __('shortest possible') }}" wire:model.live="nights" class="w-35 rounded-lg border border-gray-500/40 bg-transparent px-2 py-1.5">
                 </label>
 
-                <div style="display:flex; gap:8px; margin-left:auto">
+                <div class="ml-auto flex gap-2">
                     <x-filament::button size="sm" color="gray" wire:click="previousWindow" :disabled="! $this->canGoBack()">
                         {{ __('Previous') }}
                     </x-filament::button>
@@ -101,22 +101,22 @@
                     {{ $this->currentStart()->locale($locale)->isoFormat($this->unit() === \App\Enums\CalendarWindow::Month ? 'MMMM YYYY' : '[tydzień od] D.MM.YYYY') }}
                 </x-slot>
 
-                <div style="overflow-x:auto">
-                    <table style="border-collapse:collapse; font-size:12px; width:100%">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-xs">
                         <thead>
                             <tr>
-                                <th style="text-align:left; padding:6px 8px; position:sticky; left:0; background:inherit">{{ __('Position') }}</th>
+                                <th class="sticky left-0 bg-inherit px-2 py-1.5 text-left">{{ __('Position') }}</th>
                                 @foreach ($grid->days as $day)
-                                    <th style="padding:6px 4px; font-weight:600; white-space:nowrap">
+                                    <th class="px-1 py-1.5 font-semibold whitespace-nowrap">
                                         {{ $day->locale($locale)->isoFormat('D') }}
-                                        <div style="font-weight:400; opacity:.6">{{ $day->locale($locale)->isoFormat('dd') }}</div>
+                                        <div class="font-normal opacity-60">{{ $day->locale($locale)->isoFormat('dd') }}</div>
                                         @if ($grid->overlappingRates($day) > 1)
                                             {{-- ⚠️ Licznik przy KAŻDYM nachodzeniu, także przy identycznych kwotach:
                                                  dwie stawki na tę samą dobę są pomyłką zawsze.
                                                  ⚠️ Podpowiedź podaje ZWYCIĘZCĘ I KWOTY PRZEGRANYCH — sam licznik
                                                  nie zamyka pytania „czemu widzę 70, skoro wpisałem 90". --}}
                                             <div
-                                                style="font-weight:600; color:#B45309"
+                                                class="font-semibold text-amber-700"
                                                 title="{{ $this->overlapTooltip($grid->ratesFor($day)) }}"
                                             >⚠ {{ $grid->overlappingRates($day) }}</div>
                                         @endif
@@ -126,8 +126,8 @@
                         </thead>
                         <tbody>
                             @foreach ($grid->rows as $row)
-                                <tr style="border-top:1px solid rgba(120,120,120,.2)">
-                                    <th style="text-align:left; padding:6px 8px; font-weight:500; white-space:nowrap; position:sticky; left:0; background:inherit">
+                                <tr class="border-t border-gray-500/20">
+                                    <th class="sticky left-0 bg-inherit px-2 py-1.5 text-left font-medium whitespace-nowrap">
                                         {{ $row->position->name }}
                                         @if ($row->services !== [])
                                             {{-- ⚠️ Plakietka, nie rozwijany wiersz: siatka nie rośnie, a niedostępność
@@ -136,7 +136,7 @@
                                             <span
                                                 data-services-badge
                                                 title="{{ $this->servicesTooltip($row) }}"
-                                                style="display:inline-block; margin-left:6px; padding:1px 6px; border-radius:999px; font-size:11px; font-weight:500; {{ $row->unavailableServices() > 0 ? 'background:rgba(180,83,9,.15); color:#B45309' : 'background:rgba(120,120,120,.15)' }}"
+                                                class="ml-1.5 inline-block rounded-full px-1.5 py-px text-[11px] font-medium {{ $row->unavailableServices() > 0 ? 'bg-amber-700/15 text-amber-700' : 'bg-gray-500/15' }}"
                                             >{{ $this->servicesBadge($row) }}</span>
                                         @endif
                                     </th>
@@ -144,24 +144,24 @@
                                     @if ($row->withdrawn)
                                         {{-- ⚠️ JEDEN komunikat na całą szerokość zamiast trzydziestu identycznych
                                              komórek — przyczyna jest niezależna od dat. --}}
-                                        <td colspan="{{ count($grid->days) }}" style="padding:6px 8px; opacity:.7">
+                                        <td colspan="{{ count($grid->days) }}" class="px-2 py-1.5 opacity-70">
                                             {{ __('Withdrawn from sale — no night of this position is for sale, regardless of dates.') }}
                                         </td>
                                     @else
                                         @foreach ($row->cells as $cell)
-                                            <td style="padding:4px; text-align:center; white-space:nowrap">
+                                            <td class="p-1 text-center whitespace-nowrap">
                                                 @if ($cell->sellable)
                                                     <span title="{{ __('A stay of :nights night(s) starting on this night.', ['nights' => $cell->nights]) }}">
                                                         {{ \App\Services\AmountFormatter::cents($cell->totalInCents) }}
-                                                        <div style="opacity:.6">{{ trans_choice(':count night|:count nights', $cell->nights, ['count' => $cell->nights]) }}</div>
+                                                        <div class="opacity-60">{{ trans_choice(':count night|:count nights', $cell->nights, ['count' => $cell->nights]) }}</div>
                                                     </span>
                                                 @elseif ($cell->startsEarlierElsewhere())
                                                     <span
-                                                        style="opacity:.75"
+                                                        class="opacity-75"
                                                         title="{{ __('This night sits inside a bundle that has to be bought whole. Start on :day.', ['day' => $cell->startEarlierOn->toDateString()]) }}"
                                                     >{{ __('start :day', ['day' => $cell->startEarlierOn->locale($locale)->isoFormat('D.MM')]) }}</span>
                                                 @else
-                                                    <span style="opacity:.6" title="{{ $this->tooltipFor($cell) }}">
+                                                    <span class="opacity-60" title="{{ $this->tooltipFor($cell) }}">
                                                         {{ $this->shortLabelFor($cell) }}
                                                     </span>
                                                 @endif
@@ -176,9 +176,9 @@
 
                 @if ($grid->deadRates !== [])
                     {{-- ⚠️ Oznaczenie martwej stawki jest JEDNO NA REGULE, nie na każdej dobie. --}}
-                    <div style="margin-top:12px; padding:10px 12px; border-radius:8px; background:rgba(180,83,9,.1); color:#B45309">
+                    <div class="mt-3 rounded-lg bg-amber-700/10 px-3 py-2.5 text-amber-700">
                         <strong>{{ __('Some rates never win') }}</strong>
-                        <ul style="margin:6px 0 0; padding-left:18px">
+                        <ul class="mt-1.5 pl-4.5">
                             @foreach ($grid->deadRates as $rule)
                                 <li>{{ __('The rate :rate never wins anywhere in its date range — a cheaper one covers all of it.', ['rate' => $this->deadRateDescription($rule)]) }}</li>
                             @endforeach

@@ -79,9 +79,10 @@ przeglądarka pukałaby pod adres, którego nikt nie słucha.
 katalogów w Docker Desktopie są wolne, a te dwa katalogi czyta się w całości przy każdym żądaniu —
 na powiązaniu środowisko staje się bezużyteczne. Nie wracaj do montowania ich z hosta.
 
-Usługa `vite` montuje `vendor` **tylko do odczytu**: `tailwind.config.js` ma w `content` ścieżkę
-`./vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php`, więc bez tego
-katalogu klasy paginacji wypadłyby z gotowego arkusza stylów.
+Usługa `vite` montuje `vendor` **tylko do odczytu**: motyw Filamenta importuje arkusz
+z `vendor/filament/filament`, a `app.css` skanuje widoki paginacji Laravela
+(`vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php`), więc bez tego
+katalogu build nie znalazłby arkusza Filamenta, a klasy paginacji wypadłyby z gotowego arkusza.
 
 ⚠️ **Pierwsze uruchomienie trwa dłużej**, bo oba wolumeny startują puste: `dev-entrypoint` wykonuje
 `composer install` w usłudze `app`, a usługa `vite` ma w poleceniu `npm install && npm run dev`.
@@ -308,10 +309,21 @@ docker compose ps --services   # czy `vite` jest na liście
 przeładowanie nie działa. Bez wykluczeń odpytywanie całego drzewa zatyka serwer — obie rzeczy naraz,
 nie jedna z nich.
 
-⚠️ **Front-end jest w stanie mieszanym:** `package.json` ma jednocześnie `tailwindcss` 3
-i `@tailwindcss/vite` 4, a arkusz używa składni v3 (`@tailwind base`) przez PostCSS. Zadanie 004
-świadomie tego nie porządkowało. Jeśli budowanie zasobów zacznie się sypać — to jest pierwsze
-miejsce do sprawdzenia.
+**Potok zasobów: Tailwind 4 przez `@tailwindcss/vite`, bez PostCSS-a i bez `tailwind.config.js`**
+([ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)). `vite.config.js` ma cztery wejścia,
+a każde CSS-owe `@import 'tailwindcss' source(none)` z własnymi `@source`:
+
+| Wejście | Dla kogo | Źródła klas |
+|---|---|---|
+| `resources/css/app.css` | widoki Breeze (logowanie, rejestracja, profil) | `resources/views/{auth,components,layouts,profile}`, `dashboard`, `welcome`, `resources/js`, widoki paginacji Laravela |
+| `resources/css/filament/theme.css` | oba panele, przez `viteTheme()` | `app/Filament/**`, `resources/views/filament/**` (+ Filament) |
+| `resources/css/portal.css` | portal wędkarza (tokeny „Głębia", fonty Fraunces i Inter hostowane przez `@fontsource-variable/*`) | dopisuje zadanie 031 |
+
+⚠️ **Nowy widok Blade spoza tych katalogów nie dostanie stylów, dopóki nie trafi do `@source`
+właściwego wejścia.** To pierwsze miejsce do sprawdzenia, gdy klasa „nie działa".
+
+⚠️ **`public/build` jest śledzony w gicie** — po zmianie CSS/JS przebuduj (`npm run build`
+w kontenerze), inaczej środowisko bez usługi `vite` pokaże stary arkusz.
 
 ---
 

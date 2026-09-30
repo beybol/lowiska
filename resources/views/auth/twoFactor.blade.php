@@ -63,13 +63,13 @@
                     pattern="[0-9]*"
                     required
                     autofocus
-                    class="w-full px-4 py-3 rounded-md border border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 text-lg"
+                    class="w-full px-4 py-3 rounded-md border border-gray-300 shadow-xs focus:border-amber-500 focus:ring-amber-500 text-lg"
                 >
             </div>
 
             <button
                 type="submit"
-                class="w-full py-3 px-4 rounded-md text-white font-medium text-sm bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition cursor-pointer"
+                class="w-full py-3 px-4 rounded-md text-white font-medium text-sm bg-amber-600 hover:bg-amber-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition cursor-pointer"
             >
                 {{ __('Verify') }}
             </button>

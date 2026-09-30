@@ -1,3 +1,42 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/*
+ * Wejście Breeze — strona publiczna poza portalem (logowanie, rejestracja, profil).
+ * ADR-020: osobne wejście Vite z własnymi źródłami. `source(none)` wyłącza automatyczne
+ * skanowanie, żeby do tego arkusza nie trafiały klasy widoków Filamenta ani portalu.
+ */
+@import 'tailwindcss' source(none);
+
+@plugin '@tailwindcss/forms';
+
+@source '../views/auth';
+@source '../views/components';
+@source '../views/layouts';
+@source '../views/profile';
+@source '../views/dashboard.blade.php';
+@source '../views/welcome.blade.php';
+@source '../js';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+@theme {
+  --font-sans:
+    Figtree, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/*
+  Tailwind 4 zmienił domyślny kolor obramowania na `currentcolor` i przestał ustawiać
+  kursor wskaźnika na przyciskach. Te reguły zachowują wygląd sprzed migracji z Tailwinda 3.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}

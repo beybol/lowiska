@@ -37,7 +37,7 @@ base ──┬─→ vendor ──┐
 |---|---|
 | `base` | PHP 8.4 + rozszerzenia (`pdo_mysql`, `mbstring`, `exif`, `pcntl`, `bcmath`, `gd`, `zip`, `intl`, **`soap`**) + Composer |
 | `vendor` | `composer install --no-dev --optimize-autoloader` |
-| `assets` | Node 22, `npm ci`, `npm run build` |
+| `assets` | Node 22, `npm ci`, `npm run build` (Tailwind 4 przez `@tailwindcss/vite`; potrzebuje `vendor` z etapu `vendor` — motyw Filamenta importuje z niego arkusz) |
 | `dev` | `base` + `pcov` + Node + klient MySQL-a; kod wchodzi **powiązaniem katalogu** |
 | `prod` | FrankenPHP + `tini`; zasoby i zależności **kopiowane z etapów**, nie budowane tutaj |
 

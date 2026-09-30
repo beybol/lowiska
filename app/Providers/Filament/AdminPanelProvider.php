@@ -47,6 +47,8 @@ class AdminPanelProvider extends PanelProvider
                 __('Access'),
             ])
             ->sidebarCollapsibleOnDesktop()
+            // ADR-016 A: jeden wspólny motyw dla obu paneli (resources/css/filament/theme.css).
+            ->viteTheme('resources/css/filament/theme.css')
             ->colors([
                 'primary' => Color::Amber,
             ])

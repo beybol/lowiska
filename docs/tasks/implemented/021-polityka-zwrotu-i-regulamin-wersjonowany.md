@@ -314,7 +314,7 @@ Poza `/review-task`: **warunek i treść ostrzeżenia o zerowym zwrocie** należ
   z konfiguracją** (decyzja D9, 24.09.2026, `DECYZJE-I-TODO-BIZNESOWE.md` rozdz. 8). Nie
   generujemy treści z ustawień, nie wstawiamy do niej zasad zwrotu ani parametrów, nie sprawdzamy
   zgodności i nie ostrzegamy o rozbieżnościach. Automatyczna ingerencja dzieliłaby
-  odpowiedzialność między system a operatora, a w sporze byłaby ryzykiem dla Fisheryi.
+  odpowiedzialność między system a operatora, a w sporze byłaby ryzykiem dla Fisherya.
 - **Ta sama data wejścia w życie dla dwóch wersji rodzaju — blokowana.** Inaczej nie da się
   jednoznacznie wskazać wersji obowiązującej.
 - **Wersję zaplanowaną wolno usunąć.** Nikt jej jeszcze nie zaakceptował, więc nie ma czego chronić.

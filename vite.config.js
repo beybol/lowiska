@@ -1,12 +1,21 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            // ADR-020: jeden potok, osobne wejścia — Breeze, portal i motyw paneli
+            // nie dzielą arkusza, więc klasy jednego nie trafiają do drugiego.
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.js',
+                'resources/css/portal.css',
+                'resources/css/filament/theme.css',
+            ],
             refresh: true,
         }),
+        tailwindcss(),
     ],
     server: {
         host: '0.0.0.0',

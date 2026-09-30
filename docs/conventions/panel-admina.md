@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w `app/Filament/Resources/**`,
 `app/Providers/Filament/AdminPanelProvider.php`.
 
-Zadania źródłowe: 005, 009, 011, 013, 014, 020, 021, 022, 028. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
+Zadania źródłowe: 005, 009, 011, 013, 014, 020, 021, 022, 028, 029. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
 
 ---
 
@@ -313,3 +313,15 @@ Uzasadnienie kształtu wartości: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech
 - ⚠️ **Nie wyprowadzaj sposobu logowania z samego `provider`** — konto założone przez Google ma
   hasło losowe, więc bez `has_password` „Google" i „Google + hasło" są nie do odróżnienia
   ([`autoryzacja.md`](autoryzacja.md) §6).
+
+---
+
+## 10. Motyw panelu (zadanie 029)
+
+- **Panel administratora ładuje ten sam motyw co panel właściciela** — `->viteTheme('resources/css/filament/theme.css')`
+  w `AdminPanelProvider`. Jeden plik dla obu paneli: ekrany współdzielone (kalendarz 019) żyją w obu,
+  a dwa pliki by się rozjechały. Granica stosowania klas Tailwinda i zasady `@source`:
+  [`panel-wlasciciela.md`](panel-wlasciciela.md) §1 ([ADR-016](../adr/ADR-016-wlasny-motyw-panelu.md)).
+- ⚠️ **Motyw to osobne wejście Vite** (`resources/css/filament/theme.css`), niezależne od `app.css`
+  Breeze i `portal.css`. Nie importuj do niego arkuszy tamtych wejść ani odwrotnie — klasy jednego
+  nie mają trafiać do drugiego ([ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)).

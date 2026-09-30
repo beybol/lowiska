@@ -44,8 +44,8 @@ services:
     volumes:
       - .:/var/www/html
       - node_modules:/var/www/html/node_modules
-      # tailwind.config.js skanuje vendor/laravel/framework/**/Pagination/**,
-      # więc katalog musi tu być — tylko do odczytu, bo Vite go nie zapisuje.
+      # Motyw Filamenta importuje arkusz z vendor/filament, a app.css skanuje widoki
+      # paginacji Laravela — katalog musi tu być, tylko do odczytu, bo Vite go nie zapisuje.
       - vendor:/var/www/html/vendor:ro
     command: sh -c "npm install && npm run dev"
 

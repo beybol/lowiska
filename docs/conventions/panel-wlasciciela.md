@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `app/Filament/Owner/**`,
 `app/Providers/Filament/OwnerPanelProvider.php` oraz w zasobach współdzielonych,
 gdy dotykasz ich zachowania **w panelu właściciela**.
 
-Zadania źródłowe: 012, 013, 014, 015, 016, 019, 020, 021. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
+Zadania źródłowe: 012, 013, 014, 015, 016, 019, 020, 021, 029. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
 i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 
 ---
@@ -17,9 +17,14 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
   Wzorzec: [`FisheryResource\Pages\CreateFishery`](../../app/Filament/Resources/FisheryResource/Pages/CreateFishery.php).
 - **Przyciski i ikony deklaruje się przez `Action::make()->icon('heroicon-…')`**, nie surowym
   `<svg>` z ręcznie wpisanymi klasami Tailwind. Rozmiar i styl pilnuje wtedy framework.
-  ⚠️ W tym projekcie **żaden panel nie rejestruje własnego motywu** (`viteTheme()`), więc klasy
-  Tailwind użyte wewnątrz stron Filamenta **nie mają skąd wziąć CSS-u** — ręcznie stylowany
-  komponent wygląda poprawnie tylko przypadkiem i rozsypuje się przy pierwszym upgradzie.
+  ⚠️ **Oba panele ładują jeden wspólny motyw** — `resources/css/filament/theme.css`, rejestrowany
+  `viteTheme()` w `AdminPanelProvider` i `OwnerPanelProvider` ([ADR-016](../adr/ADR-016-wlasny-motyw-panelu.md) A).
+  Klasy Tailwinda wolno użyć **wyłącznie we własnym widoku Blade, którego nie da się złożyć ze
+  standardowych komponentów, i tylko po uzasadnieniu w zadaniu**; domyślnie nadal składamy ekrany
+  z komponentów. Klasa trafia do arkusza dzięki `@source` motywu, który obejmuje
+  `app/Filament/**` i `resources/views/filament/**` — widok poza tymi katalogami nie dostanie stylów.
+  Klasy piszemy w całości, nigdy sklejane z fragmentów (skaner nie wykonuje Blade'a).
+  Nadal **bez** surowego `<svg>` i bez `style="…"` tam, gdzie wystarcza komponent.
 - **Zakładki na stronie budują `Tabs`/`Tab` ze schematu**, nie ręczny Alpine
   (`x-data="{ activeTab: … }"` + `x-show`). `Tab::badge()` daje licznik bez własnego znacznika.
 - **Krok kreatora ma być jedną decyzją użytkownika, nie workiem na wszystko.** W kreatorze
@@ -55,7 +60,8 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 - **Pozycja sub-nawigacji to `Start`, nie `Top`** — decyzja o skalowaniu, nie o guście.
   ⚠️ Zakładki u góry (`.fi-tabs`) to `display:flex; overflow-x:auto` **bez zawijania**,
   a Filament nie ma przełącznika, który by to zmienił; zawijanie wymagałoby własnego CSS-u
-  na wewnętrzne klasy frameworka, a projekt nie rejestruje `viteTheme()` w żadnym panelu.
+  na wewnętrzne klasy frameworka (`fi-*`), a granica z §1 obejmuje własne widoki, nie nadpisywanie
+  stylów Filamenta.
   Siedem polskich etykiet już się nie mieściło, a makieta zapowiada około dziesięciu sekcji.
   Lista pionowa rośnie w dół i tego ograniczenia nie ma.
 - ⚠️ **Panel właściciela NIE MA paska bocznego** — `OwnerPanelProvider` ustawia
@@ -402,11 +408,9 @@ wykonuje **jawnie** — `abort_unless(... ->can('view', $record), 404)`. Samo za
 w `resolveRecord()` też broniłoby dostępu, ale niejawnie, jako uboczny skutek zakresu widoczności;
 reguła dostępu ma być widoczna w kodzie strony ([`autoryzacja.md`](autoryzacja.md) §5).
 
-⚠️ **Widok siatki używa stylów wpisanych wprost, a nie klas Tailwinda** — i to jest stan
-TYMCZASOWY, nie wzorzec. Powód w §1: panel nie rejestruje własnego motywu, więc klasa użyta
-w widoku nie ma skąd wziąć CSS-u. Rejestracja motywu okazała się wymagać migracji potoku zasobów
-z Tailwinda 3 na 4 (patrz [ADR-016](../adr/ADR-016-wlasny-motyw-panelu.md) i uwaga w zadaniu 019),
-więc czeka na własne zadanie. Po jego wykonaniu ten widok przepisuje się na klasy.
+Widok siatki (`manage-calendar.blade.php`) to właśnie taki wyjątek z §1: układ z klasami Tailwinda,
+bo tabele Filamenta nie znają `colspan`. Kolory stanów bierze z palety Tailwinda (`amber-700`,
+`gray-500` z przezroczystością), żeby działały w jasnym i ciemnym motywie panelu.
 
 ---
 

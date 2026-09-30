@@ -55,10 +55,11 @@ WORKDIR /var/www/html
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
-# tailwind.config.js skanuje vendor/laravel/framework/**/Pagination/**, więc bez
-# katalogu vendor klasy paginacji wypadłyby z gotowego arkusza.
+# vendor jest potrzebny dwóm wejściom: motyw Filamenta importuje arkusz z
+# vendor/filament/filament, a arkusz Breeze skanuje widoki paginacji Laravela
+# (vendor/laravel/framework/**/Pagination/**) — bez niego klasy wypadłyby z gotowego arkusza.
 COPY --from=vendor /var/www/html/vendor ./vendor
-COPY vite.config.js tailwind.config.js postcss.config.js ./
+COPY vite.config.js ./
 COPY resources ./resources
 
 RUN npm run build

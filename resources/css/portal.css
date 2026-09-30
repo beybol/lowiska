@@ -1,0 +1,61 @@
+/*
+ * Wejście portalu wędkarza — ADR-020 A. Nie ładuje stylów Filamenta ani Breeze.
+ * Tokeny v1, paleta „Głębia" (docs/project/design/fisherya-design.html, KSIEGA-ZNAKU.md),
+ * w przestrzeniach nazw Tailwinda 4, dzięki czemu powstają klasy: `bg-b500`, `text-ink2`,
+ * `rounded-lg`, `shadow-2`, `font-display`. Domyślna paleta Tailwinda zostaje.
+ * Fonty Fraunces i Inter są hostowane u nas (bez Google Fonts — RODO, brak zależności od CDN).
+ * Źródła klas portalu dopisuje zadanie 031 razem z pierwszymi widokami.
+ */
+@import 'tailwindcss' source(none);
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/fraunces';
+
+@theme {
+  --color-b50: #F1FAFB;
+  --color-b100: #E2F4F7;
+  --color-b200: #BFE7EE;
+  --color-b300: #8AD3DF;
+  --color-b400: #4FB8CB;
+  --color-b500: #229BB2;
+  --color-b600: #1A7285;
+  --color-b700: #135A6B;
+  --color-b800: #0F4553;
+  --color-b900: #0B333D;
+  --color-b950: #06222A;
+
+  --color-a100: #FDF0DF;
+  --color-a200: #FAE0BE;
+  --color-a300: #F5C68C;
+  --color-a400: #F2AE60;
+  --color-a500: #E8963C;
+  --color-a600: #D4802E;
+  --color-a700: #9A5716;
+  --color-a800: #6E3D0F;
+
+  --color-ink: #0F1518;
+  --color-ink2: #33454A;
+  --color-muted: #5B7076;
+  --color-faint: #8FA3A8;
+  --color-line: #E1E9EA;
+  --color-line2: #EFF4F4;
+  --color-surface: #F7FAFA;
+
+  --color-ok: #1F7A4C;
+  --color-ok-bg: #E8F5EE;
+  --color-warn: #B4740B;
+  --color-warn-bg: #FDF3E0;
+  --color-err: #B23B3B;
+  --color-err-bg: #FCECEC;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
+
+  --shadow-1: 0 1px 2px rgba(15, 21, 24, 0.06), 0 1px 3px rgba(15, 21, 24, 0.05);
+  --shadow-2: 0 4px 12px rgba(15, 21, 24, 0.07), 0 2px 4px rgba(15, 21, 24, 0.05);
+  --shadow-3: 0 18px 40px rgba(15, 21, 24, 0.13), 0 4px 10px rgba(15, 21, 24, 0.06);
+
+  --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+}
