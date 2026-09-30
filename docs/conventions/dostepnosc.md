@@ -81,6 +81,12 @@ i [ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md).
 
   ⚠️ Kolejność jest umową produktową, nie skutkiem kosztu zapytania. **Nie przestawiaj jej dla
   wydajności** — komunikat widziany przez wędkarza zmieniłby się przy okazji optymalizacji.
+- **Kalendarz portalu (033) jest kolejnym odbiorcą tej samej prawdy przez warstwę oferty** — przez
+  `SaleCalendar`, jak panel (019). Znacznik ograniczenia w wierszu portalu bierze zawieszenia cech
+  wczytane RAZ na render w `SaleCalendar` (`SaleCalendarRow::$suspensions`), z przecięciem doby i wpisu
+  liczonym `FishingDay::overlaps()` — nie zakłada drugiej reguły przecięcia. Zawieszenie nadal nie jest
+  odmową. Powód blokady widoczny dla wędkarza: `SaleCalendarCell::$blockPublicReason` (tylko przy
+  `reason_visible`).
 - **Odmowa niesie PIERWSZY napotkany powód** (`SaleUnavailabilityReason`), nigdy samo „nie".
   Stanowisko wycofane ORAZ poza sezonem raportuje stan stanowiska, bo ten nie zmieni się jutro.
 - **Enum powodów jest JEDEN dla całej sprzedaży.** Nowy warunek dokłada wartość do

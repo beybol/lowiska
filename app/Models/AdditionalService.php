@@ -134,6 +134,27 @@ class AdditionalService extends Model
     }
 
     /**
+     * Cena z jednostką dla WĘDKARZA w portalu (033) — „15 zł / pobyt", przy 0,00 „bezpłatna".
+     * Ten sam wybór przypadków co `priceLabel()`, tylko format kwoty portalu (`AmountFormatter::forVisitor()`).
+     */
+    public function priceLabelForVisitor(?string $currency = null): string
+    {
+        $cents = $this->priceInCents();
+
+        if ($cents === null) {
+            return __('no price');
+        }
+
+        if ($cents === 0) {
+            return __('free');
+        }
+
+        $unit = $this->billing_unit ?? ServiceBillingUnit::PerNight;
+
+        return AmountFormatter::forVisitor($cents, $currency).' / '.$unit->priceSuffix();
+    }
+
+    /**
      * Odpina usługę od wszystkich stanowisk i zapisuje to w dzienniku zmian.
      */
     public function dropPins(): int

@@ -9,6 +9,8 @@
 --}}
 @php
     $alternates = \App\Services\PortalRoutes::alternates(request()->route());
+    // Przełącznik języka niesie stan kalendarza (033); canonical i hreflang — bez parametrów.
+    $switchUrls = \App\Services\PortalRoutes::switchUrls(request()->route(), request()->query());
     $locale = app()->getLocale();
     $umamiScript = config('services.umami.script_url');
     $umamiWebsite = config('services.umami.website_id');
@@ -38,12 +40,12 @@
     @endif
 </head>
 <body class="min-h-screen bg-surface font-sans text-[15px] leading-relaxed text-ink antialiased">
-    @include('portal.partials.header', ['alternates' => $alternates])
+    @include('portal.partials.header', ['alternates' => $switchUrls])
 
     <main>
         @yield('content')
     </main>
 
-    @include('portal.partials.footer', ['alternates' => $alternates])
+    @include('portal.partials.footer', ['alternates' => $switchUrls])
 </body>
 </html>

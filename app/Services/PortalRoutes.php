@@ -49,6 +49,96 @@ final class PortalRoutes
         'details' => ['pl' => 'szczegoly', 'en' => 'details'],
     ];
 
+    /**
+     * Parametry adresu kalendarza strony łowiska → nazwa w każdym języku (zadanie 033, Rozstrzygnięcie 1).
+     * Canonical ich nie zawiera; przełącznik języka przenosi stan pod nazwami drugiego języka.
+     *
+     * @var array<string, array{pl: string, en: string}>
+     */
+    public const CALENDAR_PARAMS = [
+        'week' => ['pl' => 'tydzien', 'en' => 'week'],
+        'anglers' => ['pl' => 'lowiacych', 'en' => 'anglers'],
+        'group' => ['pl' => 'grupa', 'en' => 'group'],
+        'features' => ['pl' => 'cecha', 'en' => 'feature'],
+        'day' => ['pl' => 'doba', 'en' => 'night'],
+        'position' => ['pl' => 'st', 'en' => 'pos'],
+    ];
+
+    /** Kotwica sekcji kalendarza — powrót na kalendarz po przeładowaniu bez skryptu. */
+    public const CALENDAR_ANCHOR = ['pl' => 'kalendarz', 'en' => 'calendar'];
+
+    public static function calendarParam(string $key, ?string $locale = null): string
+    {
+        return self::CALENDAR_PARAMS[$key][$locale ?? app()->getLocale()];
+    }
+
+    /**
+     * Stan kalendarza z zapytania w danym języku → klucze techniczne (`week`, `anglers`, …).
+     *
+     * @param  array<string, mixed>  $query
+     * @return array<string, string>
+     */
+    public static function calendarStateFrom(array $query, string $locale): array
+    {
+        $state = [];
+
+        foreach (self::CALENDAR_PARAMS as $key => $names) {
+            $value = $query[$names[$locale]] ?? null;
+
+            if (is_string($value) && $value !== '') {
+                $state[$key] = $value;
+            }
+        }
+
+        return $state;
+    }
+
+    /**
+     * Stan kalendarza → zapytanie w danym języku.
+     *
+     * @param  array<string, string>  $state
+     * @return array<string, string>
+     */
+    public static function calendarQueryFor(array $state, string $locale): array
+    {
+        $query = [];
+
+        foreach (self::CALENDAR_PARAMS as $key => $names) {
+            if (isset($state[$key]) && $state[$key] !== '') {
+                $query[$names[$locale]] = $state[$key];
+            }
+        }
+
+        return $query;
+    }
+
+    /**
+     * Adresy przełącznika języka — odpowiednik strony RAZEM z jej stanem kalendarza pod nazwami
+     * parametrów drugiego języka. ⚠️ Canonical i `hreflang` biorą `alternates()` — bez parametrów.
+     *
+     * @return array<string, string>
+     */
+    public static function switchUrls(?Route $route, array $query): array
+    {
+        $alternates = self::alternates($route);
+
+        if ($route?->getName() !== 'portal.fishery') {
+            return $alternates;
+        }
+
+        $state = self::calendarStateFrom($query, (string) $route->parameter('locale'));
+
+        foreach ($alternates as $locale => $url) {
+            $translated = self::calendarQueryFor($state, $locale);
+
+            if ($translated !== []) {
+                $alternates[$locale] = $url.'?'.http_build_query($translated);
+            }
+        }
+
+        return $alternates;
+    }
+
     public static function fisheryTabAnchor(string $tab, ?string $locale = null): string
     {
         return self::FISHERY_TABS[$tab][$locale ?? app()->getLocale()];

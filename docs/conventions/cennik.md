@@ -186,6 +186,19 @@ pakietu działają **same z siebie**. Odmowa ze spoiwa niesie zakres pakietu, wi
   **pierwszą dobę pakietu**;
 - pakiet zaczynający się **w** pytanej dobie → skok od razu na długość pokrywającą cały pakiet.
 
+### Kalendarz portalu — trzeci widok tej samej prawdy
+
+- **Kalendarz portalu (033) i kalendarz podglądowy panelu (019) czytają TEN SAM model siatki**
+  (`SaleCalendar` → `SaleCalendarGrid`/`Row`/`Cell`), a ten pyta wyłącznie warstwę oferty. Widoki są
+  osobne (portal: `PortalCalendar` + Blade, bez Filamenta i bez diagnostyki cennika). Test zgodności
+  komórek obu widoków: `PortalCalendarTest`.
+- **Komórka sprzedawalna niesie rozbicie z warstwy oferty** (`SaleCalendarCell::$breakdown`) — portal
+  składa z niego podpowiedź (stawka × doby, towarzysząca tylko płatna, dopłaty pod nazwami łowiska,
+  obniżka, suma). ⚠️ Portal niczego w rozbiciu nie przelicza — grupuje pozycje i formatuje kwoty.
+  Usługi obowiązkowe stoją POD sumą, osobno (decyzja z 020).
+- **Pas „Pakiety" składa się z werdyktów „zacznij wcześniej"** widocznych wierszy — bez metody
+  „pakiety łowiska" w warstwie oferty (ADR-013/015 bez zmian).
+
 ### „Cena od" łowiska — odczyt cennika, jawny wyjątek od „wyłącznie `StayOffer`"
 
 - **„Cenę od" liczy WYŁĄCZNIE [`PriceFrom`](../../app/Services/PriceFrom.php)** (zadanie 032) — portal,

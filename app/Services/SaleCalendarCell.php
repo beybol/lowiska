@@ -25,6 +25,10 @@ final readonly class SaleCalendarCell
         public ?CarbonImmutable $bundleLastDay = null,
         public ?int $blockedPositionsCount = null,
         public ?string $blockSelectionLabel = null,
+        // Rozbicie ceny komórki sprzedawalnej — dla podpowiedzi portalu (033). Panel go nie czyta.
+        public ?StayPriceBreakdown $breakdown = null,
+        // Powód blokady WIDOCZNY DLA WĘDKARZA (pole blokady z 016) — `null`, gdy łowisko go ukryło.
+        public ?string $blockPublicReason = null,
     ) {}
 
     /**
@@ -32,9 +36,13 @@ final readonly class SaleCalendarCell
      * komórki o różnej długości — 130,00 zł za jedną dobę obok 520,00 zł za czterodobowy
      * pakiet. Kwota bez liczby dób wprowadza w błąd.
      */
-    public static function sellable(CarbonImmutable $night, int $nights, int $totalInCents): self
-    {
-        return new self($night, true, nights: $nights, totalInCents: $totalInCents);
+    public static function sellable(
+        CarbonImmutable $night,
+        int $nights,
+        int $totalInCents,
+        ?StayPriceBreakdown $breakdown = null,
+    ): self {
+        return new self($night, true, nights: $nights, totalInCents: $totalInCents, breakdown: $breakdown);
     }
 
     public static function refused(
@@ -44,6 +52,7 @@ final readonly class SaleCalendarCell
         ?CarbonImmutable $bundleLastDay = null,
         ?int $blockedPositionsCount = null,
         ?string $blockSelectionLabel = null,
+        ?string $blockPublicReason = null,
     ): self {
         return new self(
             night: $night,
@@ -53,6 +62,7 @@ final readonly class SaleCalendarCell
             bundleLastDay: $bundleLastDay,
             blockedPositionsCount: $blockedPositionsCount,
             blockSelectionLabel: $blockSelectionLabel,
+            blockPublicReason: $blockPublicReason,
         );
     }
 

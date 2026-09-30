@@ -6,7 +6,7 @@
     $price = $page->priceFrom();
     $phoneHref = $page->phoneHref();
 @endphp
-<div class="rounded-md border border-line bg-surface px-4 py-4 lg:sticky lg:top-5">
+<div class="rounded-md border border-line bg-surface px-4 py-4">
     <div class="text-[13px] text-ink2">
         @if ($price !== null)
             <b class="font-display text-[19px] font-semibold text-ink">{{ __('from :price', ['price' => $price]) }}</b> {{ __('/ person / night') }}

@@ -205,7 +205,7 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - Łowisko ma w portalu **stronę pod stałym adresem** (np. `/pl/wielkopolskie/klasztorne`)
   i **krótki adres wprost pod domeną** (np. `fisherya.com/klasztorne`), który prowadzi na stronę
   łowiska w języku odwiedzającego. Nieznany adres pokazuje stronę z listą łowisk.
-- Strona łowiska ma dwie zakładki: **„Mapa i terminy"** (mapa łowiska, miejsce na kalendarz, opis)
+- Strona łowiska ma dwie zakładki: **„Mapa i terminy"** (mapa łowiska, kalendarz, opis)
   i **„Szczegóły"** (akwen, „Zanim przyjedziesz", dojazd i udogodnienia, lista stanowisk w sprzedaży
   z grupami, pojemnością i cechami, łowisko w sieci). Obok obu zakładek stoi box z **„ceną od"**,
   telefonem do rezerwacji z przyciskiem „Zadzwoń", godzinami kontaktu i linkami do strony WWW
@@ -214,6 +214,16 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - **„Cena od"** — najniższa stawka za łowiącego za dobę od dziś do końca trwającego albo najbliższego
   sezonu, bez dopłat i usług — na stronie łowiska i na karcie listy łowisk; bez stawki widać „cennik
   w przygotowaniu".
+- Strona łowiska ma **kalendarz terminów i cen**: siatkę stanowisk w sprzedaży na jeden tydzień
+  z przewijaniem ‹ ›, w której każda doba pokazuje cenę najkrótszego pobytu i jego długość („130 zł ·
+  1 doba", „520 zł · 4 doby", „z dopłatą"), „zacznij pt 12.06" w środku pakietu albo powód
+  niedostępności. Nad siatką są przełączniki liczby łowiących, grup stanowisk i cech (np. pomost),
+  pas pakietów sprzedawanych w całości i wyciąg zasad łowiska (doba, weekend i święta w całości,
+  sezon, karta wędkarska, no-kill). Najechanie albo dotknięcie ceny pokazuje jej rozbicie z dopłatami
+  i usługami obowiązkowymi. Na telefonie kalendarz ma pasek dób i listę stanowisk dla wybranej doby.
+  Wybrany widok ma własny adres, który można komuś wysłać.
+- Karta łowiska na stronie głównej pokazuje **linijkę najważniejszych zasad** (doba, weekend i święta
+  w całości, karta wędkarska, no-kill).
 - Portal, oba panele i ekrany logowania mają **ikonę Fisherya** na karcie przeglądarki i na ekranie
   głównym telefonu.
 

@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `routes/**`, widokach Breeze i `resources/views/**` 
 `resources/views/filament/**` — w szczególności w portalu wędkarza (`resources/views/portal/**`,
 `app/Http/Controllers/Portal/**`, `App\Services\Portal*`).
 
-Zadania źródłowe: 029, 031, 032. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
+Zadania źródłowe: 029, 031, 032, 033. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
 (potok stylów), [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md) (schemat adresów).
 Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
@@ -101,8 +101,8 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   wewnątrz treści to **przycisk `[data-tab-open]`, nie kotwica** — przełącza bez przewijania (kotwica
   powodowała skok strony) i jest ukryty bez skryptu. ⚠️ **Bez skryptu obie treści
   muszą być widoczne** (jedna pod drugą) — nie chowaj paneli klasą w HTML-u, chowa je dopiero skrypt.
-- **Box z ceną i kontaktem** jest ten sam w obu zakładkach (`portal.partials.fishery-box`, na desktopie
-  przyklejony). Bez telefonu: e-mail łowiska albo nic — bez tekstu zastępczego; pasek „Zadzwoń"
+- **Box z ceną i kontaktem** jest ten sam w obu zakładkach (`portal.partials.fishery-box`) i **stoi
+  w miejscu** (nie jest przyklejony przy przewijaniu). Bez telefonu: e-mail łowiska albo nic — bez tekstu zastępczego; pasek „Zadzwoń"
   przyklejony do dołu telefonu istnieje tylko przy telefonie. Linki zewnętrzne: `target="_blank"
   rel="noopener"`, tylko wypełnione.
 - **Kolejność na telefonie:** nazwa → zakładki → mapa → [kalendarz] → cena i telefon → opis → zdjęcia.
@@ -116,7 +116,43 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 - **Obrazek mapy** z dysku uploadów z konfiguracji (`filament.default_filesystem_disk`), bez przybijania
   dysku ([`panel-admina.md`](panel-admina.md) §1).
 
-## 6. Breeze po zadaniu 031
+## 6. Kalendarz strony łowiska
+
+- **Mechanizm: GET z parametrami + stopniowe ulepszenie** ([ADR-022](../adr/ADR-022-mechanizm-interakcji-portalu.md)).
+  Każdy przełącznik to zwykły link (`rel="nofollow"`, `data-calendar-link`); bez skryptu działa
+  przeładowaniem, a `portal.js` pobiera ten sam adres z nagłówkiem `X-Portal-Fragment: calendar`
+  i podmienia wyłącznie `[data-calendar]` (`portal.partials.calendar`). ⚠️ Nie dokładaj Livewire
+  do stron publicznych i nie trzymaj stanu kalendarza poza adresem.
+- **Stan w adresie, nazwy parametrów zależne od języka** — jeden dom: `PortalRoutes::CALENDAR_PARAMS`
+  (PL `tydzien`/`lowiacych`/`grupa`/`cecha`/`doba`/`st`, EN `week`/`anglers`/`group`/`feature`/`night`/`pos`).
+  Wartości grup i cech to slugi z nazw (`slug-cechy:slug-opcji` dla wyboru); nieznane i błędne
+  wartości spadają do domyślnych. Canonical i `hreflang` — bez parametrów (`PortalRoutes::alternates()`);
+  przełącznik języka niesie stan pod nazwami drugiego języka (`PortalRoutes::switchUrls()`).
+- **Przełączniki zamiast grupowania:** grupa jedna naraz (stanowisko w kilku grupach widać w każdej;
+  aktywna grupa i aktywna cecha kliknięte ponownie się wyłączają),
+  cechy filtrowalne łączone przez I (trzeci stan nie spełnia, cechy liczbowe nie są przełącznikiem);
+  liczba przy grupie i cesze = stanowiska w sprzedaży w bieżącym wyborze.
+  ⚠️ **„Wszystkie" to reset filtrów:** zawsze liczba WSZYSTKICH stanowisk w sprzedaży, czyści naraz
+  grupę i cechy, aktywne tylko bez żadnego filtra; jest także przy łowisku z samymi cechami.
+- **Układ: kalendarz na CAŁĄ szerokość**, pod mapą i boxem (siatka CSS: na telefonie kolejność z HTML —
+  mapa → kalendarz → cena i telefon → opis). ⚠️ **Siatka bez stałej wysokości i bez własnego
+  przewijania** — wysokość wynika z liczby stanowisk, a nagłówek dni przykleja się do okna. Kontener
+  z `overflow` przyciągnąłby `sticky` do siebie i włączał przewijanie; w jednej kolumnie obok boxa
+  siedem dób się nie mieściło.
+- **Wiersze: stanowiska w sprzedaży**, naturalna kolejność etykiet; stanowisko o mniejszej pojemności
+  niż wybrana liczba łowiących to komunikat na cały wiersz i nie jest pytane o werdykty.
+  ⚠️ Filtrowanie idzie PRZED siatką — `SaleCalendar::grid(..., $onlyPositionIds)` — portal nie liczy
+  werdyktów dla wierszy, których nie pokaże.
+- **Komórka i podpowiedź:** „cena · długość", „z dopłatą", „zacznij pt 12.06", krótki powód dla
+  wędkarza (pełny ze słownika w `title`). Podpowiedź z rozbiciem otwiera się: myszą na najechanie,
+  klawiaturą na `:focus-visible`, dotykiem na fokus wyłącznie przy `hover: none`. ⚠️ Nie wracaj do
+  zwykłego `:focus-within` — kliknięcie myszą zostawiało dymek otwarty. `portal.js` przypina dymek
+  do okna (`position: fixed`), żeby nic go nie przycinało.
+  Na telefonie — pasek dób, lista stanowisk dla doby (`doba`) i karta stanowiska (`st`).
+- **Wyciąg zasad ma jeden dom — `FisheryRulesSummary`:** pełny nad siatką, skrócony na telefonie
+  i linijka na karcie strony głównej (`cardLine()`). Pusta wartość parametru nie trafia do wyciągu.
+
+## 7. Breeze po zadaniu 031
 
 - **Pulpitu Breeze (`/dashboard`) nie ma.** Po logowaniu, rejestracji, weryfikacji adresu i 2FA
   użytkownik trafia do panelu — jedna reguła `PanelHome::urlFor()` ([`autoryzacja.md`](autoryzacja.md) §6).

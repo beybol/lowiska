@@ -41,7 +41,7 @@ final class PortalFisheries
     /**
      * Dane jednej karty listy — w kolejności z makiety.
      *
-     * @return array{name: string, url: string|null, water: string, state: string, positions: int, no_kill: bool, price_from: string|null}
+     * @return array{name: string, url: string|null, water: string, state: string, positions: int, no_kill: bool, price_from: string|null, rules: string}
      */
     public static function card(Fishery $fishery): array
     {
@@ -62,6 +62,8 @@ final class PortalFisheries
             'no_kill' => $fishery->no_kill === true,
             // `null` = „cennik w przygotowaniu". Liczy ją wyłącznie `PriceFrom` — karta tylko formatuje.
             'price_from' => self::priceFrom($fishery),
+            // Linijka zasad — ta sama metoda co wyciąg nad kalendarzem (033).
+            'rules' => (new FisheryRulesSummary($fishery))->cardLine(),
         ];
     }
 

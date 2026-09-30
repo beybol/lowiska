@@ -150,6 +150,9 @@ final class SaleCalendar
      * Siatka dla jednego okna.
      *
      * @param  int|null  $nights  `null` = najkrótszy kupowalny pobyt, czyli widok „ceny od"
+     * @param  array<int, int>|null  $onlyPositionIds  `null` = wszystkie stanowiska łowiska; lista =
+     *                                                 wyłącznie te (portal po filtrach grup i cech, 033) —
+     *                                                 bez liczenia werdyktów dla wierszy, których nikt nie zobaczy
      */
     public function grid(
         CarbonImmutable $from,
@@ -157,13 +160,19 @@ final class SaleCalendar
         int $anglers = 1,
         int $companions = 0,
         ?int $nights = null,
+        ?array $onlyPositionIds = null,
     ): SaleCalendarGrid {
         $days = $this->daysOf($from, $unit);
 
         /** @var array<int, Position> $positions */
-        $positions = $this->fishery->positions()->orderBy('name')->get()->all();
+        $positions = $this->fishery->positions()
+            ->when($onlyPositionIds !== null, fn ($query) => $query->whereKey($onlyPositionIds))
+            ->orderBy('name')
+            ->get()
+            ->all();
 
         $blocks = $this->blocksByPosition();
+        $suspensions = $this->blocksByPosition(BlockEffect::AttributeSuspended);
         $rows = [];
 
         // ⚠️ JEDNA instancja na render: usługi, przypięcia i wartości cech wczytuje raz dla
@@ -199,7 +208,12 @@ final class SaleCalendar
                 $cells[] = $this->cellFor($offer, $position, $day, $anglers, $companions, $nights, $blocks);
             }
 
-            $rows[] = SaleCalendarRow::of($position, $cells, $positionServices);
+            $rows[] = SaleCalendarRow::of(
+                $position,
+                $cells,
+                $positionServices,
+                $this->blocksCoveringAny($suspensions[$position->id] ?? [], $days),
+            );
         }
 
         [$candidates, $deadRates] = $this->pricingDiagnostics($days);
@@ -242,7 +256,7 @@ final class SaleCalendar
             $verdict = $offer->offer($day, $nights, $anglers, $companions);
 
             if ($verdict->available && $verdict->breakdown !== null) {
-                return SaleCalendarCell::sellable($day, $nights, $verdict->breakdown->totalInCents());
+                return SaleCalendarCell::sellable($day, $nights, $verdict->breakdown->totalInCents(), $verdict->breakdown);
             }
 
             return $this->refusedCell(
@@ -258,7 +272,7 @@ final class SaleCalendar
         $shortest = $offer->shortestOffer($day, $anglers, $companions);
 
         if ($shortest->available && $shortest->nights !== null && $shortest->breakdown !== null) {
-            return SaleCalendarCell::sellable($day, $shortest->nights, $shortest->breakdown->totalInCents());
+            return SaleCalendarCell::sellable($day, $shortest->nights, $shortest->breakdown->totalInCents(), $shortest->breakdown);
         }
 
         $reason = $shortest->reason ?? SaleUnavailabilityReason::OutsideSalePeriod;
@@ -283,6 +297,7 @@ final class SaleCalendar
     ): SaleCalendarCell {
         $count = null;
         $label = null;
+        $publicReason = null;
 
         // ⚠️ **Zasięg blokady musi być widoczny, bo to on uzasadnia ten wariant siatki.**
         // Argumentem za najdroższym widokiem jest „blokada objęła piętnaście miejsc zamiast
@@ -300,10 +315,36 @@ final class SaleCalendar
                 // ⚠️ `selection_label` jest NULLABLE — zbiór zaznaczony ręcznie go nie ma,
                 // więc potrzebny jest wariant bez opisu kryterium, nigdy pusty nawias.
                 $label = filled($block->selection_label) ? (string) $block->selection_label : null;
+                // Powód dla wędkarza tylko wtedy, gdy łowisko go udostępniło (016).
+                $publicReason = $block->reason_visible && filled($block->reason) ? (string) $block->reason : null;
             }
         }
 
-        return SaleCalendarCell::refused($day, $reason, $bundleFirstDay, $bundleLastDay, $count, $label);
+        return SaleCalendarCell::refused($day, $reason, $bundleFirstDay, $bundleLastDay, $count, $label, $publicReason);
+    }
+
+    /**
+     * Wpisy przecinające KTÓRĄKOLWIEK dobę okna — do znacznika ograniczenia w nagłówku wiersza.
+     *
+     * ⚠️ Jak `blockCovering()`: to wyłącznie „które wpisy dotyczą tego okna", reguła przecięcia
+     * doby z oknem wpisu jest ta sama (`FishingDay::overlaps()`), a o sprzedaży nic tu nie zapada —
+     * zawieszenie cechy nie jest odmową (`dostepnosc.md` §2).
+     *
+     * @param  array<int, AvailabilityBlock>  $blocks
+     * @param  array<int, CarbonImmutable>  $days
+     * @return array<int, AvailabilityBlock>
+     */
+    private function blocksCoveringAny(array $blocks, array $days): array
+    {
+        $found = [];
+
+        foreach ($days as $day) {
+            foreach ($this->blocksCovering($blocks, $day) as $block) {
+                $found[(int) $block->id] = $block;
+            }
+        }
+
+        return array_values($found);
     }
 
     /**
@@ -325,10 +366,21 @@ final class SaleCalendar
      */
     private function blockCovering(array $blocks, CarbonImmutable $day): ?AvailabilityBlock
     {
+        return $this->blocksCovering($blocks, $day)[0] ?? null;
+    }
+
+    /**
+     * Wszystkie wpisy przecinające dobę, w kolejności deterministycznej (początek, `id`).
+     *
+     * @param  array<int, AvailabilityBlock>  $blocks
+     * @return array<int, AvailabilityBlock>
+     */
+    private function blocksCovering(array $blocks, CarbonImmutable $day): array
+    {
         $night = $this->calendar()->dayStartingOn($day);
 
         if (! $night instanceof FishingDay) {
-            return null;
+            return [];
         }
 
         $timezone = $this->fishery->timezoneName();
@@ -352,10 +404,6 @@ final class SaleCalendar
             }
         }
 
-        if ($covering === []) {
-            return null;
-        }
-
         // ⚠️ Gdy dobę przykrywa kilka blokad, wybór musi być DETERMINISTYCZNY — inaczej
         // podpowiedź podawałaby zasięg przypadkowej z nich i zmieniałaby się między renderami.
         usort($covering, static fn (AvailabilityBlock $a, AvailabilityBlock $b): int => [
@@ -364,19 +412,21 @@ final class SaleCalendar
             $b->starts_on->toDateString(), (int) $b->id,
         ]);
 
-        return $covering[0];
+        return $covering;
     }
 
     /**
-     * Blokady sprzedaży wczytane RAZ na render, pogrupowane po stanowisku.
+     * Wpisy o dostępności danego skutku wczytane RAZ na render, pogrupowane po stanowisku —
+     * blokady sprzedaży (podpowiedź zasięgu) i ograniczenia zawieszające cechę (znacznik wiersza
+     * w portalu, 033). Liczba zapytań nie rośnie z liczbą stanowisk.
      *
      * @return array<int, array<int, AvailabilityBlock>>
      */
-    private function blocksByPosition(): array
+    private function blocksByPosition(BlockEffect $effect = BlockEffect::SaleBlocked): array
     {
         $blocks = $this->fishery->availabilityBlocks()
-            ->where('effect', BlockEffect::SaleBlocked->value)
-            ->with('positions:id')
+            ->where('effect', $effect->value)
+            ->with(['positions:id', 'attribute'])
             ->get();
 
         $byPosition = [];

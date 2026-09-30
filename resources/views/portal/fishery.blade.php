@@ -45,8 +45,11 @@
             </nav>
 
             {{-- ============ Mapa i terminy (domyślna) ============ --}}
+            {{-- ⚠️ Kolejność w HTML = kolejność na telefonie (mapa → kalendarz → cena i telefon → opis);
+                 na desktopie siatka CSS stawia box obok mapy, a kalendarz POD nimi, na całą szerokość —
+                 w jednej kolumnie siedem dób się nie mieściło i włączało się przewijanie w poziomie. --}}
             <section id="{{ $mapTab }}" data-tab-panel="{{ $mapTab }}" role="tabpanel" class="grid gap-7 py-5 lg:grid-cols-[minmax(0,1fr)_260px]">
-                <div>
+                <div class="lg:col-start-1 lg:row-start-1">
                     @if ($mapUrl !== null)
                         <figure>
                             <img src="{{ $mapUrl }}" alt="{{ __('Fishery map — :fishery', ['fishery' => $fishery->name]) }}" class="w-full rounded-md border border-line bg-white" loading="lazy">
@@ -54,15 +57,14 @@
                         </figure>
                     @endif
 
-                    {{-- Miejsce na kalendarz — zadanie 033 (płaska siatka stanowisk, warstwa oferty). --}}
-                    <div class="mt-6" data-calendar-slot>
-                        <h2 class="font-display text-[23px] font-semibold tracking-tight">{{ __('Dates and prices') }}</h2>
-                        <p class="mt-1 text-[13px] font-semibold text-a700">{{ __('The fishery will confirm free dates by phone.') }}</p>
-                        <p class="mt-3 rounded-md border border-dashed border-faint bg-white px-4 py-5 text-[13.5px] text-muted">{{ __('The calendar of dates and prices is on its way.') }}</p>
-                    </div>
                 </div>
 
-                <aside>
+                {{-- Kalendarz — zadanie 033: płaska siatka stanowisk z warstwy oferty (ADR-015, ADR-022). --}}
+                <div class="min-w-0 lg:col-span-2 lg:row-start-2">
+                    @include('portal.partials.calendar')
+                </div>
+
+                <aside class="lg:col-start-2 lg:row-start-1">
                     @include('portal.partials.fishery-box')
 
                     @if ($description !== null)

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AvailabilityBlock;
 use App\Models\Position;
 
 /**
@@ -23,15 +24,20 @@ final readonly class SaleCalendarRow
         public array $cells,
         public bool $withdrawn,
         public array $services,
+        public array $suspensions = [],
     ) {}
 
     /**
      * @param  array<int, SaleCalendarCell>  $cells
      * @param  array<int, PositionServiceStatus>  $services
      */
-    public static function of(Position $position, array $cells, array $services = []): self
+    /**
+     * @param  array<int, AvailabilityBlock>  $suspensions  ograniczenia zawieszające cechę stanowiska,
+     *                                                      przecinające którąś dobę okna (033)
+     */
+    public static function of(Position $position, array $cells, array $services = [], array $suspensions = []): self
     {
-        return new self($position, $cells, false, $services);
+        return new self($position, $cells, false, $services, $suspensions);
     }
 
     /**

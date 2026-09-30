@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
 use App\Models\Fishery;
+use App\Services\PortalCalendar;
 use App\Services\PortalFisheries;
 use App\Services\PortalFisheryPage;
 use App\Services\PortalLocale;
@@ -62,7 +63,7 @@ class PortalController extends Controller
      * ⚠️ Łowisko szukane **wyłącznie po slugu**; segment województwa jest ozdobą sprawdzaną
      * przekierowaniem 301 — korekta województwa łowiska nie psuje żadnego linku (ADR-021).
      */
-    public function fishery(string $locale, string $state, string $fishery): View|RedirectResponse|Response
+    public function fishery(Request $request, string $locale, string $state, string $fishery): View|RedirectResponse|Response
     {
         $record = $this->publishedFishery($fishery);
         $canonical = $record !== null ? PortalRoutes::fisheryUrl($record, $locale) : null;
@@ -75,9 +76,19 @@ class PortalController extends Controller
             return redirect()->to($canonical, 301);
         }
 
+        $loaded = PortalFisheryPage::load($record);
+        $calendar = new PortalCalendar($loaded, $request->query(), $locale);
+
+        // Stopniowe ulepszenie (ADR-022): `portal.js` pobiera TEN SAM adres i podmienia sam fragment
+        // kalendarza. Stan i werdykty są identyczne jak w pełnej stronie — to tylko inny kawałek widoku.
+        if ($request->header('X-Portal-Fragment') === 'calendar') {
+            return view('portal.partials.calendar', ['calendar' => $calendar, 'fishery' => $loaded]);
+        }
+
         return view('portal.fishery', [
-            'fishery' => $record,
-            'page' => new PortalFisheryPage(PortalFisheryPage::load($record)),
+            'fishery' => $loaded,
+            'page' => new PortalFisheryPage($loaded),
+            'calendar' => $calendar,
         ]);
     }
 
