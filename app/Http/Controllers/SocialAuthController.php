@@ -6,6 +6,7 @@ use App\Enums\SignInMethod;
 use App\Models\User;
 use App\Notifications\SendTwoFactorCode;
 use App\Services\OwnerRoleProvisioner;
+use App\Services\PanelHome;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -157,7 +158,8 @@ class SocialAuthController extends Controller
         }
 
         if ($source === 'breeze') {
-            return redirect()->route('dashboard');
+            // Pulpitu Breeze nie ma (zadanie 031) — konto trafia do swojego panelu.
+            return redirect()->to(PanelHome::urlFor($user));
         } else {
             $panel = Filament::getPanel($source);
 

@@ -48,9 +48,10 @@ test('the create button on the fisheries list opens the wizard', function () {
 });
 
 test('the public register-fishery link points at the wizard', function () {
-    // Strona powitalna Breeze zaprasza do założenia łowiska — bez warunku `if`,
-    // żeby zniknięcie tego linku zaczerwieniło test zamiast go wyciszyć.
-    $html = $this->get('/')->getContent();
+    // Ekran logowania Breeze zaprasza do założenia łowiska — bez warunku `if`,
+    // żeby zniknięcie tego linku zaczerwieniło test zamiast go wyciszyć. Strona
+    // powitalna zniknęła w zadaniu 031 (`/` prowadzi do portalu).
+    $html = $this->get('/login')->getContent();
 
     expect($html)->toContain(__('Register fishery'));
     expect($html)->toContain('/owner/fisheries/create');

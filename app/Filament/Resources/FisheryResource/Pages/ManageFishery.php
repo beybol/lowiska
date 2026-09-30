@@ -5,7 +5,6 @@ namespace App\Filament\Resources\FisheryResource\Pages;
 use App\Enums\PublicationIssue;
 use App\Filament\Resources\FisheryResource;
 use App\Models\Fishery;
-use App\Services\FisheryAccess;
 use App\Services\FisheryPublicationReadiness;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -30,7 +29,8 @@ use Illuminate\Support\Facades\Gate;
  *
  * Tu żyje też **publikacja łowiska w portalu** (zadanie 030): „Opublikuj" pokazuje ostrzeżenie
  * o brakach z odsyłaczami do ekranów poprawy, ale ich nie wymusza — poza brakiem województwa.
- * Przyciski są wyłącznie w panelu właściciela; admin widzi sam status.
+ * Przyciski są w OBU panelach — admin publikuje i wycofuje każde łowisko (np. przy wdrożeniu
+ * albo interwencji), właściciel tylko swoje; rozstrzyga `FisheryPolicy::publish()`, nie panel.
  */
 class ManageFishery extends ViewRecord
 {
@@ -105,8 +105,7 @@ class ManageFishery extends ViewRecord
             ->label(__('Publish'))
             ->icon('heroicon-o-globe-alt')
             ->color('success')
-            ->visible(fn (): bool => FisheryAccess::isOwnerPanel()
-                && ! $this->fishery()->isPublished()
+            ->visible(fn (): bool => ! $this->fishery()->isPublished()
                 && Gate::allows('publish', $this->fishery()))
             ->modalHeading(__('Publish the fishery in the portal'))
             ->modalDescription(fn (): string => match (true) {
@@ -147,8 +146,7 @@ class ManageFishery extends ViewRecord
             ->label(__('Withdraw from the portal'))
             ->icon('heroicon-o-eye-slash')
             ->color('gray')
-            ->visible(fn (): bool => FisheryAccess::isOwnerPanel()
-                && $this->fishery()->isPublished()
+            ->visible(fn (): bool => $this->fishery()->isPublished()
                 && Gate::allows('publish', $this->fishery()))
             ->requiresConfirmation()
             ->modalHeading(__('Withdraw the fishery from the portal'))

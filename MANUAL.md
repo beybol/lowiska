@@ -22,6 +22,7 @@ zapisują się osobno i nie trzeba wypełniać wszystkiego za jednym razem.
 **Logowanie.** Do panelu logujesz się adresem e-mail i hasłem albo przez Google. Jeśli masz konto
 założone hasłem, możesz wejść na nie także przez Google — wystarczy, że to ten sam adres, a Google
 go potwierdza; hasło dalej działa. Po każdym logowaniu dostajesz na adres konta kod weryfikacyjny.
+Po wpisaniu kodu trafiasz prosto do panelu łowiska (administrator — do panelu administratora).
 
 ## 2. Kolejność wprowadzania danych
 
@@ -75,7 +76,8 @@ firma może prowadzić kilka łowisk z różnymi numerami) oraz adres strony WWW
 Wędkarz zobaczy je na stronie łowiska; pole puste się nie pokazuje.
 
 **Adres strony łowiska** w portalu powstaje sam, z nazwy, w chwili założenia łowiska — i potem się
-nie zmienia, nawet gdy zmienisz nazwę. Widzisz go na stronie „Dane łowiska". Zmienić go może tylko
+nie zmienia, nawet gdy zmienisz nazwę. To zarazem **krótki adres**, który możesz podawać na banerze
+i fanpage'u, np. `fisherya.com/klasztorne`. Nazwa łowiska musi mieć co najmniej 3 znaki. Widzisz go na stronie „Dane łowiska". Zmienić go może tylko
 administrator portalu, bo zmiana unieważnia stary adres, także wydrukowany.
 
 ### Publikacja w portalu
@@ -420,7 +422,9 @@ jest sprawdzany jako IBAN — błędny nie przejdzie zapisu.
 
 **Łowiska** to widok wszystkich obiektów w portalu, niezależnie od tego, kto je założył. Służy do
 przeglądu i do interwencji; codzienna konfiguracja obiektu odbywa się po stronie właściciela.
-Kolumna „W portalu od" pokazuje, które łowiska są opublikowane — publikuje i wycofuje je właściciel.
+Kolumna „W portalu od" pokazuje, które łowiska są opublikowane. Administrator może opublikować albo
+wycofać z portalu każde łowisko tymi samymi przyciskami co właściciel (strona „Dane łowiska"), z tą
+samą listą braków i tą samą blokadą bez województwa.
 
 **Adres strony łowiska (slug)** zmienia wyłącznie administrator, w formularzu edycji łowiska. Robi się
 to rzadko i świadomie: zmiana **unieważnia stary adres**, także krótki link, który łowisko mogło

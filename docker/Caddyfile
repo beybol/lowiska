@@ -30,7 +30,8 @@
 	}
 
 	@static {
-		path /build/* /favicon.ico /robots.txt
+		# robots.txt NIE jest tu: to trasa Laravela zależna od środowiska (zadanie 031).
+		path /build/* /favicon.ico
 	}
 	header @static Cache-Control "public, max-age=31536000, immutable"
 

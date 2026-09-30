@@ -27,6 +27,7 @@ use App\Models\FishingMethod;
 use App\Models\State;
 use App\Models\User;
 use App\Rules\FacebookUrl;
+use App\Rules\FisherySlugIsNotReserved;
 use App\Rules\IbanValidation;
 use App\Rules\PhoneNumber;
 use App\Services\DictionaryOptions;
@@ -91,6 +92,9 @@ class FisheryResource extends Resource
             ->maxLength(PortalSlugs::MAX_LENGTH)
             ->regex(PortalSlugs::PATTERN)
             ->validationMessages(['regex' => __('Use lowercase letters, digits and single hyphens only.')])
+            // ⚠️ Slug jest też krótkim adresem wprost pod domeną (ADR-021) — nie może zająć adresu
+            // aplikacji. Przy ręcznej zmianie to błąd, nie sufiks: admin wybiera adres świadomie.
+            ->rules([new FisherySlugIsNotReserved])
             // Tabela, nie model: łowiska usunięte miękko też zajmują slug.
             ->unique(table: Fishery::class, ignoreRecord: true);
     }
@@ -195,6 +199,9 @@ class FisheryResource extends Resource
             TextInput::make('name')
                 ->label(__('Fishery name'))
                 ->required()
+                // Z nazwy powstaje slug, czyli krótki adres łowiska (ADR-021) — krótsza nazwa
+                // dawałaby slug zderzający się z prefiksem języka i od razu z sufiksem (zadanie 031).
+                ->minLength(Fishery::MIN_NAME_LENGTH)
                 ->maxLength(255),
             Select::make('user_id')
                 ->required()

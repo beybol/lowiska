@@ -4,11 +4,13 @@
  * w przestrzeniach nazw Tailwinda 4, dzięki czemu powstają klasy: `bg-b500`, `text-ink2`,
  * `rounded-lg`, `shadow-2`, `font-display`. Domyślna paleta Tailwinda zostaje.
  * Fonty Fraunces i Inter są hostowane u nas (bez Google Fonts — RODO, brak zależności od CDN).
- * Źródła klas portalu dopisuje zadanie 031 razem z pierwszymi widokami.
  */
 @import 'tailwindcss' source(none);
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/fraunces';
+
+/* Widoki portalu — i tylko one; partial favicon nie niesie klas (zadanie 031). */
+@source '../views/portal';
 
 @theme {
   --color-b50: #F1FAFB;

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ __('Two-factor verification') }}</title>
+    @include('partials.favicons')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">

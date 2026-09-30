@@ -195,10 +195,25 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   stanowisko w sprzedaży, dziura w cenniku, telefon, opis, zdjęcie, mapa, obowiązujący regulamin —
   z odnośnikami do zakładek, na których je uzupełni. Braki nie blokują publikacji, z wyjątkiem
   województwa, bez którego łowisko nie ma adresu. Administrator widzi na liście łowisk, które są
-  opublikowane.
+  opublikowane, i może opublikować albo wycofać z portalu każde łowisko w panelu administratora.
+- Powstał **publiczny portal wędkarza** w dwóch językach (PL i EN): strona główna z listą wszystkich
+  opublikowanych łowisk ułożoną alfabetycznie (karta z akwenem, województwem, liczbą stanowisk
+  w sprzedaży i oznaczeniem no-kill), strona „Dla łowisk" z kontaktem do Fisheryi, „Jak układamy listę",
+  „Pliki cookie" oraz strony „Jak to działa", „Kontakt" i dokumentów prawnych z treścią w przygotowaniu.
+  Każda strona ma własny adres w każdym języku, a przełącznik PL · EN prowadzi na tę samą stronę
+  w drugim języku. Portal działa także na telefonie.
+- Łowisko ma w portalu **stronę pod stałym adresem** (np. `/pl/wielkopolskie/klasztorne`, na razie
+  z samą nazwą) i **krótki adres wprost pod domeną** (np. `fisherya.com/klasztorne`), który prowadzi
+  na stronę łowiska w języku odwiedzającego. Nieznany adres pokazuje stronę z listą łowisk.
+- Portal, oba panele i ekrany logowania mają **ikonę Fisheryi** na karcie przeglądarki i na ekranie
+  głównym telefonu.
 
 ### Zmienione
 
+- **Po zalogowaniu** (hasłem, przez Google, po kodzie weryfikacyjnym, po rejestracji i potwierdzeniu
+  adresu) użytkownik trafia prosto do swojego panelu — administrator do panelu administratora,
+  pozostali do panelu łowiska — zamiast na pośrednią stronę powitalną.
+- Nazwa łowiska musi mieć **co najmniej 3 znaki** — powstaje z niej adres strony łowiska w portalu.
 - Na konto założone wcześniej hasłem można teraz zalogować się przez Google tym samym adresem —
   Google zostaje dowiązany do konta, a hasło dalej działa. Wymaga to, żeby Google potwierdzał
   adres; po zalogowaniu obowiązuje kod weryfikacyjny wysłany na adres konta. Konto, którego adresu
@@ -263,6 +278,8 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 - Z formularza łowiska zniknęło ręcznie wpisywane pole „Liczba stanowisk". Strona „Dane łowiska"
   pokazuje teraz liczbę stanowisk w sprzedaży, wyliczaną z zakładki „Stanowiska".
+- Zniknęły domyślna strona powitalna pod adresem głównym i pośredni pulpit po logowaniu — adres
+  główny prowadzi do portalu wędkarza.
 
 ### Bezpieczeństwo
 

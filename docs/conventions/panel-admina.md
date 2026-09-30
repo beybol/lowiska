@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w `app/Filament/Resources/**`,
 `app/Providers/Filament/AdminPanelProvider.php`.
 
-Zadania źródłowe: 005, 009, 011, 013, 014, 020, 021, 022, 028, 029, 030. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
+Zadania źródłowe: 005, 009, 011, 013, 014, 020, 021, 022, 028, 029, 030, 031. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
 
 ---
 
@@ -333,6 +333,12 @@ Uzasadnienie kształtu wartości: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech
 - **Slug łowiska jest STAŁY i unikalny w całym portalu.** Powstaje raz, przy utworzeniu, z nazwy
   (`Fishery::booted()` → `PortalSlugs::forFishery()`), z sufiksem `-2`, `-3`… przy kolizji. Zmiana nazwy
   go nie rusza. Historii slugów nie ma (027 pkt 9.3).
+- ⚠️ **Slug łowiska jest też krótkim adresem wprost pod domeną** ([ADR-021](../adr/ADR-021-schemat-adresow-portalu.md),
+  opcja B), więc **nie może zająć adresu aplikacji**: `PortalSlugs::collidesWithApplication()` — bez
+  kropki, co najmniej 3 znaki, spoza `PortalSlugs::RESERVED`, spoza pierwszych segmentów tras. Nadanie
+  automatyczne przy kolizji dostaje sufiks (`admin-2`), ręczna zmiana przez admina — błąd walidacji
+  (`FisherySlugIsNotReserved`). Nazwa łowiska ma co najmniej 3 znaki. Szczegóły:
+  [`strona-publiczna.md`](strona-publiczna.md) §3.
 - ⚠️ **Unikalność obejmuje łowiska usunięte miękko** — `PortalSlugs` pyta surową tabelę, a pole formularza
   `unique(table: Fishery::class)`, nie model z `SoftDeletes`. Nie przepisuj tego na zapytanie przez model.
 - **Ręczna zmiana sluga łowiska — wyłącznie admin, wyłącznie w formularzu edycji w panelu admina**

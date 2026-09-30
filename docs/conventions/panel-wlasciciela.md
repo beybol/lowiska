@@ -479,8 +479,10 @@ Uzasadnienie kształtu danych dokumentów: [ADR-017](../adr/ADR-017-dokumenty-i-
 
 - **Publikacja to kolumna `fisheries.published_at`** (`null` = niewidoczne dla wędkarzy, scope
   `Fishery::published()`), ustawiana **wyłącznie** akcjami „Opublikuj" / „Wycofaj z portalu"
-  w nagłówku `ManageFishery`. Przyciski są **tylko w panelu właściciela** (`FisheryAccess::isOwnerPanel()`);
-  admin widzi sam status (strona „Dane łowiska", kolumna listy łowisk).
+  w nagłówku `ManageFishery`. Przyciski są **w obu panelach**: właściciel publikuje swoje łowisko,
+  admin — każde (wdrożenie, interwencja). O widoczności decyduje wyłącznie `FisheryPolicy::publish()`,
+  nie warunek na panelu; to samo ostrzeżenie o brakach i ta sama blokada bez województwa obowiązują
+  obu. Status widać też w kolumnie listy łowisk.
 - **Ostrzeżenie o brakach NIE blokuje publikacji — z jednym wyjątkiem: brak województwa.** Listę braków
   liczy **jedna** usługa, [`FisheryPublicationReadiness`](../../app/Services/FisheryPublicationReadiness.php),
   a każdy brak to przypadek `PublicationIssue` (tylko `StateMissing` ma `blocksPublication()`). Modal

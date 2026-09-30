@@ -54,4 +54,11 @@ return [
     'cso' => [
         'key' => env('CSO_KEY'),
     ],
+
+    // Statystyki odwiedzin portalu (zadanie 031). Skrypt ładuje się WYŁĄCZNIE w układzie portalu
+    // i wyłącznie przy obu wartościach ustawionych — `deploy.yml` podaje je tylko produkcji.
+    'umami' => [
+        'script_url' => env('UMAMI_SCRIPT_URL'),
+        'website_id' => env('UMAMI_WEBSITE_ID'),
+    ],
 ];

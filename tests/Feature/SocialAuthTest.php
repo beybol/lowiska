@@ -7,6 +7,7 @@ use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Models\User;
 use App\Notifications\SendTwoFactorCode;
 use App\Services\HasPasswordBackfill;
+use App\Services\PanelHome;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -387,7 +388,7 @@ test('with a pending code and nothing to report the user goes to where they came
 
     fakeGoogle('jan@example.com');
     $this->withSession(['social_auth_source' => 'breeze']);
-    googleCallback()->assertRedirect(route('dashboard'));
+    googleCallback()->assertRedirect(PanelHome::urlFor($user));
 
     auth()->logout();
 

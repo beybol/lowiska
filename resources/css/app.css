@@ -11,8 +11,6 @@
 @source '../views/components';
 @source '../views/layouts';
 @source '../views/profile';
-@source '../views/dashboard.blade.php';
-@source '../views/welcome.blade.php';
 @source '../js';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 

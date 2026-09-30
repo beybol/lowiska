@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Services\PanelHome;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
@@ -28,7 +29,8 @@ test('email can be verified', function () {
 
     Event::assertDispatched(Verified::class);
     expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
-    $response->assertRedirect(route('dashboard', absolute: false).'?verified=1');
+    // Pulpitu Breeze nie ma (zadanie 031) — konto bez `is_admin` trafia do panelu właściciela.
+    $response->assertRedirect(PanelHome::urlFor($user).'?verified=1');
 });
 
 test('email is not verified with invalid hash', function () {

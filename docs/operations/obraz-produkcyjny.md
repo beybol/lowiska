@@ -314,3 +314,20 @@ Nie zastępuje przeglądu merytorycznego (`/review-implementation`, skill `secur
 w audycie bliźniaczego projektu narzędzia nie wykryły **żadnego** z ustaleń wysokiej istotności,
 bo wszystkie były błędami logiki. Podatność z zadania 002 (zatrucie hosta przez `trustProxies`
 bez maski) też nie jest niczym, co złapałby PHPStan czy gitleaks.
+
+---
+
+## 12. Portal wędkarza — robots.txt, statystyki i kontrola slugów (zadanie 031)
+
+- **`robots.txt` i `sitemap.xml` to trasy Laravela**, nie pliki w `public/`: poza produkcją
+  `robots.txt` zamyka indeksowanie (`Disallow: /`), na produkcji wskazuje `{APP_URL}/sitemap.xml`.
+  `docker/Caddyfile` nie ma już `/robots.txt` w `@static` (cache „immutable" na rok przykryłby zmianę
+  środowiska). ⚠️ Nie przywracaj `public/robots.txt` — Caddy podałby go przed Laravelem.
+- **Umami — wyłącznie produkcja.** `deploy.yml` dokłada `UMAMI_SCRIPT_URL` i `UMAMI_WEBSITE_ID`
+  (`services.umami`) tylko w gałęzi `ENV=prod`, jako literały — obie wartości są publiczne (widać je
+  w HTML-u). Staging i środowiska lokalne ich nie mają, więc układ portalu nie ładuje skryptu.
+- **`portal:check-slugs`** — osobny krok `deploy.yml` po migracjach i `admins:sync`
+  (`continue-on-error: true`, komenda zawsze kończy się kodem 0). Porównuje slugi łowisk w bazie
+  z trasami i listą zastrzeżoną **wdrażanej** wersji; kolizja to ostrzeżenie w logu joba
+  `lowiska-{env}-check-slugs`. Powód i reguły: [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md),
+  [`strona-publiczna.md`](../conventions/strona-publiczna.md) §3.

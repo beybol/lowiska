@@ -2,7 +2,7 @@
 
 Obowiązuje przy zmianach w `app/Policies/**`, rolach i uprawnieniach Shielda, `User`.
 
-Zadania źródłowe: 008, 009, 012, 013, 015, 021, 025, 030; security-review 2026-09-20.
+Zadania źródłowe: 008, 009, 012, 013, 015, 021, 025, 030, 031; security-review 2026-09-20.
 
 ---
 
@@ -296,6 +296,12 @@ dowiązują się na tych samych zasadach.
 
 ⚠️ **2FA obowiązuje na tej ścieżce tak samo jak przy haśle** — `TwoFactorMiddleware` nie wyłapie
 braku, bo pusty kod traktuje jako „brak oczekującego wyzwania".
+
+- **Dokąd po logowaniu — jedna reguła: `PanelHome::urlFor()`** (zadanie 031). Pulpitu Breeze nie ma;
+  po logowaniu hasłem, rejestracji, weryfikacji adresu, potwierdzeniu hasła, logowaniu Google i 2FA
+  z ekranu Breeze konto z `is_admin` trafia do `/admin`, pozostałe do `/owner`. Ścieżki startujące
+  z paneli (`two_factor_source` = panel) wracają do swojego panelu jak dotąd. `redirect()->intended()`
+  zostaje wszędzie, gdzie było. Nie wpisuj adresu panelu w kontrolerze — to drugi literał tej reguły.
 
 Zadania źródłowe: 012, 028; security-review 2026-09-20.
 

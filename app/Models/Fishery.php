@@ -121,6 +121,9 @@ class Fishery extends Model
      */
     public const DEFAULT_TIMEZONE = 'Europe/Warsaw';
 
+    /** Minimalna długość nazwy łowiska — z nazwy powstaje krótki adres (ADR-021, zadanie 031). */
+    public const MIN_NAME_LENGTH = 3;
+
     /**
      * Strefa, w której biegną WSZYSTKIE wyliczenia sprzedaży tego łowiska (`dostepnosc.md` §1).
      *
@@ -148,6 +151,9 @@ class Fishery extends Model
         return $this->belongsTo(Company::class);
     }
 
+    /**
+     * @return BelongsTo<State, $this>
+     */
     public function state(): BelongsTo
     {
         return $this->belongsTo(State::class);
@@ -158,6 +164,9 @@ class Fishery extends Model
         return $this->belongsToMany(Convenience::class);
     }
 
+    /**
+     * @return BelongsToMany<FisheryType, $this>
+     */
     public function fisheryTypes(): BelongsToMany
     {
         return $this->belongsToMany(FisheryType::class);

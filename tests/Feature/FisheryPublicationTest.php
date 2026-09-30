@@ -260,13 +260,41 @@ test('another owner can not reach the publish action of a foreign fishery', func
     expect($fishery->fresh()->published_at)->toBeNull();
 });
 
-test('the admin panel shows the publication status without the publish buttons', function () {
+test('the admin publishes and withdraws any fishery in the admin panel', function () {
     [$fishery] = publishableFishery();
+    $fishery->update(['phone' => null]);
     $this->actingAs($this->createSuperAdmin());
     Filament::setCurrentPanel('admin');
 
     Livewire::test(ManageFishery::class, ['record' => $fishery->getKey()])
-        ->assertActionHidden('publish')
+        ->assertSee(__('Not published'))
+        ->assertActionVisible('publish')
         ->assertActionHidden('withdraw')
-        ->assertSee(__('Not published'));
+        ->mountAction('publish')
+        ->assertMountedActionModalSee(PublicationIssue::PhoneMissing->label())
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
+
+    expect($fishery->fresh()->published_at)->not->toBeNull();
+
+    Livewire::test(ManageFishery::class, ['record' => $fishery->getKey()])
+        ->assertActionHidden('publish')
+        ->callAction('withdraw')
+        ->assertHasNoActionErrors();
+
+    expect($fishery->fresh()->published_at)->toBeNull();
+});
+
+test('the admin can not publish a fishery without a state either', function () {
+    [$fishery] = publishableFishery();
+    $fishery->update(['state_id' => null]);
+    $this->actingAs($this->createSuperAdmin());
+    Filament::setCurrentPanel('admin');
+
+    Livewire::test(ManageFishery::class, ['record' => $fishery->getKey()])
+        ->mountAction('publish')
+        ->callMountedAction()
+        ->assertNotified(__('The fishery can not be published without a state.'));
+
+    expect($fishery->fresh()->published_at)->toBeNull();
 });

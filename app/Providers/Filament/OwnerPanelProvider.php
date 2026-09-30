@@ -43,6 +43,8 @@ class OwnerPanelProvider extends PanelProvider
             ->topNavigation()
             // ADR-016 A: jeden wspólny motyw dla obu paneli (resources/css/filament/theme.css).
             ->viteTheme('resources/css/filament/theme.css')
+            // Znak Fisheryi na karcie przeglądarki — ten sam plik co w portalu (zadanie 031).
+            ->favicon(asset('favicon.svg'))
             ->colors([
                 'primary' => Color::Green,
             ])

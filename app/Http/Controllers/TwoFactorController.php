@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Notifications\SendTwoFactorCode;
+use App\Services\PanelHome;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Illuminate\Http\RedirectResponse;
@@ -80,7 +81,7 @@ class TwoFactorController extends Controller
             return redirect()->intended('/owner');
         }
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended(PanelHome::urlFor($user));
     }
 
     public function resend(): RedirectResponse

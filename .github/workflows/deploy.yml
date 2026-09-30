@@ -198,6 +198,13 @@ jobs:
             # never sets this var, so prod stays public.
             ENVVARS="$ENVVARS,BASIC_AUTH_SNIPPET=/etc/caddy/snippets/basic-auth.caddy"
           fi
+          if [ "$ENV" = "prod" ]; then
+            # Portal visit statistics (task 031) — PROD ONLY: staging must not
+            # count its own traffic. Not secrets: both values are public in the
+            # page HTML. Without them the portal layout renders no Umami script.
+            ENVVARS="$ENVVARS,UMAMI_SCRIPT_URL=https://umami.eadmin.pl/script.js"
+            ENVVARS="$ENVVARS,UMAMI_WEBSITE_ID=3fe6e9c6-3a96-48eb-b619-bac7b048131a"
+          fi
           echo "secrets=$SECRETS" >> "$GITHUB_OUTPUT"
           echo "envvars=$ENVVARS" >> "$GITHUB_OUTPUT"
 
@@ -235,6 +242,28 @@ jobs:
             --args artisan,admins:sync \
             --max-retries 1 --task-timeout 600
           gcloud run jobs execute "${{ steps.env.outputs.service }}-admins-sync" --region "${REGION}" --wait
+
+      # A fishery slug is also its short address right under the domain
+      # (fisherya.com/klasztorne, ADR-021 option B), so it shares the first URL
+      # segment with application routes. Slugs are checked when assigned, but not
+      # the other way round: a NEW route added after a fishery printed its address
+      # on a banner. `portal:check-slugs` compares the slugs in the database with
+      # the routes of the version being deployed and WARNS — it always exits 0
+      # and the step never stops the rollout (fix: rename our route, not the slug).
+      - name: Check fishery slugs against routes
+        continue-on-error: true
+        run: |
+          gcloud run jobs deploy "${{ steps.env.outputs.service }}-check-slugs" \
+            --image "${{ steps.env.outputs.image }}" \
+            --region "${REGION}" \
+            --service-account "${{ steps.env.outputs.runtime_sa }}" \
+            --set-cloudsql-instances "${{ steps.env.outputs.sql_conn }}" \
+            --set-secrets "${{ steps.args.outputs.secrets }}" \
+            --set-env-vars "${{ steps.args.outputs.envvars }}" \
+            --command php \
+            --args artisan,portal:check-slugs \
+            --max-retries 0 --task-timeout 300
+          gcloud run jobs execute "${{ steps.env.outputs.service }}-check-slugs" --region "${REGION}" --wait
 
       # No queue-worker service deploy step: this environment runs
       # QUEUE_CONNECTION=sync (Filament's CountryImporter runs inline), so
