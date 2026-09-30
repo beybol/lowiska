@@ -146,6 +146,9 @@ class Fishery extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
@@ -159,6 +162,9 @@ class Fishery extends Model
         return $this->belongsTo(State::class);
     }
 
+    /**
+     * @return BelongsToMany<Convenience, $this>
+     */
     public function conveniences(): BelongsToMany
     {
         return $this->belongsToMany(Convenience::class);
@@ -172,16 +178,25 @@ class Fishery extends Model
         return $this->belongsToMany(FisheryType::class);
     }
 
+    /**
+     * @return BelongsToMany<FishingMethod, $this>
+     */
     public function fishingMethods(): BelongsToMany
     {
         return $this->belongsToMany(FishingMethod::class);
     }
 
+    /**
+     * @return BelongsToMany<Fish, $this>
+     */
     public function fish(): BelongsToMany
     {
         return $this->belongsToMany(Fish::class);
     }
 
+    /**
+     * @return BelongsTo<Fish, $this>
+     */
     public function dominantFish(): BelongsTo
     {
         return $this->belongsTo(Fish::class);

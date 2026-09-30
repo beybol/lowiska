@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 /**
- * Szablony dokumentów należą do administratora Fisheryi (zadanie 021).
+ * Szablony dokumentów należą do administratora portalu Fisherya (zadanie 021).
  *
  * ⚠️ Właściciel łowiska dostaje WYŁĄCZNIE `view_any:document_template` i `view:document_template`
  * (`OwnerRoleProvisioner`) — lista szablonów przy nowej wersji dokumentu i podgląd. Tworzenie,

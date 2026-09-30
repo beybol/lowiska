@@ -92,6 +92,12 @@ Uploady (mapy i galerie łowisk) lądują lokalnie na dysku `public` (`storage/a
 bez bucketa GCS, potrzebnego dopiero na Cloud Run. Pełny opis granicy lokalne/Cloud Run:
 [`obraz-produkcyjny.md`, sekcja 9](obraz-produkcyjny.md#9-trwały-storage-uploadów--dysk-lokalny-lokalnie-gcs-na-cloud-run).
 
+⚠️ **Dysk `public` jest serwowany pod `/storage` przez dowiązanie `public/storage`** — zakłada je
+`dev-entrypoint` (`php artisan storage:link`), gdy go brakuje; dowiązanie jest w `.gitignore`.
+Bez niego mapy i galerie nie ładują się ani w panelach, ani w portalu. Dysk prywatny `local` ma
+`'serve' => false` — jego trasa `storage/{path}` zajmowała ten sam prefiks i przy braku dowiązania
+dawała mylące 403 zamiast 404. Nie przywracaj `'serve' => true`.
+
 ---
 
 ## 3. Baza danych
@@ -310,14 +316,16 @@ przeładowanie nie działa. Bez wykluczeń odpytywanie całego drzewa zatyka ser
 nie jedna z nich.
 
 **Potok zasobów: Tailwind 4 przez `@tailwindcss/vite`, bez PostCSS-a i bez `tailwind.config.js`**
-([ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)). `vite.config.js` ma cztery wejścia,
-a każde CSS-owe `@import 'tailwindcss' source(none)` z własnymi `@source`:
+([ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)). `vite.config.js` ma pięć wejść —
+trzy arkusze i dwa skrypty (`resources/js/app.js` dla Breeze, `resources/js/portal.js` dla portalu:
+zakładki strony łowiska, bez Alpine) — a każde CSS-owe `@import 'tailwindcss' source(none)`
+z własnymi `@source`:
 
 | Wejście | Dla kogo | Źródła klas |
 |---|---|---|
-| `resources/css/app.css` | widoki Breeze (logowanie, rejestracja, profil) | `resources/views/{auth,components,layouts,profile}`, `dashboard`, `welcome`, `resources/js`, widoki paginacji Laravela |
+| `resources/css/app.css` | widoki Breeze (logowanie, rejestracja, profil) | `resources/views/{auth,components,layouts,profile}`, `resources/js`, widoki paginacji Laravela |
 | `resources/css/filament/theme.css` | oba panele, przez `viteTheme()` | `app/Filament/**`, `resources/views/filament/**` (+ Filament) |
-| `resources/css/portal.css` | portal wędkarza (tokeny „Głębia", fonty Fraunces i Inter hostowane przez `@fontsource-variable/*`) | dopisuje zadanie 031 |
+| `resources/css/portal.css` | portal wędkarza (tokeny „Głębia", fonty Fraunces i Inter hostowane przez `@fontsource-variable/*`) | `resources/views/portal/**` |
 
 ⚠️ **Nowy widok Blade spoza tych katalogów nie dostanie stylów, dopóki nie trafi do `@source`
 właściwego wejścia.** To pierwsze miejsce do sprawdzenia, gdy klasa „nie działa".

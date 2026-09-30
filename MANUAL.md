@@ -384,7 +384,7 @@ weszła w życie najpóźniej — od północy w dniu wejścia w życie. Wędkar
 zobaczysz nad listą samą informację o tym.
 
 **Nowa wersja.** Kliknij **Nowa wersja** i wybierz, od czego zaczynasz: od kopii istniejącej wersji
-(domyślnie obowiązującej) albo od dowolnego szablonu przygotowanego przez Fisheryę. Kopię możesz też
+(domyślnie obowiązującej) albo od dowolnego szablonu przygotowanego przez zespół Fisherya. Kopię możesz też
 zrobić z listy, z dowolnej wersji — także archiwalnej. Data wejścia w życie podpowiada się na dziś
 plus 14 dni; może być najwcześniej **jutrzejsza**, a dwie wersje jednego dokumentu nie mogą wchodzić
 w życie tego samego dnia.

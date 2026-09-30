@@ -1,7 +1,7 @@
 <?php
 
 /*
-| Portal wędkarza — dane kontaktowe Fisheryi pokazywane na stronach portalu (zadanie 031).
+| Portal wędkarza — dane kontaktowe Fisherya pokazywane na stronach portalu (zadanie 031).
 |
 | Telefon jest opcjonalny: numer jest „do ustalenia" (makieta landingu) — bez wartości landing
 | pokazuje sam e-mail.

@@ -2,7 +2,7 @@
     Karta łowiska na liście (portal-v3 §5.1). Dane: `PortalFisheries::card()`.
 
     ⚠️ Zdjęcie to ZAŚLEPKA z makiety (gradient z falą) — prawdziwe okładki dochodzą w 036.
-    ⚠️ Bez „ceny od" (032) i linijki zasad (033); karta nie pokazuje usług.
+    ⚠️ „Cenę od" podaje `PriceFrom` (032); linijka zasad dochodzi w 033; karta nie pokazuje usług.
 --}}
 <a href="{{ $card['url'] }}" class="group block overflow-hidden rounded-md border border-line bg-white transition hover:border-b300 hover:shadow-2">
     <div class="relative h-36 bg-[linear-gradient(145deg,var(--color-b600),var(--color-b800))]" aria-hidden="true">
@@ -17,10 +17,17 @@
                 trans_choice(':count position|:count positions', $card['positions'], ['count' => $card['positions']]),
             ])) }}
         </p>
-        @if ($card['no_kill'])
-            <div class="mt-3 flex justify-end border-t border-line2 pt-3">
-                <span class="inline-flex items-center rounded-full bg-line2 px-2.5 py-0.5 text-[11.5px] font-semibold text-muted">no-kill</span>
+        <div class="mt-3 flex items-end justify-between border-t border-line2 pt-3">
+            <div class="text-[11.5px] text-muted">
+                @if ($card['price_from'] !== null)
+                    <b class="font-display text-[17px] font-semibold text-ink">{{ __('from :price', ['price' => $card['price_from']]) }}</b> {{ __('/ person / night') }}
+                @else
+                    <span class="font-semibold">{{ __('Price list in preparation') }}</span>
+                @endif
             </div>
-        @endif
+            @if ($card['no_kill'])
+                <span class="inline-flex items-center rounded-full bg-line2 px-2.5 py-0.5 text-[11.5px] font-semibold text-muted">no-kill</span>
+            @endif
+        </div>
     </div>
 </a>

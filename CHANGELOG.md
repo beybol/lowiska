@@ -198,14 +198,23 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   opublikowane, i może opublikować albo wycofać z portalu każde łowisko w panelu administratora.
 - Powstał **publiczny portal wędkarza** w dwóch językach (PL i EN): strona główna z listą wszystkich
   opublikowanych łowisk ułożoną alfabetycznie (karta z akwenem, województwem, liczbą stanowisk
-  w sprzedaży i oznaczeniem no-kill), strona „Dla łowisk" z kontaktem do Fisheryi, „Jak układamy listę",
+  w sprzedaży i oznaczeniem no-kill), strona „Dla łowisk" z kontaktem do portalu Fisherya, „Jak układamy listę",
   „Pliki cookie" oraz strony „Jak to działa", „Kontakt" i dokumentów prawnych z treścią w przygotowaniu.
   Każda strona ma własny adres w każdym języku, a przełącznik PL · EN prowadzi na tę samą stronę
   w drugim języku. Portal działa także na telefonie.
-- Łowisko ma w portalu **stronę pod stałym adresem** (np. `/pl/wielkopolskie/klasztorne`, na razie
-  z samą nazwą) i **krótki adres wprost pod domeną** (np. `fisherya.com/klasztorne`), który prowadzi
-  na stronę łowiska w języku odwiedzającego. Nieznany adres pokazuje stronę z listą łowisk.
-- Portal, oba panele i ekrany logowania mają **ikonę Fisheryi** na karcie przeglądarki i na ekranie
+- Łowisko ma w portalu **stronę pod stałym adresem** (np. `/pl/wielkopolskie/klasztorne`)
+  i **krótki adres wprost pod domeną** (np. `fisherya.com/klasztorne`), który prowadzi na stronę
+  łowiska w języku odwiedzającego. Nieznany adres pokazuje stronę z listą łowisk.
+- Strona łowiska ma dwie zakładki: **„Mapa i terminy"** (mapa łowiska, miejsce na kalendarz, opis)
+  i **„Szczegóły"** (akwen, „Zanim przyjedziesz", dojazd i udogodnienia, lista stanowisk w sprzedaży
+  z grupami, pojemnością i cechami, łowisko w sieci). Obok obu zakładek stoi box z **„ceną od"**,
+  telefonem do rezerwacji z przyciskiem „Zadzwoń", godzinami kontaktu i linkami do strony WWW
+  i Facebooka łowiska; bez telefonu box pokazuje e-mail łowiska. Na telefonie przycisk „Zadzwoń"
+  jest przyklejony do dołu ekranu. Pola, których łowisko nie wypełniło, się nie pokazują.
+- **„Cena od"** — najniższa stawka za łowiącego za dobę od dziś do końca trwającego albo najbliższego
+  sezonu, bez dopłat i usług — na stronie łowiska i na karcie listy łowisk; bez stawki widać „cennik
+  w przygotowaniu".
+- Portal, oba panele i ekrany logowania mają **ikonę Fisherya** na karcie przeglądarki i na ekranie
   głównym telefonu.
 
 ### Zmienione

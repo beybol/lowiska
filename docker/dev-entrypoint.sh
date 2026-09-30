@@ -19,4 +19,12 @@ if ! grep -qE '^APP_KEY=.+' .env; then
     php artisan key:generate --force
 fi
 
+# Dysk uploadów lokalnie to `public` (`storage/app/public`), serwowany pod `/storage` przez
+# dowiązanie `public/storage`. Bez niego mapy i galerie łowisk nie ładują się ani w panelach,
+# ani w portalu. Dowiązanie jest w `.gitignore`, więc świeże środowisko go nie ma.
+if [ ! -L public/storage ]; then
+    echo "[dev-entrypoint] Brak dowiązania public/storage — tworzę (storage:link)."
+    php artisan storage:link
+fi
+
 exec "$@"

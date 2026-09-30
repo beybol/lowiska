@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/css/portal.css',
+                'resources/js/portal.js',
                 'resources/css/filament/theme.css',
             ],
             refresh: true,

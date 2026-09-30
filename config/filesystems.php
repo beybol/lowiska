@@ -35,7 +35,11 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // ⚠️ `false`, nie domyślne `true`: trasa `storage/{path}` dysku prywatnego zajmowała prefiks
+            // `/storage`, pod którym dysk `public` serwuje uploady. Przy brakującym dowiązaniu
+            // `public/storage` brak pliku kończył się mylącym 403 zamiast 404. Prywatnego dysku
+            // przez HTTP nie udostępniamy.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

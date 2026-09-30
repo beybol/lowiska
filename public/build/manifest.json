@@ -50,7 +50,7 @@
     "isEntry": true
   },
   "resources/css/portal.css": {
-    "file": "assets/portal-l6DJBAA2.css",
+    "file": "assets/portal-CfOy2Tm4.css",
     "src": "resources/css/portal.css",
     "isEntry": true
   },
@@ -58,6 +58,12 @@
     "file": "assets/app-DaBYqt0m.js",
     "name": "app",
     "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/portal.js": {
+    "file": "assets/portal-CehJNmsB.js",
+    "name": "portal",
+    "src": "resources/js/portal.js",
     "isEntry": true
   }
 }

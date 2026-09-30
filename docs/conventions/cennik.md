@@ -186,6 +186,24 @@ pakietu działają **same z siebie**. Odmowa ze spoiwa niesie zakres pakietu, wi
   **pierwszą dobę pakietu**;
 - pakiet zaczynający się **w** pytanej dobie → skok od razu na długość pokrywającą cały pakiet.
 
+### „Cena od" łowiska — odczyt cennika, jawny wyjątek od „wyłącznie `StayOffer`"
+
+- **„Cenę od" liczy WYŁĄCZNIE [`PriceFrom`](../../app/Services/PriceFrom.php)** (zadanie 032) — portal,
+  karta listy i strona łowiska tylko ją formatują (`AmountFormatter::forVisitor()`). Drugie miejsce
+  liczenia tej liczby to defekt.
+- **Definicja:** najniższa kwota za osobę łowiącą spośród stawek **wygrywających w którejś dobie od
+  dziś do końca trwającego albo najbliższego okresu sprzedaży**, w strefie łowiska. Bez dopłat, obniżki
+  przedsprzedażowej, kwoty za towarzyszącą i usług. Brak godzin doby, okresu albo stawki → `null`
+  („cennik w przygotowaniu").
+- ⚠️ **To świadomy wyjątek od reguły „portal pyta wyłącznie `StayOffer`"** — tak jak lista usług
+  stanowiska z 020. „Cena od" jest liczbą ŁOWISKA, niezależną od daty i długości pobytu, a warstwa
+  oferty pracuje per stanowisko. **Cena i sprzedawalność POBYTU nadal wyłącznie przez `StayOffer`.**
+- ⚠️ **`PriceFrom` nie ma własnych reguł cennika:** która stawka obowiązuje w dobie (daty, zawieszenie,
+  miękkie usunięcie, remis) rozstrzyga `PriceRuleResolver::candidatesFor()`, które doby należą do
+  okresu — `FishingDayCalendar::daysBetween()`, tak jak w `firstPricingGap()`. Nie przepisuj tego na
+  porównanie dat stawki z datami okresu: pominiesz granicę ostatniej doby okresu.
+- Przeszłości nie sprzedajemy: stawka obowiązująca wyłącznie w minionej części sezonu się nie liczy.
+
 ---
 
 ## 6. Dziura w cenniku jest odmową

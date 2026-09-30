@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `routes/**`, widokach Breeze i `resources/views/**` 
 `resources/views/filament/**` — w szczególności w portalu wędkarza (`resources/views/portal/**`,
 `app/Http/Controllers/Portal/**`, `App\Services\Portal*`).
 
-Zadania źródłowe: 029, 031. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
+Zadania źródłowe: 029, 031, 032. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
 (potok stylów), [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md) (schemat adresów).
 Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
@@ -12,7 +12,7 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
 ## 1. Portal niczego nie liczy
 
-- **Cena, sprzedawalność, zasady sprzedaży i dostępność pochodzą z warstwy oferty** (`StayOffer`,
+- **Cena pobytu, sprzedawalność, zasady sprzedaży i dostępność pochodzą z warstwy oferty** (`StayOffer`,
   `SaleCalendar` — [`dostepnosc.md`](dostepnosc.md), [`cennik.md`](cennik.md)). Widok ani kontroler
   portalu nie składa odpowiedzi z niższych warstw i nie ma własnej reguły sprzedażowej — pierwsza taka
   reguła robi z portalu drugie źródło prawdy obok kalendarza podglądowego.
@@ -24,6 +24,13 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   wypowiedzi w żadną stronę — no-kill pokazuje się wyłącznie przy jawnym `true`.
 - **Treści operatora są jednojęzyczne** (D8): nazwa, opis, nazwy grup i dopłat idą po polsku także
   w wersji EN. Tłumaczy się wyłącznie interfejs (`lang/`).
+- **„Cena od" pochodzi wyłącznie z `PriceFrom`** ([`cennik.md`](cennik.md) §5) — karta i box ją tylko
+  formatują przez `AmountFormatter::forVisitor()` („od 70 zł / os. / doba"); `null` = „cennik
+  w przygotowaniu".
+- **Puste pole się nie pokazuje** — ani etykieta, ani „brak". Dane strony łowiska składa
+  `PortalFisheryPage` i to ona odfiltrowuje pozycje bez wartości; widok niczego nie sprawdza.
+- **Treść z edytora operatora** (opis, dojazd, rekordy) wychodzi wyłącznie przez `Str::sanitizeHtml()`
+  (`PortalFisheryPage::html()`), stylowana klasą `.prose-portal` z `portal.css`.
 
 ## 2. Adresy i języki
 
@@ -81,7 +88,35 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 - **Favicon i ikony aplikacji: jeden zestaw w `public/`** (`partials.favicons` w portalu i Breeze,
   `->favicon()` w obu panelach).
 
-## 5. Breeze po zadaniu 031
+## 5. Strona łowiska
+
+- **Zakładki w JEDNYM dokumencie HTML** — „Mapa i terminy" (domyślna) i „Szczegóły"; treść obu jest
+  w HTML-u i indeksuje się pod adresem łowiska (027 pkt 9.4). Kotwice zależą od języka i mają jeden
+  dom: `PortalRoutes::FISHERY_TABS` (`#szczegoly` / `#details`); pierwsza zakładka nie zostawia kotwicy
+  w adresie. ⚠️ **Nie rozbijaj zakładek na osobne adresy** — czwarty segment rozszerzyłby schemat
+  z ADR-021, a każda zakładka potrzebowałaby własnego canonical i `hreflang`. „Cennik" i „Dokumenty"
+  (034) dochodzą jako kolejne pozycje tej samej tablicy i kolejne panele.
+- **Przełącza je `resources/js/portal.js`** — wyłącznie w układzie portalu, bez Alpine. Kontrakt
+  znaczników: `[data-tabs]`, `[data-tab-link]`, `[data-tab-panel]`, a odsyłacz do innej zakładki
+  wewnątrz treści to **przycisk `[data-tab-open]`, nie kotwica** — przełącza bez przewijania (kotwica
+  powodowała skok strony) i jest ukryty bez skryptu. ⚠️ **Bez skryptu obie treści
+  muszą być widoczne** (jedna pod drugą) — nie chowaj paneli klasą w HTML-u, chowa je dopiero skrypt.
+- **Box z ceną i kontaktem** jest ten sam w obu zakładkach (`portal.partials.fishery-box`, na desktopie
+  przyklejony). Bez telefonu: e-mail łowiska albo nic — bez tekstu zastępczego; pasek „Zadzwoń"
+  przyklejony do dołu telefonu istnieje tylko przy telefonie. Linki zewnętrzne: `target="_blank"
+  rel="noopener"`, tylko wypełnione.
+- **Kolejność na telefonie:** nazwa → zakładki → mapa → [kalendarz] → cena i telefon → opis → zdjęcia.
+  Zdjęcia nad nazwą tylko na szerszym ekranie.
+- **Stanowiska: jedno w wierszu, tylko w sprzedaży, porządek naturalny etykiet** (2, 8, 15 — `strnatcasecmp`), z grupami,
+  pojemnością „do N łowiących" i cechami **filtrowalnymi** z wypowiedzianą wartością (flaga „nie"
+  i brak wartości się nie pokazują). Pod listą — grupy: nazwa, stanowiska grupy w sprzedaży i opis
+  (HTML z edytora, przez `html()`); grupa bez stanowiska w sprzedaży się nie pokazuje.
+- **„Łowisko w sieci": adres w Fisherya (link), potem strona WWW, potem Facebook** — dwa ostatnie
+  tylko wypełnione.
+- **Obrazek mapy** z dysku uploadów z konfiguracji (`filament.default_filesystem_disk`), bez przybijania
+  dysku ([`panel-admina.md`](panel-admina.md) §1).
+
+## 6. Breeze po zadaniu 031
 
 - **Pulpitu Breeze (`/dashboard`) nie ma.** Po logowaniu, rejestracji, weryfikacji adresu i 2FA
   użytkownik trafia do panelu — jedna reguła `PanelHome::urlFor()` ([`autoryzacja.md`](autoryzacja.md) §6).

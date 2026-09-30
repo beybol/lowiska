@@ -1,7 +1,7 @@
 {{--
     Układ portalu wędkarza — zadanie 031 (portal-v3 §1.1, ADR-021).
 
-    ⚠️ Wejście stylów portalu (`portal.css`) i NIC więcej — bez stylów Filamenta i Breeze (ADR-020).
+    ⚠️ Wejścia portalu (`portal.css`, `portal.js`) i NIC więcej — bez stylów i skryptów Filamenta i Breeze (ADR-020).
     ⚠️ Umami wyłącznie tutaj i wyłącznie przy komplecie konfiguracji (w praktyce: produkcja).
     ⚠️ `noindex` poza produkcją — staging i środowiska lokalne nie trafiają do wyszukiwarek.
 
@@ -32,7 +32,7 @@
     @endunless
     @include('partials.favicons')
     <meta name="theme-color" content="#135A6B">
-    @vite(['resources/css/portal.css'])
+    @vite(['resources/css/portal.css', 'resources/js/portal.js'])
     @if (filled($umamiScript) && filled($umamiWebsite))
         <script defer src="{{ $umamiScript }}" data-website-id="{{ $umamiWebsite }}"></script>
     @endif

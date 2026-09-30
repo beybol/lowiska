@@ -20,7 +20,7 @@
     <div class="bg-b950 text-[12.5px] text-b300">
         <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3.5 sm:flex-row sm:gap-8 sm:px-6">
             <span><b class="font-semibold text-b100">{{ __('Prices') }}</b> {{ __('per person per night, straight from the fishery\'s price list') }}</span>
-            <span><b class="font-semibold text-b100">{{ __('Sale rules') }}</b> {{ __('in the fishery\'s calendar') }}</span>
+            <span><b class="font-semibold text-b100">{{ __('Rules of sale') }}</b> {{ __('in the fishery\'s calendar') }}</span>
             <span><b class="font-semibold text-b100">{{ __('You book') }}</b> {{ __('directly with the fishery') }}</span>
         </div>
     </div>

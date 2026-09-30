@@ -14,8 +14,8 @@ use Illuminate\Support\Number;
  * strona łowiska nie ma adresu kanonicznego (ADR-021). Kolejność: **alfabetycznie po nazwie,
  * z polską kolacją** — „Jak układamy listę" obiecuje wprost, że nic poza nazwą jej nie ustawia.
  *
- * ⚠️ Karta NIE liczy ceny ani sprzedawalności — „cena od" dochodzi w 032 z warstwy oferty,
- * linijka zasad w 033 (`strona-publiczna.md`).
+ * ⚠️ Karta NIE liczy ceny ani sprzedawalności — „cenę od" podaje `PriceFrom` (cennik, zadanie 032),
+ * linijka zasad dochodzi w 033 (`strona-publiczna.md`).
  */
 final class PortalFisheries
 {
@@ -27,7 +27,7 @@ final class PortalFisheries
         $fisheries = Fishery::query()
             ->published()
             ->whereNotNull('state_id')
-            ->with(['state', 'fisheryTypes'])
+            ->with(['state', 'fisheryTypes', 'currency'])
             ->withCount(['positions as positions_for_sale_count' => fn ($query) => $query->available()])
             ->get();
 
@@ -41,14 +41,15 @@ final class PortalFisheries
     /**
      * Dane jednej karty listy — w kolejności z makiety.
      *
-     * @return array{name: string, url: string|null, water: string, state: string, positions: int, no_kill: bool}
+     * @return array{name: string, url: string|null, water: string, state: string, positions: int, no_kill: bool, price_from: string|null}
      */
     public static function card(Fishery $fishery): array
     {
         $type = $fishery->fisheryTypes->first();
         $water = array_filter([
             $type !== null ? __($type->name) : null,
-            filled($fishery->area) ? Number::format((float) $fishery->area, maxPrecision: 2, locale: app()->getLocale()).' ha' : null,
+            // Powierzchnia 0 to brak danych, nie „0 ha" (pole jest w formularzu wymagane liczbowo).
+            (float) $fishery->area > 0 ? Number::format((float) $fishery->area, maxPrecision: 2, locale: app()->getLocale()).' ha' : null,
         ]);
 
         return [
@@ -59,6 +60,15 @@ final class PortalFisheries
             'positions' => (int) ($fishery->positions_for_sale_count ?? 0),
             // ⚠️ Trzeci stan: `null` („nie podano") NIE jest „nie" — plakietka tylko przy jawnym „tak".
             'no_kill' => $fishery->no_kill === true,
+            // `null` = „cennik w przygotowaniu". Liczy ją wyłącznie `PriceFrom` — karta tylko formatuje.
+            'price_from' => self::priceFrom($fishery),
         ];
+    }
+
+    public static function priceFrom(Fishery $fishery): ?string
+    {
+        $cents = (new PriceFrom($fishery))->amountInCents();
+
+        return $cents === null ? null : AmountFormatter::forVisitor($cents, $fishery->currency?->name);
     }
 }

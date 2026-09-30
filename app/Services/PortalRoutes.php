@@ -37,6 +37,23 @@ final class PortalRoutes
         'report-content' => ['pl' => 'dokumenty-prawne/zglos-nielegalna-tresc', 'en' => 'legal/report-content'],
     ];
 
+    /**
+     * Zakładki strony łowiska → kotwica w każdym języku (zadanie 032). Obie zakładki są w jednym
+     * dokumencie; kotwica pierwszej nie trafia do adresu (adres łowiska zostaje kanoniczny).
+     * „Cennik" i „Dokumenty" dochodzą tutaj w 034.
+     *
+     * @var array<string, array{pl: string, en: string}>
+     */
+    public const FISHERY_TABS = [
+        'map' => ['pl' => 'mapa-i-terminy', 'en' => 'map-and-dates'],
+        'details' => ['pl' => 'szczegoly', 'en' => 'details'],
+    ];
+
+    public static function fisheryTabAnchor(string $tab, ?string $locale = null): string
+    {
+        return self::FISHERY_TABS[$tab][$locale ?? app()->getLocale()];
+    }
+
     public static function pageRouteName(string $page, string $locale): string
     {
         return "portal.page.{$page}.{$locale}";

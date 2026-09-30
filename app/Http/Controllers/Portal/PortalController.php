@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Portal;
 use App\Http\Controllers\Controller;
 use App\Models\Fishery;
 use App\Services\PortalFisheries;
+use App\Services\PortalFisheryPage;
 use App\Services\PortalLocale;
 use App\Services\PortalRoutes;
 use App\Services\PortalSlugs;
@@ -56,7 +57,7 @@ class PortalController extends Controller
     }
 
     /**
-     * Strona łowiska pod adresem kanonicznym — w tym zadaniu zaślepka, treść dostarcza 032.
+     * Strona łowiska pod adresem kanonicznym — zakładki „Mapa i terminy" i „Szczegóły" (032).
      *
      * ⚠️ Łowisko szukane **wyłącznie po slugu**; segment województwa jest ozdobą sprawdzaną
      * przekierowaniem 301 — korekta województwa łowiska nie psuje żadnego linku (ADR-021).
@@ -74,7 +75,10 @@ class PortalController extends Controller
             return redirect()->to($canonical, 301);
         }
 
-        return view('portal.fishery', ['fishery' => $record]);
+        return view('portal.fishery', [
+            'fishery' => $record,
+            'page' => new PortalFisheryPage(PortalFisheryPage::load($record)),
+        ]);
     }
 
     /**
