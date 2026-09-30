@@ -72,6 +72,29 @@ class FisheryPolicy
     }
 
     /**
+     * Publikacja łowiska w portalu i wycofanie z niego (zadanie 030).
+     *
+     * ⚠️ **Publikuje ten, kto może edytować** — reguła `update()`, bez nowego uprawnienia Shielda
+     * (`autoryzacja.md` §5: metoda bez nowego literału to cała robota). Gdy trzeba będzie
+     * rozróżnić „edytuje, ale nie publikuje", to jest jedyne miejsce do zmiany.
+     */
+    public function publish(User $user, Fishery $fishery): bool
+    {
+        return $this->update($user, $fishery);
+    }
+
+    /**
+     * Ręczna zmiana sluga łowiska — wyłącznie administrator (zadanie 030).
+     *
+     * ⚠️ Slug buduje adres strony łowiska, drukowany na banerach, a historii slugów nie ma:
+     * zmiana świadomie unieważnia stary adres. Dlatego nie dostaje jej właściciel.
+     */
+    public function updateSlug(User $user, Fishery $fishery): bool
+    {
+        return (bool) $user->is_admin && $this->update($user, $fishery);
+    }
+
+    /**
      * Determine whether the user can delete the model.
      */
     public function delete(User $user, Fishery $fishery): bool

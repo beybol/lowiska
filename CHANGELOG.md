@@ -181,6 +181,21 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - Dane łowiska mają cztery nowe pola: **karta wędkarska wymagana, liczba wędek w cenie, no-kill
   i zakaz ognisk** — w formularzu i w kreatorze zakładania łowiska. Każde można zostawić jako
   „nie podano", co nie oznacza „nie".
+- Łowisko ma **kontakt dla wędkarzy** — telefon, e-mail i godziny kontaktu — oraz adresy strony WWW
+  i strony na Facebooku, w formularzu i w kreatorze zakładania łowiska. Kontakt należy do łowiska,
+  nie do firmy, więc każde łowisko jednej firmy może mieć własny numer. Błędny numer telefonu, adres
+  e-mail albo link, który nie prowadzi na Facebooka, nie przejdzie zapisu.
+- Każde łowisko dostało **stały adres strony w portalu**, tworzony z nazwy przy zakładaniu
+  (np. „klasztorne") — zmiana nazwy łowiska go nie zmienia, a dwa łowiska o tej samej nazwie dostają
+  różne adresy. Właściciel widzi go na stronie „Dane łowiska"; zmienić go może wyłącznie administrator,
+  świadomie unieważniając stary adres. Województwa dostały stały segment adresu po polsku
+  (np. „wielkopolskie").
+- Właściciel **publikuje łowisko w portalu** przyciskiem „Opublikuj" na stronie „Dane łowiska"
+  i może je z niego wycofać. Przed publikacją widzi listę braków — godziny doby, okres sprzedaży,
+  stanowisko w sprzedaży, dziura w cenniku, telefon, opis, zdjęcie, mapa, obowiązujący regulamin —
+  z odnośnikami do zakładek, na których je uzupełni. Braki nie blokują publikacji, z wyjątkiem
+  województwa, bez którego łowisko nie ma adresu. Administrator widzi na liście łowisk, które są
+  opublikowane.
 
 ### Zmienione
 
@@ -243,6 +258,11 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   razem z bazą danych, serwerem zasobów i skrzynką pocztową, bez potrzeby instalowania czegokolwiek
   na komputerze poza Dockerem. Aplikacja odpowiada pod adresem `http://localhost:11000`,
   a wiadomości wysyłane przez aplikację trafiają do skrzynki pod `http://localhost:11025`.
+
+### Usunięte
+
+- Z formularza łowiska zniknęło ręcznie wpisywane pole „Liczba stanowisk". Strona „Dane łowiska"
+  pokazuje teraz liczbę stanowisk w sprzedaży, wyliczaną z zakładki „Stanowiska".
 
 ### Bezpieczeństwo
 

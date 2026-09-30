@@ -40,6 +40,7 @@ Najwygodniej iść po kolei; każdy krok korzysta z tego, co ustawiłeś wcześn
 10. [Pozwolenia długoterminowe](#12-pozwolenia-długoterminowe) — dodaj sezonówki, jeśli je sprzedajesz.
 11. [Blokady i ograniczenia](#13-blokady-i-ograniczenia) — wracaj tutaj, ilekroć coś wypada z użytku.
 12. [Dokumenty](#14-dokumenty) — wprowadź regulamin i politykę prywatności łowiska.
+13. [Publikacja w portalu](#publikacja-w-portalu) — pokaż łowisko wędkarzom, kiedy uznasz, że jest gotowe.
 
 Usługi dodatkowe o zasięgu „wybrane stanowiska" i pozwolenia przypisuje się do konkretnych stanowisk —
 na formularzu stanowiska albo (usługi) działaniem „Przypnij usługę" na liście stanowisk. Dlatego po ich
@@ -48,8 +49,11 @@ wystarczy dodać.
 
 ## 3. Dane łowiska
 
-Podgląd najważniejszych informacji o obiekcie: nazwa, firma, powierzchnia, liczba stanowisk i adres.
-Jest to również strona startowa łowiska — stąd wchodzisz we wszystkie pozostałe zakładki.
+Podgląd najważniejszych informacji o obiekcie: nazwa, firma, powierzchnia, liczba stanowisk
+w sprzedaży, adres, kontakt i stan publikacji w portalu. Jest to również strona startowa łowiska —
+stąd wchodzisz we wszystkie pozostałe zakładki.
+
+Liczby stanowisk nie wpisujesz — to liczba stanowisk, które na zakładce „Stanowiska" są w sprzedaży.
 
 Żeby zmienić którąkolwiek z tych informacji, użyj przycisku **Edytuj** w prawym górnym rogu.
 
@@ -65,6 +69,28 @@ wybierał łowisko. Każde możesz zostawić jako **„nie podano"** — to co i
 pole nie ogłasza, że karta jest niewymagana albo że można zabrać rybę. Pamiętaj, żeby te ustawienia
 zgadzały się z treścią Twojego regulaminu — system tego nie sprawdza. Szczegółowe zasady (wymagany
 sprzęt, limit zanęty, zdjęcia) opisujesz w samym regulaminie.
+
+**Kontakt i adresy w sieci** — telefon, e-mail i godziny kontaktu **tego łowiska** (nie firmy: jedna
+firma może prowadzić kilka łowisk z różnymi numerami) oraz adres strony WWW i strony na Facebooku.
+Wędkarz zobaczy je na stronie łowiska; pole puste się nie pokazuje.
+
+**Adres strony łowiska** w portalu powstaje sam, z nazwy, w chwili założenia łowiska — i potem się
+nie zmienia, nawet gdy zmienisz nazwę. Widzisz go na stronie „Dane łowiska". Zmienić go może tylko
+administrator portalu, bo zmiana unieważnia stary adres, także wydrukowany.
+
+### Publikacja w portalu
+
+Nowe łowisko **nie jest widoczne dla wędkarzy**, dopóki go nie opublikujesz. Przycisk **Opublikuj**
+jest na stronie „Dane łowiska". Przed publikacją zobaczysz listę tego, czego jeszcze brakuje —
+godzin doby, okresu sprzedaży, stanowiska w sprzedaży, ceny na każdą dobę, telefonu, opisu, zdjęcia,
+mapy albo obowiązującego regulaminu — z odnośnikiem do zakładki, na której to uzupełnisz.
+
+Braki **nie blokują** publikacji: możesz opublikować łowisko od razu i poprawiać je potem, tylko
+wędkarze je zauważą. Jedyny wyjątek to **województwo** — bez niego strona łowiska nie ma adresu,
+więc publikacja jest niemożliwa. Z tego samego powodu opublikowane łowisko nie zapisze się bez
+województwa.
+
+**Wycofaj z portalu** chowa łowisko przed wędkarzami; opublikujesz je ponownie w każdej chwili.
 
 ## 4. Sprzedaż i sezony
 
@@ -394,6 +420,13 @@ jest sprawdzany jako IBAN — błędny nie przejdzie zapisu.
 
 **Łowiska** to widok wszystkich obiektów w portalu, niezależnie od tego, kto je założył. Służy do
 przeglądu i do interwencji; codzienna konfiguracja obiektu odbywa się po stronie właściciela.
+Kolumna „W portalu od" pokazuje, które łowiska są opublikowane — publikuje i wycofuje je właściciel.
+
+**Adres strony łowiska (slug)** zmienia wyłącznie administrator, w formularzu edycji łowiska. Robi się
+to rzadko i świadomie: zmiana **unieważnia stary adres**, także krótki link, który łowisko mogło
+wydrukować na banerze — przekierowania ze starego adresu nie ma. Ten sam zapis ma słownik
+**województw**: segment adresu (np. „wielkopolskie") powstaje z polskiej nazwy i nie zmienia się
+razem z nią.
 
 ## 17. Słowniki — wspólne dla całego portalu
 

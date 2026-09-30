@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PriceRuleKind;
 use App\Enums\SaleMode;
+use App\Services\PortalSlugs;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,6 +22,10 @@ class Fishery extends Model
 
     protected $fillable = [
         'name',
+        // ⚠️ Slug jest wypełnialny, żeby admin mógł go zmienić formularzem i żeby zmiana trafiła
+        // do dziennika — ale pole istnieje WYŁĄCZNIE w schemacie panelu admina, więc Filament
+        // nie przyjmie tej wartości od właściciela (zadanie 030).
+        'slug',
         'user_id',
         'state_id',
         'company_id',
@@ -33,7 +38,6 @@ class Fishery extends Model
         'area',
         'avg_depth',
         'max_depth',
-        'positions_count',
         'dominant_fish_id',
         'records',
         'map_image_path',
@@ -53,6 +57,14 @@ class Fishery extends Model
         'rods_included',
         'no_kill',
         'campfires_banned',
+        // Kontakt i adresy w sieci — dane portalu (zadanie 030).
+        'phone',
+        'email',
+        'contact_hours',
+        'website_url',
+        'facebook_url',
+        // Ustawia wyłącznie akcja „Opublikuj" / „Wycofaj z portalu" na stronie łowiska.
+        'published_at',
     ];
 
     protected $casts = [
@@ -70,7 +82,26 @@ class Fishery extends Model
         'no_kill' => 'boolean',
         'campfires_banned' => 'boolean',
         'rods_included' => 'integer',
+        'published_at' => 'datetime',
     ];
+
+    /**
+     * ⚠️ Slug powstaje RAZ, przy utworzeniu — zmiana nazwy go nie rusza (`PortalSlugs`).
+     * Działa dla każdej ścieżki tworzenia: kreatora, panelu admina, fabryk i konsoli.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Fishery $fishery): void {
+            if (blank($fishery->slug)) {
+                $fishery->slug = PortalSlugs::forFishery((string) $fishery->name);
+            }
+        });
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->published_at !== null;
+    }
 
     /**
      * Domyślne lustro wartości z bazy, żeby świeżo utworzony model miał tryb
@@ -145,6 +176,15 @@ class Fishery extends Model
     public function dominantFish(): BelongsTo
     {
         return $this->belongsTo(Fish::class);
+    }
+
+    /**
+     * Łowiska widoczne w portalu wędkarza.
+     */
+    #[Scope]
+    protected function published(Builder $query): void
+    {
+        $query->whereNotNull('published_at');
     }
 
     #[Scope]

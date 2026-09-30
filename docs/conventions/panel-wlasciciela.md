@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `app/Filament/Owner/**`,
 `app/Providers/Filament/OwnerPanelProvider.php` oraz w zasobach współdzielonych,
 gdy dotykasz ich zachowania **w panelu właściciela**.
 
-Zadania źródłowe: 012, 013, 014, 015, 016, 019, 020, 021, 029. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
+Zadania źródłowe: 012, 013, 014, 015, 016, 019, 020, 021, 029, 030. Uzasadnienia w [ADR-006](../adr/ADR-006-natywne-komponenty-filamenta-zamiast-recznych-przeplywow.md)
 i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
 
 ---
@@ -472,3 +472,39 @@ Uzasadnienie kształtu danych dokumentów: [ADR-017](../adr/ADR-017-dokumenty-i-
   jest pusta, dopóki operator jej nie wpisze. `EditFishery::mutateFormDataBeforeFill()` zamienia
   `bool` na 1/0 ([`panel-admina.md`](panel-admina.md) §2 — bez tego „nie" ginęło przy zapisie).
   Zakaz ognisk to pole łowiska, **nie** pozycja słownika udogodnień.
+
+---
+
+## 10. Publikacja łowiska w portalu i dane dla portalu (zadanie 030)
+
+- **Publikacja to kolumna `fisheries.published_at`** (`null` = niewidoczne dla wędkarzy, scope
+  `Fishery::published()`), ustawiana **wyłącznie** akcjami „Opublikuj" / „Wycofaj z portalu"
+  w nagłówku `ManageFishery`. Przyciski są **tylko w panelu właściciela** (`FisheryAccess::isOwnerPanel()`);
+  admin widzi sam status (strona „Dane łowiska", kolumna listy łowisk).
+- **Ostrzeżenie o brakach NIE blokuje publikacji — z jednym wyjątkiem: brak województwa.** Listę braków
+  liczy **jedna** usługa, [`FisheryPublicationReadiness`](../../app/Services/FisheryPublicationReadiness.php),
+  a każdy brak to przypadek `PublicationIssue` (tylko `StateMissing` ma `blocksPublication()`). Modal
+  pokazuje braki z odsyłaczem do ekranu poprawy; bez województwa chowa przycisk zatwierdzenia.
+  ⚠️ **Blokadę sprawdza też sama akcja**, nie tylko ukryty przycisk — żądanie Livewire da się wysłać
+  z pominięciem modala. Nie zdejmuj tego sprawdzenia „bo przycisku i tak nie ma".
+- ⚠️ **Punkty konfiguracji sprzedaży pochodzą z kalendarza podglądowego, nie z własnych zapytań:**
+  godziny doby — `SaleCalendar::missingSetup()`, okres trwający albo przyszły — `SaleCalendar::seasons()`,
+  „brak stanowisk" — `missingSetup()`, dziura w cenniku — `PricingConfigurationAudit::firstPricingGap()`.
+  Jedyny punkt spoza tych klas to **„stanowiska są, ale żadne nie jest w sprzedaży"**
+  (`positions()->available()`) — i to jest świadome: `missingSetup()` zostaje bez zmian, bo kalendarz
+  pokazuje wtedy siatkę z wierszami „wycofane", a nie mylące „dodaj stanowiska".
+- **Województwo jest wymagane w formularzu łowiska zawsze** (`state_id` z `required()`), więc opublikowane
+  łowisko nie zapisze się bez niego. Pozostałe braki powstałe po publikacji łowiska **nie wycofują** —
+  wycofuje wyłącznie właściciel.
+- **Autoryzacja jest jawna:** widoczność akcji i jej wykonanie pytają `FisheryPolicy::publish()`
+  ([`autoryzacja.md`](autoryzacja.md) §5).
+- **Kontakt na łowisku i adresy w sieci** (`phone`, `email`, `contact_hours`, `website_url`, `facebook_url`)
+  to sekcja `FisheryResource::contactSection()` wewnątrz `fisheryDetailComponents()` — więc także
+  w kreatorze. Kontakt należy do **łowiska**, nie do firmy (jedna firma, kilka łowisk, różne numery).
+  Reguły pól: [`PhoneNumber`](../../app/Rules/PhoneNumber.php), [`FacebookUrl`](../../app/Rules/FacebookUrl.php)
+  (host sprawdzany dokładnie), WWW — `url:http,https`.
+- **Slug łowiska właściciel widzi tylko do odczytu** na „Danych łowiska". Pole edycji istnieje wyłącznie
+  w schemacie panelu admina ([`panel-admina.md`](panel-admina.md) §11), więc podmieniony stan Livewire
+  niczego nie zmienia — ukryte pole nie jest dehydratowane.
+- **Liczby stanowisk nie ma w danych łowiska** — „Stanowiska w sprzedaży" to liczba wyliczana
+  z `Position::available()`. ⚠️ Nie wracaj do kolumny `positions_count`: była drugą prawdą obok tabeli stanowisk.

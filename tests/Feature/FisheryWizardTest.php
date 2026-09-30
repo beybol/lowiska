@@ -48,7 +48,6 @@ function wizardFisheryData(State $state): array
         'building_number' => '12',
         'zip_code' => '00-001',
         'area' => 5,
-        'positions_count' => 10,
     ];
 }
 

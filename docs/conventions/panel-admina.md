@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w `app/Filament/Resources/**`,
 `app/Providers/Filament/AdminPanelProvider.php`.
 
-Zadania źródłowe: 005, 009, 011, 013, 014, 020, 021, 022, 028, 029. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
+Zadania źródłowe: 005, 009, 011, 013, 014, 020, 021, 022, 028, 029, 030. Uzasadnienia w ADR-0013/ADR-0014 (`gcp-foundation`, cross-repo).
 
 ---
 
@@ -325,3 +325,20 @@ Uzasadnienie kształtu wartości: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech
 - ⚠️ **Motyw to osobne wejście Vite** (`resources/css/filament/theme.css`), niezależne od `app.css`
   Breeze i `portal.css`. Nie importuj do niego arkuszy tamtych wejść ani odwrotnie — klasy jednego
   nie mają trafiać do drugiego ([ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)).
+
+---
+
+## 11. Slug łowiska i slug województwa (zadanie 030)
+
+- **Slug łowiska jest STAŁY i unikalny w całym portalu.** Powstaje raz, przy utworzeniu, z nazwy
+  (`Fishery::booted()` → `PortalSlugs::forFishery()`), z sufiksem `-2`, `-3`… przy kolizji. Zmiana nazwy
+  go nie rusza. Historii slugów nie ma (027 pkt 9.3).
+- ⚠️ **Unikalność obejmuje łowiska usunięte miękko** — `PortalSlugs` pyta surową tabelę, a pole formularza
+  `unique(table: Fishery::class)`, nie model z `SoftDeletes`. Nie przepisuj tego na zapytanie przez model.
+- **Ręczna zmiana sluga łowiska — wyłącznie admin, wyłącznie w formularzu edycji w panelu admina**
+  (`FisheryResource::slugField()`: `operation === 'edit'`, `isAdminPanel()` i `FisheryPolicy::updateSlug()`).
+  Format ma jedno źródło — `PortalSlugs::PATTERN`. Zmiana świadomie unieważnia stary adres, także krótki.
+- **Slug województwa** (`states.slug`) jest **polski w obu językach portalu** i unikalny w obrębie kraju.
+  ⚠️ Nazwy województw są w bazie **kluczami tłumaczeń po angielsku**, więc slug liczy się z tłumaczenia
+  polskiego (`PortalSlugs::forState()`), nie z samej nazwy — inaczej wyszłoby `greater-poland`. Pole
+  w formularzu województwa jest opcjonalne przy tworzeniu (powstaje samo) i wymagane przy edycji.

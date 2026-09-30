@@ -54,7 +54,6 @@ test('the wizard saves the angler rules together with the fishery', function () 
             'building_number' => '12',
             'zip_code' => '00-001',
             'area' => 5,
-            'positions_count' => 10,
             'fishing_license_required' => 1,
             'rods_included' => 2,
             'no_kill' => 1,

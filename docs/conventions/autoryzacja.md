@@ -2,7 +2,7 @@
 
 Obowiązuje przy zmianach w `app/Policies/**`, rolach i uprawnieniach Shielda, `User`.
 
-Zadania źródłowe: 008, 009, 012, 013, 015, 021, 025; security-review 2026-09-20.
+Zadania źródłowe: 008, 009, 012, 013, 015, 021, 025, 030; security-review 2026-09-20.
 
 ---
 
@@ -237,6 +237,9 @@ Wzorzec: `tests/Feature/OwnerPanelTest.php`, przypadki „Owner can not…".
      może pytać o ten literał i nadal przechodzić test.
 - ⚠️ **Test czerwienieje TYLKO od nowego literału uprawnienia**, nie od nowej metody w polityce.
   Sama metoda niczego nie wyzwala.
+- **Dzisiejsze metody z tej drogi** (bez nowego literału): `FisheryPolicy::publish()` = reguła
+  `update()` — kto edytuje łowisko, ten je publikuje i wycofuje z portalu; `FisheryPolicy::updateSlug()`
+  = `is_admin` **i** `update()` — slug łowiska zmienia wyłącznie administrator (zadanie 030).
 - **Zawężenie widoczności bierze się z rodzica.** Strona ustawień jest stroną `FisheryResource`,
   więc wiązanie rekordu przechodzi przez `getEloquentQuery()` z `forCurrentUser()`, a
   `EditRecord::authorizeAccess()` pyta `FisheryPolicy::update()`. Cudze łowisko **nie istnieje**

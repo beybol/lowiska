@@ -26,9 +26,12 @@ use App\Models\FisheryType;
 use App\Models\FishingMethod;
 use App\Models\State;
 use App\Models\User;
+use App\Rules\FacebookUrl;
 use App\Rules\IbanValidation;
+use App\Rules\PhoneNumber;
 use App\Services\DictionaryOptions;
 use App\Services\FisheryAccess;
+use App\Services\PortalSlugs;
 use App\Services\SharedFormComponents;
 use Collator;
 use Filament\Actions\Action;
@@ -50,6 +53,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Gate;
 
 class FisheryResource extends Resource
 {
@@ -61,8 +65,72 @@ class FisheryResource extends Resource
     {
         return $schema->components([
             static::companyField(),
+            static::slugField(),
             ...static::fisheryDetailComponents(),
         ]);
+    }
+
+    /**
+     * Adres strony łowiska w portalu — edytowalny WYŁĄCZNIE w panelu admina (zadanie 030).
+     *
+     * ⚠️ Pole istnieje tylko w tym schemacie, więc w panelu właściciela Filament nie przyjmie
+     * wartości sluga nawet z podmienionego stanu Livewire — ukryte pole nie jest dehydratowane.
+     * Przy tworzeniu slug powstaje sam, z nazwy (`Fishery::booted()`), a właściciel widzi go
+     * tylko do odczytu na stronie „Dane łowiska".
+     */
+    public static function slugField(): TextInput
+    {
+        return TextInput::make('slug')
+            ->label(__('Page address (slug)'))
+            ->helperText(__('Changing it invalidates the old address of the fishery page, including the short link — there is no redirect from the old one.'))
+            ->visible(fn (string $operation, ?Fishery $record): bool => $operation === 'edit'
+                && $record !== null
+                && FisheryAccess::isAdminPanel()
+                && Gate::allows('updateSlug', $record))
+            ->required()
+            ->maxLength(PortalSlugs::MAX_LENGTH)
+            ->regex(PortalSlugs::PATTERN)
+            ->validationMessages(['regex' => __('Use lowercase letters, digits and single hyphens only.')])
+            // Tabela, nie model: łowiska usunięte miękko też zajmują slug.
+            ->unique(table: Fishery::class, ignoreRecord: true);
+    }
+
+    /**
+     * Kontakt na łowisku i adresy w sieci — pokazywane wędkarzom w portalu (zadanie 030).
+     *
+     * ⚠️ Kontakt jest NA ŁOWISKU, nie na firmie: jedna firma prowadzi kilka łowisk z różnymi
+     * numerami (portal-v3 §6).
+     */
+    public static function contactSection(): Section
+    {
+        return Section::make(__('Contact and links'))
+            ->description(__('Shown to anglers on the fishery page.'))
+            ->schema([
+                TextInput::make('phone')
+                    ->label(__('Phone'))
+                    ->tel()
+                    ->maxLength(PhoneNumber::MAX_LENGTH)
+                    ->rules([new PhoneNumber]),
+                TextInput::make('email')
+                    ->label(__('E-mail'))
+                    ->email()
+                    ->maxLength(255),
+                TextInput::make('contact_hours')
+                    ->label(__('Contact hours'))
+                    ->placeholder(__('e.g. 8:00–20:00, also SMS'))
+                    ->maxLength(255),
+                TextInput::make('website_url')
+                    ->label(__('Website'))
+                    ->url()
+                    ->rules(['url:http,https'])
+                    ->maxLength(255),
+                TextInput::make('facebook_url')
+                    ->label(__('Facebook page'))
+                    ->url()
+                    ->rules([new FacebookUrl])
+                    ->maxLength(255),
+            ])
+            ->columns(2);
     }
 
     /**
@@ -232,6 +300,7 @@ class FisheryResource extends Resource
                 ->label(__('Description'))
                 ->toolbarButtons(SharedFormComponents::getRichEditorOptions())
                 ->columnSpanFull(),
+            static::contactSection(),
             Section::make(__('Fishery data'))
                 ->schema([
                     CheckboxList::make('fishery_types')
@@ -269,10 +338,6 @@ class FisheryResource extends Resource
                     // który zawsze niesie „nie". Spójność z treścią regulaminu jest po stronie
                     // operatora (D9).
                     ...self::anglerRuleComponents(),
-                    TextInput::make('positions_count')
-                        ->label(__('Positions count'))
-                        ->required()
-                        ->numeric(),
                     Select::make('dominant_fish_id')
                         ->label(__('Dominant fish'))
                         ->relationship('dominantFish', 'name'),
@@ -330,6 +395,11 @@ class FisheryResource extends Resource
                 TextColumn::make('town')
                     ->label(__('Town'))
                     ->searchable(),
+                TextColumn::make('published_at')
+                    ->label(__('In the portal'))
+                    ->date()
+                    ->placeholder(__('Not published'))
+                    ->sortable(),
             ])
             ->filters([
                 //

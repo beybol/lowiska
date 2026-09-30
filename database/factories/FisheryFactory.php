@@ -35,12 +35,18 @@ class FisheryFactory extends Factory
             'area' => $this->faker->randomFloat(2, 1, 100),
             'avg_depth' => $this->faker->randomFloat(2, 1, 10),
             'max_depth' => $this->faker->randomFloat(2, 10, 50),
-            'positions_count' => $this->faker->numberBetween(1, 10),
             'dominant_fish_id' => Fish::factory(),
             'records' => $this->faker->sentence(),
             'map_image_path' => $this->faker->imageUrl(),
             'gallery_images' => [$this->faker->imageUrl(), $this->faker->imageUrl()],
         ];
+    }
+
+    public function published(): static
+    {
+        return $this->state(fn () => [
+            'published_at' => now(),
+        ]);
     }
 
     public function forUser(User $user): static
