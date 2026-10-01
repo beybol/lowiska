@@ -106,11 +106,11 @@ final class FisheryPublicationReadiness
             $issues[] = PublicationIssue::DescriptionMissing;
         }
 
-        if (array_filter((array) $this->fishery->gallery_images) === []) {
+        if (! $this->fishery->hasMedia(FisheryImages::GALLERY)) {
             $issues[] = PublicationIssue::PhotoMissing;
         }
 
-        if (blank($this->fishery->map_image_path)) {
+        if (! $this->fishery->hasMedia(FisheryImages::MAP)) {
             $issues[] = PublicationIssue::MapMissing;
         }
 

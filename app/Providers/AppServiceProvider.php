@@ -2,13 +2,19 @@
 
 namespace App\Providers;
 
+use App\Support\FisheryMediaActivity;
+use App\Support\SanitizingMediaFilesystem;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
 use Filament\Support\Assets\Css;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
+use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
+use Spatie\MediaLibrary\MediaCollections\Filesystem as MediaFilesystem;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,7 +31,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Każde zdjęcie dodane do medialibrary jest oczyszczane, zanim trafi do bucketu (ADR-023).
+        $this->app->bind(MediaFilesystem::class, SanitizingMediaFilesystem::class);
     }
 
     /**
@@ -33,6 +40,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Zdjęcia łowiska nie są już polami `Fishery`, więc dziennik zmian zapisuje je jawnie (`dziennik-zmian.md` §4).
+        Event::listen(MediaHasBeenAddedEvent::class, fn (MediaHasBeenAddedEvent $event) => FisheryMediaActivity::added($event->media));
+        Media::deleted(fn (Media $media) => FisheryMediaActivity::removed($media));
+
         static::assertUploadDiskIsSafe(
             app()->environment(),
             config('filesystems.disks.'.config('filesystems.default').'.driver'),

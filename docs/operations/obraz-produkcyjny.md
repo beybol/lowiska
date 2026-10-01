@@ -184,8 +184,8 @@ pod tym samym sterownikiem kolejki (`sync`), którego pakiet testów używa dla 
 
 ## 9. Trwały storage uploadów — dysk lokalny lokalnie, GCS na Cloud Run
 
-Dwa pola `FileUpload` w panelu administratora (`FisheryResource.map_image_path`,
-`FisheryResource.gallery_images`) zapisują pliki na dysku wskazanym konfiguracją, nie na sztywno.
+Zdjęcia łowiska (galeria i mapa, medialibrary — zadanie 036) zapisują pliki na dysku wskazanym
+konfiguracją, nie na sztywno.
 **Lokalnie** to dysk `public` (`storage/app/public`, symlink `public/storage`). **Na Cloud Run**
 system plików kontenera jest **efemeryczny per instancja** — znika przy każdym wdrożeniu, przy
 każdym scale-to-zero i zimnym starcie (`staging` chodzi z `min_instances 0`, więc dzieje się to
@@ -198,7 +198,7 @@ ADR-0013/ADR-0014, cross-repo). Fundament dostarcza bucket, grant `roles/storage
 runtime SA **na tym jednym buckecie** (Application Default Credentials z metadata servera Cloud
 Run — **zero kluczy JSON**) i publiczny odczyt (`allUsers` → `roles/storage.objectViewer`).
 Repozytorium aplikacji dostarcza pakiet Composera (`spatie/laravel-google-cloud-storage`),
-konfigurację dysku `gcs` i to, żeby oba pola `FileUpload` faktycznie za nią podążały.
+konfigurację dysku `gcs` i to, żeby pola zdjęć faktycznie za nią podążały.
 
 Zmienne środowiskowe:
 
@@ -227,9 +227,26 @@ przy pierwszym uploadzie (błąd klienta GCS), co jest innym rodzajem awarii ni�
 na dysku `local`.
 
 Regresja pilnowana testami: `tests/Unit/UploadDiskGuardTest.php` (sam warunek, bez rozruchu
-aplikacji) oraz `tests/Feature/FisheryFileUploadTest.php` (oba pola `FileUpload` realnie podążają
-za konfiguracją — dowód przez przełączenie dysku na `gcs` w trakcie testu, nie tylko sprawdzenie
-zachowania przy domyślnym dysku deweloperskim).
+aplikacji) oraz `tests/Feature/FisheryGalleryTest.php` (pola zdjęć realnie podążają za konfiguracją
+— dowód przez przełączenie dysku na `gcs` w trakcie testu, nie tylko sprawdzenie zachowania przy
+domyślnym dysku deweloperskim).
+
+### Zdjęcia: libvips, warianty i oczyszczanie oryginału (zadanie 036, ADR-023)
+
+- **Silnik skalowania to libvips przez FFI** — w obu obrazach (`base` i `prod`) jest rozszerzenie `ffi`
+  i pakiet systemowy `libvips-tools` (nazwa samej biblioteki zmienia się między wydaniami Debiana),
+  a `docker/php/*.ini` ma `ffi.enable = true`. ⚠️ Domyślne `preload` włącza FFI tylko w CLI — skalowanie
+  w żądaniu WWW (FrankenPHP) by padło. CI (`deploy.yml`, `setup-php`) też ma `ffi`, bo wymaga go
+  `jcupitt/vips` przy `composer install`.
+- **Oryginał nie jest prywatny — jest oczyszczany.** Bucket ma publiczny odczyt i jednolity dostęp (UBLA),
+  więc pojedynczego pliku nie da się w nim ukryć. Przy dodaniu oryginał jest obracany według EXIF,
+  zmniejszany do 2560 px i zapisywany bez metadanych (GPS). Portal pokazuje wyłącznie warianty WebP.
+  Prywatny bucket na oryginały byłby zmianą w `gcp-foundation` i konfiguracji `MEDIA_DISK`.
+- **Warianty powstają w żądaniu zapisu** (kolejka na Cloud Run to `sync`, ADR-004); brakujący wariant
+  dogenerowuje się przy wyświetleniu. Po zmianie rozmiarów: `php artisan media-library:regenerate`.
+- ⚠️ **Wdrożenie zadania 036 usuwa kolumny `gallery_images` i `map_image_path` bez przenoszenia danych** —
+  zdjęcia Klasztornego i Łopienna trzeba po wdrożeniu wgrać ponownie w panelu. Stare pliki zostają
+  w buckecie bez odwołań.
 
 ---
 

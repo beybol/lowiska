@@ -65,3 +65,11 @@ Zadania źródłowe: 010, 020, 021.
 - **Nowe modele z danymi operatora dostają `LogsActivity`** z `getActivitylogOptions()` wg §1 —
   tak jest przy `Document` i `DocumentTemplate` (zadanie 021): dziennik pokazuje, kto zapisał wersję
   dokumentu.
+
+## 5. Zdjęcia łowiska (medialibrary)
+
+- **Zdjęcia łowiska mieszkają w tabeli `media`, nie w kolumnach `Fishery`**, więc `LogsActivity` łowiska ich
+  nie widzi (zadanie 036). Dodanie i usunięcie zdjęcia zapisuje jawnie `FisheryMediaActivity` na łowisku,
+  w formacie `old`/`attributes` z nazwą kolekcji jako kluczem (`gallery`, `map`) — wywoływane z
+  `MediaHasBeenAddedEvent` i zdarzenia `deleted` modelu `Media` (`AppServiceProvider`). Zmiana kolejności
+  się nie loguje: zmienia układ, nie treść.

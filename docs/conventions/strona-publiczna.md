@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `routes/**`, widokach Breeze i `resources/views/**` 
 `resources/views/filament/**` — w szczególności w portalu wędkarza (`resources/views/portal/**`,
 `app/Http/Controllers/Portal/**`, `App\Services\Portal*`).
 
-Zadania źródłowe: 029, 031, 032, 033, 034. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
+Zadania źródłowe: 029, 031, 032, 033, 034, 036. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
 (potok stylów), [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md) (schemat adresów).
 Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
@@ -134,8 +134,21 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   (HTML z edytora, przez `html()`); grupa bez stanowiska w sprzedaży się nie pokazuje.
 - **„Łowisko w sieci": adres w Fisherya (link), potem strona WWW, potem Facebook** — dwa ostatnie
   tylko wypełnione.
-- **Obrazek mapy** z dysku uploadów z konfiguracji (`filament.default_filesystem_disk`), bez przybijania
-  dysku ([`panel-admina.md`](panel-admina.md) §1).
+- **Zdjęcia i mapa — wyłącznie warianty z `FisheryImages`** (zadanie 036, ADR-023): `url($media, szerokość)`,
+  `srcset()` (prawdziwe szerokości plików) i `largest()` (wymiary dla podglądu). Widok nie składa ścieżek
+  i nie woła `getUrl()` medialibrary sam. ⚠️ **Oryginał nigdy nie trafia do HTML-a**; zdjęcie bez żadnego
+  wariantu się nie pokazuje. **Brakujący wariant powstaje przy wyświetleniu**, synchronicznie pod blokadą —
+  to stan awaryjny, ścieżką podstawową jest generowanie przy zapisie. Bez powiększania: zdjęcie 800 px
+  ma warianty 480 i 800, żądanie 1920 dostaje 800.
+- **Nagłówek zdjęć (desktop):** ≥ 3 — 1 duże + 2 małe z „Wszystkie zdjęcia · N"; 2 — po połowie; 1 — pełna
+  szerokość; **0 — nagłówka nie ma**. Kafelki o stałej wysokości z `object-cover`, pierwsze zdjęcie bez
+  `loading="lazy"`. Na telefonie sekcja „Zdjęcia" na końcu strony: 2 kafelki, na drugim „+N".
+  Okładka karty na stronie głównej = pierwsze zdjęcie (kolejność z panelu); bez zdjęcia — tło motywu, bez
+  zaślepki udającej zdjęcie. `alt` = „{nazwa łowiska} — zdjęcie N".
+- **Podgląd pełnoekranowy: PhotoSwipe w `portal.js`**, wyłącznie w układzie portalu, moduł ładowany przy
+  pierwszym otwarciu. Kontrakt: `[data-gallery]` + `a[href][data-pswp-width][data-pswp-height]` (odsyłacz
+  do największego wariantu); zdjęcia spoza kafelków są w galerii jako ukryte odsyłacze, żeby licznik mówił
+  „3 / 12". Mapa łowiska otwiera ten sam podgląd. Bez skryptu odsyłacz otwiera sam wariant.
 
 ## 6. Kalendarz strony łowiska
 

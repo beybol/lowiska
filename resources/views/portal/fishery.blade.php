@@ -5,8 +5,9 @@
     ⚠️ **Wszystkie zakładki w JEDNYM dokumencie** — ich treść jest w HTML-u i indeksowana
     (027 pkt 9.4). Przełącza je `resources/js/portal.js`; bez skryptu stoją jedna pod drugą.
     ⚠️ Widok NICZEGO nie liczy: dane składa `PortalFisheryPage`, „cenę od" — `PriceFrom`.
-    ⚠️ Zdjęcia to ZAŚLEPKI z makiety (036). Telefon: nazwa → zakładki → mapa → [kalendarz] →
-    cena i telefon → opis → zdjęcia, pasek „Zadzwoń" przyklejony do dołu.
+    ⚠️ Zdjęcia i mapa — wyłącznie warianty z `FisheryImages` (036, ADR-023), podgląd pełnoekranowy przez
+    `[data-gallery]` w `portal.js`. Telefon: nazwa → zakładki → mapa → [kalendarz] → cena i telefon → opis →
+    zdjęcia, pasek „Zadzwoń" przyklejony do dołu.
 --}}
 @extends('portal.layout')
 
@@ -18,9 +19,9 @@
     $documentsTab = PortalRoutes::fisheryTabAnchor('documents');
     $pricing = $page->pricing();
     $documents = $page->documents();
-    $mapUrl = $page->mapUrl();
+    $map = $page->map();
     $description = $page->html($fishery->description);
-    $photoCount = $page->photoCount();
+    $photos = $page->photos();
     $phoneHref = $page->phoneHref();
 @endphp
 
@@ -31,7 +32,7 @@
     <article class="pb-20 lg:pb-0">
         {{-- Zdjęcia NAD nazwą — tylko na szerszym ekranie; na telefonie trafiają na koniec. --}}
         <div class="hidden lg:block">
-            @include('portal.partials.fishery-photos', ['photoCount' => $photoCount])
+            @include('portal.partials.fishery-photos', ['photos' => $photos])
         </div>
 
         <header class="mx-auto max-w-6xl px-4 pt-5 sm:px-6">
@@ -55,9 +56,14 @@
                  w jednej kolumnie siedem dób się nie mieściło i włączało się przewijanie w poziomie. --}}
             <section id="{{ $mapTab }}" data-tab-panel="{{ $mapTab }}" role="tabpanel" class="grid gap-7 py-5 lg:grid-cols-[minmax(0,1fr)_260px]">
                 <div class="lg:col-start-1 lg:row-start-1">
-                    @if ($mapUrl !== null)
-                        <figure>
-                            <img src="{{ $mapUrl }}" alt="{{ __('Fishery map — :fishery', ['fishery' => $fishery->name]) }}" class="w-full rounded-md border border-line bg-white" loading="lazy">
+                    @if ($map !== null)
+                        {{-- Kliknięcie otwiera ten sam podgląd pełnoekranowy co galeria (powiększenie na telefonie, 036). --}}
+                        <figure data-gallery>
+                            <a href="{{ $map['full'] }}" data-pswp-width="{{ $map['width'] }}" data-pswp-height="{{ $map['height'] }}" class="block" aria-label="{{ $map['alt'] }}">
+                                <img src="{{ $map['src'] }}" srcset="{{ $map['srcset'] }}" sizes="(min-width: 1024px) 860px, 100vw"
+                                     alt="{{ $map['alt'] }}" width="{{ $map['width'] }}" height="{{ $map['height'] }}"
+                                     class="h-auto w-full rounded-md border border-line bg-white" decoding="async">
+                            </a>
                             <figcaption class="mt-1.5 text-[11.5px] text-muted">{{ __('Map of the positions — position numbers as in the calendar.') }}</figcaption>
                         </figure>
                     @endif
@@ -316,7 +322,7 @@
 
         {{-- Zdjęcia na końcu strony — tylko na telefonie (zjadałyby pierwszy ekran). --}}
         <div class="mt-2 lg:hidden">
-            @include('portal.partials.fishery-photos', ['photoCount' => $photoCount])
+            @include('portal.partials.fishery-photos-mobile', ['photos' => $photos])
         </div>
 
         @if ($phoneHref !== null)

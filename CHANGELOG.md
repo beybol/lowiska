@@ -235,9 +235,21 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   bez obowiązującej wersji nie ma sekcji.
 - Łowisko może opublikować dokument rodzaju **„Inne"** z własnym tytułem (np. zasady biwakowania). Działa
   jak regulamin i polityka prywatności: ma wersje z datą wejścia w życie, a jedna z nich obowiązuje.
+- Strona łowiska w portalu pokazuje **prawdziwe zdjęcia**: przy trzech i więcej — jedno duże i dwa małe
+  z etykietą „Wszystkie zdjęcia · N", przy dwóch — po połowie, przy jednym — na całą szerokość; łowisko bez
+  zdjęć nie ma nagłówka ze zdjęciami. Na telefonie zdjęcia są na końcu strony, w dwóch kafelkach z „+N".
+- Kliknięcie zdjęcia albo mapy łowiska otwiera **podgląd na cały ekran** ze strzałkami, obsługą klawiatury,
+  przesuwaniem palcem, licznikiem „3 / 12" i powiększaniem mapy na telefonie.
+- Karta łowiska na stronie głównej ma **okładkę** — pierwsze zdjęcie galerii.
+- Właściciel ustawia **kolejność zdjęć** przeciąganiem w panelu; pierwsze zdjęcie jest okładką.
 
 ### Zmienione
 
+- Portal pokazuje zdjęcia w rozmiarze dopasowanym do ekranu zamiast pełnych plików z telefonu, więc strona
+  łowiska i lista ładują się szybciej, także przy słabym zasięgu. Małe zdjęcie nie jest sztucznie powiększane.
+- Zdjęcia wgrywane do galerii i mapy są zmniejszane już w przeglądarce, a zdjęcie pionowe z telefonu
+  wyświetla się we właściwej orientacji.
+- ⚠️ Zdjęcia galerii i mapy wgrane przed tą zmianą nie są przenoszone — trzeba je wgrać ponownie w panelu.
 - **Po zalogowaniu** (hasłem, przez Google, po kodzie weryfikacyjnym, po rejestracji i potwierdzeniu
   adresu) użytkownik trafia prosto do swojego panelu — administrator do panelu administratora,
   pozostali do panelu łowiska — zamiast na pośrednią stronę powitalną.
@@ -321,6 +333,8 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   chroniło to tylko filtrowanie list.
 - Do galerii i mapy łowiska można teraz wgrać wyłącznie JPEG, PNG i WebP; wcześniej przechodził
   też plik SVG, który potrafi nieść skrypt.
+- Zdjęcia łowiska są zapisywane bez metadanych — w tym bez położenia GPS, które telefon dopisuje do zdjęcia
+  — więc publiczne pliki nie zdradzają, gdzie je zrobiono.
 - Dziennik zmian przestał zapisywać zaszyfrowane hasło i kod jednorazowy użytkownika.
 - Zamknięto trzy sposoby, na jakie właściciel łowiska mógł sięgnąć poza własne dane: wyświetlić
   listę stanowisk, usług dodatkowych lub pozwoleń **cudzego** łowiska, dodać do niego nowy wpis

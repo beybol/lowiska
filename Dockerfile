@@ -11,7 +11,10 @@ FROM php:8.4-cli-bookworm AS base
 COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
 
 # soap jest wymagany przez gusapi/gusapi (CSOService), reszta to zestaw
-# używany przez Laravela, Filamenta i obsługę obrazów.
+# używany przez Laravela, Filamenta i obsługę obrazów. ffi + libvips to silnik
+# skalowania zdjęć (jcupitt/vips przez spatie/image, ADR-023) — `libvips-tools`
+# zamiast nazwy samej biblioteki, bo ta zmienia się między wydaniami Debiana
+# (libvips42 / libvips42t64), a pakiet narzędzi ciągnie właściwą.
 RUN install-php-extensions \
         pdo_mysql \
         mbstring \
@@ -22,7 +25,11 @@ RUN install-php-extensions \
         zip \
         intl \
         soap \
-    && rm -rf /tmp/*
+        ffi \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends libvips-tools \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
@@ -113,13 +120,15 @@ RUN install-php-extensions \
         zip \
         intl \
         soap \
+        ffi \
         opcache \
     && rm -rf /tmp/*
 
 # tini jako PID 1 — Cloud Run wysyła SIGTERM przy skalowaniu w dół, a bez
 # poprawnej propagacji sygnału żądania w locie zostałyby urwane.
+# libvips — silnik skalowania zdjęć (ADR-023), jak w etapie `base`.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends tini \
+    && apt-get install -y --no-install-recommends tini libvips-tools \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

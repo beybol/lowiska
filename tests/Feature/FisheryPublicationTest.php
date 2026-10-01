@@ -14,12 +14,15 @@ use App\Models\Fishery;
 use App\Models\SalePeriod;
 use App\Models\State;
 use App\Models\User;
+use App\Services\FisheryImages;
 use App\Services\FisheryPublicationReadiness;
 use App\Services\OwnerRoleProvisioner;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Support\StayFixtures;
@@ -33,6 +36,8 @@ use Tests\Support\StayFixtures;
  * ⚠️ Czas jest zamrożony — okres sprzedaży, cennik i regulamin liczą się od „dziś".
  */
 beforeEach(function () {
+    // Zdjęcie i mapa to pliki w medialibrary (036) — na udawanym dysku.
+    Storage::fake('public');
     Date::setTestNow(CarbonImmutable::parse('2026-05-04 09:00', 'Europe/Warsaw'));
 });
 
@@ -51,9 +56,11 @@ function publishableFishery(): array
     [$fishery, , $owner] = StayFixtures::fisheryWithPosition([
         'phone' => '517 971 002',
         'description' => '<p>Jezioro przy klasztorze.</p>',
-        'gallery_images' => ['galleries/brzeg.jpg'],
-        'map_image_path' => 'maps/mapa.jpg',
     ]);
+    $photo = UploadedFile::fake()->image('brzeg.jpg', 640, 480);
+    $fishery->addMedia($photo)->toMediaCollection(FisheryImages::GALLERY);
+    $map = UploadedFile::fake()->image('mapa.jpg', 640, 480);
+    $fishery->addMedia($map)->toMediaCollection(FisheryImages::MAP);
     // Firma właściciela — formularz w panelu właściciela oferuje wyłącznie jego firmy.
     $fishery->update(['company_id' => Company::factory()->forUser($owner)->create(['is_verified' => true])->id]);
     StayFixtures::rate($fishery);
@@ -95,8 +102,8 @@ test('each missing piece is reported on its own', function (callable $break, Pub
     'fishing day' => [fn (Fishery $f) => $f->update(['day_start_time' => null]), PublicationIssue::FishingDayMissing],
     'phone' => [fn (Fishery $f) => $f->update(['phone' => null]), PublicationIssue::PhoneMissing],
     'description' => [fn (Fishery $f) => $f->update(['description' => '<p> </p>']), PublicationIssue::DescriptionMissing],
-    'photo' => [fn (Fishery $f) => $f->update(['gallery_images' => []]), PublicationIssue::PhotoMissing],
-    'map' => [fn (Fishery $f) => $f->update(['map_image_path' => null]), PublicationIssue::MapMissing],
+    'photo' => [fn (Fishery $f) => $f->clearMediaCollection(FisheryImages::GALLERY), PublicationIssue::PhotoMissing],
+    'map' => [fn (Fishery $f) => $f->clearMediaCollection(FisheryImages::MAP), PublicationIssue::MapMissing],
     'terms in force' => [fn (Fishery $f) => $f->documents()->update(['effective_from' => '2026-06-01']), PublicationIssue::TermsMissing],
     'positions for sale' => [fn (Fishery $f) => $f->positions()->update(['status' => PositionStatus::Withdrawn->value]), PublicationIssue::NoPositionsForSale],
     'pricing gap' => [fn (Fishery $f) => $f->priceRules()->update(['last_day_on' => '2026-08-31']), PublicationIssue::PricingGap],
@@ -148,7 +155,8 @@ test('only a missing state blocks publication', function () {
 
 test('the owner publishes a fishery despite warnings', function () {
     [$fishery, $owner] = publishableFishery();
-    $fishery->update(['phone' => null, 'map_image_path' => null]);
+    $fishery->update(['phone' => null]);
+    $fishery->clearMediaCollection(FisheryImages::MAP);
     actAsOwnerInPanel($owner);
 
     Livewire::test(ManageFishery::class, ['record' => $fishery->getKey()])

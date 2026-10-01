@@ -976,5 +976,8 @@
     "required at positions :labels": "obowiązkowa na stanowiskach: :labels",
     "nights :days": "doby :days",
     "with one angler": "przy jednym łowiącym",
-    "with :count anglers": "przy :count łowiących"
+    "with :count anglers": "przy :count łowiących",
+    ":fishery — photo :number": ":fishery — zdjęcie :number",
+    "Photos": "Zdjęcia",
+    "Drag to change the order — the first photo is the cover.": "Przeciągnij, żeby zmienić kolejność — pierwsze zdjęcie jest okładką."
 }

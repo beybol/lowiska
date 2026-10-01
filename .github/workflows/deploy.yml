@@ -52,7 +52,8 @@ jobs:
           # Dockerfile · composer.json (config.platform.php) · phpstan.neon (phpVersion)
           # · ten krok. Patrz CLAUDE.md, sekcja „Bezpieczeństwo w CI".
           php-version: '8.4'
-          extensions: pdo_mysql, mbstring, exif, pcntl, bcmath, gd, zip, intl, soap
+          # ffi: wymaga go jcupitt/vips (silnik skalowania zdjęć, ADR-023) — bez niego `composer install` pada.
+          extensions: pdo_mysql, mbstring, exif, pcntl, bcmath, gd, zip, intl, soap, ffi
           coverage: none
 
       - name: Install PHP dependencies

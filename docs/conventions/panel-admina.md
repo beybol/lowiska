@@ -29,10 +29,23 @@ Zadania źródłowe: 005, 009, 011, 013, 014, 020, 021, 022, 028, 029, 030, 031.
   ochrona przed cichą utratą plików na efemerycznym kontenerze Cloud Run, nie odwrócony fallback
   konfiguracji. Rozstrzygnięcie i uzasadnienie w treści zadania 005.
 
-⛏️ **Panel właściciela nie ma dziś żadnego pola `FileUpload`.** Gdy je dostanie, ten sam
-niezmiennik go obejmuje — dopisz wtedy odsyłacz do tej sekcji
-w [`panel-wlasciciela.md`](panel-wlasciciela.md) (albo, jeśli reguła urośnie ponad uploady,
-wydziel wspólny plik o storage'u).
+### Zdjęcia łowiska — medialibrary (zadanie 036, ADR-023)
+
+- **Galeria i mapa to kolekcje medialibrary** (`Fishery` implementuje `HasMedia`, kolekcje
+  `FisheryImages::GALLERY` i `FisheryImages::MAP`), pole formularza — `SpatieMediaLibraryFileUpload`
+  przez `FisheryResource::imageUpload()`. Kolumn `gallery_images` i `map_image_path` nie ma. Formularz łowiska
+  jest wspólny dla obu paneli (także kreator), więc te same reguły obowiązują właściciela.
+- **Dysk jak w każdym uploadzie — bez `->disk()`**: plugin bierze `filament.default_filesystem_disk`, a dodawanie
+  poza formularzem `media-library.disk_name` (`MEDIA_DISK`, domyślnie ten sam dysk).
+- **Kolejność ustawia operator przeciąganiem** (`reorderable()`, `order_column`); **pierwsze zdjęcie jest okładką**.
+- **Typy wyłącznie JPEG, PNG, WebP** (`FisheryImages::ACCEPTED_MIME_TYPES`, w polu i w kolekcji) — `image()` sam
+  przepuszcza SVG ze skryptem.
+- ⚠️ **Każdy plik jest oczyszczany na serwerze, zanim trafi do bucketu** — `SanitizingMediaFilesystem` wpięta
+  w kontenerze (`AppServiceProvider`) obraca według EXIF, zmniejsza do 2560 px i usuwa metadane (GPS). Bucket ma
+  publiczny odczyt, więc oryginał bez tego ujawniałby położenie. Skalowanie w przeglądarce (FilePond, 2560 px)
+  to tylko optymalizacja — da się je ominąć; nie przenoś oczyszczania do formularza.
+- **Warianty powstają przy zapisie, w żądaniu** (`nonQueued()`, kolejka na Cloud Run to `sync`, ADR-004),
+  silnikiem libvips (`IMAGE_DRIVER=vips`). Rozmiary i adresy zna wyłącznie `FisheryImages`.
 
 ℹ️ **Zasoby z `app/Filament/Resources/**` są współdzielone z panelem właściciela** — zanim
 zmienisz zachowanie zasobu, sprawdź [`panel-wlasciciela.md`](panel-wlasciciela.md), bo część

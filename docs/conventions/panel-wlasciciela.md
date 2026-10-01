@@ -126,6 +126,13 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
   unikalność w tabeli `fisheries`. Stąd `->unique(table: Company::class, …)`
   w `CompanyResource::formComponents()`.
 
+### Zdjęcia łowiska (zadanie 036)
+
+- Galeria i mapa w formularzu łowiska (także w kreatorze) to pola medialibrary wspólne dla obu paneli —
+  reguły (dysk, typy plików, oczyszczanie na serwerze, kolejność = okładka) są w
+  [`panel-admina.md`](panel-admina.md) §1, „Zdjęcia łowiska". Formularz jest osiągalny z otwartej
+  samorejestracji, więc ograniczenie typów i oczyszczanie pliku nie są opcjonalne.
+
 ### Formularz usługi dodatkowej (zadanie 020)
 
 - **Jednostka rozliczenia to `ToggleButtons`** (za dobę / za pobyt), spójnie z wyborem dób.

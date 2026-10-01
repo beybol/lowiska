@@ -39,6 +39,12 @@
     "file": "assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2",
     "src": "node_modules/@fontsource-variable/inter/files/inter-vietnamese-wght-normal.woff2"
   },
+  "node_modules/photoswipe/dist/photoswipe.esm.js": {
+    "file": "assets/photoswipe.esm-D2Nf-uDI.js",
+    "name": "photoswipe.esm",
+    "src": "node_modules/photoswipe/dist/photoswipe.esm.js",
+    "isDynamicEntry": true
+  },
   "resources/css/app.css": {
     "file": "assets/app-BeXcGzjm.css",
     "src": "resources/css/app.css",
@@ -50,7 +56,7 @@
     "isEntry": true
   },
   "resources/css/portal.css": {
-    "file": "assets/portal-yMyntEc4.css",
+    "file": "assets/portal-DIsQRiJo.css",
     "src": "resources/css/portal.css",
     "isEntry": true
   },
@@ -61,9 +67,15 @@
     "isEntry": true
   },
   "resources/js/portal.js": {
-    "file": "assets/portal-DPAEKblV.js",
+    "file": "assets/portal-DrD8gxLH.js",
     "name": "portal",
     "src": "resources/js/portal.js",
-    "isEntry": true
+    "isEntry": true,
+    "dynamicImports": [
+      "node_modules/photoswipe/dist/photoswipe.esm.js"
+    ],
+    "css": [
+      "assets/portal-cPPnkASS.css"
+    ]
   }
 }

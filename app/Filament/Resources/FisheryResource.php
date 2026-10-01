@@ -32,6 +32,7 @@ use App\Rules\IbanValidation;
 use App\Rules\PhoneNumber;
 use App\Services\DictionaryOptions;
 use App\Services\FisheryAccess;
+use App\Services\FisheryImages;
 use App\Services\PortalSlugs;
 use App\Services\SharedFormComponents;
 use Collator;
@@ -40,9 +41,9 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ViewField;
 use Filament\Navigation\NavigationItem;
@@ -369,25 +370,40 @@ class FisheryResource extends Resource
                 ->relationship('fish', 'name')
                 ->label(__('Available fish'))
                 ->hidden(Fish::count() === 0),
-            FileUpload::make('map_image_path')
-                ->image()
-                // ⚠️ `image()` to samo `image/*`, a `finfo` zwraca dla SVG
-                // `image/svg+xml` — plik ze skryptem przechodził walidację i lądował
-                // na dysku z rozszerzeniem `.svg`. Panel właściciela ma otwartą
-                // samorejestrację, więc formularz jest osiągalny z internetu.
-                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                ->directory('maps')
-                ->visibility('public')
+            self::imageUpload(FisheryImages::MAP)
                 ->label(__('Fishery map')),
-            FileUpload::make('gallery_images')
+            self::imageUpload(FisheryImages::GALLERY)
                 ->multiple()
-                ->image()
-                // ⚠️ Jak wyżej — `image()` przepuszcza SVG.
-                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                ->directory('galleries')
-                ->visibility('public')
-                ->label(__('Gallery images')),
+                // Kolejność z panelu; pierwsze zdjęcie jest okładką (zadanie 036, R1).
+                ->reorderable()
+                // ⚠️ FilePond domyślnie DOPISUJE nowe pliki NA POCZĄTEK listy — bez tego wybrane A, B, C
+                // zapisują się jako C, B, A i okładką zostaje ostatni wybrany plik.
+                ->appendFiles()
+                ->label(__('Gallery images'))
+                ->helperText(__('Drag to change the order — the first photo is the cover.')),
         ];
+    }
+
+    /**
+     * Pole zdjęcia łowiska w medialibrary (zadanie 036, ADR-023).
+     *
+     * ⚠️ Bez `->disk()` — plugin bierze `filament.default_filesystem_disk` (`panel-admina.md` §1).
+     * ⚠️ `image()` to samo `image/*`, a `finfo` zwraca dla SVG `image/svg+xml` — plik ze skryptem przechodził
+     * walidację. Panel właściciela ma otwartą samorejestrację, więc formularz jest osiągalny z internetu.
+     * ⚠️ Skalowanie w przeglądarce (do 2560 px, bez powiększania) to tylko optymalizacja typowej ścieżki —
+     * da się je ominąć, więc serwer i tak oczyszcza każdy plik (`SanitizingMediaFilesystem`).
+     */
+    private static function imageUpload(string $collection): SpatieMediaLibraryFileUpload
+    {
+        return SpatieMediaLibraryFileUpload::make($collection)
+            ->collection($collection)
+            ->image()
+            ->acceptedFileTypes(FisheryImages::ACCEPTED_MIME_TYPES)
+            ->imageResizeMode('contain')
+            ->imageResizeTargetWidth((string) FisheryImages::ORIGINAL_MAX)
+            ->imageResizeTargetHeight((string) FisheryImages::ORIGINAL_MAX)
+            ->imageResizeUpscale(false)
+            ->visibility('public');
     }
 
     public static function table(Table $table): Table

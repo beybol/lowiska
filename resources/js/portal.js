@@ -1,3 +1,6 @@
+import PhotoSwipeLightbox from 'photoswipe/lightbox';
+import 'photoswipe/style.css';
+
 /*
  * Skrypt portalu wędkarza — wyłącznie w układzie portalu (zadanie 032).
  *
@@ -152,4 +155,27 @@ function placeTip(anchor) {
             placeTip(anchor);
         }
     });
+});
+
+/*
+ * Podgląd pełnoekranowy zdjęć i mapy łowiska (zadanie 036, R2) — PhotoSwipe, wyłącznie w układzie portalu.
+ *
+ * Kontrakt znaczników:
+ *   [data-gallery]                                   — kontener jednej galerii (nagłówek, sekcja na telefonie, mapa)
+ *   a[href][data-pswp-width][data-pswp-height]       — zdjęcie: odsyłacz do największego wariantu z wymiarami
+ * Odsyłacze ukryte (`hidden`) też należą do galerii — dzięki nim licznik mówi „3 / 12".
+ * Strzałki, klawiatura, gesty, licznik, Esc i powrót fokusu daje PhotoSwipe. Moduł podgląd ładuje się
+ * dopiero przy pierwszym otwarciu, więc strona bez kliknięcia nie płaci za jego kod.
+ * Bez skryptu odsyłacz otwiera sam wariant — zdjęcie nadal da się obejrzeć.
+ */
+
+document.querySelectorAll('[data-gallery]').forEach((gallery) => {
+    const lightbox = new PhotoSwipeLightbox({
+        gallery,
+        children: 'a[data-pswp-width]',
+        pswpModule: () => import('photoswipe'),
+        showHideAnimationType: 'fade',
+    });
+
+    lightbox.init();
 });

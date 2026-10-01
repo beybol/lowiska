@@ -117,8 +117,9 @@ test('website and facebook links open in a new tab with noopener, and only when 
     // „Łowisko w sieci": adres w Fisherya, potem strona WWW, potem Facebook; box — te same dwa linki.
     fisheryPage()->assertSeeInOrder(['Adres w Fisherya', 'Strona łowiska', 'lowiskoklasztorne.pl ↗', 'Facebook', 'facebook.com/klasztorne ↗']);
 
-    expect(substr_count(fisheryPage()->getContent(), 'href="https://lowiskoklasztorne.pl"'))->toBe(3)
-        ->and(substr_count(fisheryPage()->getContent(), 'href="https://www.facebook.com/klasztorne"'))->toBe(3);
+    // Box stoi w każdej z czterech zakładek (034) + sekcja „Łowisko w sieci" w „Szczegółach".
+    expect(substr_count(fisheryPage()->getContent(), 'href="https://lowiskoklasztorne.pl"'))->toBe(5)
+        ->and(substr_count(fisheryPage()->getContent(), 'href="https://www.facebook.com/klasztorne"'))->toBe(5);
 
     fisheryPage()
         ->assertSee('href="https://lowiskoklasztorne.pl" target="_blank" rel="noopener"', escape: false)
@@ -201,14 +202,6 @@ test('the description is sanitised and feeds the meta description', function () 
         ->assertSee('<meta name="description" content="Polodowcowe Jezioro Dobre.', escape: false)
         ->assertSee('<link rel="canonical" href="'.url('pl/wielkopolskie/klasztorne').'">', escape: false)
         ->assertSee('hreflang="en" href="'.url('en/wielkopolskie/klasztorne').'"', escape: false);
-});
-
-test('the photo count label shows the number of gallery photos, and disappears at zero', function () {
-    pageFishery(['gallery_images' => ['a.jpg', 'b.jpg', 'c.jpg']]);
-    fisheryPage()->assertSee('Wszystkie zdjęcia · 3');
-
-    Fishery::query()->update(['gallery_images' => null]);
-    fisheryPage()->assertDontSee('Wszystkie zdjęcia');
 });
 
 test('the sticky call bar is there only with a phone', function () {

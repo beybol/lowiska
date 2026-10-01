@@ -1,13 +1,18 @@
 {{--
     Karta łowiska na liście (portal-v3 §5.1). Dane: `PortalFisheries::card()`.
 
-    ⚠️ Zdjęcie to ZAŚLEPKA z makiety (gradient z falą) — prawdziwe okładki dochodzą w 036.
+    ⚠️ Okładka = pierwsze zdjęcie galerii, wyłącznie warianty z `FisheryImages` (036); bez zdjęcia — neutralne
+    tło motywu, bez zaślepki udającej zdjęcie (R3).
     ⚠️ „Cenę od" podaje `PriceFrom` (032), linijkę zasad — `FisheryRulesSummary::cardLine()` (033);
     karta nie pokazuje usług.
 --}}
 <a href="{{ $card['url'] }}" class="group block overflow-hidden rounded-md border border-line bg-white transition hover:border-b300 hover:shadow-2">
-    <div class="relative h-36 bg-[linear-gradient(145deg,var(--color-b600),var(--color-b800))]" aria-hidden="true">
-        <div class="absolute inset-0 opacity-30 bg-[radial-gradient(ellipse_120px_24px_at_30%_62%,transparent_46%,rgba(255,255,255,.55)_48%,transparent_52%),radial-gradient(ellipse_170px_30px_at_62%_78%,transparent_48%,rgba(255,255,255,.36)_50%,transparent_54%)]"></div>
+    <div class="relative h-36 bg-b100" aria-hidden="true">
+        @if ($card['cover'] !== null)
+            <img src="{{ $card['cover']['src'] }}" srcset="{{ $card['cover']['srcset'] }}"
+                 sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
+                 alt="" loading="lazy" decoding="async" class="h-full w-full object-cover">
+        @endif
     </div>
     <div class="px-4 py-3.5">
         <h3 class="text-[15px] font-semibold text-ink group-hover:text-b700">{{ $card['name'] }}</h3>

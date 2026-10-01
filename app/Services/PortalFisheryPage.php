@@ -9,10 +9,10 @@ use App\Models\Fishery;
 use App\Models\Position;
 use App\Models\PositionAttributeValue;
 use App\Models\PositionGroup;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Dane strony łowiska w portalu — obie zakładki i box z ceną (zadanie 032, portal-v3 §1).
@@ -49,6 +49,8 @@ final class PortalFisheryPage
                 'attributeValues.option',
             ]),
             'positionGroups',
+            // Zdjęcia galerii i mapa — jedno zapytanie, kolejność z `order_column` (036).
+            'media',
         ]);
     }
 
@@ -69,28 +71,44 @@ final class PortalFisheryPage
         ]));
     }
 
-    public function photoCount(): int
+    /**
+     * Zdjęcia galerii w kolejności z panelu — pierwsze jest okładką (zadanie 036, R1). Zdjęcie bez żadnego
+     * wariantu się nie pokazuje (oryginału nie podstawiamy, ADR-023).
+     *
+     * `alt` generowany: „{nazwa łowiska} — zdjęcie N" (R4).
+     *
+     * @return list<array{src: string, srcset: string, full: string, width: int, height: int, alt: string}>
+     */
+    public function photos(): array
     {
-        return count(array_filter((array) $this->fishery->gallery_images));
+        $photos = [];
+
+        foreach ($this->fishery->getMedia(FisheryImages::GALLERY) as $media) {
+            $image = $this->image($media, __(':fishery — photo :number', [
+                'fishery' => $this->fishery->name,
+                'number' => count($photos) + 1,
+            ]));
+
+            if ($image !== null) {
+                $photos[] = $image;
+            }
+        }
+
+        return $photos;
     }
 
     /**
-     * Adres obrazka mapy z dysku uploadów — tego samego, na który zapisuje formularz
-     * (`panel-admina.md` §1: dysku nie przybijamy). Adres absolutny (np. z fabryki) zostaje.
+     * Mapa łowiska — warianty jak w galerii, ten sam podgląd pełnoekranowy (036).
+     *
+     * @return array{src: string, srcset: string, full: string, width: int, height: int, alt: string}|null
      */
-    public function mapUrl(): ?string
+    public function map(): ?array
     {
-        $path = $this->fishery->map_image_path;
+        $media = $this->fishery->getFirstMedia(FisheryImages::MAP);
 
-        if (blank($path)) {
-            return null;
-        }
-
-        if (Str::startsWith($path, ['http://', 'https://'])) {
-            return $path;
-        }
-
-        return Storage::disk(config('filament.default_filesystem_disk'))->url($path);
+        return $media === null
+            ? null
+            : $this->image($media, __('Fishery map — :fishery', ['fishery' => $this->fishery->name]));
     }
 
     /**
@@ -354,6 +372,27 @@ final class PortalFisheryPage
             ->filter()
             ->values()
             ->all();
+    }
+
+    /**
+     * @return array{src: string, srcset: string, full: string, width: int, height: int, alt: string}|null
+     */
+    private function image(Media $media, string $alt): ?array
+    {
+        $largest = FisheryImages::largest($media);
+
+        if ($largest === null) {
+            return null;
+        }
+
+        return [
+            'src' => (string) FisheryImages::url($media, 960),
+            'srcset' => FisheryImages::srcset($media),
+            'full' => $largest['url'],
+            'width' => $largest['width'],
+            'height' => $largest['height'],
+            'alt' => $alt,
+        ];
     }
 
     private function metres(mixed $value): string

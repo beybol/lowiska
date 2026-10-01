@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PriceRuleKind;
 use App\Enums\SaleMode;
+use App\Services\FisheryImages;
 use App\Services\PortalSlugs;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,10 +16,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Fishery extends Model
+class Fishery extends Model implements HasMedia
 {
-    use HasFactory, LogsActivity, SoftDeletes;
+    use HasFactory, InteractsWithMedia, LogsActivity, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -40,8 +45,6 @@ class Fishery extends Model
         'max_depth',
         'dominant_fish_id',
         'records',
-        'map_image_path',
-        'gallery_images',
         'currency_id',
         'bank_account_number',
         'sale_mode',
@@ -68,7 +71,6 @@ class Fishery extends Model
     ];
 
     protected $casts = [
-        'gallery_images' => 'array',
         'sale_mode' => SaleMode::class,
         // Zbiór dni ISO-8601 rozpoczęcia dób składających się na weekend sprzedawany
         // w całości. Kolumna JSON, nie tabela — uzasadnienie w migracji (zadanie 017).
@@ -139,6 +141,38 @@ class Fishery extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->logOnly($this->fillable);
+    }
+
+    /**
+     * Zdjęcia łowiska w medialibrary (zadanie 036, ADR-023): galeria z kolejnością (pierwsze = okładka)
+     * i jedna mapa. Rozmiary i adresy zna wyłącznie `FisheryImages`.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(FisheryImages::GALLERY)
+            ->acceptsMimeTypes(FisheryImages::ACCEPTED_MIME_TYPES);
+
+        $this->addMediaCollection(FisheryImages::MAP)
+            ->singleFile()
+            ->acceptsMimeTypes(FisheryImages::ACCEPTED_MIME_TYPES);
+    }
+
+    /**
+     * Warianty WebP generowane przy zapisie, w żądaniu (`nonQueued()` — kolejka na Cloud Run to `sync`, ADR-004).
+     *
+     * ⚠️ Tylko rozmiary, które nie powiększają zdjęcia (`FisheryImages::sizesFor()`); `Fit::Max` i tak nie
+     * powiększa, ale wariant „większy” byłby kopią mniejszego.
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        foreach (FisheryImages::sizesFor($media) as $size) {
+            // Najpierw ustawienia konwersji, na końcu operacje na obrazie — te zwracają typ sterownika obrazu.
+            $this->addMediaConversion(FisheryImages::conversionName($size))
+                ->performOnCollections(FisheryImages::GALLERY, FisheryImages::MAP)
+                ->nonQueued()
+                ->format('webp')
+                ->fit(Fit::Max, $size, $size);
+        }
     }
 
     public function user(): BelongsTo

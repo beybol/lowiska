@@ -27,7 +27,7 @@ final class PortalFisheries
         $fisheries = Fishery::query()
             ->published()
             ->whereNotNull('state_id')
-            ->with(['state', 'fisheryTypes', 'currency'])
+            ->with(['state', 'fisheryTypes', 'currency', 'media'])
             ->withCount(['positions as positions_for_sale_count' => fn ($query) => $query->available()])
             ->get();
 
@@ -41,7 +41,7 @@ final class PortalFisheries
     /**
      * Dane jednej karty listy — w kolejności z makiety.
      *
-     * @return array{name: string, url: string|null, water: string, state: string, positions: int, no_kill: bool, price_from: string|null, rules: string}
+     * @return array{name: string, url: string|null, water: string, state: string, positions: int, no_kill: bool, price_from: string|null, rules: string, cover: array{src: string, srcset: string}|null}
      */
     public static function card(Fishery $fishery): array
     {
@@ -64,7 +64,20 @@ final class PortalFisheries
             'price_from' => self::priceFrom($fishery),
             // Linijka zasad — ta sama metoda co wyciąg nad kalendarzem (033).
             'rules' => (new FisheryRulesSummary($fishery))->cardLine(),
+            // Okładka = pierwsze zdjęcie galerii (036, R1); brak zdjęcia albo wariantu → tło motywu (R3).
+            'cover' => self::cover($fishery),
         ];
+    }
+
+    /**
+     * @return array{src: string, srcset: string}|null
+     */
+    private static function cover(Fishery $fishery): ?array
+    {
+        $media = $fishery->getFirstMedia(FisheryImages::GALLERY);
+        $src = $media !== null ? FisheryImages::url($media, 480) : null;
+
+        return $src === null ? null : ['src' => $src, 'srcset' => FisheryImages::srcset($media)];
     }
 
     public static function priceFrom(Fishery $fishery): ?string
