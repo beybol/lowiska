@@ -146,3 +146,13 @@ Wersja dostaje **kopię** treści, bez klucza obcego do szablonu.
   wymagalności nie wymaga nowej wersji treści.
 - **Brak kaskady zostaje niezależnie od tego, że łowiska są usuwane miękko** — chroni wersje
   wskazane przez transakcje na wypadek, gdyby kiedyś pojawiło się usuwanie trwałe.
+
+---
+
+## Aktualizacja (2026-10-01) — rodzaj „Inne" (zadanie 034)
+
+Do enuma rodzajów doszedł **`Other` („Inne")** — dokument łowiska o własnym tytule wersji (np. „Zasady
+biwakowania"). Mieści się w decyzji bez zmian: `type` jest kolumną tekstową, więc **bez migracji**, a rodzaj
+działa jak pozostałe — **najwyżej jedna wersja obowiązująca na rodzaj**. Kilka dokumentów jednego rodzaju
+obowiązujących naraz wymagałoby tożsamości dokumentu niezależnej od rodzaju (odwrócenia tej decyzji) i jest
+świadomie poza zakresem.

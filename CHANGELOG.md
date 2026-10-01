@@ -226,6 +226,15 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   w całości, karta wędkarska, no-kill).
 - Portal, oba panele i ekrany logowania mają **ikonę Fisherya** na karcie przeglądarki i na ekranie
   głównym telefonu.
+- Strona łowiska w portalu ma dwie nowe zakładki. **„Cennik"** pokazuje stawki za łowiącego z okresami
+  obowiązywania (także przyszłymi sezonami), dopłaty pod nazwami łowiska z warunkiem („przy jednym
+  łowiącym, doby czw→pon"), przedsprzedaż oraz usługi dodatkowe z jednostką, zasięgiem, wymaganą cechą
+  stanowiska i oznaczeniem usług obowiązkowych; stawki zakończone, zawieszone i takie, które nigdy nie
+  wygrywają, się nie pokazują. **„Dokumenty"** pokazuje dla każdego rodzaju dokumentu wersję obowiązującą
+  dziś — regulamin, politykę prywatności i inne — z datą obowiązywania i treścią do rozwinięcia; rodzaj
+  bez obowiązującej wersji nie ma sekcji.
+- Łowisko może opublikować dokument rodzaju **„Inne"** z własnym tytułem (np. zasady biwakowania). Działa
+  jak regulamin i polityka prywatności: ma wersje z datą wejścia w życie, a jedna z nich obowiązuje.
 
 ### Zmienione
 

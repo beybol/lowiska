@@ -217,6 +217,23 @@ pakietu działają **same z siebie**. Odmowa ze spoiwa niesie zakres pakietu, wi
   porównanie dat stawki z datami okresu: pominiesz granicę ostatniej doby okresu.
 - Przeszłości nie sprzedajemy: stawka obowiązująca wyłącznie w minionej części sezonu się nie liczy.
 
+### Cennik strony łowiska — drugi jawny wyjątek (zadanie 034)
+
+- **Zakładkę „Cennik" portalu układa [`PortalPriceList`](../../app/Services/PortalPriceList.php)** —
+  stawki, dopłaty, przedsprzedaż i usługi łowiska jako odczyt konfiguracji, niezależny od daty i długości
+  pobytu. Ten sam powód wyjątku co przy „cenie od": to dane ŁOWISKA, a warstwa oferty pracuje per
+  stanowisko. Klasa **nie ma własnych reguł** — formatuje i odfiltrowuje. Cena i sprzedawalność POBYTU
+  nadal wyłącznie przez `StayOffer`.
+- ⚠️ **„Stawka żywa" to ta, która wygrywa w jakiejś dobie OD DZIŚ** — rozstrzyga
+  `PricingConfigurationAudit::deadRates($dziś)`, ta sama implementacja co lista martwych stawek
+  kalendarza (019); bez argumentu analiza jest bez zmian. Nie przepisuj tego w portalu na porównanie
+  dat stawki. Parametr daty zawęża analizę do dób od niej (z `$dziś` jedyna, już zakończona stawka też
+  jest martwa).
+- **Tekst warunku dopłaty ma jeden dom — `PriceRule::conditionText()`** (obsada, dni tygodnia jako
+  przedział dób, daty), okres stawki — `PriceRule::visitorPeriod()`; `periodText()` zostaje dla
+  operatora (daty ISO). Doby tygodnia piszą się jako PRZEDZIAŁ dób (`WeekdayNights`): „czw→pon" to doby
+  zaczynające się od czwartku do niedzieli włącznie.
+
 ---
 
 ## 6. Dziura w cenniku jest odmową

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PriceRuleKind;
 use App\Enums\SurchargeAudience;
 use App\Services\FishingDay;
+use App\Services\WeekdayNights;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -226,6 +227,59 @@ class PriceRule extends Model
         }
 
         return null;
+    }
+
+    /**
+     * Okres reguły dla WĘDKARZA w portalu: „od 01.11.2026 do 31.03.2027", „do 31.10.2026"
+     * albo `null`, gdy reguła nie ma dat (zadanie 034).
+     *
+     * ⚠️ Osobny od `periodText()`, bo tamten pisze daty ISO dla operatora; ten — datę w zapisie
+     * wędkarza. Obie granice są domknięte, więc „do" znaczy „włącznie".
+     */
+    public function visitorPeriod(): ?string
+    {
+        $from = $this->first_day_on?->format('d.m.Y');
+        $to = $this->last_day_on?->format('d.m.Y');
+
+        return match (true) {
+            $from !== null && $to !== null => __('from').' '.$from.' '.__('until').' '.$to,
+            $from !== null => __('from').' '.$from,
+            $to !== null => __('until').' '.$to,
+            default => null,
+        };
+    }
+
+    /**
+     * Warunek dopłaty w języku wędkarza: „przy jednym łowiącym, doby czw→pon, od 01.07.2026 do 31.08.2026".
+     * Pusty łańcuch = dopłata bez warunku.
+     *
+     * ⚠️ Jedyny dom tego tekstu (zadanie 034, R4). Składa te same osie, które sprawdza
+     * `appliesToNight()` — obsadę, dni tygodnia i daty — i niczego nie rozstrzyga.
+     */
+    public function conditionText(): string
+    {
+        $parts = [];
+
+        if ($this->anglers_count !== null) {
+            // ⚠️ Dwa zwykłe klucze, nie `trans_choice`: bez `lang/en.json` klucz z liczbą mnogą spada
+            // w angielskiej wersji na fallback i wychodzi po polsku.
+            $parts[] = (int) $this->anglers_count === 1
+                ? __('with one angler')
+                : __('with :count anglers', ['count' => (int) $this->anglers_count]);
+        }
+
+        $weekdays = $this->weekdayNumbers();
+
+        // Wszystkie siedem dni to brak warunku — „doby 7 dób" niczego wędkarzowi nie mówi.
+        if ($weekdays !== [] && count(array_unique($weekdays)) < 7) {
+            $parts[] = __('nights :days', ['days' => (new WeekdayNights)->shortForm($weekdays)]);
+        }
+
+        if (($period = $this->visitorPeriod()) !== null) {
+            $parts[] = $period;
+        }
+
+        return implode(', ', $parts);
     }
 
     /**

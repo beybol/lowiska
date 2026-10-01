@@ -1,7 +1,8 @@
 {{--
-    Strona łowiska — zadanie 032 (portal-v3 §1, makiety „Łowisko — Mapa i terminy" i „Szczegóły").
+    Strona łowiska — zadania 032 i 034 (portal-v3 §1, makiety „Łowisko — Mapa i terminy", „Szczegóły",
+    „Cennik" i „Dokumenty").
 
-    ⚠️ **Obie zakładki w JEDNYM dokumencie** — treść „Szczegółów" jest w HTML-u i indeksowana
+    ⚠️ **Wszystkie zakładki w JEDNYM dokumencie** — ich treść jest w HTML-u i indeksowana
     (027 pkt 9.4). Przełącza je `resources/js/portal.js`; bez skryptu stoją jedna pod drugą.
     ⚠️ Widok NICZEGO nie liczy: dane składa `PortalFisheryPage`, „cenę od" — `PriceFrom`.
     ⚠️ Zdjęcia to ZAŚLEPKI z makiety (036). Telefon: nazwa → zakładki → mapa → [kalendarz] →
@@ -13,6 +14,10 @@
 @php
     $mapTab = PortalRoutes::fisheryTabAnchor('map');
     $detailsTab = PortalRoutes::fisheryTabAnchor('details');
+    $pricingTab = PortalRoutes::fisheryTabAnchor('pricing');
+    $documentsTab = PortalRoutes::fisheryTabAnchor('documents');
+    $pricing = $page->pricing();
+    $documents = $page->documents();
     $mapUrl = $page->mapUrl();
     $description = $page->html($fishery->description);
     $photoCount = $page->photoCount();
@@ -37,8 +42,8 @@
         </header>
 
         <div data-tabs class="mx-auto max-w-6xl scroll-mt-4 px-4 sm:px-6">
-            <nav class="mt-4 flex gap-6 border-b border-line text-[14px] font-semibold" role="tablist" aria-label="{{ $fishery->name }}">
-                @foreach ([$mapTab => __('Map and dates'), $detailsTab => __('Details')] as $anchor => $label)
+            <nav class="mt-4 flex gap-6 overflow-x-auto whitespace-nowrap border-b border-line text-[14px] font-semibold" role="tablist" aria-label="{{ $fishery->name }}">
+                @foreach ([$mapTab => __('Map and dates'), $detailsTab => __('Details'), $pricingTab => __('Price list'), $documentsTab => __('Documents')] as $anchor => $label)
                     <a href="#{{ $anchor }}" data-tab-link="{{ $anchor }}" role="tab"
                        class="{{ $loop->first ? 'is-active' : '' }} -mb-px border-b-2 border-transparent pb-2.5 text-muted hover:text-b800 [&.is-active]:border-b700 [&.is-active]:text-b800">{{ $label }}</a>
                 @endforeach
@@ -180,6 +185,127 @@
                             @endif
                         </div>
                     </div>
+                </div>
+
+                <aside>
+                    @include('portal.partials.fishery-box')
+                </aside>
+            </section>
+
+            {{-- ============ Cennik (034) ============ --}}
+            {{-- ⚠️ Widok niczego nie liczy ani nie filtruje: dane układa `PortalPriceList` (przez `PortalFisheryPage`),
+                 a „martwe" stawki odrzuca `PricingConfigurationAudit`. Brak pozycji = brak sekcji. --}}
+            <section id="{{ $pricingTab }}" data-tab-panel="{{ $pricingTab }}" role="tabpanel" class="grid gap-7 py-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+                <div class="space-y-7">
+                    @if ($pricing['empty'])
+                        <p class="rounded-lg border border-line bg-white px-4 py-3.5 text-[14px] text-ink2">{{ __('Price list in preparation') }}</p>
+                    @endif
+
+                    @if ($pricing['rates'] !== [])
+                        <div>
+                            <h2 class="font-display text-[19px] font-semibold">{{ __('Rate per angler') }}</h2>
+                            <ul class="mt-2.5">
+                                @foreach ($pricing['rates'] as $rate)
+                                    <li class="border-b border-line2 px-0.5 py-2 text-[13.5px]">
+                                        <div class="flex justify-between gap-3">
+                                            <b>{{ $rate['period'] ?? __('all year') }}@if ($rate['upcoming']) <span class="ml-1.5 rounded-full bg-line2 px-2 py-0.5 text-[11px] font-semibold text-muted">{{ __('next period') }}</span>@endif</b>
+                                            <b class="shrink-0">{{ $rate['amount'] }}</b>
+                                        </div>
+                                        <div class="text-[12px] text-muted">{{ __('per angler, at every position') }}@if ($rate['companion'] !== null) · {{ __('companion: :price', ['price' => $rate['companion']]) }}@endif</div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    @if ($pricing['surcharges'] !== [])
+                        <div>
+                            <h2 class="font-display text-[19px] font-semibold">{{ __('Surcharges') }}</h2>
+                            <ul class="mt-2.5">
+                                @foreach ($pricing['surcharges'] as $surcharge)
+                                    <li class="border-b border-line2 px-0.5 py-2 text-[13.5px]">
+                                        <div class="flex justify-between gap-3"><b>{{ $surcharge['name'] }}</b><b class="shrink-0">{{ $surcharge['amount'] }}</b></div>
+                                        <div class="text-[12px] text-muted">{{ $surcharge['audience'] }}@if ($surcharge['condition'] !== '') · {{ $surcharge['condition'] }}@endif</div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    @if ($pricing['presale'] !== null)
+                        <div>
+                            <h2 class="font-display text-[19px] font-semibold">{{ __('Presale') }}</h2>
+                            <p class="mt-2.5 rounded-lg border border-line bg-white px-4 py-3 text-[13.5px]">{{ $pricing['presale'] }}</p>
+                        </div>
+                    @endif
+
+                    @if ($pricing['services'] !== [])
+                        <div>
+                            <h2 class="font-display text-[19px] font-semibold">{{ __('Additional services') }}</h2>
+                            <ul class="mt-2.5">
+                                @foreach ($pricing['services'] as $service)
+                                    <li class="border-b border-line2 px-0.5 py-2 text-[13.5px]">
+                                        <div class="flex justify-between gap-3"><b>{{ $service['name'] }}</b><b class="shrink-0">{{ $service['price'] }}</b></div>
+                                        <div class="text-[12px] text-muted">{{ $service['scope'] }}@if ($service['attributes'] !== []) · {{ __('needs: :features', ['features' => implode(', ', $service['attributes'])]) }}@endif</div>
+                                        @if ($service['required'] !== null)
+                                            <div class="text-[12px] font-semibold text-a700">{{ $service['required'] }}</div>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                            <p class="mt-2 text-[12px] text-muted">{{ __('Per-night services are charged for every night of the stay, per-stay services once. Fees for each use are settled on site.') }}</p>
+                        </div>
+                    @endif
+
+                    {{-- Przycisk, nie kotwica (jak w „Mapie i terminach"): bez JS obie treści są widoczne, więc przycisk
+                         pojawia się dopiero ze skryptem. Cenę terminu liczy kalendarz — cennik nie ma przykładu wyceny. --}}
+                    <div class="rounded-lg border border-line bg-white px-4 py-3.5">
+                        <b class="text-[13.5px]">{{ __('How much will a given date cost?') }}</b>
+                        <p class="text-[12.5px] text-muted">{{ __('The calendar works out the price of a stay with a breakdown.') }}</p>
+                        <button type="button" data-tab-open="{{ $mapTab }}" hidden class="mt-1.5 cursor-pointer text-left text-[13px] font-semibold text-b700 hover:underline">{{ __('Check the price of a date →') }}</button>
+                    </div>
+                </div>
+
+                <aside>
+                    @include('portal.partials.fishery-box')
+                </aside>
+            </section>
+
+            {{-- ============ Dokumenty (034) ============ --}}
+            {{-- ⚠️ Dla każdego rodzaju WYŁĄCZNIE wersja obowiązująca dziś; rodzaj bez niej nie ma sekcji. Treść jest w HTML-u
+                 (zwinięta w <details>), więc indeksuje się i działa bez skryptu. Treść z edytora — przez `html()`. --}}
+            <section id="{{ $documentsTab }}" data-tab-panel="{{ $documentsTab }}" role="tabpanel" class="grid gap-7 py-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+                <div class="space-y-7">
+                    @forelse ($documents as $document)
+                        <div>
+                            <h2 class="font-display text-[19px] font-semibold">{{ $document['type'] }}</h2>
+                            <div class="mt-2.5 rounded-lg border border-line bg-white px-4 py-3.5">
+                                @if ($document['content'] !== null)
+                                    <details>
+                                        <summary class="cursor-pointer list-none">
+                                            <span class="flex flex-wrap justify-between gap-x-3">
+                                                <b class="text-[14px]">{{ $document['title'] }}</b>
+                                                <span class="text-[12.5px] text-muted">{{ __('in force from :date', ['date' => $document['effective_from']]) }}</span>
+                                            </span>
+                                            <span class="mt-1.5 block text-[13px] font-semibold text-b700">{{ __('Document text') }}</span>
+                                        </summary>
+                                        <div class="prose-portal mt-2.5 border-t border-line2 pt-2.5 text-[13.5px] leading-relaxed text-ink2">{{ $document['content'] }}</div>
+                                    </details>
+                                @else
+                                    <div class="flex flex-wrap justify-between gap-x-3">
+                                        <b class="text-[14px]">{{ $document['title'] }}</b>
+                                        <span class="text-[12.5px] text-muted">{{ __('in force from :date', ['date' => $document['effective_from']]) }}</span>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <p class="rounded-lg border border-line bg-white px-4 py-3.5 text-[14px] text-ink2">{{ __('The fishery has not published any documents.') }}</p>
+                    @endforelse
+
+                    @if ($documents !== [])
+                        <p class="text-[12px] text-muted">{{ __('The content of the documents is the responsibility of the fishery.') }}</p>
+                    @endif
                 </div>
 
                 <aside>

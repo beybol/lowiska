@@ -93,23 +93,29 @@ final class PricingConfigurationAudit
      * dniu reprezentatywnym na przedział między kolejnymi granicami. Liczy się to RAZ na cennik,
      * niezależnie od liczby stanowisk i długości sezonu.
      *
+     * ⚠️ **`$from` zawęża analizę do dób od tej daty** (zadanie 034, R5) — portal pyta „co wygra
+     * dziś lub później", więc stawka zakończona przed `$from` jest tu martwa. Bez `$from` analiza
+     * jest taka jak dotąd (kalendarz 019). Jedna implementacja, dwa pytania — nie przepisuj tego
+     * w portalu na porównanie dat stawki.
+     *
      * @return array<int, PriceRule>
      */
-    public function deadRates(): array
+    public function deadRates(?CarbonImmutable $from = null): array
     {
         $rates = array_values(array_filter(
             $this->rules(),
             static fn (PriceRule $rule): bool => $rule->kind === PriceRuleKind::Rate && ! $rule->is_suspended,
         ));
 
-        if (count($rates) < 2) {
+        // Pojedyncza stawka nie ma z kim przegrać — chyba że pytamy o przyszłość, a ona już się skończyła.
+        if (count($rates) < 2 && $from === null) {
             return [];
         }
 
         $resolver = new PriceRuleResolver($rates);
         $alive = [];
 
-        foreach ($this->representativeDays($rates) as $day) {
+        foreach ($this->representativeDays($rates, $from) as $day) {
             $winner = $resolver->cheapestOn($day);
 
             if ($winner instanceof PriceRule) {
@@ -129,10 +135,13 @@ final class PricingConfigurationAudit
      * Granicami są początki okresów i dni tuż po ich końcach; dochodzi jeden dzień PRZED
      * najwcześniejszą granicą, bo przedział otwarty od dołu też musi mieć reprezentanta.
      *
+     * Z `$since` reprezentantami są sama data `$since` i granice PÓŹNIEJSZE od niej — dzień przed
+     * najwcześniejszą granicą jest wtedy zbędny, bo nikt o przeszłość nie pyta.
+     *
      * @param  array<int, PriceRule>  $rates
      * @return array<int, CarbonImmutable>
      */
-    private function representativeDays(array $rates): array
+    private function representativeDays(array $rates, ?CarbonImmutable $since = null): array
     {
         $boundaries = [];
         // ⚠️ Strefa ŁOWISKA, jak w reszcie pakietu. `coversDay()` porównuje dziś łańcuchy `Y-m-d`,
@@ -152,6 +161,14 @@ final class PricingConfigurationAudit
                 $after = CarbonImmutable::parse($rule->last_day_on->toDateString(), $timezone)->addDay()->startOfDay();
                 $boundaries[$after->toDateString()] = $after;
             }
+        }
+
+        if ($since !== null) {
+            $start = $since->startOfDay();
+            $later = array_filter($boundaries, static fn (CarbonImmutable $day): bool => $day > $start);
+            ksort($later);
+
+            return [$start, ...array_values($later)];
         }
 
         if ($boundaries === []) {

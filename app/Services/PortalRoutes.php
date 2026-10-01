@@ -38,15 +38,16 @@ final class PortalRoutes
     ];
 
     /**
-     * Zakładki strony łowiska → kotwica w każdym języku (zadanie 032). Obie zakładki są w jednym
-     * dokumencie; kotwica pierwszej nie trafia do adresu (adres łowiska zostaje kanoniczny).
-     * „Cennik" i „Dokumenty" dochodzą tutaj w 034.
+     * Zakładki strony łowiska → kotwica w każdym języku (zadania 032 i 034). Wszystkie zakładki są
+     * w jednym dokumencie; kotwica pierwszej nie trafia do adresu (adres łowiska zostaje kanoniczny).
      *
      * @var array<string, array{pl: string, en: string}>
      */
     public const FISHERY_TABS = [
         'map' => ['pl' => 'mapa-i-terminy', 'en' => 'map-and-dates'],
         'details' => ['pl' => 'szczegoly', 'en' => 'details'],
+        'pricing' => ['pl' => 'cennik', 'en' => 'pricing'],
+        'documents' => ['pl' => 'dokumenty', 'en' => 'documents'],
     ];
 
     /**

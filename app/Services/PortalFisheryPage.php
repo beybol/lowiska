@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\DocumentType;
 use App\Enums\PositionAttributeType;
 use App\Models\Fish;
 use App\Models\Fishery;
@@ -90,6 +91,59 @@ final class PortalFisheryPage
         }
 
         return Storage::disk(config('filament.default_filesystem_disk'))->url($path);
+    }
+
+    /**
+     * Zakładka „Cennik" (zadanie 034) — składowe ceny z `PortalPriceList`, bez przeliczania.
+     *
+     * @return array{rates: list<array<string, mixed>>, surcharges: list<array<string, mixed>>, presale: string|null, services: list<array<string, mixed>>, empty: bool}
+     */
+    public function pricing(): array
+    {
+        $list = new PortalPriceList($this->fishery);
+        $rates = $list->rates();
+        $surcharges = $list->surcharges();
+        $services = $list->services();
+
+        return [
+            'rates' => $rates,
+            'surcharges' => $surcharges,
+            'presale' => $list->presale(),
+            'services' => $services,
+            'empty' => $rates === [] && $surcharges === [] && $services === [],
+        ];
+    }
+
+    /**
+     * Zakładka „Dokumenty" (zadanie 034): dla każdego rodzaju WYŁĄCZNIE wersja obowiązująca dziś
+     * (`FisheryDocuments::current()`, ADR-017), w kolejności rodzajów. Rodzaj bez takiej wersji nie
+     * ma sekcji; wersji zaplanowanych i archiwalnych nie pokazujemy (R1, R7).
+     *
+     * ⚠️ Treść z edytora operatora — wychodzi przez `html()` (sanityzacja).
+     *
+     * @return list<array{type: string, title: string, effective_from: string, content: HtmlString|null}>
+     */
+    public function documents(): array
+    {
+        $documents = new FisheryDocuments($this->fishery);
+        $sections = [];
+
+        foreach (DocumentType::cases() as $type) {
+            $current = $documents->current($type);
+
+            if ($current === null) {
+                continue;
+            }
+
+            $sections[] = [
+                'type' => $type->label(),
+                'title' => (string) $current->title,
+                'effective_from' => $current->effective_from->format('d.m.Y'),
+                'content' => $this->html($current->content),
+            ];
+        }
+
+        return $sections;
     }
 
     public function html(?string $content): ?HtmlString

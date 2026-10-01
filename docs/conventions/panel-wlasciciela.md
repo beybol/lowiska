@@ -418,10 +418,16 @@ bo tabele Filamenta nie znają `colspan`. Kolory stanów bierze z palety Tailwin
 
 Uzasadnienie kształtu danych dokumentów: [ADR-017](../adr/ADR-017-dokumenty-i-wersje-dokumentow.md).
 
-### Dokumenty — regulamin i polityka prywatności
+### Dokumenty — regulamin, polityka prywatności i inne
 
 - **Jedna strona „Dokumenty"** (`ManageDocuments`, `ManageRelatedRecords` po relacji `documents`)
   z **zakładką na rodzaj** — rodzaje działają identycznie. Stoi **na samym końcu** sub-nawigacji.
+  Trzeci rodzaj, **„Inne"** (`DocumentType::Other`, zadanie 034), to dokument o własnym tytule
+  wersji („Zasady biwakowania") i podlega tej samej mechanice: **najwyżej jedna wersja obowiązująca
+  na rodzaj** — kilka dokumentów jednego rodzaju naraz wymagałoby tożsamości dokumentu niezależnej
+  od rodzaju, czyli odwrócenia ADR-017. Do publikacji łowiska nadal wymagany jest wyłącznie regulamin
+  (`FisheryPublicationReadiness`). Wersje obowiązujące widać w portalu w zakładce „Dokumenty"
+  ([`strona-publiczna.md`](strona-publiczna.md) §5).
   Wersje mają stan **liczony**, nie zapisany: obowiązująca / zaplanowana / archiwalna
   (`FisheryDocuments::statusOf()`).
 - ⚠️ **Za treść odpowiada łowisko** (D9): ekran niczego nie generuje z konfiguracji, nie wstawia

@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `routes/**`, widokach Breeze i `resources/views/**` 
 `resources/views/filament/**` — w szczególności w portalu wędkarza (`resources/views/portal/**`,
 `app/Http/Controllers/Portal/**`, `App\Services\Portal*`).
 
-Zadania źródłowe: 029, 031, 032, 033. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
+Zadania źródłowe: 029, 031, 032, 033, 034. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
 (potok stylów), [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md) (schemat adresów).
 Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
@@ -90,18 +90,39 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
 ## 5. Strona łowiska
 
-- **Zakładki w JEDNYM dokumencie HTML** — „Mapa i terminy" (domyślna) i „Szczegóły"; treść obu jest
-  w HTML-u i indeksuje się pod adresem łowiska (027 pkt 9.4). Kotwice zależą od języka i mają jeden
-  dom: `PortalRoutes::FISHERY_TABS` (`#szczegoly` / `#details`); pierwsza zakładka nie zostawia kotwicy
+- **Zakładki w JEDNYM dokumencie HTML** — „Mapa i terminy" (domyślna), „Szczegóły", „Cennik"
+  i „Dokumenty"; treść wszystkich jest w HTML-u i indeksuje się pod adresem łowiska (027 pkt 9.4).
+  Kotwice zależą od języka i mają jeden dom: `PortalRoutes::FISHERY_TABS` (`#szczegoly` / `#details`,
+  `#cennik` / `#pricing`, `#dokumenty` / `#documents`); pierwsza zakładka nie zostawia kotwicy
   w adresie. ⚠️ **Nie rozbijaj zakładek na osobne adresy** — czwarty segment rozszerzyłby schemat
-  z ADR-021, a każda zakładka potrzebowałaby własnego canonical i `hreflang`. „Cennik" i „Dokumenty"
-  (034) dochodzą jako kolejne pozycje tej samej tablicy i kolejne panele.
+  z ADR-021, a każda zakładka potrzebowałaby własnego canonical i `hreflang`. Nowa zakładka to kolejna
+  pozycja tej samej tablicy i kolejny panel; pasek zakładek przewija się poziomo na wąskim ekranie.
+- **Zakładka „Cennik" — odczyt konfiguracji, nie wycena.** Dane układa `PortalPriceList` (przez
+  `PortalFisheryPage::pricing()`): stawki z okresami (bez dat = „cały rok", przyszły okres oznaczony),
+  dopłaty pod nazwami łowiska z warunkiem (`PriceRule::conditionText()`), przedsprzedaż z tego samego
+  wyciągu co nad kalendarzem (`FisheryRulesSummary`), usługi z jednostką, zasięgiem i wymaganymi cechami.
+  Horyzont: **od dziś, bez górnej granicy** (przyszłe sezony widać). Nie pokazuje się: stawka zakończona,
+  zawieszona i martwa (`PricingConfigurationAudit::deadRates($dziś)` — jedna implementacja z kalendarzem
+  panelu), dopłata zawieszona i zakończona, usługa nieaktywna albo przypięta wyłącznie do stanowisk
+  poza sprzedażą. ⚠️ **„Obowiązkowa" to własność przypięcia usługi do stanowiska**, nie usługi — przy
+  części stanowisk widać „obowiązkowa na stanowiskach: …". **Bez przykładu wyceny**: cenę terminu liczy
+  kalendarz, a przycisk `[data-tab-open]` do niego prowadzi. Jawny wyjątek od „portal pyta wyłącznie
+  `StayOffer`" — [`cennik.md`](cennik.md) §5.
+- **Zakładka „Dokumenty": dla każdego rodzaju WYŁĄCZNIE wersja obowiązująca dziś**
+  (`PortalFisheryPage::documents()` → `FisheryDocuments::current()`), w kolejności rodzajów:
+  regulamin, polityka prywatności, inne. Rodzaj bez wersji obowiązującej **nie ma sekcji**; łowisko
+  bez żadnej — zakładka mówi to wprost. Wersji zaplanowanych i archiwalnych się nie pokazuje ani nie
+  zapowiada. Treść jest w HTML-u, zwinięta w `<details>` (indeksowana, działa bez skryptu) i wychodzi
+  przez `html()`; tytuł i data „obowiązuje od" są widoczne zawsze.
+- ⚠️ **Plural z `trans_choice` w portalu EN wychodzi po polsku** — bez `lang/en.json` klucz z liczbą
+  mnogą spada na fallback (`pl`). Nowy tekst z liczbą dawaj dwoma zwykłymi kluczami (`__()`), jak
+  `PriceRule::conditionText()`.
 - **Przełącza je `resources/js/portal.js`** — wyłącznie w układzie portalu, bez Alpine. Kontrakt
   znaczników: `[data-tabs]`, `[data-tab-link]`, `[data-tab-panel]`, a odsyłacz do innej zakładki
   wewnątrz treści to **przycisk `[data-tab-open]`, nie kotwica** — przełącza bez przewijania (kotwica
-  powodowała skok strony) i jest ukryty bez skryptu. ⚠️ **Bez skryptu obie treści
+  powodowała skok strony) i jest ukryty bez skryptu. ⚠️ **Bez skryptu wszystkie treści
   muszą być widoczne** (jedna pod drugą) — nie chowaj paneli klasą w HTML-u, chowa je dopiero skrypt.
-- **Box z ceną i kontaktem** jest ten sam w obu zakładkach (`portal.partials.fishery-box`) i **stoi
+- **Box z ceną i kontaktem** jest ten sam w każdej zakładce (`portal.partials.fishery-box`) i **stoi
   w miejscu** (nie jest przyklejony przy przewijaniu). Bez telefonu: e-mail łowiska albo nic — bez tekstu zastępczego; pasek „Zadzwoń"
   przyklejony do dołu telefonu istnieje tylko przy telefonie. Linki zewnętrzne: `target="_blank"
   rel="noopener"`, tylko wypełnione.
