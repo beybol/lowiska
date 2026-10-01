@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `routes/**`, widokach Breeze i `resources/views/**` 
 `resources/views/filament/**` — w szczególności w portalu wędkarza (`resources/views/portal/**`,
 `app/Http/Controllers/Portal/**`, `App\Services\Portal*`).
 
-Zadania źródłowe: 029, 031, 032, 033, 034, 036. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
+Zadania źródłowe: 029, 031, 032, 033, 034, 036, 037. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
 (potok stylów), [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md) (schemat adresów).
 Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
@@ -114,9 +114,13 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   bez żadnej — zakładka mówi to wprost. Wersji zaplanowanych i archiwalnych się nie pokazuje ani nie
   zapowiada. Treść jest w HTML-u, zwinięta w `<details>` (indeksowana, działa bez skryptu) i wychodzi
   przez `html()`; tytuł i data „obowiązuje od" są widoczne zawsze.
-- ⚠️ **Plural z `trans_choice` w portalu EN wychodzi po polsku** — bez `lang/en.json` klucz z liczbą
-  mnogą spada na fallback (`pl`). Nowy tekst z liczbą dawaj dwoma zwykłymi kluczami (`__()`), jak
-  `PriceRule::conditionText()`.
+- **Liczba mnoga idzie przez `trans_choice()`, kluczem jest angielski tekst z formami po `|`**
+  (`'up to :count angler|up to :count anglers'`), a polskie trzy formy (1 / 2–4 / 5+) leżą pod tym samym
+  kluczem w `lang/pl.json`. ⚠️ **Język zapasowy aplikacji to `en`** (`config/app.php`, zadanie 037):
+  `trans_choice()` dla klucza nieobecnego w bieżącym języku bierze język ZAPASOWY, a angielskiego pliku
+  nie ma — przy `pl` liczba mnoga wychodziła po polsku na stronach EN. Nie zmieniaj `fallback_locale`
+  z powrotem na `pl` i nie buduj klucza z liczbą w locie; `PluralTranslationsTest` pilnuje obu. Lokalny
+  `.env` z `APP_FALLBACK_LOCALE=pl` przebija konfigurację — ustaw `en` albo usuń linię.
 - **Przełącza je `resources/js/portal.js`** — wyłącznie w układzie portalu, bez Alpine. Kontrakt
   znaczników: `[data-tabs]`, `[data-tab-link]`, `[data-tab-panel]`, a odsyłacz do innej zakładki
   wewnątrz treści to **przycisk `[data-tab-open]`, nie kotwica** — przełącza bez przewijania (kotwica

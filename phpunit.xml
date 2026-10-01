@@ -44,6 +44,12 @@
             dosłowne "Panel". Nie zmieniaj na "en" bez naprawienia tych asercji.
         -->
         <env name="APP_LOCALE" value="pl" force="true"/>
+        <!--
+            ⚠️ Zadanie 037. Język ZAPASOWY to `en` — od niego zależy, czy `trans_choice()` liczy liczbę mnogą
+            po angielsku na stronach EN. Wymuszony, bo lokalny `.env` potrafi mieć `pl` i test wyniku
+            zależałby wtedy od maszyny autora.
+        -->
+        <env name="APP_FALLBACK_LOCALE" value="en" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
         <env name="BCRYPT_ROUNDS" value="4" force="true"/>
         <env name="CACHE_STORE" value="array" force="true"/>

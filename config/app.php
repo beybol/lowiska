@@ -80,7 +80,11 @@ return [
 
     'locale' => env('APP_LOCALE', 'pl'),
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'pl'),
+    // ⚠️ Język zapasowy to `en`, nie `pl` (zadanie 037). Kluczem tłumaczenia jest angielski tekst, a angielskiej
+    // wersji pliku nie ma, więc `trans_choice()` — który dla klucza nieobecnego w bieżącym języku bierze
+    // ZAPASOWY — przy `pl` liczył liczbę mnogą po polsku także na stronach EN. Przy `en` liczy ją z samego
+    // angielskiego klucza, a polski nadal czyta `lang/pl.json`.
+    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'pl_PL'),
 

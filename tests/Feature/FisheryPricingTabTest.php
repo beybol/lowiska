@@ -135,7 +135,7 @@ test('a surcharge shows under its name with the condition in the visitor words',
     expect($html)
         ->toContain('Stanowisko tylko dla Ciebie')
         ->toContain('+ '.e(perNight(41, $fishery)))
-        ->toContain('przy jednym łowiącym')
+        ->toContain('przy 1 łowiącym')
         ->toContain('doby czw→pon');
 });
 
@@ -283,5 +283,5 @@ test('the price list is shown in the other language with the same data', functio
     StayFixtures::rate($fishery, 137.00);
     StayFixtures::surcharge($fishery, 41.00, 'Solo', ['anglers_count' => 1]);
 
-    expect(pricingPage($fishery, 'en'))->toContain('Rate per angler')->toContain('with one angler');
+    expect(pricingPage($fishery, 'en'))->toContain('Rate per angler')->toContain('with 1 angler');
 });

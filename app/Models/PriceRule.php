@@ -250,7 +250,7 @@ class PriceRule extends Model
     }
 
     /**
-     * Warunek dopłaty w języku wędkarza: „przy jednym łowiącym, doby czw→pon, od 01.07.2026 do 31.08.2026".
+     * Warunek dopłaty w języku wędkarza: „przy 1 łowiącym, doby czw→pon, od 01.07.2026 do 31.08.2026".
      * Pusty łańcuch = dopłata bez warunku.
      *
      * ⚠️ Jedyny dom tego tekstu (zadanie 034, R4). Składa te same osie, które sprawdza
@@ -261,11 +261,11 @@ class PriceRule extends Model
         $parts = [];
 
         if ($this->anglers_count !== null) {
-            // ⚠️ Dwa zwykłe klucze, nie `trans_choice`: bez `lang/en.json` klucz z liczbą mnogą spada
-            // w angielskiej wersji na fallback i wychodzi po polsku.
-            $parts[] = (int) $this->anglers_count === 1
-                ? __('with one angler')
-                : __('with :count anglers', ['count' => (int) $this->anglers_count]);
+            $parts[] = trans_choice(
+                'with :count angler|with :count anglers',
+                (int) $this->anglers_count,
+                ['count' => (int) $this->anglers_count],
+            );
         }
 
         $weekdays = $this->weekdayNumbers();

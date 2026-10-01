@@ -352,6 +352,8 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Poprawione
 
+- Po angielsku teksty z liczbą — „up to 2 anglers", „min. 5 nights", liczba dób i liczniki w panelach —
+  wychodzą teraz po angielsku; wcześniej na stronach EN pokazywały się po polsku („do 2 łowiących").
 - Nagłówek dopłaty w cenniku poprawnie pokazuje doby, które nie idą po kolei — dopłata na poniedziałek
   i środę widnieje jako „pon, śr", a nie jako „pon–śr", które sugerowało także wtorek.
 - Naprawiono podgląd mapy w formularzu łowiska — nie dawało się go pokazać. Mapa pojawia się
