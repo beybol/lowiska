@@ -345,6 +345,11 @@ class FisheryResource extends Resource
                     ->columnSpanFull()
                     ->hidden(FisheryType::count() === 0),
                 CheckboxList::make('fishing_methods')
+                    // ⚠️ Bez `relationship()` wybór NIE zapisywał się nigdzie — pole miało same opcje, a kolumny
+                    // `fishing_methods` nie ma (metody to relacja wiele-do-wielu). `options()` stoi PO
+                    // `relationship()`, bo ta ustawia własną listę: zostaje kolejność po polskiej kolacji
+                    // przetłumaczonych nazw, a zapis i odczyt idą przez relację.
+                    ->relationship('fishingMethods', 'name')
                     ->options(function () {
                         $collator = new Collator('pl_PL');
                         $methods = FishingMethod::all()
