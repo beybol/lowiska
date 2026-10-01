@@ -27,7 +27,22 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 final class PortalFisheryPage
 {
+    /** „Cena od" — box stoi w każdej z czterech zakładek; liczona RAZ na stronę (038). */
+    private ?string $priceFrom = null;
+
+    private bool $priceFromResolved = false;
+
+    private ?FisheryRulesSummary $rules = null;
+
     public function __construct(private readonly Fishery $fishery) {}
+
+    /**
+     * Wyciąg zasad współdzielony przez kalendarz, Cennik i stronę — jedna instancja, więc pozycje liczą się raz.
+     */
+    public function rules(): FisheryRulesSummary
+    {
+        return $this->rules ??= new FisheryRulesSummary($this->fishery);
+    }
 
     /**
      * Łowisko z kompletem relacji potrzebnych stronie — jedno wczytanie, bez N+1 na stanowiskach.
@@ -51,22 +66,30 @@ final class PortalFisheryPage
             'positionGroups',
             // Zdjęcia galerii i mapa — jedno zapytanie, kolejność z `order_column` (036).
             'media',
+            // Okresy sprzedaży — czytają je kotwica kalendarza, „cena od", sezon w wyciągu i koniec ostatniego
+            // sezonu; bez tego każdy z nich pyta bazę osobno (038). Wczytane BEZ ograniczeń — patrz
+            // `strona-publiczna.md` §6.
+            'salePeriods',
         ]);
     }
 
     public function priceFrom(): ?string
     {
-        return PortalFisheries::priceFrom($this->fishery);
+        if (! $this->priceFromResolved) {
+            $this->priceFrom = PortalFisheries::priceFrom($this->fishery);
+            $this->priceFromResolved = true;
+        }
+
+        return $this->priceFrom;
     }
 
     /** „Jezioro rynnowe 16 ha · wielkopolskie · prowadzi: …" — w kolejności z makiety. */
     public function subtitle(): string
     {
-        $card = PortalFisheries::card($this->fishery);
-
+        // Tylko akwen i województwo — budowanie całej karty liczyło przy okazji „cenę od", zasady i okładkę.
         return implode(' · ', array_filter([
-            $card['water'],
-            $card['state'],
+            PortalFisheries::water($this->fishery),
+            PortalFisheries::stateName($this->fishery),
             filled($this->fishery->company?->name) ? __('run by :company', ['company' => $this->fishery->company->name]) : null,
         ]));
     }
@@ -118,7 +141,7 @@ final class PortalFisheryPage
      */
     public function pricing(): array
     {
-        $list = new PortalPriceList($this->fishery);
+        $list = new PortalPriceList($this->fishery, $this->rules());
         $rates = $list->rates();
         $surcharges = $list->surcharges();
         $services = $list->services();

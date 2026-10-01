@@ -11,6 +11,7 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Jcupitt\Vips\Image as VipsImage;
+use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -19,10 +20,12 @@ use Tests\Support\StayFixtures;
 /**
  * Galeria i mapa łowiska w medialibrary, warianty rozmiarów i ich pokazywanie w portalu (zadanie 036, ADR-023).
  *
- * ⚠️ Zdjęcia są PRAWDZIWYMI plikami, skalowanymi przez libvips — na udawanym dysku (`Storage::fake`).
+ * ⚠️ Zdjęcia są PRAWDZIWYMI plikami, skalowanymi przez libvips — na udawanych dyskach (`Storage::fake`):
+ * oryginały na prywatnym `local`, warianty na publicznym `public` (ADR-023, aktualizacja z 01.10.2026).
  */
 beforeEach(function () {
     Storage::fake('public');
+    Storage::fake('local');
 });
 
 /** Łowisko opublikowane pod `/pl/wielkopolskie/klasztorne`. */
@@ -73,15 +76,17 @@ test('a large photo gets all sizes and its original is capped at 2560 px', funct
 });
 
 test('the original is rotated by EXIF and stored without any metadata', function () {
-    // JPEG 300×100 z orientacją „obróć o 90°" w EXIF — tak zapisuje zdjęcia pionowe telefon.
-    $path = tempnam(sys_get_temp_dir(), 'exif').'.jpg';
+    // JPEG 300×100 z orientacją „obróć o 90°" w EXIF — tak zapisuje zdjęcia pionowe telefon. Plik na udawanym
+    // dysku, nie w /tmp: `addMedia()` go przenosi, a z `tempnam()` zostawałby pusty plik po każdym przebiegu.
+    Storage::fake('local');
+    $path = Storage::disk('local')->path('exif.jpg');
     $image = VipsImage::black(300, 100)->linear([1], [128])->copy();
     $image->set('orientation', 6);
     $image->writeToFile($path);
     expect(exif_read_data($path)['Orientation'] ?? null)->toBe(6);
 
     $media = galleryFishery()->addMedia($path)->toMediaCollection(FisheryImages::GALLERY);
-    $stored = Storage::disk('public')->path($media->getPathRelativeToRoot());
+    $stored = Storage::disk(FisheryImages::originalsDisk())->path($media->getPathRelativeToRoot());
 
     expect([$media->getCustomProperty('width'), $media->getCustomProperty('height')])->toBe([100, 300])
         // Bez jednej sekcji metadanych (IFD0, EXIF, GPS…) — `exif` zwraca wtedy same dane pliku.
@@ -192,12 +197,19 @@ test('adding and removing a photo is written to the fishery activity log', funct
 });
 
 /**
- * Regresja zadania 005: pole zdjęć podąża za skonfigurowanym dyskiem (`FILAMENT_FILESYSTEM_DISK`),
- * nie za przybitym w kodzie — sprawdzane przestawieniem konfiguracji na `gcs` w trakcie testu.
+ * Regresja zadania 005: zdjęcia podążają za skonfigurowanymi dyskami, nie za przybitymi w kodzie — sprawdzane
+ * przestawieniem konfiguracji na buckety w trakcie testu. Oryginał trafia na PRYWATNY `gcs-private`, warianty
+ * na PUBLICZNY `gcs` (ADR-023, aktualizacja z 01.10.2026).
  */
-test('the photo upload follows the configured disk and makes variants on save', function () {
-    config(['filesystems.default' => 'gcs', 'filament.default_filesystem_disk' => 'gcs']);
+test('the photo upload follows the configured disks: original private, variants public', function () {
+    config([
+        'filesystems.default' => 'gcs-private',
+        'filament.default_filesystem_disk' => 'gcs',
+        'media-library.disk_name' => 'gcs-private',
+        'media-library.conversions_disk_name' => 'gcs',
+    ]);
     Storage::fake('gcs');
+    Storage::fake('gcs-private');
     $admin = $this->createSuperAdmin();
     $fishery = Fishery::factory()->create();
 
@@ -216,8 +228,10 @@ test('the photo upload follows the configured disk and makes variants on save', 
         ->and($fishery->fresh()->getMedia(FisheryImages::MAP))->toHaveCount(1);
 
     foreach ($gallery as $media) {
-        expect($media->disk)->toBe('gcs');
-        Storage::disk('gcs')->assertExists($media->getPathRelativeToRoot());
+        expect($media->disk)->toBe('gcs-private')
+            ->and($media->conversions_disk)->toBe('gcs');
+        Storage::disk('gcs-private')->assertExists($media->getPathRelativeToRoot());
+        Storage::disk('gcs')->assertMissing($media->getPathRelativeToRoot());
         Storage::disk('gcs')->assertExists($media->getPathRelativeToRoot('w960'));
     }
 });
@@ -243,4 +257,53 @@ test('new photos are appended in the order they were picked, so the first picked
         ->assertHasNoFormErrors();
 
     expect($fishery->fresh()->getMedia(FisheryImages::GALLERY)->pluck('name')->all())->toBe(['a', 'b', 'c']);
+});
+
+/**
+ * ⚠️ Brakujący wariant, którego nie da się dogenerować (oryginał zniknął z bucketu), nie może wywrócić strony
+ * łowiska, strony głównej ani 404 — błąd idzie do logu, a zdjęcie bez wariantu się nie pokazuje (038).
+ */
+test('a variant that can not be generated does not break the pages', function () {
+    $fishery = galleryFishery();
+    $media = addPhoto($fishery);
+
+    foreach (FisheryImages::sizesFor($media) as $size) {
+        Storage::disk('public')->delete($media->getPathRelativeToRoot(FisheryImages::conversionName($size)));
+        $media->markAsConversionNotGenerated(FisheryImages::conversionName($size));
+    }
+    Storage::disk(FisheryImages::originalsDisk())->delete($media->getPathRelativeToRoot());
+
+    $html = galleryPage();
+
+    expect($html)->not->toContain('data-pswp-width');
+    galleryPage('/pl');
+});
+
+test('a photo added from another disk is sanitised too', function () {
+    Storage::fake('local');
+    Storage::disk('local')->makeDirectory('incoming');
+    // Zapis wprost na udawany dysk — bez plików tymczasowych w /tmp kontenera.
+    $image = VipsImage::black(300, 100)->linear([1], [128])->copy();
+    $image->set('orientation', 6);
+    $image->writeToFile(Storage::disk('local')->path('incoming/photo.jpg'));
+
+    $media = galleryFishery()->addMediaFromDisk('incoming/photo.jpg', 'local')->toMediaCollection(FisheryImages::GALLERY);
+    $stored = Storage::disk(FisheryImages::originalsDisk())->path($media->getPathRelativeToRoot());
+
+    expect([$media->getCustomProperty('width'), $media->getCustomProperty('height')])->toBe([100, 300])
+        ->and(exif_read_data($stored)['SectionsFound'] ?? null)->toBe('');
+});
+
+/**
+ * ⚠️ Pliki tymczasowe uploadu Livewire NIE idą na dysk domyślny — na Cloud Run to publiczny bucket, a plik
+ * tymczasowy jest surowy (EXIF, GPS) i przyjmowany przed walidacją formularza (przegląd bezpieczeństwa, 038).
+ */
+test('livewire temporary uploads stay on the private local disk even when the default disk is the bucket', function () {
+    // W testach Livewire podmienia dysk na `tmp-for-tests` (`FileUploadConfiguration::disk()`), więc sprawdzamy
+    // to, co zobaczy produkcja: jawny dysk w konfiguracji ma pierwszeństwo przed `filesystems.default`.
+    config(['filesystems.default' => 'gcs']);
+
+    expect(config('livewire.temporary_file_upload.disk') ?: config('filesystems.default'))->toBe('local')
+        ->and(config('filesystems.disks.local.driver'))->toBe('local')
+        ->and(config('filesystems.disks.local.serve'))->toBeFalse();
 });

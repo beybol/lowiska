@@ -28,9 +28,10 @@ return [
      * The disk on which to store added files and derived images by default. Choose
      * one or more of the disks you've configured in config/filesystems.php.
      */
-    // ⚠️ Ten sam dysk co uploady Filamenta (`panel-admina.md` §1) — plugin i tak bierze
-    // `filament.default_filesystem_disk`; ten klucz obowiązuje dodawanie poza formularzem.
-    'disk_name' => env('MEDIA_DISK', env('FILAMENT_FILESYSTEM_DISK', 'public')),
+    // ⚠️ ORYGINAŁY zdjęć — dysk PRYWATNY (lokalnie `local`, na Cloud Run `gcs-private`). Portal pokazuje wyłącznie
+    // warianty (ADR-023), więc oryginał nie musi być publiczny. Kolekcje łowiska ustawiają ten dysk jawnie
+    // (`Fishery::registerMediaCollections()`), więc plugin Filamenta też go używa.
+    'disk_name' => env('MEDIA_DISK', 'local'),
 
     /*
      * The disk on which to store conversions (thumbnails, etc.) and responsive images
@@ -41,7 +42,8 @@ return [
      * This is useful when the originals live on a remote disk (e.g. S3) but the
      * generated derivatives should stay local for faster access and lower egress.
      */
-    'conversions_disk_name' => env('MEDIA_CONVERSIONS_DISK', null),
+    // WARIANTY (WebP) — dysk PUBLICZNY, ten sam co uploady Filamenta: to je portal wstawia do HTML-a.
+    'conversions_disk_name' => env('MEDIA_CONVERSIONS_DISK', env('FILAMENT_FILESYSTEM_DISK', 'public')),
 
     /*
      * The maximum file size of an item in bytes.

@@ -31,7 +31,13 @@ final class PortalPriceList
     /** @var array<int, PriceRule>|null */
     private ?array $rules = null;
 
-    public function __construct(private readonly Fishery $fishery) {}
+    /**
+     * @param  FisheryRulesSummary|null  $summary  wyciąg współdzielony ze stroną łowiska (liczy się raz); `null` = własny
+     */
+    public function __construct(
+        private readonly Fishery $fishery,
+        private readonly ?FisheryRulesSummary $summary = null,
+    ) {}
 
     /**
      * Stawki za łowiącego — od najwcześniejszego okresu; stawka bez dat na początku.
@@ -100,7 +106,7 @@ final class PortalPriceList
     /** Przedsprzedaż — tylko gdy okno jest otwarte albo otwiera się wkrótce (ten sam wyciąg co nad kalendarzem). */
     public function presale(): ?string
     {
-        return (new FisheryRulesSummary($this->fishery))->items()['presale'] ?? null;
+        return ($this->summary ?? new FisheryRulesSummary($this->fishery))->items(['presale'])['presale'] ?? null;
     }
 
     /**

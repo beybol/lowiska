@@ -52,8 +52,9 @@ class FisheryFactory extends Factory
     /**
      * Łowisko ze zdjęciami w medialibrary (zadanie 036): `$photos` zdjęć galerii o podanych wymiarach i mapa.
      *
-     * ⚠️ Zapisuje PRAWDZIWE pliki i generuje warianty (libvips) na dysku medialibrary — test, który tego
-     * używa, robi wcześniej `Storage::fake()` na tym dysku, inaczej pliki lądują w `storage/app/public`.
+     * ⚠️ Zapisuje PRAWDZIWE pliki i generuje warianty (libvips) — oryginały na dysku `media-library.disk_name`
+     * (lokalnie `local`), warianty na `conversions_disk_name` (`public`). Test, który tego używa, robi wcześniej
+     * `Storage::fake()` na OBU dyskach, inaczej pliki lądują w `storage/app/private` i `storage/app/public`.
      */
     public function withPhotos(int $photos = 1, bool $map = true, int $width = 1200, int $height = 800): static
     {

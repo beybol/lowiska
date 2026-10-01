@@ -114,9 +114,27 @@ final class WeekdayNights
             return $count;
         }
 
-        $parts = array_map(fn (array $run): string => $this->runText($run), self::runs($set));
+        return $this->runsText($set).' · '.$count;
+    }
 
-        return implode('; ', $parts).' · '.$count;
+    /**
+     * Same przedziały zbioru, bez liczby dób: „Od pt 15:00 do nd 15:00" (wyciąg zasad portalu, zadanie 038).
+     * Pełny tydzień nie ma początku ani końca — wtedy, jak w `summary()`, zostaje sama liczba dób.
+     * Pusty zbiór → pusty łańcuch.
+     */
+    public function runsText(mixed $days): string
+    {
+        $set = self::normalize($days);
+
+        if ($set === []) {
+            return '';
+        }
+
+        if (count($set) === 7) {
+            return trans_choice(':count night|:count nights', 7, ['count' => 7]);
+        }
+
+        return implode('; ', array_map(fn (array $run): string => $this->runText($run), self::runs($set)));
     }
 
     /**

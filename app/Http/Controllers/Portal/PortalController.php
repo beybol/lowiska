@@ -63,7 +63,7 @@ class PortalController extends Controller
      * ⚠️ Łowisko szukane **wyłącznie po slugu**; segment województwa jest ozdobą sprawdzaną
      * przekierowaniem 301 — korekta województwa łowiska nie psuje żadnego linku (ADR-021).
      */
-    public function fishery(Request $request, string $locale, string $state, string $fishery): View|RedirectResponse|Response
+    public function fishery(Request $request, string $locale, string $state, string $fishery): RedirectResponse|Response
     {
         $record = $this->publishedFishery($fishery);
         $canonical = $record !== null ? PortalRoutes::fisheryUrl($record, $locale) : null;
@@ -77,19 +77,28 @@ class PortalController extends Controller
         }
 
         $loaded = PortalFisheryPage::load($record);
-        $calendar = new PortalCalendar($loaded, $request->query(), $locale);
+        $page = new PortalFisheryPage($loaded);
+        // Kalendarz dostaje wyciąg zasad strony — ta sama instancja w kalendarzu i w Cenniku (038).
+        $calendar = new PortalCalendar($loaded, $request->query(), $locale, $page->rules());
 
         // Stopniowe ulepszenie (ADR-022): `portal.js` pobiera TEN SAM adres i podmienia sam fragment
         // kalendarza. Stan i werdykty są identyczne jak w pełnej stronie — to tylko inny kawałek widoku.
+        // ⚠️ `Vary: X-Portal-Fragment` na OBU odpowiedziach: ten sam adres niesie dwie różne treści, a bez
+        // tego nagłówka przeglądarka przy „wstecz" potrafi podać z cache sam fragment jako całą stronę.
         if ($request->header('X-Portal-Fragment') === 'calendar') {
-            return view('portal.partials.calendar', ['calendar' => $calendar, 'fishery' => $loaded]);
+            return response()
+                ->view('portal.partials.calendar', ['calendar' => $calendar, 'fishery' => $loaded])
+                ->header('Vary', 'X-Portal-Fragment')
+                ->header('Cache-Control', 'no-store');
         }
 
-        return view('portal.fishery', [
-            'fishery' => $loaded,
-            'page' => new PortalFisheryPage($loaded),
-            'calendar' => $calendar,
-        ]);
+        return response()
+            ->view('portal.fishery', [
+                'fishery' => $loaded,
+                'page' => $page,
+                'calendar' => $calendar,
+            ])
+            ->header('Vary', 'X-Portal-Fragment');
     }
 
     /**
@@ -120,6 +129,13 @@ class PortalController extends Controller
         }
 
         App::setLocale(PortalLocale::resolve($request));
+
+        // ⚠️ Brakujący plik (adres z rozszerzeniem — obrazek, skrypt, `/storage/*`) albo żądanie nie od
+        // przeglądarki dostaje LEKKIE 404, bez listy łowisk: lista to zapytania i warianty zdjęć na każde
+        // trafienie bota czy zepsuty adres obrazka (038).
+        if (str_contains((string) last(explode('/', $path)), '.') || ! $request->accepts('text/html')) {
+            return response(__('Page not found'), 404)->header('Content-Type', 'text/plain; charset=UTF-8');
+        }
 
         return self::notFound();
     }

@@ -344,3 +344,39 @@ test('the portal calendar adds no queries per row on top of the sale calendar', 
 
     expect($overhead(6))->toBe($overhead(2));
 });
+
+/**
+ * ⚠️ Mierzy RENDER fragmentu, nie same wiersze: każdy link siatki (tygodnie, łowiący, grupy, doby, stanowiska)
+ * woła `PortalCalendar::url()`, a ten liczył domyślny tydzień od nowa — zapytanie na link, więc N+1 na stanowisko
+ * (038). Test `rows()` tego nie widział.
+ */
+test('rendering the calendar fragment adds no queries per position', function () {
+    $queriesFor = function (int $positions): int {
+        $fishery = klasztorne();
+        foreach (range(2, $positions) as $i) {
+            addPosition($fishery, (string) $i);
+        }
+        $loaded = PortalFisheryPage::load($fishery->fresh());
+        $calendar = new PortalCalendar($loaded, ['tydzien' => '2026-06-01'], 'pl');
+        $calendar->rows();
+
+        $queries = 0;
+        DB::listen(function () use (&$queries): void {
+            $queries++;
+        });
+        view('portal.partials.calendar', ['calendar' => $calendar, 'fishery' => $loaded])->render();
+
+        return $queries;
+    };
+
+    expect($queriesFor(6))->toBe($queriesFor(2));
+});
+
+test('a week outside the reachable window falls back to the default week', function () {
+    $fishery = klasztorne();
+    $default = portalCalendar($fishery)->week()->toDateString();
+
+    expect(portalCalendar($fishery, ['tydzien' => '1999-01-04'])->week()->toDateString())->toBe($default)
+        ->and(portalCalendar($fishery, ['tydzien' => '2099-06-01'])->week()->toDateString())->toBe($default)
+        ->and(portalCalendar($fishery, ['tydzien' => '2026-06-03'])->week()->toDateString())->toBe('2026-06-01');
+});

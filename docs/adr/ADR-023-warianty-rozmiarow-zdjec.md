@@ -212,3 +212,24 @@ Trzy rozstrzygnięcia autora podjęte w trakcie implementacji; zmieniają konsek
    prywatny bucket to później zmiana konfiguracji.
 3. **Dziennik zmian:** dodanie i usunięcie zdjęcia zapisuje się jawnie na łowisku (`FisheryMediaActivity`,
    format `old`/`attributes`); zmiana kolejności się nie loguje.
+
+---
+
+## Aktualizacja (2026-10-01, po przeglądzie bezpieczeństwa) — oryginały w prywatnym buckecie
+
+Punkt 2 poprzedniej aktualizacji („oryginały nie trafiają na dysk prywatny") jest **nieaktualny**. Po przeglądzie
+bezpieczeństwa (surowe pliki tymczasowe uploadu Livewire w publicznym buckecie) fundament dostał **prywatne buckety**
+`esurf-foundation-lowiska-{staging,prod}-private` (UBLA, wymuszone `public_access_prevention`, `objectAdmin` dla konta
+usługi aplikacji), a publiczny bucket stracił listowanie (`allUsers` — tylko `storage.objects.get`).
+
+- **Oryginał → bucket prywatny** (`MEDIA_DISK=gcs-private`), **warianty → bucket publiczny**
+  (`MEDIA_CONVERSIONS_DISK=gcs`) — dokładnie konsekwencja opcji B z rekomendacji. Dyski ustawiają kolekcje łowiska
+  jawnie (`useDisk()`, `storeConversionsOnDisk()`), podgląd w formularzu pokazuje wariant.
+- **Oczyszczanie zostaje** — warianty powstają z oryginału, więc bez niego niosłyby GPS; to też ochrona na wypadek
+  pomyłki w konfiguracji dysku oryginałów.
+- **Dysk domyślny aplikacji i pliki tymczasowe Livewire → bucket prywatny** (`FILESYSTEM_DISK=gcs-private`,
+  `LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=gcs-private`). Dysk instancji Cloud Run nie wystarcza na pliki tymczasowe:
+  przy dwóch instancjach upload i zapis formularza mogą trafić na różne.
+- Strażnik startowy (`AppServiceProvider`) sprawdza wszystkie te dyski — żaden nie może na Cloud Run spaść na
+  sterownik `local`.
+

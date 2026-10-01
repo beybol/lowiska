@@ -11,7 +11,8 @@
     zostają białe, bo kreskowanie `a100/a200` w komórce znaczy „niedostępne — powód od łowiska".
 --}}
 @php
-    $rules = new \App\Services\FisheryRulesSummary($fishery);
+    // Ta sama instancja wyciągu co w Cenniku — pozycje liczą się raz na stronę (038).
+    $rules = $calendar->rules();
     $days = $calendar->days();
     $rows = $calendar->rows();
     $packages = $calendar->packages();

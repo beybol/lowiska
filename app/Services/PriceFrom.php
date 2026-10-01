@@ -43,11 +43,8 @@ final class PriceFrom
         $timezone = $this->fishery->timezoneName();
         $today = CarbonImmutable::now($timezone)->startOfDay();
 
-        // Trwający albo najbliższy okres — pierwszy, który nie skończył się przed dziś.
-        $period = $this->fishery->salePeriods()
-            ->whereDate('ends_on', '>=', $today->toDateString())
-            ->orderBy('starts_on')
-            ->first();
+        // Trwający albo najbliższy okres — reguła ma jeden dom w `SaleCalendar`.
+        $period = (new SaleCalendar($this->fishery))->currentOrNextSeason();
 
         if ($period === null) {
             return null;
@@ -61,7 +58,11 @@ final class PriceFrom
             $from = $today;
         }
 
-        $resolver = new PriceRuleResolver($this->rules ?? $this->fishery->priceRules()->get()->all());
+        // Cennik wczytany przez wołającego (lista kart portalu ładuje relację raz dla wszystkich łowisk).
+        $rules = $this->rules ?? ($this->fishery->relationLoaded('priceRules')
+            ? $this->fishery->priceRules->all()
+            : $this->fishery->priceRules()->get()->all());
+        $resolver = new PriceRuleResolver($rules);
         $lowest = null;
 
         foreach ((new FishingDayCalendar($this->fishery))->daysBetween($from, $to) as $night) {

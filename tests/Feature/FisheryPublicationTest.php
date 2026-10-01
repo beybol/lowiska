@@ -36,8 +36,9 @@ use Tests\Support\StayFixtures;
  * ⚠️ Czas jest zamrożony — okres sprzedaży, cennik i regulamin liczą się od „dziś".
  */
 beforeEach(function () {
-    // Zdjęcie i mapa to pliki w medialibrary (036) — na udawanym dysku.
+    // Zdjęcie i mapa to pliki w medialibrary (036) — na udawanych dyskach: oryginały prywatnie, warianty publicznie.
     Storage::fake('public');
+    Storage::fake('local');
     Date::setTestNow(CarbonImmutable::parse('2026-05-04 09:00', 'Europe/Warsaw'));
 });
 

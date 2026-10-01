@@ -6,6 +6,7 @@ use App\Models\Fishery;
 use App\Models\SalePeriod;
 use App\Models\WholeTermPeriod;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Number;
 
 /**
  * Wyciąg zasad sprzedaży łowiska — jedna linijka nad kalendarzem portalu (zadanie 033, portal-v3 §3.2).
@@ -25,35 +26,61 @@ final class FisheryRulesSummary
     /** Ile najbliższych terminów sprzedawanych w całości wypisujemy (§3.2). */
     private const WHOLE_TERMS_SHOWN = 2;
 
+    /** Kolejność pozycji wyciągu z makiety. */
+    private const KEYS = ['day', 'weekend', 'whole_terms', 'season', 'min', 'max', 'presale', 'licence', 'no_kill'];
+
+    /** @var array<string, string|null> pozycje już policzone — klucz → tekst albo `null` (brak pozycji) */
+    private array $computed = [];
+
     public function __construct(private readonly Fishery $fishery) {}
 
     /**
      * Pozycje wyciągu w kolejności z makiety — tylko wypełnione.
      *
+     * ⚠️ Każda pozycja liczy się RAZ na instancję i wyłącznie wtedy, gdy ktoś o nią pyta: karta strony
+     * głównej (`cardLine()`) nie płaci zapytaniami o sezon i przedsprzedaż, a strona łowiska, która pyta
+     * o wyciąg kilka razy (nad kalendarzem, na telefonie, w Cenniku), nie liczy go od nowa (zadanie 038).
+     *
+     * @param  array<int, string>|null  $keys  wybrane klucze (`null` = wszystkie)
      * @return array<string, string> klucz → tekst; klucze: day, weekend, whole_terms, season, min, max,
      *                               presale, licence, no_kill
      */
-    public function items(): array
+    public function items(?array $keys = null): array
+    {
+        $items = [];
+
+        foreach (self::KEYS as $key) {
+            if ($keys !== null && ! in_array($key, $keys, true)) {
+                continue;
+            }
+
+            if (! array_key_exists($key, $this->computed)) {
+                $this->computed[$key] = $this->item($key);
+            }
+
+            if ($this->computed[$key] !== null) {
+                $items[$key] = $this->computed[$key];
+            }
+        }
+
+        return $items;
+    }
+
+    private function item(string $key): ?string
     {
         $fishery = $this->fishery;
         $today = CarbonImmutable::now($fishery->timezoneName())->startOfDay();
         $nights = WeekdayNights::forFishery($fishery);
 
-        $weekend = (array) $fishery->weekend_days;
-        $weekendText = null;
-
-        if ($weekend !== [] && $nights->hasHours()) {
-            $summary = explode(' · ', $nights->summary($weekend, ''))[0];
-            $weekendText = __('weekend :range sold whole', ['range' => mb_strtolower($summary)]);
-        }
-
-        return array_filter([
+        return match ($key) {
             'day' => $nights->hasHours()
                 ? __('Fishing day :from–:to', ['from' => $this->time($fishery->day_start_time), 'to' => $this->time($fishery->day_end_time)])
                 : null,
-            'weekend' => $weekendText,
+            'weekend' => (array) $fishery->weekend_days !== [] && $nights->hasHours()
+                ? __('weekend :range sold whole', ['range' => mb_strtolower($nights->runsText($fishery->weekend_days))])
+                : null,
             'whole_terms' => $this->wholeTerms($today),
-            'season' => $this->season($today),
+            'season' => $this->season(),
             'min' => (int) $fishery->min_nights > 1
                 ? trans_choice('min. :count night|min. :count nights', (int) $fishery->min_nights, ['count' => (int) $fishery->min_nights])
                 : null,
@@ -71,7 +98,8 @@ final class FisheryRulesSummary
                 false => __('fish may be taken'),
                 null => null,
             },
-        ], fn (?string $text): bool => $text !== null);
+            default => null,
+        };
     }
 
     /**
@@ -81,13 +109,7 @@ final class FisheryRulesSummary
      */
     public function line(?array $keys = null): string
     {
-        $items = $this->items();
-
-        if ($keys !== null) {
-            $items = array_filter($items, fn (string $key): bool => in_array($key, $keys, true), ARRAY_FILTER_USE_KEY);
-        }
-
-        $text = implode(' · ', $items);
+        $text = implode(' · ', $this->items($keys));
 
         return $text === '' ? '' : mb_strtoupper(mb_substr($text, 0, 1)).mb_substr($text, 1);
     }
@@ -144,11 +166,18 @@ final class FisheryRulesSummary
      */
     private function wholeTerms(CarbonImmutable $today): ?string
     {
-        $terms = $this->fishery->wholeTermPeriods()
-            ->whereDate('last_day_on', '>=', $today->toDateString())
-            ->orderBy('first_day_on')
-            ->limit(self::WHOLE_TERMS_SHOWN)
-            ->get();
+        // Lista kart portalu wczytuje relację raz dla wszystkich łowisk — wtedy filtr idzie po kolekcji.
+        $terms = $this->fishery->relationLoaded('wholeTermPeriods')
+            ? $this->fishery->wholeTermPeriods
+                ->filter(fn (WholeTermPeriod $term): bool => $term->last_day_on->toDateString() >= $today->toDateString())
+                ->sortBy(fn (WholeTermPeriod $term): string => $term->first_day_on->toDateString())
+                ->take(self::WHOLE_TERMS_SHOWN)
+                ->values()
+            : $this->fishery->wholeTermPeriods()
+                ->whereDate('last_day_on', '>=', $today->toDateString())
+                ->orderBy('first_day_on')
+                ->limit(self::WHOLE_TERMS_SHOWN)
+                ->get();
 
         if ($terms->isEmpty()) {
             return null;
@@ -160,12 +189,10 @@ final class FisheryRulesSummary
         return __(':ranges sold whole', ['ranges' => implode(' '.__('and').' ', $ranges)]);
     }
 
-    private function season(CarbonImmutable $today): ?string
+    private function season(): ?string
     {
-        $period = $this->fishery->salePeriods()
-            ->whereDate('ends_on', '>=', $today->toDateString())
-            ->orderBy('starts_on')
-            ->first();
+        // Trwający albo najbliższy okres — reguła ma jeden dom w `SaleCalendar`.
+        $period = (new SaleCalendar($this->fishery))->currentOrNextSeason();
 
         return $period === null ? null : __('season :from–:to', [
             'from' => $period->starts_on->format('d.m'),
@@ -203,7 +230,8 @@ final class FisheryRulesSummary
                 ? trans_choice('min. :count night|min. :count nights', (int) $period->presale_min_nights, ['count' => (int) $period->presale_min_nights])
                 : null,
             $period->presale_discount_percent !== null && (float) $period->presale_discount_percent > 0
-                ? '−'.rtrim(rtrim(number_format((float) $period->presale_discount_percent, 2, ',', ''), '0'), ',').'%'
+                // Separator dziesiętny wg języka strony (12,5 / 12.5), bez zbędnych zer.
+                ? '−'.Number::format((float) $period->presale_discount_percent, maxPrecision: 2, locale: app()->getLocale()).'%'
                 : null,
         ]));
     }

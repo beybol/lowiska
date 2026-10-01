@@ -193,23 +193,35 @@ tego samego dnia co upload), a przy więcej niż jednej instancji plik zapisany 
 jest niewidoczny dla żądania obsłużonego przez instancję B. Awaria jest **cicha**: upload się
 udaje, panel pokazuje sukces, obrazek przestaje się otwierać dopiero po restarcie.
 
-**Rozwiązanie: bucket GCS fundamentu** (`gcp-foundation`, moduł `modules/app-storage`,
-ADR-0013/ADR-0014, cross-repo). Fundament dostarcza bucket, grant `roles/storage.objectAdmin` dla
-runtime SA **na tym jednym buckecie** (Application Default Credentials z metadata servera Cloud
-Run — **zero kluczy JSON**) i publiczny odczyt (`allUsers` → `roles/storage.objectViewer`).
-Repozytorium aplikacji dostarcza pakiet Composera (`spatie/laravel-google-cloud-storage`),
-konfigurację dysku `gcs` i to, żeby pola zdjęć faktycznie za nią podążały.
+**Rozwiązanie: dwa buckety GCS fundamentu** (`gcp-foundation`, moduł `modules/app-storage`,
+ADR-0013/ADR-0014, cross-repo). Konto usługi aplikacji ma `roles/storage.objectAdmin` **na obu i tylko na nich**
+(Application Default Credentials z metadata servera Cloud Run — **zero kluczy JSON**):
+
+| Bucket | Dysk | Dostęp | Co trafia |
+|---|---|---|---|
+| `esurf-foundation-lowiska-<env>-storage` | `gcs` | odczyt **pojedynczych obiektów** dla `allUsers` (rola własna, `storage.objects.get`, **bez listowania**) | to, co pokazuje przeglądarka: uploady Filamenta i warianty zdjęć |
+| `esurf-foundation-lowiska-<env>-private` | `gcs-private` | brak dostępu publicznego (`public_access_prevention: enforced`) | dysk domyślny aplikacji, pliki tymczasowe uploadu Livewire, oryginały zdjęć |
+
+⚠️ **Na bucketcie publicznym każdy plik jest czytelny pod swoim adresem** — brak listowania (zmiana z 01.10.2026;
+wcześniej `allUsers` miało `roles/storage.objectViewer`, które obejmuje listowanie) nie czyni go prywatnym.
+Dlatego dyskiem domyślnym jest bucket prywatny: dane niepubliczne (dokumenty wędkarzy, eksporty, import CSV)
+lądują tam także wtedy, gdy kod nie poda dysku. Na publiczny trafia wyłącznie to, co ma się wyświetlić.
 
 Zmienne środowiskowe:
 
 | Zmienna | Lokalnie | Cloud Run |
 |---|---|---|
-| `FILESYSTEM_DISK` | `public` | `gcs` |
+| `FILESYSTEM_DISK` | `public` | `gcs-private` |
 | `FILAMENT_FILESYSTEM_DISK` | (nieustawiona, domyślnie `public`) | `gcs` |
-| `GOOGLE_CLOUD_STORAGE_BUCKET` | nieużywana | output `storage_bucket` z fundamentu |
+| `MEDIA_DISK` (oryginały zdjęć) | (nieustawiona, domyślnie `local`) | `gcs-private` |
+| `MEDIA_CONVERSIONS_DISK` (warianty) | (nieustawiona, domyślnie dysk Filamenta) | `gcs` |
+| `LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK` | (nieustawiona, domyślnie `local`) | `gcs-private` |
+| `GOOGLE_CLOUD_STORAGE_BUCKET` | nieużywana | `esurf-foundation-lowiska-<env>-storage` |
+| `GOOGLE_CLOUD_STORAGE_PRIVATE_BUCKET` | nieużywana | `esurf-foundation-lowiska-<env>-private` |
 
-Nazwa bucketa **nie jest sekretem** — zwykła zmienna wdrożenia:
-`terraform -chdir=environments/{staging,prod} output lowiska` → `storage_bucket`.
+Nazwy bucketów **nie są sekretem** — `deploy.yml` składa je ze wzoru w kroku „Resolve environment".
+⚠️ Pliki tymczasowe Livewire NIE mogą na Cloud Run leżeć na dysku instancji: przy dwóch instancjach
+(`--max-instances 2`) upload i zapis formularza mogą trafić na różne, a plugin pomija brakujący plik bez błędu.
 
 ### Strażnik startowy — zamiast odwróconego fallbacku
 
@@ -217,8 +229,9 @@ Nazwa bucketa **nie jest sekretem** — zwykła zmienna wdrożenia:
 wartością domyślną dla środowiska najmniej kontrolowanego (maszyny deweloperskie, CI, pakiet
 testów). Realne ryzyko cichej utraty danych adresuje **strażnik startowy**
 (`AppServiceProvider::assertUploadDiskIsSafe()`), nie odwrócenie fallbacku: poza `local`/`testing`
-aplikacja **odmawia startu**, jeśli dysk uploadów rozwiązuje się do sterownika `local` — pęka przy
-starcie kontenera, w logach wdrożenia, zanim ktokolwiek zdąży wgrać plik.
+aplikacja **odmawia startu**, jeśli którykolwiek dysk zapisu — domyślny, uploadów Filamenta, oryginałów
+i wariantów zdjęć albo plików tymczasowych Livewire — rozwiązuje się do sterownika `local`. Pęka przy starcie
+kontenera, w logach wdrożenia, zanim ktokolwiek zdąży wgrać plik.
 
 ⚠️ **Sprawdzenie dotyczy rozwiązanego sterownika, nie samej wartości zmiennej** — ten sam wzorzec
 co bramka bazy danych w `tests/TestCase.php` (ADR-001). Strażnik **nie** wymaga dodatkowo
@@ -238,10 +251,9 @@ domyślnym dysku deweloperskim).
   a `docker/php/*.ini` ma `ffi.enable = true`. ⚠️ Domyślne `preload` włącza FFI tylko w CLI — skalowanie
   w żądaniu WWW (FrankenPHP) by padło. CI (`deploy.yml`, `setup-php`) też ma `ffi`, bo wymaga go
   `jcupitt/vips` przy `composer install`.
-- **Oryginał nie jest prywatny — jest oczyszczany.** Bucket ma publiczny odczyt i jednolity dostęp (UBLA),
-  więc pojedynczego pliku nie da się w nim ukryć. Przy dodaniu oryginał jest obracany według EXIF,
-  zmniejszany do 2560 px i zapisywany bez metadanych (GPS). Portal pokazuje wyłącznie warianty WebP.
-  Prywatny bucket na oryginały byłby zmianą w `gcp-foundation` i konfiguracji `MEDIA_DISK`.
+- **Oryginał w buckecie prywatnym, warianty w publicznym** (ADR-023, aktualizacja z 01.10.2026). Oryginał jest
+  i tak oczyszczany przy dodaniu — obracany według EXIF, zmniejszany do 2560 px, zapisywany bez metadanych (GPS) —
+  bo warianty powstają z niego. Portal pokazuje wyłącznie warianty WebP.
 - **Warianty powstają w żądaniu zapisu** (kolejka na Cloud Run to `sync`, ADR-004); brakujący wariant
   dogenerowuje się przy wyświetleniu. Po zmianie rozmiarów: `php artisan media-library:regenerate`.
 - ⚠️ **Wdrożenie zadania 036 usuwa kolumny `gallery_images` i `map_image_path` bez przenoszenia danych** —

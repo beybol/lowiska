@@ -487,6 +487,8 @@ class FisheryResource extends Resource
             ->imageResizeTargetWidth((string) FisheryImages::ORIGINAL_MAX)
             ->imageResizeTargetHeight((string) FisheryImages::ORIGINAL_MAX)
             ->imageResizeUpscale(false)
+            // Podgląd zapisanego zdjęcia z WARIANTU — oryginał leży na prywatnym dysku i nie ma publicznego adresu.
+            ->conversion(FisheryImages::conversionName(FisheryImages::SIZES[0]))
             ->visibility('public');
     }
 

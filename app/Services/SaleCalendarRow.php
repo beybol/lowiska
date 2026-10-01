@@ -30,8 +30,6 @@ final readonly class SaleCalendarRow
     /**
      * @param  array<int, SaleCalendarCell>  $cells
      * @param  array<int, PositionServiceStatus>  $services
-     */
-    /**
      * @param  array<int, AvailabilityBlock>  $suspensions  ograniczenia zawieszające cechę stanowiska,
      *                                                      przecinające którąś dobę okna (033)
      */

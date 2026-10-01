@@ -285,3 +285,18 @@ test('the price list is shown in the other language with the same data', functio
 
     expect(pricingPage($fishery, 'en'))->toContain('Rate per angler')->toContain('with 1 angler');
 });
+
+test('a fractional presale discount uses the decimal separator of the page language', function () {
+    $fishery = pricedFishery();
+    SalePeriod::factory()->create([
+        'fishery_id' => $fishery->id,
+        'starts_on' => '2027-01-01',
+        'ends_on' => '2027-12-31',
+        'presale_opens_on' => '2026-04-01',
+        'presale_closes_on' => '2026-06-30',
+        'presale_discount_percent' => 12.5,
+    ]);
+
+    expect(pricingPage($fishery, 'pl'))->toContain('−12,5%')
+        ->and(pricingPage($fishery, 'en'))->toContain('−12.5%');
+});

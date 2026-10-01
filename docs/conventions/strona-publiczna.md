@@ -47,6 +47,9 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 - **Adres kanoniczny łowiska** `/{język}/{slug-województwa}/{slug}`; łowisko szukane **wyłącznie po
   slugu**, zły segment województwa → 301. Buduje go wyłącznie `PortalRoutes::fisheryUrl()` — `null`,
   gdy łowisko nie ma województwa.
+- **404 portalu z listą łowisk tylko dla przeglądarki:** adres z rozszerzeniem w ostatnim segmencie (brakujący
+  obrazek, skrypt, `/storage/*`) albo żądanie bez `text/html` w `Accept` dostaje lekkie 404 tekstowe — lista kart
+  to zapytania i warianty zdjęć na każde trafienie bota.
 - ⚠️ **Strony informacyjne rejestruj PRZED trasą łowiska** — `/pl/dokumenty-prawne/regulamin` ma ten sam
   kształt trzech segmentów.
 
@@ -169,6 +172,9 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   `loading="lazy"`. Na telefonie sekcja „Zdjęcia" na końcu strony: 2 kafelki, na drugim „+N".
   Okładka karty na stronie głównej = pierwsze zdjęcie (kolejność z panelu); bez zdjęcia — tło motywu, bez
   zaślepki udającej zdjęcie. `alt` = „{nazwa łowiska} — zdjęcie N".
+- **Nieudane dogenerowanie wariantu nie wywraca strony** — `FisheryImages` zgłasza wyjątek przez `report()`
+  i pokazuje to, co istnieje (bez oryginału). Warianty zdjęcia liczą się raz na żądanie, więc brakujący wariant
+  dogenerowuje się najwyżej raz, choć widok pyta o `url()`, `srcset()` i `largest()`.
 - **Podgląd pełnoekranowy: PhotoSwipe w `portal.js`**, wyłącznie w układzie portalu, moduł ładowany przy
   pierwszym otwarciu. Kontrakt: `[data-gallery]` + `a[href][data-pswp-width][data-pswp-height]` (odsyłacz
   do największego wariantu); zdjęcia spoza kafelków są w galerii jako ukryte odsyłacze, żeby licznik mówił
@@ -181,10 +187,14 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   przeładowaniem, a `portal.js` pobiera ten sam adres z nagłówkiem `X-Portal-Fragment: calendar`
   i podmienia wyłącznie `[data-calendar]` (`portal.partials.calendar`). ⚠️ Nie dokładaj Livewire
   do stron publicznych i nie trzymaj stanu kalendarza poza adresem.
+  ⚠️ **Obie odpowiedzi tej trasy mają `Vary: X-Portal-Fragment`** (fragment dodatkowo `Cache-Control: no-store`)
+  — ten sam adres niesie dwie treści, a bez nagłówka przeglądarka przy „wstecz" potrafi podać z cache sam
+  fragment jako całą stronę, bez układu i stylów.
 - **Stan w adresie, nazwy parametrów zależne od języka** — jeden dom: `PortalRoutes::CALENDAR_PARAMS`
   (PL `tydzien`/`lowiacych`/`grupa`/`cecha`/`doba`/`st`, EN `week`/`anglers`/`group`/`feature`/`night`/`pos`).
   Wartości grup i cech to slugi z nazw (`slug-cechy:slug-opcji` dla wyboru); nieznane i błędne
-  wartości spadają do domyślnych. Canonical i `hreflang` — bez parametrów (`PortalRoutes::alternates()`);
+  wartości spadają do domyślnych — także tydzień spoza okna, do którego prowadzą linki (przed bieżącym
+  tygodniem albo po końcu ostatniego okresu sprzedaży). Canonical i `hreflang` — bez parametrów (`PortalRoutes::alternates()`);
   przełącznik języka niesie stan pod nazwami drugiego języka (`PortalRoutes::switchUrls()`).
 - **Przełączniki zamiast grupowania:** grupa jedna naraz (stanowisko w kilku grupach widać w każdej;
   aktywna grupa i aktywna cecha kliknięte ponownie się wyłączają),
@@ -207,6 +217,15 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   zwykłego `:focus-within` — kliknięcie myszą zostawiało dymek otwarty. `portal.js` przypina dymek
   do okna (`position: fixed`), żeby nic go nie przycinało.
   Na telefonie — pasek dób, lista stanowisk dla doby (`doba`) i karta stanowiska (`st`).
+- **Strona łowiska liczy rzeczy wspólne RAZ:** „cenę od" i wyciąg zasad trzyma `PortalFisheryPage`
+  (`priceFrom()`, `rules()`), a kalendarz i Cennik dostają tę samą instancję wyciągu; pozycje wyciągu liczą
+  się leniwie i raz (`items($klucze)`). Każdy link siatki woła `PortalCalendar::url()`, więc domyślny tydzień
+  i koniec ostatniego sezonu są w nim zapamiętane — ⚠️ nie wprowadzaj w `url()` niczego, co pyta bazę.
+  Lista kart wczytuje okresy sprzedaży, cennik i terminy w całości jednym `with()` (strona łowiska — okresy
+  sprzedaży w `PortalFisheryPage::load()`); `SaleCalendar`, `PriceFrom` i wyciąg czytają wczytane relacje zamiast
+  nowych zapytań. ⚠️ **Relacje `salePeriods`, `priceRules` i `wholeTermPeriods` wczytuj wyłącznie BEZ ograniczeń**
+  (`with('salePeriods')`, nie `with(['salePeriods' => fn ($q) => …])`) — te usługi traktują wczytaną relację
+  jako komplet, więc zawężona zmieniłaby po cichu „cenę od", sezon i gotowość do publikacji.
 - **Wyciąg zasad ma jeden dom — `FisheryRulesSummary`:** pełny nad siatką, skrócony na telefonie
   i linijka na karcie strony głównej (`cardLine()`). Pusta wartość parametru nie trafia do wyciągu.
   Nad siatką pozycje idą z `entries()` — ten sam tekst co `line()`, z pogrubioną etykietą („**Doba**

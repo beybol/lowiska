@@ -40,14 +40,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Zdjęcia łowiska nie są już polami `Fishery`, więc dziennik zmian zapisuje je jawnie (`dziennik-zmian.md` §4).
+        // Zdjęcia łowiska nie są już polami `Fishery`, więc dziennik zmian zapisuje je jawnie (`dziennik-zmian.md` §5).
         Event::listen(MediaHasBeenAddedEvent::class, fn (MediaHasBeenAddedEvent $event) => FisheryMediaActivity::added($event->media));
         Media::deleted(fn (Media $media) => FisheryMediaActivity::removed($media));
 
-        static::assertUploadDiskIsSafe(
-            app()->environment(),
-            config('filesystems.disks.'.config('filesystems.default').'.driver'),
-        );
+        // Każdy dysk, na który trafiają pliki: domyślny, uploady Filamenta, oryginały i warianty zdjęć oraz pliki
+        // tymczasowe Livewire. Brak zmiennej w jednym z nich spadałby po cichu na dysk instancji (038).
+        foreach ([
+            config('filesystems.default'),
+            config('filament.default_filesystem_disk'),
+            config('media-library.disk_name'),
+            config('media-library.conversions_disk_name'),
+            config('livewire.temporary_file_upload.disk') ?: config('filesystems.default'),
+        ] as $disk) {
+            static::assertUploadDiskIsSafe(app()->environment(), config('filesystems.disks.'.$disk.'.driver'));
+        }
 
         VerifyEmail::toMailUsing(function ($notifiable, $url) {
             return (new MailMessage)
@@ -83,7 +90,9 @@ class AppServiceProvider extends ServiceProvider
         throw new RuntimeException(
             "Dysk uploadów rozwiązuje się do sterownika 'local' poza środowiskiem lokalnym/testowym "
             .'— pliki znikną przy najbliższym restarcie kontenera. '
-            .'Ustaw FILESYSTEM_DISK=gcs, FILAMENT_FILESYSTEM_DISK=gcs i GOOGLE_CLOUD_STORAGE_BUCKET.'
+            .'Ustaw FILESYSTEM_DISK=gcs-private, FILAMENT_FILESYSTEM_DISK=gcs, MEDIA_DISK=gcs-private, '
+            .'LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=gcs-private, GOOGLE_CLOUD_STORAGE_BUCKET '
+            .'i GOOGLE_CLOUD_STORAGE_PRIVATE_BUCKET.'
         );
     }
 }

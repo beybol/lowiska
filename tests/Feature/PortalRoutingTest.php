@@ -127,3 +127,30 @@ test('the short-address fallback does not swallow the panels, login or Breeze ro
 test('the Breeze dashboard and welcome page are gone', function () {
     $this->get('/dashboard')->assertNotFound();
 });
+
+/**
+ * ⚠️ Ten sam adres niesie pełną stronę i fragment kalendarza (ADR-022) — bez `Vary` przeglądarka przy „wstecz"
+ * potrafi podać z cache sam fragment jako stronę (038).
+ */
+test('the fishery page and its calendar fragment both vary on the fragment header', function () {
+    portalFishery();
+
+    $this->get('/pl/wielkopolskie/klasztorne')->assertOk()->assertHeader('Vary', 'X-Portal-Fragment');
+    $this->get('/pl/wielkopolskie/klasztorne', ['X-Portal-Fragment' => 'calendar'])
+        ->assertOk()
+        ->assertHeader('Vary', 'X-Portal-Fragment')
+        ->assertDontSee('<html', escape: false);
+});
+
+/**
+ * Brakujący plik albo żądanie nie od przeglądarki nie renderuje listy łowisk — lista to zapytania i warianty
+ * zdjęć na każde trafienie bota czy zepsuty adres obrazka (038).
+ */
+test('a missing file or a non-HTML request gets a light 404 without the fishery list', function () {
+    portalFishery();
+
+    $this->get('/storage/1/conversions/zdjecie-w960.webp')->assertNotFound()->assertDontSee('Klasztorne');
+    $this->get('/brak.png')->assertNotFound()->assertDontSee('Klasztorne');
+    $this->get('/nie/ma/takiej/strony', ['Accept' => 'application/json'])->assertNotFound()->assertDontSee('Klasztorne');
+    $this->get('/nie/ma/takiej/strony', ['Accept' => 'text/html'])->assertNotFound()->assertSee('Klasztorne');
+});

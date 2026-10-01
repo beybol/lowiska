@@ -46,15 +46,23 @@ final class PortalCalendar
 
     private ?SaleCalendarGrid $grid = null;
 
+    /** Domyślny tydzień — liczony RAZ: woła go każdy link siatki przez `url()` (038, N+1). */
+    private ?CarbonImmutable $defaultWeek = null;
+
+    /** Koniec ostatniego okresu sprzedaży — `false` = jeszcze nie sprawdzono. */
+    private CarbonImmutable|false|null $lastSeasonEnd = false;
+
     /**
      * @param  Fishery  $fishery  łowisko z relacjami z `PortalFisheryPage::load()` (stanowiska w sprzedaży,
-     *                            ich grupy i wartości cech)
+     *                            ich grupy i wartości cech, okresy sprzedaży)
      * @param  array<string, mixed>  $query  zapytanie żądania
+     * @param  FisheryRulesSummary|null  $rules  wyciąg zasad współdzielony ze stroną łowiska; `null` = własny
      */
     public function __construct(
         private readonly Fishery $fishery,
         array $query,
         private readonly string $locale,
+        private ?FisheryRulesSummary $rules = null,
     ) {
         $this->state = PortalRoutes::calendarStateFrom($query, $locale);
         $this->week = $this->resolveWeek($this->state['week'] ?? null);
@@ -64,6 +72,12 @@ final class PortalCalendar
     }
 
     // ------------------------------------------------------------------ stan i adresy
+
+    /** Wyciąg zasad nad siatką — ta sama instancja co w Cenniku, gdy podała ją strona łowiska. */
+    public function rules(): FisheryRulesSummary
+    {
+        return $this->rules ??= new FisheryRulesSummary($this->fishery);
+    }
 
     public function week(): CarbonImmutable
     {
@@ -122,9 +136,9 @@ final class PortalCalendar
     public function nextWeekUrl(): ?string
     {
         $next = $this->week->addWeek();
-        $lastSeasonEnd = $this->fishery->salePeriods()->max('ends_on');
+        $lastSeasonEnd = $this->lastSeasonEnd();
 
-        if ($lastSeasonEnd !== null && $next > CarbonImmutable::parse((string) $lastSeasonEnd, $this->fishery->timezoneName())) {
+        if ($lastSeasonEnd !== null && $next > $lastSeasonEnd) {
             return null;
         }
 
@@ -674,18 +688,46 @@ final class PortalCalendar
         };
     }
 
+    /**
+     * ⚠️ Tydzień spoza okna, do którego prowadzą linki („wcześniej" — od bieżącego tygodnia, „później" —
+     * do końca ostatniego okresu sprzedaży), spada do domyślnego: błędne wartości parametrów spadają do
+     * domyślnych (`strona-publiczna.md` §6), a adresów nie przybywa w nieskończoność (038).
+     */
     private function resolveWeek(?string $raw): CarbonImmutable
     {
         $day = $raw !== null ? $this->parseDate($raw) : null;
 
-        return $day !== null ? CalendarWindow::Week->startFor($day) : $this->defaultWeek();
+        if ($day === null) {
+            return $this->defaultWeek();
+        }
+
+        $week = CalendarWindow::Week->startFor($day);
+        $lastSeasonEnd = $this->lastSeasonEnd();
+
+        if ($week < CalendarWindow::Week->startFor($this->today()) || ($lastSeasonEnd !== null && $week > $lastSeasonEnd)) {
+            return $this->defaultWeek();
+        }
+
+        return $week;
     }
 
     private function defaultWeek(): CarbonImmutable
     {
-        $anchor = (new SaleCalendar($this->fishery))->anchor() ?? $this->today();
+        return $this->defaultWeek ??= CalendarWindow::Week->startFor(
+            (new SaleCalendar($this->fishery))->anchor() ?? $this->today()
+        );
+    }
 
-        return CalendarWindow::Week->startFor($anchor);
+    private function lastSeasonEnd(): ?CarbonImmutable
+    {
+        if ($this->lastSeasonEnd === false) {
+            $end = $this->fishery->relationLoaded('salePeriods')
+                ? $this->fishery->salePeriods->max(fn ($period): string => $period->ends_on->toDateString())
+                : $this->fishery->salePeriods()->max('ends_on');
+            $this->lastSeasonEnd = $end !== null ? CarbonImmutable::parse((string) $end, $this->fishery->timezoneName()) : null;
+        }
+
+        return $this->lastSeasonEnd;
     }
 
     private function resolveAnglers(?string $raw): int

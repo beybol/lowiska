@@ -41,9 +41,19 @@ Zadania źródłowe: 005, 009, 011, 013, 014, 020, 021, 022, 028, 029, 030, 031.
 - **Typy wyłącznie JPEG, PNG, WebP** (`FisheryImages::ACCEPTED_MIME_TYPES`, w polu i w kolekcji) — `image()` sam
   przepuszcza SVG ze skryptem.
 - ⚠️ **Każdy plik jest oczyszczany na serwerze, zanim trafi do bucketu** — `SanitizingMediaFilesystem` wpięta
-  w kontenerze (`AppServiceProvider`) obraca według EXIF, zmniejsza do 2560 px i usuwa metadane (GPS). Bucket ma
-  publiczny odczyt, więc oryginał bez tego ujawniałby położenie. Skalowanie w przeglądarce (FilePond, 2560 px)
-  to tylko optymalizacja — da się je ominąć; nie przenoś oczyszczania do formularza.
+  w kontenerze (`AppServiceProvider`), na obu drogach zapisu biblioteki: lokalnej (`add()`) i z innego dysku
+  (`addRemote()`, przez plik tymczasowy). Obraca według EXIF, zmniejsza do 2560 px i usuwa metadane (GPS) —
+  warianty na publicznym buckecie powstają z oryginału, więc bez tego niosłyby położenie. Skalowanie
+  w przeglądarce (FilePond, 2560 px) to tylko optymalizacja — da się je ominąć; nie przenoś oczyszczania do formularza.
+- **Oryginał na dysku prywatnym, warianty na publicznym** — kolekcje łowiska ustawiają dyski jawnie
+  (`useDisk(FisheryImages::originalsDisk())`, `storeConversionsOnDisk(FisheryImages::variantsDisk())`), bo plugin
+  bierze dysk z kolekcji przed `filament.default_filesystem_disk`. Podgląd zapisanego zdjęcia w polu to wariant
+  (`->conversion()`) — oryginał nie ma publicznego adresu.
+- ⚠️ **Pliki tymczasowe uploadu Livewire leżą na dysku prywatnym** (`config/livewire.php`,
+  `temporary_file_upload.disk`): lokalnie `local`, na Cloud Run `gcs-private`. Nigdy na publicznym bucketcie: surowy
+  plik z EXIF leżałby w `livewire-tmp/` do sprzątania (24 h), a endpoint uploadu przyjmuje dowolny plik przed
+  walidacją formularza — samorejestrowany właściciel mógłby hostować w buckecie dowolną treść. I nie na dysku
+  instancji Cloud Run — upload i zapis formularza mogą trafić na różne instancje.
 - **Warianty powstają przy zapisie, w żądaniu** (`nonQueued()`, kolejka na Cloud Run to `sync`, ADR-004),
   silnikiem libvips (`IMAGE_DRIVER=vips`). Rozmiary i adresy zna wyłącznie `FisheryImages`.
 

@@ -86,6 +86,19 @@ return [
             'report' => false,
         ],
 
+        // Bucket PRYWATNY — dysk domyślny aplikacji na Cloud Run, pliki tymczasowe uploadu Livewire i oryginały
+        // zdjęć (przegląd bezpieczeństwa, 01.10.2026). Bez publicznego odczytu: na bucketcie publicznym (`gcs`,
+        // wyżej) każdy plik jest czytelny pod swoim adresem, więc dane niepubliczne nie mogą tam trafiać nawet
+        // przez pomyłkę. `visibility_handler` z tego samego powodu co wyżej (UBLA bezwarunkowo).
+        'gcs-private' => [
+            'driver' => 'gcs',
+            'bucket' => env('GOOGLE_CLOUD_STORAGE_PRIVATE_BUCKET'),
+            'visibility' => 'private',
+            'visibility_handler' => UniformBucketLevelAccessVisibility::class,
+            'throw' => true,
+            'report' => false,
+        ],
+
     ],
 
     /*

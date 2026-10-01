@@ -363,6 +363,8 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Poprawione
 
+- Metody połowu zaznaczone w formularzu łowiska zapisują się — wcześniej formularz przyjmował wybór
+  i po cichu go gubił, więc łowisko nie miało żadnej metody ani w panelu, ani w portalu.
 - Po angielsku teksty z liczbą — „up to 2 anglers", „min. 5 nights", liczba dób i liczniki w panelach —
   wychodzą teraz po angielsku; wcześniej na stronach EN pokazywały się po polsku („do 2 łowiących").
 - Nagłówek dopłaty w cenniku poprawnie pokazuje doby, które nie idą po kolei — dopłata na poniedziałek

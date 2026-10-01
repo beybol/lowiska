@@ -46,6 +46,9 @@ final class SaleCalendar
     /** @var array<int, PriceRule>|null */
     private ?array $rules = null;
 
+    /** @var array<int, SalePeriod>|null */
+    private ?array $seasons = null;
+
     public function __construct(private readonly Fishery $fishery) {}
 
     /**
@@ -54,20 +57,47 @@ final class SaleCalendar
      * ⚠️ Zakończonych nie pokazujemy — przeszłości nie sprzedajemy, więc nie ma czego
      * weryfikować, a lista rosłaby z każdym sezonem.
      *
+     * ⚠️ Liczone RAZ na instancję. Gdy wołający wczytał już relację `salePeriods` (lista kart portalu),
+     * filtr idzie po wczytanej kolekcji zamiast kolejnego zapytania — ta sama reguła, jedno miejsce.
+     *
      * @return array<int, SalePeriod>
      */
     public function seasons(): array
     {
-        $today = $this->today();
+        if ($this->seasons !== null) {
+            return $this->seasons;
+        }
+
+        $today = $this->today()->toDateString();
+
+        if ($this->fishery->relationLoaded('salePeriods')) {
+            /** @var array<int, SalePeriod> $periods */
+            $periods = $this->fishery->salePeriods
+                ->filter(fn (SalePeriod $period): bool => $period->ends_on->toDateString() >= $today)
+                ->sortBy(fn (SalePeriod $period): string => $period->starts_on->toDateString())
+                ->values()
+                ->all();
+
+            return $this->seasons = $periods;
+        }
 
         /** @var array<int, SalePeriod> $periods */
         $periods = $this->fishery->salePeriods()
-            ->whereDate('ends_on', '>=', $today->toDateString())
+            ->whereDate('ends_on', '>=', $today)
             ->orderBy('starts_on')
             ->get()
             ->all();
 
-        return $periods;
+        return $this->seasons = $periods;
+    }
+
+    /**
+     * Trwający albo najbliższy przyszły okres sprzedaży — JEDYNY dom tej reguły („cena od", sezon w wyciągu
+     * zasad, kotwica kalendarza). `null`, gdy łowisko nie ma okresu, który nie skończył się przed dziś.
+     */
+    public function currentOrNextSeason(): ?SalePeriod
+    {
+        return $this->seasons()[0] ?? null;
     }
 
     /**
@@ -83,7 +113,7 @@ final class SaleCalendar
     {
         // Wystarczy pierwszy sezon: lista jest posortowana po początku i odfiltrowana po
         // `ends_on >= dziś`, więc pierwszy albo trwa, albo jest najbliższym przyszłym.
-        $first = $this->seasons()[0] ?? null;
+        $first = $this->currentOrNextSeason();
 
         if ($first === null) {
             return null;

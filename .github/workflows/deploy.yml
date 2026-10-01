@@ -138,6 +138,7 @@ jobs:
           echo "deploy_sa=lowiska-deploy-$ENV@${PROJECT_ID}.iam.gserviceaccount.com"    >> "$GITHUB_OUTPUT"
           echo "sql_conn=${PROJECT_ID}:${REGION}:db-$ENV"                        >> "$GITHUB_OUTPUT"
           echo "storage_bucket=esurf-foundation-lowiska-$ENV-storage"            >> "$GITHUB_OUTPUT"
+          echo "storage_private_bucket=esurf-foundation-lowiska-$ENV-private"    >> "$GITHUB_OUTPUT"
           echo "image=${ARTIFACT_REGISTRY}/lowiska:${GITHUB_SHA}"                 >> "$GITHUB_OUTPUT"
 
       - id: auth
@@ -184,10 +185,15 @@ jobs:
           # STARTTLS from Symfony Mailer automatically.
           ENVVARS="$ENVVARS,MAIL_MAILER=smtp,MAIL_SCHEME=null,MAIL_HOST=smtp.dpoczta.pl,MAIL_PORT=587,MAIL_USERNAME=system@fisherya.com"
           ENVVARS="$ENVVARS,MAIL_FROM_ADDRESS=system@fisherya.com,MAIL_FROM_NAME=Łowiska"
-          # Uploady Filament (mapa/galeria) na trwały storage GCS zamiast
-          # efemerycznego dysku kontenera (ADR 0013/0014 w gcp-foundation).
-          ENVVARS="$ENVVARS,FILESYSTEM_DISK=gcs,FILAMENT_FILESYSTEM_DISK=gcs"
+          # Trwały storage GCS zamiast efemerycznego dysku kontenera (ADR 0013/0014
+          # w gcp-foundation). Dwa buckety: PUBLICZNY (gcs) — uploady Filamenta i warianty
+          # zdjęć pokazywane w przeglądarce; PRYWATNY (gcs-private) — dysk domyślny, pliki
+          # tymczasowe uploadu Livewire i oryginały zdjęć. AppServiceProvider odmawia startu,
+          # gdy któryś z tych dysków spada na sterownik `local`.
+          ENVVARS="$ENVVARS,FILESYSTEM_DISK=gcs-private,FILAMENT_FILESYSTEM_DISK=gcs"
+          ENVVARS="$ENVVARS,MEDIA_DISK=gcs-private,MEDIA_CONVERSIONS_DISK=gcs,LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=gcs-private"
           ENVVARS="$ENVVARS,GOOGLE_CLOUD_STORAGE_BUCKET=${{ steps.env.outputs.storage_bucket }}"
+          ENVVARS="$ENVVARS,GOOGLE_CLOUD_STORAGE_PRIVATE_BUCKET=${{ steps.env.outputs.storage_private_bucket }}"
           ENVVARS="$ENVVARS,GOOGLE_REDIRECT_URI=${APP_URL}/auth/google/callback"
           ENVVARS="$ENVVARS,FACEBOOK_REDIRECT_URI=${APP_URL}/auth/facebook/callback"
           # TODO(operator): confirm this is the right admin contact address for

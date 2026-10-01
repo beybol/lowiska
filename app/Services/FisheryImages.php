@@ -7,13 +7,16 @@ use Illuminate\Support\Facades\Cache;
 use Jcupitt\Vips\Image as VipsImage;
 use Spatie\MediaLibrary\Conversions\FileManipulator;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Throwable;
+use WeakMap;
 
 /**
  * Zdjęcia łowiska — JEDYNE miejsce, które zna rozmiary wariantów i składa ich adresy (zadanie 036, ADR-023).
  *
- * ⚠️ **Oryginał nigdy nie trafia do HTML-a portalu.** Bucket jest publiczny (UBLA), więc oryginał jest
- * oczyszczany przy dodaniu (`sanitizeOriginal()`: obrót według EXIF, najwyżej 2560 px, bez metadanych, w tym
- * GPS), a portal dostaje wyłącznie warianty WebP. Brak wariantu → `null`, nigdy adres oryginału.
+ * ⚠️ **Oryginał nigdy nie trafia do HTML-a portalu.** Leży na dysku prywatnym (`originalsDisk()`), a portal
+ * dostaje wyłącznie warianty WebP z dysku publicznego (`variantsDisk()`). Oryginał jest i tak oczyszczany przy
+ * dodaniu (`sanitizeOriginal()`: obrót według EXIF, najwyżej 2560 px, bez metadanych, w tym GPS), bo warianty
+ * powstają z niego. Brak wariantu → `null`, nigdy adres oryginału.
  *
  * ⚠️ **Bez powiększania.** Wariant powstaje tylko dla rozmiaru mniejszego niż dłuższy bok zdjęcia, plus jeden
  * „największy” w rozdzielczości zdjęcia (najwyżej 1920 px). Żądanie większego rozmiaru dostaje największy
@@ -40,6 +43,27 @@ final class FisheryImages
 
     /** Ile czeka drugie żądanie, zanim pokaże to, co już jest (s). */
     private const LOCK_WAIT = 20;
+
+    /**
+     * Warianty policzone w tym żądaniu, per obiekt zdjęcia — `url()`, `srcset()` i `largest()` pytają
+     * o to samo zdjęcie kilka razy w jednym renderze, a dogenerowanie brakującego wariantu ma się odbyć
+     * najwyżej RAZ (038). Klucz to obiekt, więc nowe żądanie (nowe obiekty) liczy od nowa.
+     *
+     * @var WeakMap<Media, list<array{url: string, width: int, height: int}>>|null
+     */
+    private static ?WeakMap $variants = null;
+
+    /** Dysk ORYGINAŁÓW — prywatny (`media-library.disk_name`). */
+    public static function originalsDisk(): string
+    {
+        return (string) config('media-library.disk_name');
+    }
+
+    /** Dysk WARIANTÓW — publiczny, z niego portal bierze adresy (`media-library.conversions_disk_name`). */
+    public static function variantsDisk(): string
+    {
+        return (string) config('media-library.conversions_disk_name');
+    }
 
     /**
      * Nazwa konwersji dla rozmiaru: `w960`.
@@ -115,6 +139,12 @@ final class FisheryImages
      */
     public static function variants(Media $media): array
     {
+        self::$variants ??= new WeakMap;
+
+        if (isset(self::$variants[$media])) {
+            return self::$variants[$media];
+        }
+
         self::ensureVariants($media);
 
         $variants = [];
@@ -130,7 +160,7 @@ final class FisheryImages
             $variants[] = ['url' => $media->getUrl($name), 'width' => $width, 'height' => $height];
         }
 
-        return $variants;
+        return self::$variants[$media] = $variants;
     }
 
     /**
@@ -193,6 +223,10 @@ final class FisheryImages
             });
         } catch (LockTimeoutException) {
             // Pokazujemy to, co już istnieje — oryginału nie podstawiamy.
+        } catch (Throwable $exception) {
+            // ⚠️ Nieudane dogenerowanie (brak oryginału w buckecie, uszkodzony plik) NIE może wywrócić strony
+            // łowiska, strony głównej ani 404 — trafia do logu, a widok pokazuje to, co istnieje (038).
+            report($exception);
         }
     }
 

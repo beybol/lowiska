@@ -9,7 +9,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * Wpisy dziennika zmian łowiska o dodaniu i usunięciu zdjęcia (zadanie 036).
  *
  * ⚠️ Zdjęcia mieszkają w tabeli `media`, nie w kolumnach `Fishery`, więc `LogsActivity` łowiska ich nie widzi.
- * Wpis idzie jawnie na łowisko, w formacie `old`/`attributes` jak wpisy automatyczne (`dziennik-zmian.md` §4).
+ * Wpis idzie jawnie na łowisko, w formacie `old`/`attributes` jak wpisy automatyczne (`dziennik-zmian.md` §5).
  * Zmiana kolejności się nie loguje — nie zmienia treści, tylko układ.
  */
 final class FisheryMediaActivity

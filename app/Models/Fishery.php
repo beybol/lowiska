@@ -149,10 +149,16 @@ class Fishery extends Model implements HasMedia
      */
     public function registerMediaCollections(): void
     {
+        // Oryginał na dysku prywatnym, warianty na publicznym (ADR-023, aktualizacja z 01.10.2026). Jawnie na
+        // kolekcji, bo plugin Filamenta bierze dysk z kolekcji przed `filament.default_filesystem_disk`.
         $this->addMediaCollection(FisheryImages::GALLERY)
+            ->useDisk(FisheryImages::originalsDisk())
+            ->storeConversionsOnDisk(FisheryImages::variantsDisk())
             ->acceptsMimeTypes(FisheryImages::ACCEPTED_MIME_TYPES);
 
         $this->addMediaCollection(FisheryImages::MAP)
+            ->useDisk(FisheryImages::originalsDisk())
+            ->storeConversionsOnDisk(FisheryImages::variantsDisk())
             ->singleFile()
             ->acceptsMimeTypes(FisheryImages::ACCEPTED_MIME_TYPES);
     }
