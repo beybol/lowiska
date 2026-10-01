@@ -245,6 +245,17 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Zmienione
 
+- Portal ma białe tło, na którym odcinają się ramki: wyciąg zasad nad kalendarzem, box z ceną (z cieniem)
+  i opisy grup. Kalendarz dostał kolory z projektu — nagłówek dni z wyróżnioną sobotą i niedzielą, ceny
+  w kolorze akcentu, linie siatki w obu kierunkach, legendę tylko z tym, co jest w tygodniu — a nawigacja
+  tygodnia i wybór liczby łowiących stoją w nagłówku sekcji. Zasady nad kalendarzem mają pogrubione etykiety.
+- Cennik i lista stanowisk to na komputerze tabele z nagłówkami kolumn, a na telefonie czytelne wiersze
+  listy. Pasek zakładek strony łowiska nie pokazuje już zbędnego pionowego suwaka.
+- Formularz danych łowiska w panelu (także w kreatorze) ma sekcje na pełną szerokość w kolejności strony
+  łowiska w portalu — adres z mapą obok, kontakt, akwen, zasady dla wędkarza, udogodnienia, mapa, galeria
+  w kafelkach i rozliczenia — zamiast sztywnych dwóch kolumn z pustym miejscem.
+- Strona „Dane łowiska" pokazuje wszystkie dane z formularza w tych samych sekcjach i tej samej kolejności,
+  w tym opis, dojazd, akwen, zasady dla wędkarza, udogodnienia, ryby, mapę, galerię i rozliczenia.
 - Portal pokazuje zdjęcia w rozmiarze dopasowanym do ekranu zamiast pełnych plików z telefonu, więc strona
   łowiska i lista ładują się szybciej, także przy słabym zasięgu. Małe zdjęcie nie jest sztucznie powiększane.
 - Zdjęcia wgrywane do galerii i mapy są zmniejszane już w przeglądarce, a zdjęcie pionowe z telefonu

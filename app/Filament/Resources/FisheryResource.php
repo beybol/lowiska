@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\FisherySection;
 use App\Filament\Resources\FisheryResource\Pages\CreateFishery;
 use App\Filament\Resources\FisheryResource\Pages\EditFishery;
 use App\Filament\Resources\FisheryResource\Pages\ListFisheries;
@@ -50,12 +51,15 @@ use Filament\Navigation\NavigationItem;
 use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Resources\Pages\Page;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
+use InvalidArgumentException;
 
 class FisheryResource extends Resource
 {
@@ -63,13 +67,46 @@ class FisheryResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-sun';
 
+    /**
+     * ⚠️ Jedna kolumna sekcji na pełnej szerokości (`columns(1)`), siatka WEWNĄTRZ sekcji — domyślne dwie
+     * kolumny formularza stawiały sekcje obok siebie (`panel-admina.md` §2). Układ: `FisherySection`.
+     */
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
-            static::companyField(),
-            static::slugField(),
-            ...static::fisheryDetailComponents(),
-        ]);
+        return $schema
+            ->columns(1)
+            ->components(static::fisheryDetailComponents(withCompany: true));
+    }
+
+    /**
+     * Układa komponenty w sekcje wg `FisherySection` — JEDEN dom układu formularza i podglądu „Dane łowiska"
+     * (zadanie 038, R5/R6). Komponenty układu (`Grid`, `Section`) nie mają `statePath()`, więc ścieżki stanu
+     * pól (`street`, nie `address.street`) się nie zmieniają.
+     *
+     * ⚠️ Każda sekcja enumu musi dostać komponenty — brak to błąd programisty, nie pusta sekcja.
+     *
+     * @param  array<string, array<int, mixed>>  $components  klucz `FisherySection::value` → pola albo wpisy
+     * @return array<int, Grid|Section>
+     */
+    public static function layout(array $components): array
+    {
+        $sections = [];
+
+        foreach (FisherySection::cases() as $section) {
+            if (! array_key_exists($section->value, $components)) {
+                throw new InvalidArgumentException("Brak komponentów dla sekcji [{$section->value}].");
+            }
+
+            $container = $section->hasFrame()
+                ? Section::make($section->label())
+                : Grid::make();
+
+            $sections[] = $container
+                ->columns(['default' => 1, 'md' => $section->columns()])
+                ->schema($components[$section->value]);
+        }
+
+        return $sections;
     }
 
     /**
@@ -106,36 +143,36 @@ class FisheryResource extends Resource
      * ⚠️ Kontakt jest NA ŁOWISKU, nie na firmie: jedna firma prowadzi kilka łowisk z różnymi
      * numerami (portal-v3 §6).
      */
-    public static function contactSection(): Section
+    /**
+     * @return array<int, TextInput>
+     */
+    public static function contactComponents(): array
     {
-        return Section::make(__('Contact and links'))
-            ->description(__('Shown to anglers on the fishery page.'))
-            ->schema([
-                TextInput::make('phone')
-                    ->label(__('Phone'))
-                    ->tel()
-                    ->maxLength(PhoneNumber::MAX_LENGTH)
-                    ->rules([new PhoneNumber]),
-                TextInput::make('email')
-                    ->label(__('E-mail'))
-                    ->email()
-                    ->maxLength(255),
-                TextInput::make('contact_hours')
-                    ->label(__('Contact hours'))
-                    ->placeholder(__('e.g. 8:00–20:00, also SMS'))
-                    ->maxLength(255),
-                TextInput::make('website_url')
-                    ->label(__('Website'))
-                    ->url()
-                    ->rules(['url:http,https'])
-                    ->maxLength(255),
-                TextInput::make('facebook_url')
-                    ->label(__('Facebook page'))
-                    ->url()
-                    ->rules([new FacebookUrl])
-                    ->maxLength(255),
-            ])
-            ->columns(2);
+        return [
+            TextInput::make('phone')
+                ->label(__('Phone'))
+                ->tel()
+                ->maxLength(PhoneNumber::MAX_LENGTH)
+                ->rules([new PhoneNumber]),
+            TextInput::make('email')
+                ->label(__('E-mail'))
+                ->email()
+                ->maxLength(255),
+            TextInput::make('contact_hours')
+                ->label(__('Contact hours'))
+                ->placeholder(__('e.g. 8:00–20:00, also SMS'))
+                ->maxLength(255),
+            TextInput::make('website_url')
+                ->label(__('Website'))
+                ->url()
+                ->rules(['url:http,https'])
+                ->maxLength(255),
+            TextInput::make('facebook_url')
+                ->label(__('Facebook page'))
+                ->url()
+                ->rules([new FacebookUrl])
+                ->maxLength(255),
+        ];
     }
 
     /**
@@ -187,43 +224,58 @@ class FisheryResource extends Resource
     }
 
     /**
-     * Wszystkie pola łowiska POZA wyborem firmy.
+     * Pola łowiska ułożone w sekcje (`layout()`) — edycja w obu panelach i ostatni krok kreatora
+     * (`Pages\CreateFishery`) używają tych samych definicji (zadanie 012).
      *
-     * Wydzielone, żeby ostatni krok kreatora (`Pages\CreateFishery`) mógł użyć
-     * dokładnie tych samych definicji, zamiast je powielać (zadanie 012).
+     * `$withCompany` — płaski formularz (edycja) ma w sekcji „Podstawowe" firmę i slug; kreator wybiera
+     * firmę osobnym krokiem (ADR-006), więc tam ich nie ma.
      *
-     * @return array<int, mixed>
+     * ⚠️ Zmieniasz tu pole albo sekcję — zmień też wpis w podglądzie (`Pages\ManageFishery::infolist()`),
+     * który układa ten sam `FisherySection`.
+     *
+     * @return array<int, Grid|Section>
      */
-    public static function fisheryDetailComponents(): array
+    public static function fisheryDetailComponents(bool $withCompany = false): array
     {
-        return [
-            TextInput::make('name')
-                ->label(__('Fishery name'))
-                ->required()
-                // Z nazwy powstaje slug, czyli krótki adres łowiska (ADR-021) — krótsza nazwa
-                // dawałaby slug zderzający się z prefiksem języka i od razu z sufiksem (zadanie 031).
-                ->minLength(Fishery::MIN_NAME_LENGTH)
-                ->maxLength(255),
-            Select::make('user_id')
-                ->required()
-                ->hidden(fn () => FisheryAccess::isOwnerPanel())
-                ->label(__('Fishery entered by'))
-                ->disabled()
-                ->relationship('user', 'name')
-                ->getOptionLabelFromRecordUsing(function (User $user) {
-                    return $user->getFilamentName();
-                })
-                ->default(function (?Fishery $record) {
-                    return $record === null
-                        ? auth()->id()
-                        : $record->user_id;
-                }),
-            Section::make(__('Fishery address'))
-                ->schema([
-                    // ⚠️ `live(onBlur: true)` na polach adresu jest wymagane przez podgląd
-                    // mapy niżej: `ViewField` liczy adres SERWEROWO w `viewData()`, więc
-                    // musi zostać przerenderowany po zmianie któregokolwiek z tych pól.
-                    // Bez tego podgląd pokazywałby adres sprzed edycji (zadanie 012).
+        return static::layout([
+            FisherySection::Basic->value => [
+                ...($withCompany ? [static::companyField()] : []),
+                TextInput::make('name')
+                    ->label(__('Fishery name'))
+                    ->required()
+                    // Z nazwy powstaje slug, czyli krótki adres łowiska (ADR-021) — krótsza nazwa
+                    // dawałaby slug zderzający się z prefiksem języka i od razu z sufiksem (zadanie 031).
+                    ->minLength(Fishery::MIN_NAME_LENGTH)
+                    ->maxLength(255),
+                ...($withCompany ? [static::slugField()] : []),
+                Select::make('user_id')
+                    ->required()
+                    ->hidden(fn () => FisheryAccess::isOwnerPanel())
+                    ->label(__('Fishery entered by'))
+                    ->disabled()
+                    ->relationship('user', 'name')
+                    ->getOptionLabelFromRecordUsing(function (User $user) {
+                        return $user->getFilamentName();
+                    })
+                    ->default(function (?Fishery $record) {
+                        return $record === null
+                            ? auth()->id()
+                            : $record->user_id;
+                    }),
+            ],
+            FisherySection::Description->value => [
+                RichEditor::make('description')
+                    ->label(__('Description'))
+                    ->hiddenLabel()
+                    ->toolbarButtons(SharedFormComponents::getRichEditorOptions())
+                    ->columnSpanFull(),
+            ],
+            FisherySection::Address->value => [
+                // ⚠️ `live(onBlur: true)` na polach adresu jest wymagane przez podgląd mapy obok:
+                // `ViewField` liczy adres SERWEROWO w `viewData()`, więc musi zostać przerenderowany
+                // po zmianie któregokolwiek z tych pól (zadanie 012). `Group` i `Grid` nie mają
+                // `statePath()` — stan zostaje pod `street`, `town`…
+                Group::make([
                     Select::make('state_id')
                         ->label(__('State'))
                         ->options(DictionaryOptions::sortStates())
@@ -235,152 +287,179 @@ class FisheryResource extends Resource
                         ->required()
                         ->maxLength(255)
                         ->live(onBlur: true),
-                    TextInput::make('street')
-                        ->label(__('Street'))
-                        ->required()
-                        ->maxLength(255)
-                        ->live(onBlur: true),
-                    TextInput::make('building_number')
-                        ->label(__('Building number'))
-                        ->required()
-                        ->maxLength(255)
-                        ->live(onBlur: true),
+                    Grid::make(['default' => 1, 'md' => 4])->schema([
+                        TextInput::make('street')
+                            ->label(__('Street'))
+                            ->required()
+                            ->maxLength(255)
+                            ->live(onBlur: true)
+                            ->columnSpan(['default' => 1, 'md' => 3]),
+                        TextInput::make('building_number')
+                            ->label(__('Building number'))
+                            ->required()
+                            ->maxLength(255)
+                            ->live(onBlur: true),
+                    ]),
                     TextInput::make('zip_code')
                         ->label(__('Postal code'))
                         ->required()
                         ->maxLength(255)
                         ->live(onBlur: true),
-                    RichEditor::make('directions')
-                        ->label(__('Directions'))
-                        ->toolbarButtons(SharedFormComponents::getRichEditorOptions())
-                        ->maxLength(255),
-                    ViewField::make('map_preview')
-                        ->label(__('Map Preview'))
-                        ->view('filament.forms.map-preview')
-                        ->viewData(function ($record, $get) {
-                            $street = $get('street')
-                                ?? $record?->street
-                                ?? '';
-                            $buildingNumber = $get('building_number')
-                                ?? $record?->building_number
-                                ?? '';
-                            $zipCode = $get('zip_code')
-                                ?? $record?->zip_code
-                                ?? '';
-                            $town = $get('town')
-                                ?? $record?->town
-                                ?? '';
-                            $stateId = $get('state_id')
-                                ?? $record?->state_id;
-                            $stateName = '';
-
-                            if ($stateId) {
-                                $state = State::find($stateId);
-                                $stateName = $state
-                                    ? __($state->name)
-                                    : '';
-                            }
-
-                            $address = implode(', ', array_filter([
-                                trim($street.' '.$buildingNumber),
-                                trim($zipCode.' '.$town),
-                                $stateName,
-                            ]));
-
-                            // Podgląd mapy ma sens dopiero przy komplecie pól adresu —
-                            // widok wyłącza wtedy przycisk zamiast pokazywać mapę
-                            // wskazującą przypadkowe miejsce (zadanie 012).
-                            $hasCompleteAddress = filled(trim($street))
-                                && filled(trim($buildingNumber))
-                                && filled(trim($zipCode))
-                                && filled(trim($town))
-                                && filled(trim($stateName));
-
-                            return [
-                                'address' => $address,
-                                'hasCompleteAddress' => $hasCompleteAddress,
-                                'fishery' => $record,
-                            ];
-                        })
-                        ->columnSpanFull(),
                 ]),
-            RichEditor::make('description')
-                ->label(__('Description'))
-                ->toolbarButtons(SharedFormComponents::getRichEditorOptions())
-                ->columnSpanFull(),
-            static::contactSection(),
-            Section::make(__('Fishery data'))
-                ->schema([
-                    CheckboxList::make('fishery_types')
-                        ->relationship('fisheryTypes', 'name')
-                        ->label(__('Fishery types'))
-                        ->hidden(FisheryType::count() === 0),
-                    TextInput::make('area')
-                        ->label(__('Area (in hectares)'))
-                        ->required()
-                        ->numeric(),
-                    TextInput::make('avg_depth')
-                        ->label(__('Average depth (in meters)'))
-                        ->numeric(),
-                    TextInput::make('max_depth')
-                        ->label(__('Maximum depth (in meters)'))
-                        ->numeric(),
-                    CheckboxList::make('fishing_methods')
-                        ->options(function () {
-                            $collator = new Collator('pl_PL');
-                            $methods = FishingMethod::all()
-                                ->mapWithKeys(function ($method) {
-                                    return [
-                                        $method->id => __($method->name),
-                                    ];
-                                });
-                            $sorted = $methods->toArray();
-                            $collator->asort($sorted);
+                ViewField::make('map_preview')
+                    ->label(__('Map Preview'))
+                    ->view('filament.forms.map-preview')
+                    ->viewData(fn (?Fishery $record, $get): array => static::mapPreviewData(
+                        $record,
+                        $get('street') ?? $record?->street,
+                        $get('building_number') ?? $record?->building_number,
+                        $get('zip_code') ?? $record?->zip_code,
+                        $get('town') ?? $record?->town,
+                        $get('state_id') ?? $record?->state_id,
+                    )),
+                RichEditor::make('directions')
+                    ->label(__('Directions'))
+                    ->toolbarButtons(SharedFormComponents::getRichEditorOptions())
+                    ->maxLength(255)
+                    ->columnSpanFull(),
+            ],
+            FisherySection::Contact->value => static::contactComponents(),
+            FisherySection::Water->value => [
+                TextInput::make('area')
+                    ->label(__('Area (in hectares)'))
+                    ->required()
+                    ->numeric(),
+                TextInput::make('avg_depth')
+                    ->label(__('Average depth (in meters)'))
+                    ->numeric(),
+                TextInput::make('max_depth')
+                    ->label(__('Maximum depth (in meters)'))
+                    ->numeric(),
+                Select::make('dominant_fish_id')
+                    ->label(__('Dominant fish'))
+                    ->relationship('dominantFish', 'name'),
+                CheckboxList::make('fishery_types')
+                    ->relationship('fisheryTypes', 'name')
+                    ->label(__('Fishery types'))
+                    ->columns(['default' => 1, 'md' => 4])
+                    ->columnSpanFull()
+                    ->hidden(FisheryType::count() === 0),
+                CheckboxList::make('fishing_methods')
+                    ->options(function () {
+                        $collator = new Collator('pl_PL');
+                        $methods = FishingMethod::all()
+                            ->mapWithKeys(function ($method) {
+                                return [
+                                    $method->id => __($method->name),
+                                ];
+                            });
+                        $sorted = $methods->toArray();
+                        $collator->asort($sorted);
 
-                            return $sorted;
-                        })
-                        ->label(__('Fishing methods'))
-                        ->hidden(FishingMethod::count() === 0),
-                    // ⚠️ Wymagania wobec wędkarza (zadanie 021) — bieżące dane łowiska, bez wersji.
-                    // Każde ma stan „nie podano": flagi to `Select` z pustą opcją, nie `Toggle`,
-                    // który zawsze niesie „nie". Spójność z treścią regulaminu jest po stronie
-                    // operatora (D9).
-                    ...self::anglerRuleComponents(),
-                    Select::make('dominant_fish_id')
-                        ->label(__('Dominant fish'))
-                        ->relationship('dominantFish', 'name'),
-                    RichEditor::make('records')
-                        ->label(__('Fishery records'))
-                        ->toolbarButtons(SharedFormComponents::getRichEditorOptions()),
-                    Select::make('currency_id')
-                        ->label(__('Currency for settlement'))
-                        ->relationship('currency', 'name'),
-                    TextInput::make('bank_account_number')
-                        ->label(__('Bank account number (IBAN)'))
-                        ->rules([new IbanValidation])
-                        ->placeholder('PL 26 2030 0003 0002 0001 1111 1001')
-                        ->helperText(__('Enter valid international IBAN.'))
-                        ->maxLength(35),
-                ]),
-            CheckboxList::make('conveniences')
-                ->relationship('conveniences', 'name')
-                ->label(__('Conveniences'))
-                ->hidden(Convenience::count() === 0),
-            CheckboxList::make('fish')
-                ->relationship('fish', 'name')
-                ->label(__('Available fish'))
-                ->hidden(Fish::count() === 0),
-            self::imageUpload(FisheryImages::MAP)
-                ->label(__('Fishery map')),
-            self::imageUpload(FisheryImages::GALLERY)
-                ->multiple()
-                // Kolejność z panelu; pierwsze zdjęcie jest okładką (zadanie 036, R1).
-                ->reorderable()
-                // ⚠️ FilePond domyślnie DOPISUJE nowe pliki NA POCZĄTEK listy — bez tego wybrane A, B, C
-                // zapisują się jako C, B, A i okładką zostaje ostatni wybrany plik.
-                ->appendFiles()
-                ->label(__('Gallery images'))
-                ->helperText(__('Drag to change the order — the first photo is the cover.')),
+                        return $sorted;
+                    })
+                    ->label(__('Fishing methods'))
+                    ->columns(['default' => 1, 'md' => 4])
+                    ->columnSpanFull()
+                    ->hidden(FishingMethod::count() === 0),
+                CheckboxList::make('fish')
+                    ->relationship('fish', 'name')
+                    ->label(__('Available fish'))
+                    ->columns(['default' => 1, 'md' => 4])
+                    ->columnSpanFull()
+                    ->hidden(Fish::count() === 0),
+                RichEditor::make('records')
+                    ->label(__('Fishery records'))
+                    ->toolbarButtons(SharedFormComponents::getRichEditorOptions())
+                    ->columnSpanFull(),
+            ],
+            // ⚠️ Wymagania wobec wędkarza (zadanie 021) — bieżące dane łowiska, bez wersji. Każde ma stan
+            // „nie podano": flagi to `Select` z pustą opcją, nie `Toggle`, który zawsze niesie „nie".
+            FisherySection::AnglerRules->value => self::anglerRuleComponents(),
+            FisherySection::Conveniences->value => [
+                CheckboxList::make('conveniences')
+                    ->relationship('conveniences', 'name')
+                    ->label(__('Conveniences'))
+                    ->hiddenLabel()
+                    ->columns(['default' => 1, 'md' => 4])
+                    ->hidden(Convenience::count() === 0),
+            ],
+            FisherySection::Map->value => [
+                self::imageUpload(FisheryImages::MAP)
+                    ->label(__('Fishery map'))
+                    ->hiddenLabel()
+                    ->imagePreviewHeight('320'),
+            ],
+            FisherySection::Gallery->value => [
+                self::imageUpload(FisheryImages::GALLERY)
+                    ->multiple()
+                    // Kolejność z panelu; pierwsze zdjęcie jest okładką (zadanie 036, R1).
+                    ->reorderable()
+                    // ⚠️ FilePond domyślnie DOPISUJE nowe pliki NA POCZĄTEK listy — bez tego wybrane A, B, C
+                    // zapisują się jako C, B, A i okładką zostaje ostatni wybrany plik.
+                    ->appendFiles()
+                    // Kafelki zamiast podglądów na pełną szerokość — pięć zdjęć to były ekrany przewijania (038).
+                    ->panelLayout('grid')
+                    ->imagePreviewHeight('180')
+                    ->label(__('Gallery images'))
+                    ->hiddenLabel()
+                    ->helperText(__('Drag to change the order — the first photo is the cover.')),
+            ],
+            FisherySection::Billing->value => [
+                Select::make('currency_id')
+                    ->label(__('Currency for settlement'))
+                    ->relationship('currency', 'name'),
+                TextInput::make('bank_account_number')
+                    ->label(__('Bank account number (IBAN)'))
+                    ->rules([new IbanValidation])
+                    ->placeholder('PL 26 2030 0003 0002 0001 1111 1001')
+                    ->helperText(__('Enter valid international IBAN.'))
+                    ->maxLength(35),
+            ],
+        ]);
+    }
+
+    /**
+     * Dane podglądu mapy adresu — wspólne dla formularza (stan pól na żywo) i podglądu „Dane łowiska" (rekord).
+     *
+     * Podgląd ma sens dopiero przy komplecie pól adresu — widok wyłącza wtedy mapę zamiast pokazywać
+     * przypadkowe miejsce (zadanie 012).
+     *
+     * @return array{address: string, hasCompleteAddress: bool, fishery: Fishery|null}
+     */
+    public static function mapPreviewData(
+        ?Fishery $record,
+        ?string $street,
+        ?string $buildingNumber,
+        ?string $zipCode,
+        ?string $town,
+        mixed $stateId,
+    ): array {
+        $street = (string) $street;
+        $buildingNumber = (string) $buildingNumber;
+        $zipCode = (string) $zipCode;
+        $town = (string) $town;
+        $stateName = '';
+
+        if ($stateId) {
+            $state = State::find($stateId);
+            $stateName = $state ? __($state->name) : '';
+        }
+
+        $address = implode(', ', array_filter([
+            trim($street.' '.$buildingNumber),
+            trim($zipCode.' '.$town),
+            $stateName,
+        ]));
+
+        return [
+            'address' => $address,
+            'hasCompleteAddress' => filled(trim($street))
+                && filled(trim($buildingNumber))
+                && filled(trim($zipCode))
+                && filled(trim($town))
+                && filled(trim($stateName)),
+            'fishery' => $record,
         ];
     }
 

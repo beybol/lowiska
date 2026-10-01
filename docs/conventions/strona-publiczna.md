@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `routes/**`, widokach Breeze i `resources/views/**` 
 `resources/views/filament/**` — w szczególności w portalu wędkarza (`resources/views/portal/**`,
 `app/Http/Controllers/Portal/**`, `App\Services\Portal*`).
 
-Zadania źródłowe: 029, 031, 032, 033, 034, 036, 037. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
+Zadania źródłowe: 029, 031, 032, 033, 034, 036, 037, 038. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
 (potok stylów), [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md) (schemat adresów).
 Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
@@ -73,6 +73,21 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 - **Układ portalu to `portal.layout`** — ładuje wyłącznie wejście `resources/css/portal.css` (tokeny
   „Głębia", fonty hostowane u nas), nigdy stylów Filamenta ani Breeze (ADR-020). Nowy katalog widoków
   portalu → `@source` w `portal.css`, inaczej klasy nie dostaną CSS-u.
+- **Portal stoi na BIAŁYM tle (`bg-white` na `<body>`), ramki informacyjne na `bg-surface`** — wyciąg
+  zasad, box z ceną, nagłówek i wiersz „Pakiety" kalendarza, nagłówek listy na telefonie, opisy grup
+  (makieta: `.browser{background:#fff}`, ramki na `--surface`). Ramki-karty (`.card`) zostają białe
+  z `border-line`. ⚠️ **`bg-surface` na `<body>` to błąd** — każda ramka na `surface` ma wtedy dokładnie
+  kolor strony i znika (zadanie 038). Cień tylko na dwóch elementach pracy: box z ceną `shadow-2`, ramka
+  kalendarza `shadow-1`; karta łowiska na liście `hover:shadow-2`.
+- **Dane tabelaryczne — `portal.partials.spec-table`** (`table.spec` makiety): od `sm` tabela z `<thead>`
+  (11 px, wielkie litery, `text-faint`), poniżej `sm` te same wiersze jako lista z makiety telefonu —
+  pierwsza kolumna i kwota w jednej linii, reszta drobnym `text-muted` pod spodem, `<thead>` jako `sr-only`.
+  ⚠️ **Jeden znacznik, przełączany CSS-em** — nie dubluj treści osobnym blokiem dla telefonu (indeksacja)
+  i nie udawaj tabeli `div`-ami z „nagłówkiem". Listami zostają opisy grup, dokumenty i „Łowisko w sieci".
+- ⚠️ **W jednym pliku Blade nie mieszaj `@php(...)` w jednej linii z blokami `@php … @endphp`.** Blade
+  łączy jednolinijkowy wpis z następnym blokiem w jedną całość i cała strona pada błędem składni (strona
+  łowiska w zadaniu 038). Plik z blokiem używa wyłącznie bloków. W komentarzach `{{-- --}}` nie pisz nazw
+  tych dyrektyw ze znakiem `@` — Blade wyłapuje bloki PHP przed usunięciem komentarzy.
 - ⚠️ **Widoki portalu żyją w `resources/views/portal/`, nie w `resources/views/components/`** — tamten
   katalog jest źródłem klas arkusza Breeze (`app.css`), więc komponent portalu wniósłby tam swoje klasy.
 - **Umami wyłącznie w układzie portalu** i wyłącznie przy komplecie `services.umami` — panele i widoki
@@ -97,6 +112,8 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   w adresie. ⚠️ **Nie rozbijaj zakładek na osobne adresy** — czwarty segment rozszerzyłby schemat
   z ADR-021, a każda zakładka potrzebowałaby własnego canonical i `hreflang`. Nowa zakładka to kolejna
   pozycja tej samej tablicy i kolejny panel; pasek zakładek przewija się poziomo na wąskim ekranie.
+  ⚠️ Pasek ma `overflow-y-hidden` obok `overflow-x-auto` — podkreślenie aktywnej zakładki (`-mb-px`)
+  wystaje o piksel, a bez tego Chrome na Windows pokazywał pionowy suwak.
 - **Zakładka „Cennik" — odczyt konfiguracji, nie wycena.** Dane układa `PortalPriceList` (przez
   `PortalFisheryPage::pricing()`): stawki z okresami (bez dat = „cały rok", przyszły okres oznaczony),
   dopłaty pod nazwami łowiska z warunkiem (`PriceRule::conditionText()`), przedsprzedaż z tego samego
@@ -107,7 +124,9 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   poza sprzedażą. ⚠️ **„Obowiązkowa" to własność przypięcia usługi do stanowiska**, nie usługi — przy
   części stanowisk widać „obowiązkowa na stanowiskach: …". **Bez przykładu wyceny**: cenę terminu liczy
   kalendarz, a przycisk `[data-tab-open]` do niego prowadzi. Jawny wyjątek od „portal pyta wyłącznie
-  `StayOffer`" — [`cennik.md`](cennik.md) §5.
+  `StayOffer`" — [`cennik.md`](cennik.md) §5. Sekcje to `spec-table`: stawki *Okres · Cena · Uwagi*,
+  dopłaty *Dopłata · Kwota · Kiedy*, usługi *Usługa · Cena · Gdzie i co jest potrzebne* (plakietka
+  „obowiązkowa" przy nazwie).
 - **Zakładka „Dokumenty": dla każdego rodzaju WYŁĄCZNIE wersja obowiązująca dziś**
   (`PortalFisheryPage::documents()` → `FisheryDocuments::current()`), w kolejności rodzajów:
   regulamin, polityka prywatności, inne. Rodzaj bez wersji obowiązującej **nie ma sekcji**; łowisko
@@ -132,10 +151,11 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   rel="noopener"`, tylko wypełnione.
 - **Kolejność na telefonie:** nazwa → zakładki → mapa → [kalendarz] → cena i telefon → opis → zdjęcia.
   Zdjęcia nad nazwą tylko na szerszym ekranie.
-- **Stanowiska: jedno w wierszu, tylko w sprzedaży, porządek naturalny etykiet** (2, 8, 15 — `strnatcasecmp`), z grupami,
-  pojemnością „do N łowiących" i cechami **filtrowalnymi** z wypowiedzianą wartością (flaga „nie"
-  i brak wartości się nie pokazują). Pod listą — grupy: nazwa, stanowiska grupy w sprzedaży i opis
-  (HTML z edytora, przez `html()`); grupa bez stanowiska w sprzedaży się nie pokazuje.
+- **Stanowiska: tabela `spec-table` *Stanowisko · Grupa · Łowiących · Cechy*, tylko w sprzedaży,
+  porządek naturalny etykiet** (2, 8, 15 — `strnatcasecmp`). Cechy wyłącznie **filtrowalne**
+  z wypowiedzianą wartością (flaga „nie" i brak wartości się nie pokazują). Kolumna bez żadnej wartości
+  w łowisku (np. brak grup) się nie pokazuje. Pod tabelą — grupy: nazwa, stanowiska grupy w sprzedaży
+  i opis (HTML z edytora, przez `html()`); grupa bez stanowiska w sprzedaży się nie pokazuje.
 - **„Łowisko w sieci": adres w Fisherya (link), potem strona WWW, potem Facebook** — dwa ostatnie
   tylko wypełnione.
 - **Zdjęcia i mapa — wyłącznie warianty z `FisheryImages`** (zadanie 036, ADR-023): `url($media, szerokość)`,
@@ -189,6 +209,18 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   Na telefonie — pasek dób, lista stanowisk dla doby (`doba`) i karta stanowiska (`st`).
 - **Wyciąg zasad ma jeden dom — `FisheryRulesSummary`:** pełny nad siatką, skrócony na telefonie
   i linijka na karcie strony głównej (`cardLine()`). Pusta wartość parametru nie trafia do wyciągu.
+  Nad siatką pozycje idą z `entries()` — ten sam tekst co `line()`, z pogrubioną etykietą („**Doba**
+  15:00–15:00") i separatorem `·` w `text-faint`; etykieta jest pogrubiana tylko, gdy pozycja od niej się zaczyna.
+- **Wygląd siatki (zadanie 038):** nagłówek dni i wiersz „Pakiety" na `bg-surface`, nazwa dnia drobna
+  `text-faint` wielkimi literami; cena w komórce `text-b600`, najechanie `bg-b50` z obwódką `b400`; linie
+  `border-line2` poziome i pionowe, kolumna stanowisk z prawą linią `border-line`. **Weekend (sobota,
+  niedziela) wyłącznie w nagłówku dni** — `bg-a100`/`text-a800`, także na kafelku dnia w pasku na telefonie
+  (dzień wybrany zostaje `bg-b700`). ⚠️ Nie barw komórek weekendu: kreskowanie `a100/a200` w komórce znaczy
+  „niedostępne — powód od łowiska", a piątku nie wyróżniamy, bo kolor sugerowałby regułę sprzedaży.
+- **Nagłówek sekcji:** tytuł po lewej; „Łowiących" (przełącznik segmentowy, aktywny `bg-b800`) i nawigacja
+  tygodnia (przyciski `‹` `›` z ramką, zakres pogrubiony) po prawej — na telefonie zawijają się pod tytuł.
+  Aktywny chip grupy i cechy też `bg-b800`. **Legenda pod siatką pokazuje tylko to, co jest w widocznym
+  tygodniu** — „zacznij wcześniej" przy pakiecie, kreskowanie przy niedostępności z powodu od łowiska.
 
 ## 7. Breeze po zadaniu 031
 

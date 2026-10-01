@@ -43,7 +43,7 @@
         </header>
 
         <div data-tabs class="mx-auto max-w-6xl scroll-mt-4 px-4 sm:px-6">
-            <nav class="mt-4 flex gap-6 overflow-x-auto whitespace-nowrap border-b border-line text-[14px] font-semibold" role="tablist" aria-label="{{ $fishery->name }}">
+            <nav class="mt-4 flex gap-6 overflow-x-auto overflow-y-hidden whitespace-nowrap border-b border-line text-[14px] font-semibold" role="tablist" aria-label="{{ $fishery->name }}">
                 @foreach ([$mapTab => __('Map and dates'), $detailsTab => __('Details'), $pricingTab => __('Price list'), $documentsTab => __('Documents')] as $anchor => $label)
                     <a href="#{{ $anchor }}" data-tab-link="{{ $anchor }}" role="tab"
                        class="{{ $loop->first ? 'is-active' : '' }} -mb-px border-b-2 border-transparent pb-2.5 text-muted hover:text-b800 [&.is-active]:border-b700 [&.is-active]:text-b800">{{ $label }}</a>
@@ -114,8 +114,13 @@
                         </div>
                     @endif
 
-                    @php($directions = $page->html($fishery->directions))
-                    @php($conveniences = $page->conveniences())
+                    {{-- ⚠️ Blok PHP z zamknięciem, nie jednolinijkowy: plik ma też bloki, a Blade łączy wersję jednolinijkową
+                         z następnym blokiem i strona przestaje się kompilować (038). W komentarzu nie wolno pisać nazw tych
+                         dyrektyw ze znakiem małpy — Blade wyłapuje je przed usunięciem komentarzy. --}}
+                    @php
+                        $directions = $page->html($fishery->directions);
+                        $conveniences = $page->conveniences();
+                    @endphp
                     @if ($directions !== null || $conveniences !== [])
                         <div>
                             <h2 class="font-display text-[19px] font-semibold">{{ __('Access and amenities') }}</h2>
@@ -143,17 +148,22 @@
                     @if (($positions = $page->positions()) !== [])
                         <div>
                             <h2 class="font-display text-[19px] font-semibold">{{ __('Positions') }}</h2>
-                            {{-- Jedno stanowisko w wierszu: opis (grupy, pojemność, cechy) bywa długi, dwie kolumny go ściskały. --}}
-                            <ul class="mt-2.5">
-                                @foreach ($positions as $position)
-                                    <li class="flex justify-between gap-3 border-b border-line2 px-0.5 py-1.5 text-[13px]">
-                                        <b class="shrink-0">{{ __('Pos. :label', ['label' => $position['label']]) }}</b>
-                                        @if ($position['details'] !== '')
-                                            <span class="text-right text-muted">{{ $position['details'] }}</span>
-                                        @endif
-                                    </li>
-                                @endforeach
-                            </ul>
+                            {{-- Tabela z nagłówkiem (038, R4); kolumna bez żadnej wartości w łowisku się nie pokazuje. --}}
+                            @php
+                                $positionColumns = array_filter([
+                                    'label' => __('Position'),
+                                    'groups' => collect($positions)->contains(fn ($p) => $p['groups'] !== '') ? __('Group') : null,
+                                    'capacity' => collect($positions)->contains(fn ($p) => $p['capacity'] !== null) ? __('Anglers (capacity)') : null,
+                                    'features' => collect($positions)->contains(fn ($p) => $p['features'] !== '') ? __('Features') : null,
+                                ]);
+                                $positionRows = array_map(fn ($p) => array_values(array_intersect_key([
+                                    'label' => __('Pos. :label', ['label' => $p['label']]),
+                                    'groups' => $p['groups'],
+                                    'capacity' => $p['capacity'] !== null ? __('up to :count', ['count' => $p['capacity']]) : '',
+                                    'features' => $p['features'],
+                                ], $positionColumns)), $positions);
+                            @endphp
+                            @include('portal.partials.spec-table', ['columns' => array_values($positionColumns), 'rows' => $positionRows, 'primary' => null])
                             @if (($groups = $page->groups()) !== [])
                                 <div class="mt-3 flex flex-col gap-1.5 text-[12.5px]">
                                     @foreach ($groups as $group)
@@ -210,31 +220,30 @@
                     @if ($pricing['rates'] !== [])
                         <div>
                             <h2 class="font-display text-[19px] font-semibold">{{ __('Rate per angler') }}</h2>
-                            <ul class="mt-2.5">
-                                @foreach ($pricing['rates'] as $rate)
-                                    <li class="border-b border-line2 px-0.5 py-2 text-[13.5px]">
-                                        <div class="flex justify-between gap-3">
-                                            <b>{{ $rate['period'] ?? __('all year') }}@if ($rate['upcoming']) <span class="ml-1.5 rounded-full bg-line2 px-2 py-0.5 text-[11px] font-semibold text-muted">{{ __('next period') }}</span>@endif</b>
-                                            <b class="shrink-0">{{ $rate['amount'] }}</b>
-                                        </div>
-                                        <div class="text-[12px] text-muted">{{ __('per angler, at every position') }}@if ($rate['companion'] !== null) · {{ __('companion: :price', ['price' => $rate['companion']]) }}@endif</div>
-                                    </li>
-                                @endforeach
-                            </ul>
+                            @php
+                                $rateRows = array_map(fn ($rate) => [
+                                    new \Illuminate\Support\HtmlString(e($rate['period'] ?? __('all year')).($rate['upcoming']
+                                        ? ' <span class="ml-1.5 rounded-full bg-line2 px-2 py-0.5 text-[11px] font-semibold text-muted">'.e(__('next period')).'</span>'
+                                        : '')),
+                                    $rate['amount'],
+                                    __('per angler, at every position').($rate['companion'] !== null ? ' · '.__('companion: :price', ['price' => $rate['companion']]) : ''),
+                                ], $pricing['rates']);
+                            @endphp
+                            @include('portal.partials.spec-table', ['columns' => [__('Period'), __('Price'), __('Notes')], 'rows' => $rateRows, 'primary' => 1])
                         </div>
                     @endif
 
                     @if ($pricing['surcharges'] !== [])
                         <div>
                             <h2 class="font-display text-[19px] font-semibold">{{ __('Surcharges') }}</h2>
-                            <ul class="mt-2.5">
-                                @foreach ($pricing['surcharges'] as $surcharge)
-                                    <li class="border-b border-line2 px-0.5 py-2 text-[13.5px]">
-                                        <div class="flex justify-between gap-3"><b>{{ $surcharge['name'] }}</b><b class="shrink-0">{{ $surcharge['amount'] }}</b></div>
-                                        <div class="text-[12px] text-muted">{{ $surcharge['audience'] }}@if ($surcharge['condition'] !== '') · {{ $surcharge['condition'] }}@endif</div>
-                                    </li>
-                                @endforeach
-                            </ul>
+                            @php
+                                $surchargeRows = array_map(fn ($surcharge) => [
+                                    $surcharge['name'],
+                                    $surcharge['amount'],
+                                    $surcharge['audience'].($surcharge['condition'] !== '' ? ' · '.$surcharge['condition'] : ''),
+                                ], $pricing['surcharges']);
+                            @endphp
+                            @include('portal.partials.spec-table', ['columns' => [__('Surcharge'), __('Amount'), __('When')], 'rows' => $surchargeRows, 'primary' => 1])
                         </div>
                     @endif
 
@@ -248,17 +257,16 @@
                     @if ($pricing['services'] !== [])
                         <div>
                             <h2 class="font-display text-[19px] font-semibold">{{ __('Additional services') }}</h2>
-                            <ul class="mt-2.5">
-                                @foreach ($pricing['services'] as $service)
-                                    <li class="border-b border-line2 px-0.5 py-2 text-[13.5px]">
-                                        <div class="flex justify-between gap-3"><b>{{ $service['name'] }}</b><b class="shrink-0">{{ $service['price'] }}</b></div>
-                                        <div class="text-[12px] text-muted">{{ $service['scope'] }}@if ($service['attributes'] !== []) · {{ __('needs: :features', ['features' => implode(', ', $service['attributes'])]) }}@endif</div>
-                                        @if ($service['required'] !== null)
-                                            <div class="text-[12px] font-semibold text-a700">{{ $service['required'] }}</div>
-                                        @endif
-                                    </li>
-                                @endforeach
-                            </ul>
+                            @php
+                                $serviceRows = array_map(fn ($service) => [
+                                    new \Illuminate\Support\HtmlString(e($service['name']).($service['required'] !== null
+                                        ? ' <span class="ml-1.5 inline-block rounded-full bg-a100 px-2 py-0.5 text-[11px] font-semibold text-a700">'.e($service['required']).'</span>'
+                                        : '')),
+                                    $service['price'],
+                                    $service['scope'].($service['attributes'] !== [] ? ' · '.__('needs: :features', ['features' => implode(', ', $service['attributes'])]) : ''),
+                                ], $pricing['services']);
+                            @endphp
+                            @include('portal.partials.spec-table', ['columns' => [__('Service'), __('Price'), __('Where and what is needed')], 'rows' => $serviceRows, 'primary' => 1])
                             <p class="mt-2 text-[12px] text-muted">{{ __('Per-night services are charged for every night of the stay, per-stay services once. Fees for each use are settled on site.') }}</p>
                         </div>
                     @endif

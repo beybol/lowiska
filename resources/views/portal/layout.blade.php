@@ -39,7 +39,7 @@
         <script defer src="{{ $umamiScript }}" data-website-id="{{ $umamiWebsite }}"></script>
     @endif
 </head>
-<body class="min-h-screen bg-surface font-sans text-[15px] leading-relaxed text-ink antialiased">
+<body class="min-h-screen bg-white font-sans text-[15px] leading-relaxed text-ink antialiased">
     @include('portal.partials.header', ['alternates' => $switchUrls])
 
     <main>

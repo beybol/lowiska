@@ -7,15 +7,15 @@
 --}}
 @if ($cell['state'] === 'sellable')
     @if ($tooltip)
-        <div class="group relative rounded-sm px-1 py-1 outline-none hover:bg-b50 focus-visible:ring-2 focus-visible:ring-b400" tabindex="0" data-calendar-tip>
-            <span class="block font-semibold whitespace-nowrap text-ink">{{ $cell['price'] }}</span>
+        <div class="group relative rounded-sm px-1 py-1 outline-none hover:bg-b50 hover:ring-1 hover:ring-b400 focus-visible:ring-2 focus-visible:ring-b400" tabindex="0" data-calendar-tip>
+            <span class="block font-semibold whitespace-nowrap text-b600">{{ $cell['price'] }}</span>
             <span class="block text-[11px] whitespace-nowrap text-muted">{{ $cell['nights'] }}@if ($cell['surcharge']) · {{ __('with surcharge') }}@endif</span>
             <div class="invisible absolute top-full left-1/2 z-40 mt-1 w-64 -translate-x-1/2 rounded-md border border-line bg-white p-3 text-left opacity-0 shadow-3 transition group-hover:visible group-hover:opacity-100 group-focus-visible:visible group-focus-visible:opacity-100 [@media(hover:none)]:group-focus-within:visible [@media(hover:none)]:group-focus-within:opacity-100" role="tooltip" data-calendar-tip-body>
                 @include('portal.partials.calendar-breakdown', ['tip' => $cell['tooltip']])
             </div>
         </div>
     @else
-        <span class="block font-semibold whitespace-nowrap text-ink">{{ $cell['price'] }}</span>
+        <span class="block font-semibold whitespace-nowrap text-b600">{{ $cell['price'] }}</span>
         <span class="block text-[11px] whitespace-nowrap text-muted">{{ $cell['nights'] }}@if ($cell['surcharge']) · {{ __('with surcharge') }}@endif</span>
     @endif
 @elseif ($cell['state'] === 'bundle')

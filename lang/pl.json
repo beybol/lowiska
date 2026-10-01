@@ -978,5 +978,20 @@
     ":fishery — photo :number": ":fishery — zdjęcie :number",
     "Photos": "Zdjęcia",
     "Drag to change the order — the first photo is the cover.": "Przeciągnij, żeby zmienić kolejność — pierwsze zdjęcie jest okładką.",
-    "with :count angler|with :count anglers": "przy :count łowiącym|przy :count łowiących|przy :count łowiących"
+    "with :count angler|with :count anglers": "przy :count łowiącym|przy :count łowiących|przy :count łowiących",
+    "Basic data": "Podstawowe",
+    "Fishery description": "Opis łowiska",
+    "Address and directions": "Adres i dojazd",
+    "Settlements": "Rozliczenia",
+    "Cover": "Okładka",
+    "Group": "Grupa",
+    "Features": "Cechy",
+    "Period": "Okres",
+    "Notes": "Uwagi",
+    "Amount": "Kwota",
+    "When": "Kiedy",
+    "Service": "Usługa",
+    "Where and what is needed": "Gdzie i co jest potrzebne",
+    "Weekend": "Weekend",
+    "Anglers (capacity)": "Łowiących"
 }

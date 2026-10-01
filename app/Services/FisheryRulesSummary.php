@@ -92,6 +92,45 @@ final class FisheryRulesSummary
         return $text === '' ? '' : mb_strtoupper(mb_substr($text, 0, 1)).mb_substr($text, 1);
     }
 
+    /**
+     * Te same pozycje co `line()`, w tej samej kolejności i z tym samym tekstem — rozbite na etykietę
+     * i resztę, żeby widok mógł pogrubić etykietę („**Doba** 15:00–15:00 · **Sezon** 01.05–31.10", zadanie 038).
+     *
+     * ⚠️ Podział jest wyłącznie prezentacyjny: etykieta to tłumaczenie z `LABELS`, ale tylko wtedy, gdy pozycja
+     * faktycznie się od niego zaczyna — inaczej cała pozycja idzie jako reszta, bez pogrubienia. Tekst się nie
+     * zmienia; pierwsza litera pierwszej pozycji wielka, jak w `line()`.
+     *
+     * @return list<array{label: string|null, rest: string}>
+     */
+    public function entries(): array
+    {
+        $entries = [];
+
+        foreach ($this->items() as $key => $text) {
+            if ($entries === []) {
+                $text = mb_strtoupper(mb_substr($text, 0, 1)).mb_substr($text, 1);
+            }
+
+            $label = isset(self::LABELS[$key]) ? __(self::LABELS[$key]) : null;
+
+            if ($label !== null && mb_stripos($text, $label) === 0) {
+                $entries[] = ['label' => mb_substr($text, 0, mb_strlen($label)), 'rest' => mb_substr($text, mb_strlen($label))];
+            } else {
+                $entries[] = ['label' => null, 'rest' => $text];
+            }
+        }
+
+        return $entries;
+    }
+
+    /** Etykiety pozycji wyciągu do pogrubienia (klucz pozycji → klucz tłumaczenia). */
+    private const LABELS = [
+        'day' => 'Fishing day',
+        'weekend' => 'Weekend',
+        'season' => 'Season',
+        'presale' => 'Presale',
+    ];
+
     /** Linijka na karcie strony głównej (§5.1) i skrót na telefonie (§3.5). */
     public function cardLine(): string
     {

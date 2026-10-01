@@ -13,6 +13,14 @@
     @php
         $count = count($photos);
         $tiles = array_slice($photos, 0, 3);
+        // Rzeczywista szerokość kafelka (038, U11): nagłówek ma najwyżej 1152 px (max-w-6xl) i jest widoczny
+        // od `lg`; układ 1+2 dzieli go 2fr:1fr:1fr, więc duży kafelek to ~połowa, mały ~ćwiartka.
+        $sizes = fn (int $index): string => match (true) {
+            $count === 1 => '(min-width: 1152px) 1152px, 100vw',
+            $count === 2 => '(min-width: 1152px) 576px, 50vw',
+            $index === 0 => '(min-width: 1152px) 576px, 50vw',
+            default => '(min-width: 1152px) 288px, 25vw',
+        };
         $grid = match (true) {
             $count >= 3 => 'grid-cols-[2fr_1fr_1fr]',
             $count === 2 => 'grid-cols-2',
@@ -35,7 +43,7 @@
                aria-label="{{ $photo['alt'] }}">
                 @if ($isTile)
                     <img src="{{ $photo['src'] }}" srcset="{{ $photo['srcset'] }}"
-                         sizes="{{ $count >= 3 && $index > 0 ? '(min-width: 1152px) 280px, 25vw' : '(min-width: 1152px) 1152px, 100vw' }}"
+                         sizes="{{ $sizes($index) }}"
                          alt="{{ $photo['alt'] }}" width="{{ $photo['width'] }}" height="{{ $photo['height'] }}"
                          @if ($index > 0) loading="lazy" @endif decoding="async"
                          class="h-full w-full object-cover">

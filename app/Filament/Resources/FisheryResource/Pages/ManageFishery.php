@@ -2,19 +2,25 @@
 
 namespace App\Filament\Resources\FisheryResource\Pages;
 
+use App\Enums\FisherySection;
 use App\Enums\PublicationIssue;
 use App\Filament\Resources\FisheryResource;
 use App\Models\Fishery;
+use App\Services\FisheryAccess;
+use App\Services\FisheryImages;
 use App\Services\FisheryPublicationReadiness;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
-use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 /**
  * Dane łowiska — pierwsza pozycja sub-nawigacji rekordu.
@@ -205,42 +211,174 @@ class ManageFishery extends ViewRecord
         return FisheryResource::getUrl($page, ['record' => $this->fishery()]);
     }
 
+    /**
+     * Podgląd w układzie formularza (zadanie 038, R5): te same sekcje, kolejność i siatka
+     * (`FisheryResource::layout()` po `FisherySection`), każde pole formularza tylko do odczytu.
+     *
+     * ⚠️ Zmieniasz pole w `FisheryResource::fisheryDetailComponents()` — dopisz wpis tutaj, w tej samej sekcji.
+     * Puste pole → „Nie podano"; treści z edytora przez `Str::sanitizeHtml()`; zdjęcia wyłącznie z wariantów.
+     */
     public function infolist(Schema $schema): Schema
     {
-        return $schema->components([
-            Section::make(__('Fishery data'))->schema([
+        $notSpecified = __('Not specified');
+        $html = static fn (?string $state): ?HtmlString => blank(strip_tags((string) $state))
+            ? null
+            : new HtmlString(Str::sanitizeHtml((string) $state));
+        $flag = static fn (string $name, string $label): TextEntry => TextEntry::make($name)
+            ->label($label)
+            ->state(fn (Fishery $record): string => match ($record->{$name}) {
+                true => __('Yes'),
+                false => __('No'),
+                default => __('Not specified'),
+            });
+
+        return $schema->columns(1)->components(FisheryResource::layout([
+            FisherySection::Basic->value => [
+                TextEntry::make('company.name')->label(__('Company'))->placeholder($notSpecified),
                 TextEntry::make('name')->label(__('Fishery name')),
-                TextEntry::make('company.name')->label(__('Company')),
-                TextEntry::make('area')->label(__('Area (in hectares)')),
+                TextEntry::make('slug')
+                    ->label(__('Page address (slug)'))
+                    ->helperText(fn (): ?string => FisheryAccess::isOwnerPanel()
+                        ? __('Set once, from the fishery name. Only the portal administrator can change it.')
+                        : null),
+                TextEntry::make('user.name')
+                    ->label(__('Fishery entered by'))
+                    ->hidden(fn (): bool => FisheryAccess::isOwnerPanel()),
+                TextEntry::make('published_at')
+                    ->label(__('In the portal'))
+                    ->dateTime()
+                    ->placeholder(__('Not published')),
                 // ⚠️ Liczba LICZONA ze stanowisk w sprzedaży, nie kolumna — dawne
                 // `positions_count` było drugą prawdą obok tabeli stanowisk (zadanie 030).
                 TextEntry::make('positions_for_sale')
                     ->label(__('Positions for sale'))
                     ->state(fn (Fishery $record): int => $record->positions()->available()->count()),
-            ])->columns(2),
-            Section::make(__('Portal'))->schema([
-                TextEntry::make('published_at')
-                    ->label(__('In the portal'))
-                    ->dateTime()
-                    ->placeholder(__('Not published')),
-                TextEntry::make('slug')
-                    ->label(__('Page address (slug)'))
-                    ->helperText(__('Set once, from the fishery name. Only the portal administrator can change it.')),
-            ])->columns(2),
-            Section::make(__('Contact and links'))->schema([
-                TextEntry::make('phone')->label(__('Phone'))->placeholder(__('Not specified')),
-                TextEntry::make('email')->label(__('E-mail'))->placeholder(__('Not specified')),
-                TextEntry::make('contact_hours')->label(__('Contact hours'))->placeholder(__('Not specified')),
-                TextEntry::make('website_url')->label(__('Website'))->placeholder(__('Not specified')),
-                TextEntry::make('facebook_url')->label(__('Facebook page'))->placeholder(__('Not specified')),
-            ])->columns(2),
-            Section::make(__('Fishery address'))->schema([
-                TextEntry::make('street')->label(__('Street')),
-                TextEntry::make('building_number')->label(__('Building number')),
-                TextEntry::make('zip_code')->label(__('Postal code')),
-                TextEntry::make('town')->label(__('Town')),
-                TextEntry::make('state.name')->label(__('State')),
-            ])->columns(2),
-        ]);
+            ],
+            FisherySection::Description->value => [
+                TextEntry::make('description')
+                    ->hiddenLabel()
+                    ->formatStateUsing(fn (?string $state): ?HtmlString => $html($state))
+                    ->placeholder($notSpecified)
+                    ->columnSpanFull(),
+            ],
+            FisherySection::Address->value => [
+                Group::make([
+                    TextEntry::make('state.name')
+                        ->label(__('State'))
+                        ->formatStateUsing(fn (?string $state): string => __((string) $state))
+                        ->placeholder($notSpecified),
+                    TextEntry::make('town')->label(__('Town'))->placeholder($notSpecified),
+                    TextEntry::make('street_and_number')
+                        ->label(__('Street'))
+                        ->state(fn (Fishery $record): string => trim($record->street.' '.$record->building_number))
+                        ->placeholder($notSpecified),
+                    TextEntry::make('zip_code')->label(__('Postal code'))->placeholder($notSpecified),
+                ]),
+                ViewEntry::make('map_preview')
+                    ->hiddenLabel()
+                    ->view('filament.forms.map-preview')
+                    ->viewData(fn (Fishery $record): array => FisheryResource::mapPreviewData(
+                        $record,
+                        $record->street,
+                        $record->building_number,
+                        $record->zip_code,
+                        $record->town,
+                        $record->state_id,
+                    )),
+                TextEntry::make('directions')
+                    ->label(__('Directions'))
+                    ->formatStateUsing(fn (?string $state): ?HtmlString => $html($state))
+                    ->placeholder($notSpecified)
+                    ->columnSpanFull(),
+            ],
+            FisherySection::Contact->value => [
+                TextEntry::make('phone')->label(__('Phone'))->placeholder($notSpecified),
+                TextEntry::make('email')->label(__('E-mail'))->placeholder($notSpecified),
+                TextEntry::make('contact_hours')->label(__('Contact hours'))->placeholder($notSpecified),
+                TextEntry::make('website_url')->label(__('Website'))->placeholder($notSpecified),
+                TextEntry::make('facebook_url')->label(__('Facebook page'))->placeholder($notSpecified),
+            ],
+            FisherySection::Water->value => [
+                TextEntry::make('area')->label(__('Area (in hectares)'))->placeholder($notSpecified),
+                TextEntry::make('avg_depth')->label(__('Average depth (in meters)'))->placeholder($notSpecified),
+                TextEntry::make('max_depth')->label(__('Maximum depth (in meters)'))->placeholder($notSpecified),
+                TextEntry::make('dominantFish.name')
+                    ->label(__('Dominant fish'))
+                    ->formatStateUsing(fn (?string $state): string => __((string) $state))
+                    ->placeholder($notSpecified),
+                $this->badges('fisheryTypes.name', __('Fishery types')),
+                $this->badges('fishingMethods.name', __('Fishing methods')),
+                $this->badges('fish.name', __('Available fish')),
+                TextEntry::make('records')
+                    ->label(__('Fishery records'))
+                    ->formatStateUsing(fn (?string $state): ?HtmlString => $html($state))
+                    ->placeholder($notSpecified)
+                    ->columnSpanFull(),
+            ],
+            FisherySection::AnglerRules->value => [
+                $flag('fishing_license_required', __('Fishing licence required')),
+                TextEntry::make('rods_included')->label(__('Rods included in the price'))->placeholder($notSpecified),
+                $flag('no_kill', __('No-kill (fish can not be taken)')),
+                $flag('campfires_banned', __('Campfires banned')),
+            ],
+            FisherySection::Conveniences->value => [
+                $this->badges('conveniences.name', __('Conveniences'))->hiddenLabel(),
+            ],
+            FisherySection::Map->value => [
+                ViewEntry::make('map_image')
+                    ->hiddenLabel()
+                    ->view('filament.resources.fishery-resource.pages.fishery-images')
+                    ->viewData(fn (Fishery $record): array => [
+                        'images' => $this->thumbnails($record, FisheryImages::MAP, 960),
+                        'grid' => false,
+                    ]),
+            ],
+            FisherySection::Gallery->value => [
+                ViewEntry::make('gallery')
+                    ->hiddenLabel()
+                    ->view('filament.resources.fishery-resource.pages.fishery-images')
+                    ->viewData(fn (Fishery $record): array => [
+                        'images' => $this->thumbnails($record, FisheryImages::GALLERY, 480),
+                        'grid' => true,
+                    ]),
+            ],
+            FisherySection::Billing->value => [
+                TextEntry::make('currency.name')->label(__('Currency for settlement'))->placeholder($notSpecified),
+                // Pełny numer — operator i admin widzą dane, które sami wpisali (R5).
+                TextEntry::make('bank_account_number')->label(__('Bank account number (IBAN)'))->placeholder($notSpecified),
+            ],
+        ]));
+    }
+
+    /** Lista wyboru jako plakietki — nazwy słownikowe są kluczami tłumaczeń. */
+    private function badges(string $name, string $label): TextEntry
+    {
+        return TextEntry::make($name)
+            ->label($label)
+            ->badge()
+            ->color('gray')
+            ->formatStateUsing(fn (?string $state): string => __((string) $state))
+            ->placeholder(__('Not specified'))
+            ->columnSpanFull();
+    }
+
+    /**
+     * Miniatury z wariantów (`FisheryImages`) — oryginał nie trafia do HTML-a (ADR-023).
+     *
+     * @return list<array{src: string, alt: string}>
+     */
+    private function thumbnails(Fishery $record, string $collection, int $width): array
+    {
+        $thumbnails = [];
+
+        foreach ($record->getMedia($collection) as $media) {
+            $src = FisheryImages::url($media, $width);
+
+            if ($src !== null) {
+                $thumbnails[] = ['src' => $src, 'alt' => $media->name];
+            }
+        }
+
+        return $thumbnails;
     }
 }

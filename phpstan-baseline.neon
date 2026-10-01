@@ -13,30 +13,6 @@ parameters:
 			path: app/Filament/Resources/AdditionalServiceResource/Pages/EditAdditionalService.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>building_number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Filament/Resources/FisheryResource.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>street" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Filament/Resources/FisheryResource.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>town" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Filament/Resources/FisheryResource.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>zip_code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Filament/Resources/FisheryResource.php
-
-		-
 			message: '#^Cannot access property \$fishery_id on Illuminate\\Database\\Eloquent\\Model\|int\|string\.$#'
 			identifier: property.nonObject
 			count: 1

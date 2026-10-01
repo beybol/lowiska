@@ -103,6 +103,27 @@ i hub „Zarządzaj łowiskiem", ADR-006).
   [`tests/Feature/PanelRegistrationFormTest.php`](../../tests/Feature/PanelRegistrationFormTest.php),
   bo test samego kodu odpowiedzi tej awarii nie widzi.
 
+### Formularz łowiska i podgląd „Dane łowiska" — jedna lista sekcji (zadanie 038)
+
+- **Układ obu widoków wyznacza enum `App\Enums\FisherySection`**: kolejność przypadków = kolejność sekcji
+  (Podstawowe → Opis → Adres i dojazd → Kontakt → Akwen → Zanim przyjedziesz → Udogodnienia → Mapa → Galeria
+  → Rozliczenia — jak zakładka „Szczegóły" portalu), `label()`, `columns()` (siatka od `md`, poniżej jedna
+  kolumna) i `hasFrame()` (Podstawowe bez ramki). Sekcje składa `FisheryResource::layout()` — dla formularza
+  (`fisheryDetailComponents()`: edycja w obu panelach i ostatni krok kreatora) i dla podglądu
+  (`ManageFishery::infolist()`).
+- ⚠️ **Nowe pole formularza → wpis w podglądzie w tej samej sekcji.** Pola i wpisy to osobne definicje
+  (różne komponenty Filamenta), ale `layout()` rzuca wyjątek przy sekcji bez komponentów, a
+  `FisherySectionTest` sprawdza kolejność sekcji w obu widokach.
+- ⚠️ **Kontenery układu bez klucza i bez `statePath()`** — `->key()` na sekcji przedrostkuje klucze pól
+  w środku i pole przestaje być znajdowane po nazwie (`assertFormFieldExists('gallery')` i podgląd mapy);
+  `Group`/`Grid` w sekcji adresu zostawiają stan pod `street`, `town`… (`live()` podglądu mapy, zadanie 012).
+- Podgląd pokazuje każde pole tylko do odczytu: puste → „Nie podano", flagi trzystanowe → „Tak / Nie /
+  Nie podano", treści z edytora przez `Str::sanitizeHtml()`, listy wyboru jako plakietki, mapa i galeria jako
+  miniatury z wariantów `FisheryImages` (oryginał nie trafia do HTML-a). Dane wyliczone (status w portalu,
+  slug, stanowiska w sprzedaży) stoją w sekcji „Podstawowe". Dane podglądu mapy adresu liczy jedna metoda,
+  `FisheryResource::mapPreviewData()`, dla formularza i podglądu.
+- Galeria w formularzu jest kafelkami (`panelLayout('grid')`), mapa z podglądem ograniczonym wysokością.
+
 ---
 
 ## 3. Pola haseł w formularzach zasobów

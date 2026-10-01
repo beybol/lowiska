@@ -1,12 +1,13 @@
 {{--
-    Box z „ceną od" i kontaktem — ten sam w obu zakładkach strony łowiska (zadanie 032).
+    Box z „ceną od" i kontaktem — ten sam w każdej zakładce strony łowiska (zadanie 032); tło `surface`
+    i cień `shadow-2` (038, R2) — odcina się od białej strony.
     Bez telefonu: e-mail łowiska albo nic — bez tekstu zastępczego (Rozstrzygnięcie 3).
 --}}
 @php
     $price = $page->priceFrom();
     $phoneHref = $page->phoneHref();
 @endphp
-<div class="rounded-md border border-line bg-surface px-4 py-4">
+<div class="rounded-md border border-line bg-surface px-4 py-4 shadow-2">
     <div class="text-[13px] text-ink2">
         @if ($price !== null)
             <b class="font-display text-[19px] font-semibold text-ink">{{ __('from :price', ['price' => $price]) }}</b> {{ __('/ person / night') }}

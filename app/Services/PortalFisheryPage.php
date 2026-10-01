@@ -268,9 +268,12 @@ final class PortalFisheryPage
 
     /**
      * Stanowiska w sprzedaży jako płaska lista **w kolejności etykiet** (porządek naturalny: 2, 8, 15),
-     * z grupami, pojemnością i cechami filtrowalnymi.
+     * z grupami, pojemnością i cechami filtrowalnymi — w kolumnach tabeli „Stanowiska" (zadanie 038, R4).
      *
-     * @return list<array{label: string, details: string}>
+     * Pusta wartość to `''` (grupy, cechy) albo `null` (pojemność „nie podano") — widok chowa kolumnę,
+     * w której żadne stanowisko nie ma wartości.
+     *
+     * @return list<array{label: string, groups: string, capacity: int|null, features: string}>
      */
     public function positions(): array
     {
@@ -278,13 +281,9 @@ final class PortalFisheryPage
             ->sort(fn (Position $a, Position $b): int => strnatcasecmp($a->name, $b->name))
             ->map(fn (Position $position): array => [
                 'label' => $position->name,
-                'details' => implode(' · ', array_filter([
-                    $position->groups->pluck('name')->sort(SORT_NATURAL | SORT_FLAG_CASE)->implode(', '),
-                    $position->max_anglers !== null
-                        ? trans_choice('up to :count angler|up to :count anglers', (int) $position->max_anglers, ['count' => $position->max_anglers])
-                        : null,
-                    ...$this->filterableFeatures($position),
-                ])),
+                'groups' => $position->groups->pluck('name')->sort(SORT_NATURAL | SORT_FLAG_CASE)->implode(', '),
+                'capacity' => $position->max_anglers !== null ? (int) $position->max_anglers : null,
+                'features' => implode(', ', $this->filterableFeatures($position)),
             ])
             ->values()
             ->all();

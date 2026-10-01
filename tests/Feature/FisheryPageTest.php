@@ -171,10 +171,11 @@ test('the positions are only those for sale, in natural label order, with groups
     PositionAttributeValue::factory()->create(['position_id' => $two->id, 'position_attribute_id' => $jetty->id, 'value_flag' => true]);
     PositionAttributeValue::factory()->create(['position_id' => $two->id, 'position_attribute_id' => $secret->id, 'value_flag' => true]);
 
+    // Tabela z nagłówkiem (038, R4): Stanowisko · Grupa · Łowiących · Cechy — wartości w osobnych kolumnach.
     fisheryPage()
+        ->assertSeeInOrder(['Stanowisko', 'Grupa', 'Łowiących', 'Cechy'])
         ->assertSeeInOrder(['St. 1', 'St. 2', 'St. 10'])
-        ->assertSee('Brzeg zachodni · do 3 łowiących · pomost')
-        ->assertSee('do 1 łowiącego')
+        ->assertSeeInOrder(['St. 2', 'Brzeg zachodni', 'do 3', 'pomost', 'St. 10', 'do 1'])
         ->assertDontSee('St. 99')
         ->assertDontSee('Cecha Wewnętrzna')
         ->assertSee('Brzeg zachodni</b> · st. 2', escape: false)

@@ -96,7 +96,7 @@ test('in Polish every plural key has the three forms from the language file', fu
 
 test('a plural key in the code can not be missed — the extractor finds the known ones', function () {
     expect(pluralKeysInCode()['keys'])
-        ->toContain('up to :count angler|up to :count anglers')
+        ->toContain(':count position|:count positions')
         ->toContain('with :count angler|with :count anglers')
         ->toContain('min. :count night|min. :count nights');
 });
