@@ -82,8 +82,14 @@ final class StaySellability
      */
     private array $sellableByDate = [];
 
-    public function __construct(private readonly Position $position)
-    {
+    /**
+     * @param  bool  $includeOccupancy  przekazywane do `PositionAvailability` — `false` wyłącznie dla
+     *                                  publicznego widoku bez zajętości (zadanie 046)
+     */
+    public function __construct(
+        private readonly Position $position,
+        private readonly bool $includeOccupancy = true,
+    ) {
         // ⚠️ Jawny wyjątek, nie `assert()` — tak samo jak w `PositionAvailability`
         // i z tego samego powodu: asercje są wyłączone w obrazie produkcyjnym
         // (`zend.assertions=-1`), czyli dokładnie tam, gdzie ochrona ma działać.
@@ -503,6 +509,6 @@ final class StaySellability
 
     private function availability(): PositionAvailability
     {
-        return $this->availability ??= new PositionAvailability($this->position);
+        return $this->availability ??= new PositionAvailability($this->position, $this->includeOccupancy);
     }
 }

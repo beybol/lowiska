@@ -69,6 +69,8 @@ final class StayOffer
     public function __construct(
         private readonly Position $position,
         private readonly ?array $rules = null,
+        // `false` wyłącznie dla publicznego widoku bez zajętości (zadanie 046, `PositionAvailability`).
+        private readonly bool $includeOccupancy = true,
     ) {}
 
     /**
@@ -199,7 +201,7 @@ final class StayOffer
 
     private function sellability(): StaySellability
     {
-        return $this->sellability ??= new StaySellability($this->position);
+        return $this->sellability ??= new StaySellability($this->position, $this->includeOccupancy);
     }
 
     private function pricing(): StayPricing

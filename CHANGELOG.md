@@ -304,6 +304,10 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   zajętych dób w portalu. Przy włączonym potwierdzaniu rezerwacja czeka na potwierdzenie wędkarza albo
   obsługi, a niepotwierdzona w terminie sama wygasa, zwalnia stanowisko i wędkarz dostaje o tym mail.
   Zmiana ustawienia nie zmienia terminów rezerwacji już założonych.
+- Kalendarz łowiska w portalu pokazuje **„Zajęte"** na zarezerwowanych dobach, jeśli łowisko włączyło
+  pokazywanie zajętości — neutralnie, bez żadnych danych o rezerwującym, także w widoku na telefonie
+  i w legendzie, gdy taka doba jest w tygodniu. Nad kalendarzem znika wtedy informacja o potwierdzaniu
+  terminów telefonicznie. Przy wyłączonym ustawieniu portal wygląda jak dotąd.
 
 ### Zmienione
 

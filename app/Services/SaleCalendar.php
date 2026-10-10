@@ -191,6 +191,7 @@ final class SaleCalendar
         int $companions = 0,
         ?int $nights = null,
         ?array $onlyPositionIds = null,
+        bool $includeOccupancy = true,
     ): SaleCalendarGrid {
         $days = $this->daysOf($from, $unit);
 
@@ -234,7 +235,8 @@ final class SaleCalendar
             // wtedy raz, a nie raz na komórkę. Cennik dostaje GOTOWY, wspólny dla wszystkich
             // stanowisk: bez tego każde wczytywało go osobno (28 razy przy 26 stanowiskach,
             // zadanie 023). To nie jest bufor werdyktu.
-            $offer = new StayOffer($position, $this->rules());
+            // `$includeOccupancy = false` — portal z wyłączoną publiczną dostępnością (zadanie 046).
+            $offer = new StayOffer($position, $this->rules(), $includeOccupancy);
             $cells = [];
 
             foreach ($days as $day) {

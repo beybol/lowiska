@@ -51,8 +51,16 @@ final class PositionAvailability
      */
     private ?Collection $slots = null;
 
-    public function __construct(private readonly Position $position)
-    {
+    /**
+     * @param  bool  $includeOccupancy  `false` WYŁĄCZNIE dla publicznego widoku łowiska z wyłączoną
+     *                                  publiczną dostępnością (zadanie 046) — wtedy łańcuch nie zgłasza
+     *                                  `Occupied`, a portal wygląda jak przed etapem 3. ⚠️ Ścieżka zapisu
+     *                                  zawsze liczy zajętość (domyślnie) i pyta `isOccupied()` wprost.
+     */
+    public function __construct(
+        private readonly Position $position,
+        private readonly bool $includeOccupancy = true,
+    ) {
         // ⚠️ Jawny wyjątek, nie `assert()`: `positions.fishery_id` jest świadomie
         // `nullable` z `set null` (`panel-wlasciciela.md` §8), a asercje są wyłączone
         // w obrazie produkcyjnym (`zend.assertions=-1`) — tam `assert()` przepuszczał
@@ -90,7 +98,7 @@ final class PositionAvailability
         }
 
         // 4. Zajętość — przyczyna najbardziej przemijająca (ADR-025 pkt 5).
-        if ($this->isOccupied($fishingDay)) {
+        if ($this->includeOccupancy && $this->isOccupied($fishingDay)) {
             return FishingDayAvailability::refused(SaleUnavailabilityReason::Occupied);
         }
 

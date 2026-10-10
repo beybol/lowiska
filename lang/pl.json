@@ -1197,5 +1197,7 @@
     "Turn it on only when every phone reservation is entered in the system — otherwise anglers see a free night that is already sold.": "Włącz dopiero, gdy każda rezerwacja telefoniczna trafia do systemu — inaczej wędkarz zobaczy wolny termin, który już sprzedano.",
     "Your reservation has expired": "Twoja rezerwacja wygasła",
     "The reservation was not confirmed in time, so it has expired and the position is free again.": "Rezerwacja nie została potwierdzona na czas, więc wygasła, a stanowisko jest znów wolne.",
-    "If you still want to come, contact the fishery to book again — the details are below.": "Jeśli nadal chcesz przyjechać, skontaktuj się z łowiskiem i zarezerwuj ponownie — dane znajdziesz poniżej."
+    "If you still want to come, contact the fishery to book again — the details are below.": "Jeśli nadal chcesz przyjechać, skontaktuj się z łowiskiem i zarezerwuj ponownie — dane znajdziesz poniżej.",
+    "Booked": "Zajęte",
+    "Booked nights are marked in the calendar.": "Zajęte doby są zaznaczone w kalendarzu."
 }

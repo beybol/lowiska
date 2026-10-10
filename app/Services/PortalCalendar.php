@@ -74,6 +74,14 @@ final class PortalCalendar
     // ------------------------------------------------------------------ stan i adresy
 
     /** Wyciąg zasad nad siatką — ta sama instancja co w Cenniku, gdy podała ją strona łowiska. */
+    /**
+     * Czy portal pokazuje zajętość — ustawienie łowiska (`public_availability_enabled`, zadanie 045/046).
+     */
+    public function showsOccupancy(): bool
+    {
+        return (bool) $this->fishery->public_availability_enabled;
+    }
+
     public function rules(): FisheryRulesSummary
     {
         return $this->rules ??= new FisheryRulesSummary($this->fishery);
@@ -410,8 +418,10 @@ final class PortalCalendar
                 ->filter(fn (Position $p): bool => $p->max_anglers === null || (int) $p->max_anglers >= $this->anglers)
                 ->pluck('id')->all();
 
+            // ⚠️ Zajętość tylko przy włączonej publicznej dostępności (zadanie 046). Wyłączona = portal jak
+            // przed etapem 3: zarezerwowana doba wygląda na wolną, a łowisko potwierdza terminy telefonicznie.
             $this->grid = (new SaleCalendar($this->fishery))
-                ->grid($this->week, CalendarWindow::Week, $this->anglers, 0, null, $ids);
+                ->grid($this->week, CalendarWindow::Week, $this->anglers, 0, null, $ids, $this->showsOccupancy());
         }
 
         return $this->grid;
@@ -485,6 +495,16 @@ final class PortalCalendar
                 'state' => 'bundle',
                 'text' => __('start :day', ['day' => $this->dayLabel($cell->startEarlierOn)]),
                 'title' => __('This night is inside a bundle sold whole — it starts on :day.', ['day' => $this->dayLabel($cell->startEarlierOn)]),
+            ];
+        }
+
+        // „Zajęte" — neutralnie, bez powodu i BEZ ŻADNYCH danych rezerwacji (zadanie 046, W10): ani kto,
+        // ani numer, ani czy potwierdzona. Niepotwierdzona rezerwacja też jest zajęta.
+        if ($cell->reason === SaleUnavailabilityReason::Occupied) {
+            return [
+                'state' => 'occupied',
+                'text' => __('Booked'),
+                'title' => __('Booked'),
             ];
         }
 

@@ -29,13 +29,18 @@
     $cells = collect($rows)->flatMap(fn ($row) => $row['cells'] ?? []);
     $hasBundle = $packages !== [] || $cells->contains(fn ($cell) => $cell['state'] === 'bundle');
     $hasFromFishery = $cells->contains(fn ($cell) => ! in_array($cell['state'], ['sellable', 'bundle'], true) && ($cell['from_fishery'] ?? false));
+    $hasOccupied = $cells->contains(fn ($cell) => $cell['state'] === 'occupied');
 @endphp
 <section id="{{ \App\Services\PortalRoutes::CALENDAR_ANCHOR[app()->getLocale()] }}" data-calendar class="scroll-mt-4">
     {{-- Nagłówek: tytuł po lewej; „Łowiących" i nawigacja tygodnia po prawej — na telefonie zawijają się pod tytuł. --}}
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <h2 class="font-display text-[23px] font-semibold tracking-tight">{{ __('Dates and prices') }}</h2>
-            <p class="mt-0.5 text-[13px] font-semibold text-a700">{{ __('The fishery will confirm free dates by phone.') }}</p>
+            @if ($calendar->showsOccupancy())
+                <p class="mt-0.5 text-[13px] font-semibold text-muted">{{ __('Booked nights are marked in the calendar.') }}</p>
+            @else
+                <p class="mt-0.5 text-[13px] font-semibold text-a700">{{ __('The fishery will confirm free dates by phone.') }}</p>
+            @endif
         </div>
         <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
             <div class="flex items-center gap-2">
@@ -230,6 +235,9 @@
             <span><i class="mr-1 inline-block size-3 rounded-sm border border-line bg-white align-[-2px]"></i>{{ __('Price of a stay from this night') }}</span>
             @if ($hasBundle)
                 <span><i class="mr-1 inline-block size-3 rounded-sm bg-b50 align-[-2px]"></i>{{ __('Inside a bundle — start earlier') }}</span>
+            @endif
+            @if ($hasOccupied)
+                <span><i class="mr-1 inline-block size-3 rounded-sm bg-line2 align-[-2px]"></i>{{ __('Booked') }}</span>
             @endif
             @if ($hasFromFishery)
                 <span><i class="mr-1 inline-block size-3 rounded-sm bg-[repeating-linear-gradient(-45deg,var(--color-a100),var(--color-a100)_3px,var(--color-a200)_3px,var(--color-a200)_6px)] align-[-2px]"></i>{{ __('Unavailable — reason from the fishery') }}</span>

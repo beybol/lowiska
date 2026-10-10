@@ -391,6 +391,10 @@ Zadanie źródłowe: 039. Uzasadnienia: [ADR-025](../adr/ADR-025-zajetosc-stanow
 - **Zwolnienie zasobu usuwa sloty i egzemplarze usług**; rezerwacja i warunki zostają. Dlatego przedział
   pobytu (`starts_at`, `ends_at`, `first_night_on`, `nights`) jest powtórzony na rezerwacji — historia
   pokazuje termin anulowanej rezerwacji bez slotów.
+- **Tryb bez zajętości — wyłącznie dla portalu z wyłączoną publiczną dostępnością** (zadanie 046):
+  `PositionAvailability`, `StaySellability`, `StayOffer` i `SaleCalendar::grid()` przyjmują
+  `includeOccupancy: false`, a wtedy łańcuch nie zgłasza `Occupied`. ⚠️ Ścieżka zapisu i panel zawsze liczą
+  zajętość (wartość domyślna); nie przekazuj `false` nigdzie poza `PortalCalendar`.
 - **Kalendarze pokazują zajętość z tego samego źródła:** warstwa „Oferta" (019) — powód `Occupied`
   jako krótka etykieta „zajęte"; warstwa „Rezerwacje" (042) — `isOccupied()`/`isBlocked()` na komórkach
   ([`rezerwacje.md`](rezerwacje.md) §2). Wołający pytający o wiele stanowisk wczytuje sloty i blokady

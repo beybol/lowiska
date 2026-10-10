@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `routes/**`, widokach Breeze i `resources/views/**` 
 `resources/views/filament/**` — w szczególności w portalu wędkarza (`resources/views/portal/**`,
 `app/Http/Controllers/Portal/**`, `App\Services\Portal*`).
 
-Zadania źródłowe: 029, 031, 032, 033, 034, 036, 037, 038, 040, 043. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
+Zadania źródłowe: 029, 031, 032, 033, 034, 036, 037, 038, 040, 043, 046. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
 (potok stylów), [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md) (schemat adresów).
 Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
@@ -264,3 +264,21 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   samej stronie (`PortalRoutes::counterpart()`).
 - Logika (tokeny, konto, telefon, rezygnacja) mieszka w `AnglerLinking`, nie w kontrolerze —
   [`rezerwacje.md`](rezerwacje.md) §3.
+
+## 9. Publiczna dostępność — stan „Zajęte" (zadanie 046)
+
+- **Zajętość w portalu pokazuje się wyłącznie przy włączonym `fisheries.public_availability_enabled`**
+  (`PortalCalendar::showsOccupancy()`, przełącznik na „Sprzedaż i sezony"). ⚠️ **Warunek uruchomienia:** obsługa
+  wpisuje do systemu KAŻDĄ rezerwację telefoniczną — inaczej wędkarz zobaczy wolny termin, który już sprzedano.
+- **Wyłączona = portal jak przed etapem 3**: siatka liczy się bez zajętości (`SaleCalendar::grid(..., includeOccupancy: false)`),
+  zarezerwowana doba ma cenę jak wolna, nad siatką „Łowisko potwierdzi wolne terminy telefonicznie". ⚠️ Zajętość
+  nie może przeciekać do widoku przy wyłączonym ustawieniu — ani jako odmowa, ani jako inny stan komórki.
+- **Włączona**: komórka `occupied` — neutralne „Zajęte" na `bg-line2`, **bez kreskowania** (kreskowanie znaczy
+  „niedostępne — powód od łowiska"), legenda „Zajęte" tylko, gdy taka doba jest w widocznym tygodniu; ten sam stan
+  w liście dnia na telefonie. Niepotwierdzona rezerwacja też jest zajęta (W10 — ryzyko przyjęte).
+- ⚠️ **Prywatność: komórka „Zajęte" nie niesie ŻADNYCH danych rezerwacji** — ani wędkarza, ani numeru, ani statusu.
+  Stan pochodzi z powodu `Occupied` warstwy oferty; widok nie liczy go sam. Pilnuje tego `PortalOccupancyTest`
+  (pełna strona i fragment `X-Portal-Fragment`).
+- Kalendarz portalu nie ma pamięci podręcznej fragmentów (fragment ma `Cache-Control: no-store`, §6) — zmiana
+  rezerwacji jest widoczna od razu, bez unieważniania.
+

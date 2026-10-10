@@ -18,6 +18,9 @@
         <span class="block font-semibold whitespace-nowrap text-b600">{{ $cell['price'] }}</span>
         <span class="block text-[11px] whitespace-nowrap text-muted">{{ $cell['nights'] }}@if ($cell['surcharge']) · {{ __('with surcharge') }}@endif</span>
     @endif
+@elseif ($cell['state'] === 'occupied')
+    {{-- „Zajęte" (046): neutralny szary, BEZ kreskowania — kreskowanie znaczy „powód od łowiska". --}}
+    <span class="block rounded-sm bg-line2 px-1 py-1.5 text-[11px] font-semibold whitespace-nowrap text-muted" title="{{ $cell['title'] }}" data-occupied>{{ $cell['text'] }}</span>
 @elseif ($cell['state'] === 'bundle')
     <span class="block rounded-sm bg-b50 px-1 py-1.5 text-[11px] font-semibold whitespace-nowrap text-b700" title="{{ $cell['title'] }}">{{ $cell['text'] }}</span>
 @else
