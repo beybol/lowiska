@@ -110,6 +110,25 @@ final class ReservationActions
             });
     }
 
+    /** „Oznacz jako opłaconą" — skrót kalendarza do statusu płatności (zadanie 042). */
+    public static function markPaid(): Action
+    {
+        return Action::make('markPaid')
+            ->label(__('Mark as paid'))
+            ->icon('heroicon-m-banknotes')
+            ->color('success')
+            ->requiresConfirmation()
+            ->modalHeading(__('Mark the reservation as paid'))
+            ->visible(fn (Reservation $record): bool => $record->isActive()
+                && $record->payment_status !== PaymentStatus::Paid
+                && Gate::allows('update', $record))
+            ->action(function (Reservation $record): void {
+                Gate::authorize('update', $record);
+                (new ReservationBooking)->setPaymentStatus($record, PaymentStatus::Paid);
+                Notification::make()->success()->title(__('Saved'))->send();
+            });
+    }
+
     public static function markContacted(): Action
     {
         return Action::make('markContacted')

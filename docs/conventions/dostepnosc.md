@@ -390,6 +390,10 @@ Zadanie źródłowe: 039. Uzasadnienia: [ADR-025](../adr/ADR-025-zajetosc-stanow
 - **Zwolnienie zasobu usuwa sloty i egzemplarze usług**; rezerwacja i warunki zostają. Dlatego przedział
   pobytu (`starts_at`, `ends_at`, `first_night_on`, `nights`) jest powtórzony na rezerwacji — historia
   pokazuje termin anulowanej rezerwacji bez slotów.
+- **Kalendarze pokazują zajętość z tego samego źródła:** warstwa „Oferta" (019) — powód `Occupied`
+  jako krótka etykieta „zajęte"; warstwa „Rezerwacje" (042) — `isOccupied()`/`isBlocked()` na komórkach
+  ([`rezerwacje.md`](rezerwacje.md) §2). Wołający pytający o wiele stanowisk wczytuje sloty i blokady
+  z góry; `PositionAvailability` używa wczytanych relacji zamiast zapytań per stanowisko.
 - **„W toku" nie jest stanem** (`ReservationStatus`: `pending`, `confirmed`, `cancelled`, `expired`) —
   wylicza się z przedziału i chwili pytania (`Reservation::isInProgress()`).
 - **Relacja z wędkarzem** (`fishery_anglers`, ADR-024): zapis operatora wiąże rezerwację z relacją

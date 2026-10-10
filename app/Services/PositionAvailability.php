@@ -246,6 +246,14 @@ final class PositionAvailability
      */
     private function blocksWithEffect(BlockEffect $effect): Collection
     {
+        // Wpisy wczytane z góry przez wołającego (`with('availabilityBlocks.attribute')`) — bez
+        // zapytania na stanowisko (kalendarz rezerwacji, zadanie 042).
+        if (! isset($this->blocksByEffect[$effect->value]) && $this->position->relationLoaded('availabilityBlocks')) {
+            return $this->blocksByEffect[$effect->value] = $this->position->availabilityBlocks
+                ->filter(fn (AvailabilityBlock $block): bool => $block->effect === $effect)
+                ->values();
+        }
+
         return $this->blocksByEffect[$effect->value] ??= $this->position->availabilityBlocks()
             ->withEffect($effect)
             ->with('attribute')
@@ -262,7 +270,25 @@ final class PositionAvailability
      */
     private function slots(): Collection
     {
+        // Wołający, który pyta o wiele stanowisk naraz (kalendarze), wczytuje sloty z góry
+        // (`with('reservationSlots')`) — wtedy liczba zapytań nie rośnie ze stanowiskami.
+        if ($this->slots === null && $this->position->relationLoaded('reservationSlots')) {
+            $this->slots = $this->position->reservationSlots;
+        }
+
         return $this->slots ??= $this->position->reservationSlots()->get(['id', 'reservation_id', 'starts_at', 'ends_at']);
+    }
+
+    /**
+     * Czy dobę przecina blokada sprzedaży — NIEZALEŻNIE od trwalszych przyczyn (jak `isOccupied()`).
+     * Kalendarz rezerwacji kreskuje zablokowane doby także na stanowisku wycofanym (zadanie 042).
+     */
+    public function isBlocked(FishingDay|CarbonInterface|string $day): bool
+    {
+        $fishingDay = $day instanceof FishingDay ? $day : $this->calendar()->dayStartingOn($day);
+
+        return $fishingDay instanceof FishingDay
+            && $this->blocksIntersecting($fishingDay, BlockEffect::SaleBlocked)->isNotEmpty();
     }
 
     private function calendar(): FishingDayCalendar

@@ -9,7 +9,7 @@ i w mailach o rezerwacjach.
 [`dostepnosc.md`](dostepnosc.md) §6** (oś „czy wolno sprzedać") i [`cennik.md`](cennik.md) (warunki
 i zwrot). Ten plik niesie reguły EKRANÓW i PRZEPŁYWÓW, które na tym rdzeniu stoją.
 
-Zadania źródłowe: 041. Decyzje: ADR-024…027.
+Zadania źródłowe: 041, 042. Decyzje: ADR-024…027.
 
 ---
 
@@ -40,3 +40,37 @@ Zadania źródłowe: 041. Decyzje: ADR-024…027.
   (`ReservationMailer`); brak adresu albo błąd wysyłki → „Do kontaktu".
 - **Wyszukiwanie wędkarza wyłącznie w relacjach TEGO łowiska** (ADR-024): tabela po zawężonym zapytaniu,
   podpowiedzi w formularzu z `fishery_anglers` łowiska — nigdy z `users`.
+
+---
+
+## 2. Kalendarz — warstwa „Rezerwacje" (zadanie 042)
+
+- **Jeden ekran, dwie warstwy** (G4): `ManageCalendar` z `?layer=reservations` (domyślna, także dla
+  admina) i `?layer=offer` (podgląd 019, bez zmian funkcji). Wartość spoza `CalendarLayer` → domyślna.
+  Okna: tydzień i **2 tygodnie** (od poniedziałku); **miesiąc wyłącznie w „Ofercie"**
+  (`CalendarWindow::optionsFor()`, `unit()` zamienia miesiąc na dwa tygodnie w „Rezerwacjach").
+  Warstwa „Rezerwacje" nie jest przypięta do sezonu — nawigacja okna jest wolna.
+- **Siatkę składa [`ReservationCalendar`](../../app/Services/ReservationCalendar.php), widok niczego nie
+  liczy.** Zajętość i blokady komórek — `PositionAvailability::isOccupied()` / `isBlocked()` (to samo
+  źródło co ścieżka zapisu), paski — z `first_night_on` + `nights`, przycięte do okna (`startsBefore` → ◀).
+  ⚠️ **Liczba zapytań nie rośnie z dobami ani stanowiskami:** stanowiska wczytują z góry
+  `reservationSlots` i `availabilityBlocks.attribute`, a `PositionAvailability` korzysta z wczytanych
+  relacji, zamiast pytać per stanowisko. Pilnuje tego `ReservationCalendarTest`. Ta sama zasada objęła
+  `SaleCalendar` (sloty z góry).
+- **Klik w wolną dobę zaznacza, drugi klik w tym wierszu wydłuża zakres, ale zatrzymuje się przed dobą
+  zajętą.** Przeszłość i doby zajęte są nieklikalne (przyciski `disabled`). Doba zablokowana jest
+  klikalna — operator może zarezerwować z wyjątkiem.
+- **Popover to WIERSZ tabeli pod klikniętym stanowiskiem** (zakotwiczony w kontenerze, bez
+  `position: fixed`) — mieści się w polu widzenia dla pierwszego i ostatniego wiersza bez liczenia
+  pozycji skryptem. Esc i ✕ czyszczą zaznaczenie.
+- ⚠️ **Akcje kalendarza dostają stanowisko, dzień i liczbę dób w ARGUMENTACH**, nie z zaznaczenia —
+  zaznaczenie bywa wyczyszczone, gdy modal jest otwarty. Id z argumentów to dane od klienta: stanowisko
+  i rezerwacja wyłącznie z łowiska strony (`scopedReservation()`, zapytania z `positions()` łowiska).
+- **Krótki formularz rezerwacji i pełna strona C zapisują przez to samo `ReservationFormSubmission`** —
+  dwa formularze, jedna interpretacja pól. Długość w krótkim formularzu nie przekracza wolnych dób
+  (`ReservationCalendar::freeNightsFrom()`, maks. `MAX_FREE_NIGHTS` = 30 — stała w jednym miejscu).
+- **Skrót „Zablokuj…"** zapisuje blokadę sprzedaży jednego stanowiska (`AvailabilityBlockWriter`), ale
+  **nie podejmuje decyzji o kolizji** — gdy okno blokady (całe dni) przecina aktywną rezerwację, odmawia
+  i odsyła do ekranu blokad (G8, ADR-027).
+- **Telefon:** pasek dni i lista stanowisk dla dnia; wolne stanowisko pokazuje „wolne do dd.mm · maks.
+  N dób" z tym samym wyliczeniem co krótki formularz.

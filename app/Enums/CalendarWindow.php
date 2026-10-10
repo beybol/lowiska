@@ -5,19 +5,21 @@ namespace App\Enums;
 use Carbon\CarbonImmutable;
 
 /**
- * Jednostka okna kalendarza podglądowego (zadanie 019).
+ * Jednostka okna kalendarza (zadania 019, 042).
  *
- * ⚠️ **Okno jest jednostką KALENDARZOWĄ, nie liczbą dób.** Pokazujemy miesiąc albo tydzień,
- * a nie „trzydzieści dni od kotwicy": kolumny wypadają wtedy tam, gdzie operator ich szuka,
- * i da się powiedzieć „czerwiec" zamiast „1–30.06".
+ * ⚠️ **Okno jest jednostką KALENDARZOWĄ, nie liczbą dób.** Pokazujemy miesiąc, tydzień albo dwa
+ * tygodnie od poniedziałku, a nie „trzydzieści dni od kotwicy": kolumny wypadają wtedy tam, gdzie
+ * operator ich szuka.
  *
- * ⚠️ **Dwie wartości i ani jednej więcej — to świadome zamknięcie najgorszego przypadku.**
- * Koszt renderu rośnie z iloczynem dób i stanowisk, a dopiero go mierzymy. Kwartał czy rok
- * dołożyłby kolumn dokładnie tam, gdzie nie wiemy jeszcze, ile kosztują.
+ * ⚠️ **Zbiór wartości jest świadomie zamknięty** — koszt renderu rośnie z iloczynem dób i stanowisk.
+ * „2 tygodnie" doszło z warstwą „Rezerwacje" (042, Q7); **miesiąc jest wyłącznie w warstwie „Oferta"**
+ * (`optionsFor()`), bo paski rezerwacji w miesiącu przestają być czytelne.
  */
 enum CalendarWindow: string
 {
     case Month = 'month';
+
+    case TwoWeeks = 'two_weeks';
 
     case Week = 'week';
 
@@ -25,6 +27,7 @@ enum CalendarWindow: string
     {
         return match ($this) {
             self::Month => __('Month'),
+            self::TwoWeeks => __('2 weeks'),
             self::Week => __('Week'),
         };
     }
@@ -43,12 +46,26 @@ enum CalendarWindow: string
         return $options;
     }
 
+    /**
+     * Okna dostępne w warstwie kalendarza — w „Rezerwacjach" bez miesiąca.
+     *
+     * @return array<string, string>
+     */
+    public static function optionsFor(CalendarLayer $layer): array
+    {
+        return array_filter(
+            self::options(),
+            fn (string $value): bool => $layer === CalendarLayer::Offer || $value !== self::Month->value,
+            ARRAY_FILTER_USE_KEY,
+        );
+    }
+
     /** Początek jednostki ZAWIERAJĄCEJ tę datę — nie sama data. */
     public function startFor(CarbonImmutable $day): CarbonImmutable
     {
         return match ($this) {
             self::Month => $day->startOfMonth()->startOfDay(),
-            self::Week => $day->startOfWeek(CarbonImmutable::MONDAY)->startOfDay(),
+            self::TwoWeeks, self::Week => $day->startOfWeek(CarbonImmutable::MONDAY)->startOfDay(),
         };
     }
 
@@ -56,6 +73,7 @@ enum CalendarWindow: string
     {
         return match ($this) {
             self::Month => $day->endOfMonth()->startOfDay(),
+            self::TwoWeeks => $this->startFor($day)->addDays(13),
             self::Week => $this->startFor($day)->addDays(6),
         };
     }
@@ -64,6 +82,7 @@ enum CalendarWindow: string
     {
         return match ($this) {
             self::Month => $this->startFor($day)->addMonth(),
+            self::TwoWeeks => $this->startFor($day)->addWeeks(2),
             self::Week => $this->startFor($day)->addWeek(),
         };
     }
@@ -72,6 +91,7 @@ enum CalendarWindow: string
     {
         return match ($this) {
             self::Month => $this->startFor($day)->subMonth(),
+            self::TwoWeeks => $this->startFor($day)->subWeeks(2),
             self::Week => $this->startFor($day)->subWeek(),
         };
     }

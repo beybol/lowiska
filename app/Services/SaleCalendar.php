@@ -197,6 +197,9 @@ final class SaleCalendar
         /** @var array<int, Position> $positions */
         $positions = $this->fishery->positions()
             ->when($onlyPositionIds !== null, fn ($query) => $query->whereKey($onlyPositionIds))
+            // Sloty rezerwacji z góry (039): `PositionAvailability` pyta o zajętość każdej doby,
+            // a bez tego każde stanowisko zadałoby własne zapytanie.
+            ->with('reservationSlots')
             ->orderBy('name')
             ->get()
             ->all();

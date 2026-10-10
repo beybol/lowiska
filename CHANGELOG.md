@@ -269,6 +269,19 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   do wędkarza. Anulacja trwającego pobytu wymaga dodatkowego potwierdzenia. Wędkarz dostaje mail
   o anulacji; rezerwacja bez adresu e-mail trafia na listę „Do kontaktu", z której obsługa odhacza
   załatwione sprawy. Kilka rezerwacji naraz da się potwierdzić, oznaczyć płatność albo anulować.
+- Kalendarz łowiska ma dwie warstwy: **„Rezerwacje"** (domyślną) i **„Oferta"** (dotychczasowy podgląd
+  cen i reguł). W warstwie rezerwacji widać paski rezerwacji na stanowiskach w kolorze statusu
+  (potwierdzona, opłacona, do potwierdzenia z terminem, w toku), zablokowane doby, weekendy, dzisiejszy
+  dzień oraz liczniki przyjazdów i wyjazdów dziś, niepotwierdzonych i „do kontaktu". Okno to tydzień
+  albo dwa tygodnie, z filtrem grupy stanowisk i statusu.
+- Kliknięcie wolnej doby w kalendarzu zaznacza termin, a kolejne kliknięcie w tym samym wierszu go
+  wydłuża — nigdy przez dobę zajętą. Pod stanowiskiem pokazuje się przyjazd, wyjazd, liczba dób i cena,
+  a z niego krótki formularz rezerwacji, przejście do pełnego formularza albo blokada terminu.
+  Kliknięcie paska rezerwacji daje podgląd, edycję, potwierdzenie, oznaczenie płatności i anulację bez
+  wychodzenia z kalendarza.
+- Na telefonie kalendarz pokazuje pasek dni i listę stanowisk na wybrany dzień: wolne stanowisko podaje,
+  do kiedy jest wolne i na ile dób maksymalnie, a krótki formularz nie pozwala zarezerwować dłużej.
+- W podglądzie oferty zarezerwowana doba ma oznaczenie „zajęte".
 
 ### Zmienione
 

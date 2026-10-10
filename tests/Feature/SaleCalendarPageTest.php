@@ -19,7 +19,10 @@ use Livewire\Livewire;
 use Tests\Support\StayFixtures;
 
 /**
- * Ekran „Kalendarz" — zadanie 019.
+ * Ekran „Kalendarz" — zadanie 019, warstwa „Oferta".
+ *
+ * Od zadania 042 domyślną warstwą jest „Rezerwacje", więc testy podglądu konfiguracji wchodzą
+ * w warstwę „Oferta" jawnie (`?layer=offer`) — jej zachowanie z 019 jest niezmienione.
  *
  * ⚠️ **Strona otwiera się w OBU panelach i test sprawdza to jawnie.** Dopisanie pozycji do
  * `FisheryResource::getPages()` dotyka klasy współdzielonej przez oba panele — zamiast
@@ -57,7 +60,7 @@ test('kalendarz startuje na kotwicy i w oknie miesięcznym', function () {
     StayFixtures::rate($fishery, 70.00);
     $this->actingAs($owner);
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->assertSet('window', CalendarWindow::Month->value)
         ->assertSet('windowStart', '2026-05-01')
         ->assertSet('anglers', 1)
@@ -72,7 +75,7 @@ test('przełączenie na tydzień pokazuje tydzień zawierający początek okna',
     StayFixtures::rate($fishery, 70.00);
     $this->actingAs($owner);
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->set('window', CalendarWindow::Week->value)
         // 2026-05-01 to piątek; tydzień zawierający go zaczyna się 27.04.
         ->assertSet('windowStart', '2026-04-27');
@@ -88,7 +91,7 @@ test('przesuwanie okna trzyma się granic sezonu', function () {
     $fishery->salePeriods()->update(['starts_on' => '2026-05-01', 'ends_on' => '2026-06-30']);
     $this->actingAs($owner);
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->fresh()->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->fresh()->getRouteKey()])
         ->assertSet('windowStart', '2026-05-01')
         // Wstecz nie da się wyjść przed maj.
         ->call('previousWindow')
@@ -109,7 +112,7 @@ test('siatka renderuje się z kwotą i liczbą dób', function () {
 
     app()->setLocale('pl');
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->assertSuccessful()
         ->assertSee('70,00');
 });
@@ -126,7 +129,7 @@ test('łowisko bez okresu sprzedaży dostaje komunikat zamiast siatki', function
 
     app()->setLocale('pl');
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->fresh()->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->fresh()->getRouteKey()])
         ->assertSuccessful()
         ->assertSee(__('There is nothing to show yet'));
 });
@@ -142,7 +145,7 @@ test('łowisko bez stawek dostaje komunikat NAD siatką', function () {
 
     app()->setLocale('pl');
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->assertSuccessful()
         ->assertSee(__('This fishery has no rates yet'))
         // Siatka nadal jest — widać, których dób dotyczy dziura.
@@ -182,17 +185,17 @@ test('niepoprawna długość pobytu nie wywraca ekranu', function () {
 
     app()->setLocale('pl');
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->set('nights', 0)
         ->assertSuccessful()
         // Zero podnosi się do jednej doby, a nie wysypuje warstwy oferty.
         ->assertSee('70,00');
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->set('nights', -5)
         ->assertSuccessful();
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->set('anglers', 0)
         ->assertSuccessful();
 });
@@ -207,11 +210,11 @@ test('niepoprawna data okna wraca do kotwicy zamiast wywracać ekran', function 
     StayFixtures::rate($fishery, 70.00);
     $this->actingAs($owner);
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->set('windowStart', 'nie-data')
         ->assertSuccessful();
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->set('windowStart', '2026-13-45')
         ->assertSuccessful();
 });
@@ -229,7 +232,7 @@ test('podpowiedź nachodzenia podaje zwycięzcę i kwoty przegranych', function 
 
     app()->setLocale('pl');
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->assertSuccessful()
         // Kwota przegranej musi być widoczna — inaczej operator nie wie, co przegrało.
         ->assertSee('90.00');
@@ -250,7 +253,7 @@ test('martwa stawka jest opisana nazwą, kwotą z walutą i zakresem dat', funct
     $unnamed = StayFixtures::rate($fishery, 80.00, ['first_day_on' => '2026-09-01']);
     $this->actingAs($owner);
 
-    $page = Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])->instance();
+    $page = Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])->instance();
 
     expect($page->deadRateDescription($named))->toBe('Wakacje — 90,00 PLN · 2026-07-01–2026-08-31')
         ->and($page->deadRateDescription($unnamed))->toBe('80,00 PLN · od 2026-09-01');
@@ -279,7 +282,7 @@ test('przy stanowisku widać plakietkę usług z dopiskiem o niedostępnej i pe�
 
     $this->actingAs($owner);
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->assertSee(trans_choice(':count service|:count services', 2, ['count' => 2]).' · '.trans_choice(':count unavailable|:count unavailable', 1, ['count' => 1]))
         ->assertSee('Przyczepa · '.__('free').' · '.__('required').' · '.__(':count pcs', ['count' => 3]))
         ->assertSee(__(':attribute — not specified on this position', ['attribute' => 'Wjazd pojazdem']))
@@ -292,6 +295,6 @@ test('stanowisko bez usług nie dostaje plakietki', function () {
     StayFixtures::rate($fishery, 70.00);
     $this->actingAs($owner);
 
-    Livewire::test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
+    Livewire::withQueryParams(['layer' => 'offer'])->test(ManageCalendar::class, ['record' => $fishery->getRouteKey()])
         ->assertDontSee('data-services-badge', escape: false);
 });

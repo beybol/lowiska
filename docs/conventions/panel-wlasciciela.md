@@ -376,9 +376,11 @@ Sub-nawigacja łowiska niesie dziś dwa rodzaje ekranów i warto je odróżniać
 
 - **strony ustawień** — formularze zapisujące konfigurację (`ManageSaleSettings`, `ManageSaleRules`,
   `ManagePricing`, …);
-- **ekran podglądowy** — `ManageCalendar`, który **niczego nie zapisuje** i pokazuje SKUTEK
-  ustawień. Stoi **za „Cennikiem", przed „Stanowiskami"**: trzy ekrany konfiguracji, a zaraz po
-  nich to, co z nich wynika.
+- **ekran podglądowy** — warstwa **„Oferta"** `ManageCalendar` (`?layer=offer`), która **niczego nie
+  zapisuje** i pokazuje SKUTEK ustawień. Kalendarz stoi **za „Cennikiem"**: trzy ekrany konfiguracji,
+  a zaraz po nich to, co z nich wynika. Od zadania 042 ten sam ekran ma drugą, domyślną warstwę
+  **„Rezerwacje"** — operacyjną ([`rezerwacje.md`](rezerwacje.md) §2); reguły tej sekcji dotyczą warstwy
+  „Oferta".
 
 ⚠️ **Podgląd woła WARSTWĘ OFERTY, nigdy warstwy niższe.** `SaleCalendar` nie dotyka
 `StaySellability`, `PositionAvailability` ani wyceny wprost — inaczej stałby się drugim miejscem
