@@ -214,6 +214,26 @@ class ManageSaleSettings extends EditRecord
                         ->minValue(1)
                         ->maxValue(3650),
                 ]),
+            // Ustawienia rezerwacji (zadanie 045): potwierdzanie rezerwacji ręcznej i publiczna zajętość.
+            Section::make(__('Reservations'))
+                ->schema([
+                    Toggle::make('manual_reservation_confirmation_required')
+                        ->label(__('Manual reservations need confirmation'))
+                        ->helperText(__('An unconfirmed reservation expires after the window below and frees the position. The angler confirms by email, or you confirm it in the panel.'))
+                        ->live(),
+                    TextInput::make('manual_reservation_hold_hours')
+                        ->label(__('Confirmation window (hours)'))
+                        ->integer()
+                        ->minValue(1)
+                        ->maxValue(Fishery::MAX_HOLD_HOURS)
+                        ->default(Fishery::DEFAULT_HOLD_HOURS)
+                        ->placeholder((string) Fishery::DEFAULT_HOLD_HOURS)
+                        ->required(fn (Get $get): bool => (bool) $get('manual_reservation_confirmation_required'))
+                        ->visible(fn (Get $get): bool => (bool) $get('manual_reservation_confirmation_required')),
+                    Toggle::make('public_availability_enabled')
+                        ->label(__('Show booked nights in the portal'))
+                        ->helperText(__('Turn it on only when every phone reservation is entered in the system — otherwise anglers see a free night that is already sold.')),
+                ]),
         ]);
     }
 

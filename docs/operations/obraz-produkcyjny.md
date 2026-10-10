@@ -360,3 +360,26 @@ bez maski) też nie jest niczym, co złapałby PHPStan czy gitleaks.
   z trasami i listą zastrzeżoną **wdrażanej** wersji; kolizja to ostrzeżenie w logu joba
   `lowiska-{env}-check-slugs`. Powód i reguły: [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md),
   [`strona-publiczna.md`](../conventions/strona-publiczna.md) §3.
+
+---
+
+## 13. Zadania cykliczne — wygaszanie niepotwierdzonych rezerwacji (zadanie 045)
+
+Komenda **`php artisan reservations:expire`** wygasza rezerwacje, którym minął termin potwierdzenia
+(`confirm_by`), zwalnia ich sloty i wysyła wędkarzowi mail o wygaśnięciu. Jest **idempotentna i bezpieczna
+przy równoległym uruchomieniu** (blokada wiersza rezerwacji i ponowne sprawdzenie w `ReservationBooking::expire()`),
+więc nakładające się wywołania niczego nie psują.
+
+- **Lokalnie:** harmonogram Laravela (`routes/console.php`, co 5 minut) — usługa `scheduler` z profilem
+  (`docker compose --profile scheduler up -d scheduler`) albo ręcznie `docker compose exec app php artisan schedule:run`.
+- **Cloud Run (staging, prod):** procesu harmonogramu nie ma (§8). Wyzwalaczem jest **Cloud Scheduler → Cloud Run Job**
+  z tym samym obrazem — wzorzec z §8 (`gcp-foundation`, ADR-0012), **bez endpointu HTTP** (brak nowej powierzchni ataku):
+  - Job: obraz aplikacji, polecenie `php artisan reservations:expire`, te same zmienne i sekrety co usługa
+    (baza, poczta), zadanie jednorazowe bez ponawiania przy kodzie 0;
+  - Scheduler: co 5 minut (`*/5 * * * *`), strefa `Europe/Warsaw`, uruchomienie Joba przez API Cloud Run z kontem
+    serwisowym z rolą `run.invoker` na tym Jobie.
+
+⚠️ **Utworzenie Joba i harmonogramu w GCP to krok ręczny po wdrożeniu** — repozytorium dostarcza komendę
+i harmonogram lokalny, nie konfigurację projektu GCP. Dopóki Job nie istnieje, niepotwierdzone rezerwacje
+na Cloud Run **nie wygasają same** (operator nadal może je anulować albo potwierdzić); łowisko z wyłączonym
+potwierdzaniem (domyślnie) nie jest tym dotknięte.

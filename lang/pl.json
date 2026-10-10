@@ -1189,5 +1189,13 @@
     "Optional. It goes into the cancellation email. Reservations without an email address go to the \"To contact\" list.": "Opcjonalny. Trafi do maila o anulacji. Rezerwacje bez adresu e-mail trafią na listę „Do kontaktu\".",
     "Save the change and decisions": "Zapisz zmianę i decyzje",
     "The suspension applies to :count reservation|The suspension applies to :count reservations": "Zawieszenie dotyczy :count rezerwacji|Zawieszenie dotyczy :count rezerwacji|Zawieszenie dotyczy :count rezerwacji",
-    "Other changes were saved. Withdrawing the position needs a decision about its reservations.": "Pozostałe zmiany zapisano. Wycofanie stanowiska wymaga decyzji o jego rezerwacjach."
+    "Other changes were saved. Withdrawing the position needs a decision about its reservations.": "Pozostałe zmiany zapisano. Wycofanie stanowiska wymaga decyzji o jego rezerwacjach.",
+    "Manual reservations need confirmation": "Rezerwacje ręczne wymagają potwierdzenia",
+    "An unconfirmed reservation expires after the window below and frees the position. The angler confirms by email, or you confirm it in the panel.": "Niepotwierdzona rezerwacja wygasa po upływie okna poniżej i zwalnia stanowisko. Wędkarz potwierdza mailem albo Ty potwierdzasz w panelu.",
+    "Confirmation window (hours)": "Okno potwierdzenia (godziny)",
+    "Show booked nights in the portal": "Pokazuj zajęte doby w portalu",
+    "Turn it on only when every phone reservation is entered in the system — otherwise anglers see a free night that is already sold.": "Włącz dopiero, gdy każda rezerwacja telefoniczna trafia do systemu — inaczej wędkarz zobaczy wolny termin, który już sprzedano.",
+    "Your reservation has expired": "Twoja rezerwacja wygasła",
+    "The reservation was not confirmed in time, so it has expired and the position is free again.": "Rezerwacja nie została potwierdzona na czas, więc wygasła, a stanowisko jest znów wolne.",
+    "If you still want to come, contact the fishery to book again — the details are below.": "Jeśli nadal chcesz przyjechać, skontaktuj się z łowiskiem i zarezerwuj ponownie — dane znajdziesz poniżej."
 }

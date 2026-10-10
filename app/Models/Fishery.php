@@ -68,7 +68,17 @@ class Fishery extends Model implements HasMedia
         'facebook_url',
         // Ustawia wyłącznie akcja „Opublikuj" / „Wycofaj z portalu" na stronie łowiska.
         'published_at',
+        // Ustawienia rezerwacji — sekcja „Rezerwacje" na „Sprzedaż i sezony" (zadanie 045).
+        'manual_reservation_confirmation_required',
+        'manual_reservation_hold_hours',
+        'public_availability_enabled',
     ];
+
+    /** Domyślne okno potwierdzenia rezerwacji ręcznej, w godzinach (zadanie 045). */
+    public const DEFAULT_HOLD_HOURS = 48;
+
+    /** Najdłuższe okno potwierdzenia — 30 dni. */
+    public const MAX_HOLD_HOURS = 720;
 
     protected $casts = [
         'sale_mode' => SaleMode::class,
@@ -85,6 +95,9 @@ class Fishery extends Model implements HasMedia
         'campfires_banned' => 'boolean',
         'rods_included' => 'integer',
         'published_at' => 'datetime',
+        'manual_reservation_confirmation_required' => 'boolean',
+        'manual_reservation_hold_hours' => 'integer',
+        'public_availability_enabled' => 'boolean',
     ];
 
     /**
@@ -115,6 +128,8 @@ class Fishery extends Model implements HasMedia
     protected $attributes = [
         'sale_mode' => 'daily_period',
         'timezone' => self::DEFAULT_TIMEZONE,
+        'manual_reservation_confirmation_required' => false,
+        'public_availability_enabled' => false,
     ];
 
     /**

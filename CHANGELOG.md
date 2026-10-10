@@ -299,6 +299,11 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   a ci bez adresu e-mail trafiają na listę „Do kontaktu". Zostawiona rezerwacja jest widoczna w kalendarzu
   na zablokowanej dobie.
 - Zawieszenie cechy stanowiska informuje, ilu rezerwacji dotyczy, bez wymuszania decyzji.
+- Na ekranie „Sprzedaż i sezony" doszła sekcja **„Rezerwacje"**: łowisko może wymagać potwierdzenia
+  rezerwacji ręcznej (domyślnie wyłączone) z oknem w godzinach (domyślnie 48) oraz włączyć pokazywanie
+  zajętych dób w portalu. Przy włączonym potwierdzaniu rezerwacja czeka na potwierdzenie wędkarza albo
+  obsługi, a niepotwierdzona w terminie sama wygasa, zwalnia stanowisko i wędkarz dostaje o tym mail.
+  Zmiana ustawienia nie zmienia terminów rezerwacji już założonych.
 
 ### Zmienione
 

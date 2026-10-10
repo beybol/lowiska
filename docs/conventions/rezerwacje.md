@@ -9,7 +9,7 @@ i w mailach o rezerwacjach.
 [`dostepnosc.md`](dostepnosc.md) §6** (oś „czy wolno sprzedać") i [`cennik.md`](cennik.md) (warunki
 i zwrot). Ten plik niesie reguły EKRANÓW i PRZEPŁYWÓW, które na tym rdzeniu stoją.
 
-Zadania źródłowe: 041, 042, 043, 044. Decyzje: ADR-024…027.
+Zadania źródłowe: 041, 042, 043, 044, 045. Decyzje: ADR-024…027.
 
 ---
 
@@ -131,3 +131,21 @@ Decyzja: [ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md); zasad
   zmaterializowało, odpowiedzią jest kolejka/partia — osobne zadanie.
 - Skrót „Zablokuj…" z kalendarza (042) nie przechodzi przez ekran decyzji — przy kolizji odmawia i odsyła do
   ekranu blokad.
+
+---
+
+## 5. Ustawienia rezerwacji i wygasanie (zadanie 045)
+
+- **Sekcja „Rezerwacje" na „Sprzedaż i sezony"** (`ManageSaleSettings`): `manual_reservation_confirmation_required`
+  (domyślnie wyłączone), `manual_reservation_hold_hours` (domyślnie `Fishery::DEFAULT_HOLD_HOURS` = 48, zakres
+  1–`MAX_HOLD_HOURS` = 720, wymagane tylko przy włączonym potwierdzaniu) i `public_availability_enabled`
+  (logika w portalu — zadanie 046).
+- **`confirm_by` liczy wyłącznie `ReservationConfirmation::deadlineFor()`** (teraz + okno, albo `null`), wołane
+  przez `ReservationFormSubmission` — formularz C i krótki formularz kalendarza. Zmiana ustawień nie przepisuje
+  terminów rezerwacji już założonych.
+- **Wygasza wyłącznie `reservations:expire`** przez `ReservationBooking::expire()` (blokada wiersza, ponowne
+  sprawdzenie — idempotentne, bezpieczne równolegle), co 5 minut z harmonogramu. Na Cloud Run wyzwala ją Cloud
+  Scheduler → Cloud Run Job, bez endpointu HTTP ([`obraz-produkcyjny.md`](../operations/obraz-produkcyjny.md) §13).
+  Po wygaszeniu mail do wędkarza z adresem (decyzja autora); rezerwacja bez adresu nie trafia do „Do kontaktu".
+- Potwierdzenie (operator albo wędkarz linkiem) czyści `confirm_by`. Plakietka „≤ 24 h" liczy się z `confirm_by`
+  (`Reservation::expiringWithin()`, §1).

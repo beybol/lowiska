@@ -236,7 +236,8 @@ oraz „Reguły sprzedaży"; makieta zapowiada kolejne (Cennik, Zwroty, Regulami
 
 - **Jedno pytanie na ekran** — i to jest kryterium podziału, nie objętość formularza.
   „Sprzedaż i sezony" odpowiada **KIEDY** sprzedajesz (doba, strefa, okresy sprzedaży
-  z przedsprzedażą, horyzont), „Reguły sprzedaży" — **JAKI POBYT** wolno kupić (długość, weekend
+  z przedsprzedażą, horyzont, a od 045 także sekcja „Rezerwacje": potwierdzanie rezerwacji ręcznej
+  i publiczna zajętość — [`rezerwacje.md`](rezerwacje.md) §5), „Reguły sprzedaży" — **JAKI POBYT** wolno kupić (długość, weekend
   i święta sprzedawane w całości). Kolejność w `getRecordSubNavigation()`: reguły **za** sezonami,
   bo reguły odwołują się do godzin doby i do okresów, a nie odwrotnie.
 

@@ -42,6 +42,7 @@ final class MailPreviews
                 url('/pl/rezerwacja/potwierdzenie/preview-token-preview-token'),
                 url('/pl/rezerwacja/rezygnacja/preview-token-preview-token'),
             ),
+            ReservationExpiredMail::key() => fn (): PortalMailable => new ReservationExpiredMail(self::sampleReservation(['status' => 'expired'])),
             ReservationCancelledMail::key() => fn (): PortalMailable => new ReservationCancelledMail(self::sampleReservation(
                 ['status' => 'cancelled', 'cancel_reason' => 'fishery_decision', 'cancel_message' => "Awaria pomostu na stanowisku.\nPrzepraszamy za kłopot."],
             )),
