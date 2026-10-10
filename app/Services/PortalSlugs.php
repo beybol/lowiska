@@ -53,6 +53,8 @@ final class PortalSlugs
         'livewire', 'filament', 'sanctum',
         // rezerwa
         'app', 'www', 'mail', 'static', 'assets', 'portal', 'panel', 'help', 'status',
+        // podgląd maili — trasa tylko lokalnie i w testach (zadanie 040)
+        'dev',
     ];
 
     /** Slug zastępczy dla nazwy, z której nie zostaje ani jeden znak. */

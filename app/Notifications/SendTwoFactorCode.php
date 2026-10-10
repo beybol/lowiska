@@ -2,8 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Mail\TwoFactorCodeMail;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class SendTwoFactorCode extends Notification
@@ -35,15 +35,13 @@ class SendTwoFactorCode extends Notification
      * Get the mail representation of the notification.
      *
      * @param  mixed  $notifiable
-     * @return MailMessage
+     * @return TwoFactorCodeMail
      */
     public function toMail($notifiable)
     {
-        return (new MailMessage)
-            ->subject(__('Login authorization code'))
-            ->line(__('Your authorization code: :code.', ['code' => $notifiable->two_factor_code]))
-            ->action(__('Enter code'), route('verify.index'))
-            ->line(__('This code will expire in 10 minutes.'));
+        // Wspólny layout maili (zadanie 040) zamiast domyślnego szablonu Laravela.
+        return (new TwoFactorCodeMail((string) $notifiable->two_factor_code, route('verify.index')))
+            ->to($notifiable->email);
     }
 
     /**

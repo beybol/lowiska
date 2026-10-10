@@ -1023,5 +1023,12 @@
     "Not enough units of this service are left on those nights": "W tych dobach nie zostało tyle egzemplarzy tej usługi",
     "Give a reason to book against the sale rules": "Podaj powód rezerwacji wbrew regułom sprzedaży",
     "Give a reason for the agreed price": "Podaj powód ceny uzgodnionej",
-    "The reservation is no longer active": "Rezerwacja nie jest już aktywna"
+    "The reservation is no longer active": "Rezerwacja nie jest już aktywna",
+    "Message from the fishery": "Wiadomość od łowiska",
+    "Contact the fishery": "Kontakt z łowiskiem",
+    "Message from :fishery": "Wiadomość od łowiska :fishery",
+    "You are receiving this message because of an action on your account on Fisherya.": "Otrzymujesz tę wiadomość w związku z działaniem na Twoim koncie w Fisherya.",
+    "You are receiving this message because this address was used to register on Fisherya.": "Otrzymujesz tę wiadomość, ponieważ ten adres podano przy rejestracji w Fisherya.",
+    "You are receiving this message because someone is signing in to your Fisherya account.": "Otrzymujesz tę wiadomość, ponieważ trwa logowanie do Twojego konta w Fisherya.",
+    "Text": "Tekst"
 }

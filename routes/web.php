@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\MailPreviewController;
 use App\Http\Controllers\Portal\PortalController;
 use App\Http\Controllers\Portal\SeoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Middleware\SetPortalLocale;
+use App\Mail\MailPreviews;
 use App\Services\PortalRoutes;
 use Illuminate\Support\Facades\Route;
 
@@ -73,5 +75,16 @@ Route::get('auth/{provider}/callback', [
 ])->name('social.callback');
 
 require __DIR__.'/auth.php';
+
+/*
+| Podgląd wiadomości bez wysyłki (zadanie 040) — WYŁĄCZNIE `local` i `testing` (`MailPreviews`).
+| Segment `dev` jest na liście `PortalSlugs::RESERVED`, bo trasy nie ma na produkcji.
+*/
+if (MailPreviews::allowed()) {
+    Route::get('dev/mail-preview', [MailPreviewController::class, 'index'])->name('dev.mail-preview.index');
+    Route::get('dev/mail-preview/{mail}/{format?}', [MailPreviewController::class, 'show'])
+        ->whereIn('format', ['html', 'text'])
+        ->name('dev.mail-preview');
+}
 
 Route::fallback([PortalController::class, 'fallback'])->name('portal.fallback');

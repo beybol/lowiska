@@ -67,7 +67,7 @@ da się odtworzyć z samego kodu.
 | `app/Filament/Resources/**`, `app/Providers/Filament/AdminPanelProvider.php` | `docs/conventions/panel-admina.md` ⛏️ |
 | `app/Filament/Owner/**`, `app/Providers/Filament/OwnerPanelProvider.php` | `docs/conventions/panel-wlasciciela.md` |
 | `app/Policies/**`, role i uprawnienia Shielda, `User` | `docs/conventions/autoryzacja.md` |
-| `app/Services/CSOService.php`, `app/Rules/IbanValidation.php`, `app/Helpers/**` | `docs/conventions/integracje.md` ⛏️ |
+| `app/Services/CSOService.php`, `app/Rules/IbanValidation.php`, `app/Helpers/**`, maile (`app/Mail/**`, `resources/views/emails/**`, `resources/views/components/mail/**`) | `docs/conventions/integracje.md` ⛏️ |
 | Modele z traitem `LogsActivity`, `config/activitylog.php` | `docs/conventions/dziennik-zmian.md` |
 | `app/Services/FishingDay*`, `PositionAvailability`, `StaySellability*`, `AvailabilityBlock*`, `PositionServices*`, każde miejsce pytające o sprzedawalność doby albo pobytu albo o usługi stanowiska | `docs/conventions/dostepnosc.md` |
 | `app/Services/StayPricing*`, `PriceRule*`, `StayOffer*`, `RefundPolicy*`, `app/Models/PriceRule.php`, jednostka usług dodatkowych, każde miejsce pytające o cenę albo zwrot | `docs/conventions/cennik.md` |

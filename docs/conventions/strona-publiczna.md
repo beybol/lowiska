@@ -69,6 +69,8 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   chroni też nazwy zajęte przed Laravelem (katalogi `public/`, które Caddy serwuje sam) i te, które
   zajmiemy później. Kierunek „nowa trasa kontra wydrukowany slug" łapie `portal:check-slugs` przy
   wdrożeniu — ostrzeżenie w logu, nie blokada; naprawa to zmiana nazwy NASZEJ trasy, nie sluga.
+- **Trasy deweloperskie żyją pod `/dev/…` i tylko w `local`/`testing`** (podgląd maili, zadanie 040,
+  [`integracje.md`](integracje.md) §2). Segment `dev` jest w `RESERVED`, bo na produkcji router go nie zna.
 - **Nazwa łowiska ma co najmniej 3 znaki** (`Fishery::MIN_NAME_LENGTH`) — z niej powstaje slug.
 
 ## 4. Układ, style i skrypty zewnętrzne

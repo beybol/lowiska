@@ -338,6 +338,10 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   razem z bazą danych, serwerem zasobów i skrzynką pocztową, bez potrzeby instalowania czegokolwiek
   na komputerze poza Dockerem. Aplikacja odpowiada pod adresem `http://localhost:11000`,
   a wiadomości wysyłane przez aplikację trafiają do skrzynki pod `http://localhost:11025`.
+- Wiadomości e-mail — potwierdzenie adresu po rejestracji i kod logowania — mają wspólny wygląd w barwach
+  portalu: nagłówek z marką Fisherya, wyraźny przycisk i stopkę z wyjaśnieniem, dlaczego przyszła wiadomość.
+  Każda wiadomość ma też wersję tekstową dla programów pocztowych bez HTML, a temat zaczyna się od nazwy
+  Fisherya.
 
 ### Usunięte
 

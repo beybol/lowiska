@@ -2,13 +2,13 @@
 
 namespace App\Providers;
 
+use App\Mail\VerifyEmailMail;
 use App\Support\FisheryMediaActivity;
 use App\Support\SanitizingMediaFilesystem;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
 use Filament\Support\Assets\Css;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Auth\Notifications\VerifyEmail;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
@@ -56,10 +56,9 @@ class AppServiceProvider extends ServiceProvider
             static::assertUploadDiskIsSafe(app()->environment(), config('filesystems.disks.'.$disk.'.driver'));
         }
 
+        // Wspólny layout maili (zadanie 040): powiadomienie wysyła wiadomość `PortalMailable`.
         VerifyEmail::toMailUsing(function ($notifiable, $url) {
-            return (new MailMessage)
-                ->subject(__('Verify e-mail address'))
-                ->view('emails.verify-email', ['url' => $url]);
+            return (new VerifyEmailMail($url))->to($notifiable->getEmailForVerification());
         });
         FilamentAsset::register([
             Css::make('custom-stylesheet', asset('css/filament-extend.css')),
