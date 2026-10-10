@@ -155,6 +155,28 @@ final class PortalRoutes
         return route(self::pageRouteName($page, $locale ?? app()->getLocale()));
     }
 
+    /**
+     * Strony pod tokenem z maila o rezerwacji (zadanie 043) — slug na język, token jako ostatni
+     * segment. Cztery segmenty, więc nie kolidują ze stroną łowiska (trzy) ani regionem (dwa).
+     *
+     * @var array<string, array<string, string>>
+     */
+    public const RESERVATION_PAGES = [
+        'confirm' => ['pl' => 'rezerwacja/potwierdzenie', 'en' => 'reservation/confirm'],
+        'manage' => ['pl' => 'rezerwacja/rezygnacja', 'en' => 'reservation/manage'],
+    ];
+
+    public static function reservationRouteName(string $page, string $locale): string
+    {
+        return "portal.reservation.{$page}.{$locale}";
+    }
+
+    /** Adres strony pod tokenem — z jednego adresu bazowego aplikacji (Cloud Run, zadanie 002). */
+    public static function reservationUrl(string $page, string $token, ?string $locale = null): string
+    {
+        return route(self::reservationRouteName($page, $locale ?? app()->getLocale()), ['token' => $token]);
+    }
+
     public static function homeUrl(?string $locale = null): string
     {
         return route('portal.home', ['locale' => $locale ?? app()->getLocale()]);
@@ -203,6 +225,14 @@ final class PortalRoutes
 
         if (is_string($page) && $name === self::pageRouteName($page, (string) ($route->defaults['locale'] ?? ''))) {
             return self::pageUrl($page, $locale);
+        }
+
+        // Strona pod tokenem (043): przełącznik języka zostaje na tej samej stronie. Widoki tych stron
+        // wyłączają canonical i hreflang (`$noCanonical`), więc token nie trafia do znaczników.
+        foreach (array_keys(self::RESERVATION_PAGES) as $reservationPage) {
+            if (is_string($name) && str_starts_with($name, "portal.reservation.{$reservationPage}.") && ! str_ends_with($name, '.submit')) {
+                return self::reservationUrl($reservationPage, (string) $route->parameter('token'), $locale);
+            }
         }
 
         if ($name === 'portal.fishery') {

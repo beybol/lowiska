@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `routes/**`, widokach Breeze i `resources/views/**` 
 `resources/views/filament/**` — w szczególności w portalu wędkarza (`resources/views/portal/**`,
 `app/Http/Controllers/Portal/**`, `App\Services\Portal*`).
 
-Zadania źródłowe: 029, 031, 032, 033, 034, 036, 037, 038. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
+Zadania źródłowe: 029, 031, 032, 033, 034, 036, 037, 038, 040, 043. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
 (potok stylów), [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md) (schemat adresów).
 Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
@@ -249,3 +249,18 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   użytkownik trafia do panelu — jedna reguła `PanelHome::urlFor()` ([`autoryzacja.md`](autoryzacja.md) §6).
   `redirect()->intended()` zostaje: cel „zamierzony" nadal wygrywa.
 - `/` należy do portalu. Widoki logowania i profilu Breeze zostają do etapu 4 (konta wędkarzy).
+
+## 8. Strony pod tokenem z maila o rezerwacji (zadanie 043)
+
+- **Adresy: `/{język}/{slug}/{token}`** ze slugami z `PortalRoutes::RESERVATION_PAGES` (pl:
+  `rezerwacja/potwierdzenie`, `rezerwacja/rezygnacja`; en: `reservation/confirm`, `reservation/manage`) —
+  cztery segmenty, więc nie kolidują ze stroną łowiska. Budowanie wyłącznie przez
+  `PortalRoutes::reservationUrl()` (z adresu bazowego aplikacji). Trasy rejestrowane PRZED grupą `{locale}`.
+- ⚠️ **GET tylko pokazuje, stan zmienia wyłącznie POST z CSRF** — skanery linków i podglądy w klientach
+  pocztowych otwierają adres GET-em; potwierdzenie GET-em potwierdzałoby rezerwację bez wędkarza.
+- **Limit prób**: `throttle` na wszystkich trasach tokenowych (`ReservationLinkController::ATTEMPTS_PER_MINUTE`
+  na adres IP). Token nieznany albo zużyty → 404 z komunikatem, wygasły → 410.
+- **Widoki z `noCanonical`** — canonical i `hreflang` nie mogą nieść tokenu. Przełącznik języka zostaje na tej
+  samej stronie (`PortalRoutes::counterpart()`).
+- Logika (tokeny, konto, telefon, rezygnacja) mieszka w `AnglerLinking`, nie w kontrolerze —
+  [`rezerwacje.md`](rezerwacje.md) §3.

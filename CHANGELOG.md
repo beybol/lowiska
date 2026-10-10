@@ -282,6 +282,15 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - Na telefonie kalendarz pokazuje pasek dni i listę stanowisk na wybrany dzień: wolne stanowisko podaje,
   do kiedy jest wolne i na ile dób maksymalnie, a krótki formularz nie pozwala zarezerwować dłużej.
 - W podglądzie oferty zarezerwowana doba ma oznaczenie „zajęte".
+- Wędkarz, dla którego łowisko założyło rezerwację z adresem e-mail, dostaje wiadomość z danymi
+  rezerwacji, zasadami zwrotu i dwoma przyciskami: **„Potwierdź i połącz z kontem"** oraz **„Zrezygnuj /
+  to nie ja"**. Potwierdzenie zakłada konto w Fisherya (albo łączy z istniejącym o tym adresie) i od razu
+  potwierdza rezerwację; przy innym numerze telefonu niż w koncie wędkarz wybiera, którego numeru ma używać
+  łowisko — także tylko dla tego łowiska. Rezygnacja anuluje rezerwację, a „to nie ja" wycofuje prośbę
+  i przekazuje rezerwację obsłudze do sprawdzenia. Linki są jednorazowe, wygasają i mają limit prób.
+- Obsługa łowiska po zapisie rezerwacji widzi zawsze ten sam komunikat o wysłanej prośbie — niezależnie
+  od tego, czy wędkarz ma już konto. Prośby mają limit na adres i na łowisko; po przekroczeniu rezerwacja
+  trafia na listę „Do kontaktu".
 
 ### Zmienione
 

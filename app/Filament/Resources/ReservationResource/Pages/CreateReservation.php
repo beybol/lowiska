@@ -9,6 +9,7 @@ use App\Models\AdditionalService;
 use App\Models\Fishery;
 use App\Models\FisheryAngler;
 use App\Models\Position;
+use App\Models\Reservation;
 use App\Services\AmountFormatter;
 use App\Services\FisheryAccess;
 use App\Services\FisheryNavigation;
@@ -180,6 +181,26 @@ class CreateReservation extends CreateRecord
     protected function getCreatedNotificationTitle(): ?string
     {
         return __('The reservation was saved');
+    }
+
+    /**
+     * ⚠️ Komunikat dla operatora jest TEN SAM bez względu na to, czy adres ma konto w portalu
+     * (ADR-024 pkt 3) — panel nie może służyć do sprawdzania, kto jest w Fisherya.
+     */
+    protected function getCreatedNotification(): ?Notification
+    {
+        return Notification::make()
+            ->success()
+            ->title($this->getCreatedNotificationTitle())
+            ->body(self::requestNotice($this->record instanceof Reservation ? $this->record : null));
+    }
+
+    /** Ta sama treść po zapisie z pełnego formularza i z kalendarza. */
+    public static function requestNotice(?Reservation $reservation): ?string
+    {
+        return filled($reservation?->angler?->effectiveEmail())
+            ? __('A request to confirm the reservation was sent to the angler.')
+            : null;
     }
 
     public function getRedirectUrl(): string

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\MailPreviewController;
 use App\Http\Controllers\Portal\PortalController;
+use App\Http\Controllers\Portal\ReservationLinkController;
 use App\Http\Controllers\Portal\SeoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SocialAuthController;
@@ -34,6 +35,22 @@ Route::middleware(SetPortalLocale::class)->group(function () {
             Route::get("{$locale}/{$slug}", [PortalController::class, 'page'])
                 ->name(PortalRoutes::pageRouteName($page, $locale))
                 ->defaults('page', $page)
+                ->defaults('locale', $locale);
+        }
+    }
+
+    // Strony pod tokenem z maila o rezerwacji (zadanie 043) — z limitem prób na adres IP.
+    foreach (PortalRoutes::RESERVATION_PAGES as $page => $slugs) {
+        foreach ($slugs as $locale => $slug) {
+            Route::get("{$locale}/{$slug}/{token}", [ReservationLinkController::class, $page])
+                ->where('token', '[A-Za-z0-9]{20,100}')
+                ->middleware('throttle:'.ReservationLinkController::ATTEMPTS_PER_MINUTE.',1')
+                ->name(PortalRoutes::reservationRouteName($page, $locale))
+                ->defaults('locale', $locale);
+            Route::post("{$locale}/{$slug}/{token}", [ReservationLinkController::class, $page.'Submit'])
+                ->where('token', '[A-Za-z0-9]{20,100}')
+                ->middleware('throttle:'.ReservationLinkController::ATTEMPTS_PER_MINUTE.',1')
+                ->name(PortalRoutes::reservationRouteName($page, $locale).'.submit')
                 ->defaults('locale', $locale);
         }
     }

@@ -7,6 +7,7 @@ use App\Enums\CalendarWindow;
 use App\Enums\SaleUnavailabilityReason;
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\ReservationResource;
+use App\Filament\Resources\ReservationResource\Pages\CreateReservation;
 use App\Filament\Resources\ReservationResource\ReservationActions;
 use App\Filament\Resources\ReservationResource\ReservationFormSubmission;
 use App\Models\AvailabilityBlock;
@@ -681,7 +682,7 @@ class ManageCalendar extends Page
 
                 $this->clearSelection();
                 $this->reservationCalendar = null;
-                Notification::make()->success()->title(__('The reservation was saved'))->send();
+                Notification::make()->success()->title(__('The reservation was saved'))->body(CreateReservation::requestNotice($outcome->reservation))->send();
             });
     }
 

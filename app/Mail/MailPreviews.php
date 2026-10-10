@@ -37,6 +37,11 @@ final class MailPreviews
         return [
             VerifyEmailMail::key() => fn (): PortalMailable => new VerifyEmailMail(url('/verify-email/1/preview')),
             TwoFactorCodeMail::key() => fn (): PortalMailable => new TwoFactorCodeMail('123456', url('/verify')),
+            ReservationRequestMail::key() => fn (): PortalMailable => new ReservationRequestMail(
+                self::sampleReservation(),
+                url('/pl/rezerwacja/potwierdzenie/preview-token-preview-token'),
+                url('/pl/rezerwacja/rezygnacja/preview-token-preview-token'),
+            ),
             ReservationCancelledMail::key() => fn (): PortalMailable => new ReservationCancelledMail(self::sampleReservation(
                 ['status' => 'cancelled', 'cancel_reason' => 'fishery_decision', 'cancel_message' => "Awaria pomostu na stanowisku.\nPrzepraszamy za kłopot."],
             )),

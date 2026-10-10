@@ -12,8 +12,8 @@ use Carbon\CarbonImmutable;
  *
  * - `deadlineFor()` — `confirm_by` nowej rezerwacji; `null` = bez wygasania. Ustawienie łowiska
  *   „wymagaj potwierdzenia" dochodzi w zadaniu 045.
- * - `afterBooking()` — co dzieje się po zatwierdzeniu zapisu; prośba o potwierdzenie mailem
- *   dochodzi w zadaniu 043.
+ * - `afterBooking()` — po zatwierdzeniu zapisu: prośba o potwierdzenie i powiązanie z kontem mailem
+ *   (zadanie 043). Błąd wysyłki nie cofa rezerwacji.
  */
 final class ReservationConfirmation
 {
@@ -22,5 +22,8 @@ final class ReservationConfirmation
         return null;
     }
 
-    public static function afterBooking(Reservation $reservation): void {}
+    public static function afterBooking(Reservation $reservation): void
+    {
+        (new AnglerLinking)->requestConfirmation($reservation);
+    }
 }

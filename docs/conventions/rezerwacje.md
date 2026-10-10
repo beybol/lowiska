@@ -9,7 +9,7 @@ i w mailach o rezerwacjach.
 [`dostepnosc.md`](dostepnosc.md) §6** (oś „czy wolno sprzedać") i [`cennik.md`](cennik.md) (warunki
 i zwrot). Ten plik niesie reguły EKRANÓW i PRZEPŁYWÓW, które na tym rdzeniu stoją.
 
-Zadania źródłowe: 041, 042. Decyzje: ADR-024…027.
+Zadania źródłowe: 041, 042, 043. Decyzje: ADR-024…027.
 
 ---
 
@@ -74,3 +74,29 @@ Zadania źródłowe: 041, 042. Decyzje: ADR-024…027.
   i odsyła do ekranu blokad (G8, ADR-027).
 - **Telefon:** pasek dni i lista stanowisk dla dnia; wolne stanowisko pokazuje „wolne do dd.mm · maks.
   N dób" z tym samym wyliczeniem co krótki formularz.
+
+---
+
+## 3. Wędkarz: powiązanie z kontem i potwierdzenie (zadanie 043)
+
+Logika: [`AnglerLinking`](../../app/Services/AnglerLinking.php); strony: [`strona-publiczna.md`](strona-publiczna.md) §8.
+
+- **Po zapisie rezerwacji z adresem e-mail idzie prośba o potwierdzenie** (`ReservationConfirmation::afterBooking()`
+  z formularza C i z kalendarza; zapis bezpośrednio przez `ReservationBooking` maila nie wysyła). Bez adresu —
+  nic: relacja zostaje niepowiązana, bez maili.
+- ⚠️ **Operator widzi ZAWSZE ten sam komunikat** (`CreateReservation::requestNotice()`) — panel nie zdradza, czy
+  adres ma konto w portalu (ADR-024 pkt 3). Konto wyszukuje się dopiero na stronie po kliknięciu linku.
+- **Dwa tokeny, oba jednorazowe, w bazie tylko SHA-256**: `fishery_anglers.link_token_hash` (ważność
+  `link_expires_at`, `AnglerLinking::VALID_DAYS`) — „Potwierdź i połącz": konto powstaje (adres zweryfikowany
+  kliknięciem, bez hasła, `has_password = false`, bez roli) albo dowiązuje się istniejące o tym adresie
+  (porównanie dokładne po `mb_strtolower`), relacja → `linked`, oczekujące rezerwacje tego wędkarza w łowisku →
+  potwierdzone (`confirmation_source = link`, W3); `reservations.manage_token_hash` — „Zrezygnuj" (anulacja
+  przez wędkarza, zwrot z warunków) albo „To nie ja" (token unieważniony, rezerwacja **nie anulowana**, tylko
+  „Do kontaktu" do weryfikacji przez operatora).
+- **Konflikt telefonu** (konto ma inny numer niż podany łowisku): wybór „z profilu" / „nowy i zapisz w profilu" /
+  „nowy tylko dla tego łowiska" (`phone_override`). Profil bez telefonu dostaje numer podany łowisku.
+- **Limity** (ADR-024 pkt 8): `MAX_PENDING_PER_EMAIL` oczekujących próśb na adres w całym portalu i
+  `MAX_SENDS_PER_FISHERY_PER_DAY` wysyłek z łowiska na dobę. Przekroczenie: rezerwacja powstaje, mail nie
+  wychodzi, rezerwacja → „Do kontaktu".
+- Zdarzenia (`link_requested`, `link_request_limited`, `linked`, `not_me`) idą do kanału `reservations` na relacji.
+- Poza zakresem etapu 3 (W9): propozycje zmian kontaktu przez operatora i cofanie dostępu (`revoked`).

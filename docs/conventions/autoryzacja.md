@@ -307,7 +307,16 @@ braku, bo pusty kod traktuje jako „brak oczekującego wyzwania".
   z paneli (`two_factor_source` = panel) wracają do swojego panelu jak dotąd. `redirect()->intended()`
   zostaje wszędzie, gdzie było. Nie wpisuj adresu panelu w kontrolerze — to drugi literał tej reguły.
 
-Zadania źródłowe: 012, 028; security-review 2026-09-20.
+- ⚠️ **Konto wędkarza powstaje WYŁĄCZNIE z kliknięcia samego wędkarza** w link z maila (zadanie 043,
+  ADR-024) — operator nigdy nie zapisuje do `users`. Takie konto ma zweryfikowany adres, losowe hasło
+  (`has_password = false`) i **żadnej roli**. Dowiązanie do istniejącego konta po adresie jest bezpieczne
+  z tego samego powodu co w ADR-019: kliknięcie dowodzi posiadania skrzynki, a porównanie adresu jest dokładne.
+  ⚠️ Znane ograniczenie do etapu 4: panel właściciela wpuszcza każde konto (`User::canAccessPanel()`), a
+  logowanie nadaje rolę `owner` — wędkarz, który ustawi hasło resetem i zaloguje się do `/owner`, zostaje
+  właścicielem jak przy otwartej samorejestracji. Rozdzielenie kont wędkarza i właściciela to etap 4
+  (`docs/project/DECYZJE-I-TODO-BIZNESOWE.md`).
+
+Zadania źródłowe: 012, 028, 043; security-review 2026-09-20.
 
 ---
 
