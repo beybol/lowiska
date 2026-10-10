@@ -86,3 +86,7 @@ class ReservationCancelledMail extends PortalMailable
     <x-mail.button :href="$url">{{ __('...') }}</x-mail.button>
 </x-mail.layout>
 ```
+
+⚠️ **Nie nazywaj danych widoku maila `$message`.** Laravel wstrzykuje pod tą nazwą obiekt
+`Illuminate\Mail\Message` i nadpisuje nią zmienną z `viewData()` — widok dostaje obiekt zamiast tekstu
+(błąd `htmlspecialchars()` dopiero przy renderze w wysyłce). Komunikat łowiska to `fisheryMessage`.

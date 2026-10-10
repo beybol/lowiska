@@ -181,4 +181,49 @@ class Reservation extends Model
     {
         return $this->starts_at <= CarbonImmutable::instance($now ?? now());
     }
+
+    /** Na liście „Do kontaktu": wędkarza trzeba powiadomić inną drogą, a nikt tego jeszcze nie odhaczył. */
+    public function needsContact(): bool
+    {
+        return $this->needs_contact_at !== null && $this->contacted_at === null;
+    }
+
+    /**
+     * @param  Builder<Reservation>  $query
+     */
+    #[Scope]
+    protected function toContact(Builder $query): void
+    {
+        $query->whereNotNull('needs_contact_at')->whereNull('contacted_at');
+    }
+
+    /**
+     * Niepotwierdzone, którym termin potwierdzenia mija w ciągu `$hours` godzin (albo już minął).
+     *
+     * @param  Builder<Reservation>  $query
+     */
+    #[Scope]
+    protected function expiringWithin(Builder $query, int $hours = 24): void
+    {
+        $query->where('status', ReservationStatus::Pending->value)
+            ->whereNotNull('confirm_by')
+            ->where('confirm_by', '<=', CarbonImmutable::now('UTC')->addHours($hours)->format('Y-m-d H:i:s'));
+    }
+
+    /** Moment w strefie łowiska — prezentacja; w bazie UTC (`UtcDateTime`). */
+    public function local(?CarbonImmutable $moment): ?CarbonImmutable
+    {
+        return $moment?->setTimezone($this->fishery?->timezoneName() ?? Fishery::DEFAULT_TIMEZONE);
+    }
+
+    /** „13.05.2026 15:00 → 15.05.2026 15:00 · 2 doby" — w strefie łowiska. */
+    public function stayLabel(): string
+    {
+        return sprintf(
+            '%s → %s · %s',
+            $this->local($this->starts_at)?->format('d.m.Y H:i'),
+            $this->local($this->ends_at)?->format('d.m.Y H:i'),
+            trans_choice(':count night|:count nights', $this->nights, ['count' => $this->nights]),
+        );
+    }
 }

@@ -11,6 +11,7 @@ use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\LongTermPermitResource;
 use App\Filament\Resources\PositionGroupResource;
 use App\Filament\Resources\PositionResource;
+use App\Filament\Resources\ReservationResource;
 use App\Http\Middleware\TwoFactorMiddleware;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -59,6 +60,8 @@ class OwnerPanelProvider extends PanelProvider
                 // mimo że klasa zasobu istnieje (`panel-wlasciciela.md` §6).
                 PositionGroupResource::class,
                 AvailabilityBlockResource::class,
+                // Rezerwacje (zadanie 041) — formularz i szczegóły; lista żyje w sub-nawigacji łowiska.
+                ReservationResource::class,
             ])
             ->discoverResources(in: app_path('Filament/Owner/Resources'), for: 'App\\Filament\\Owner\\Resources')
             ->discoverPages(in: app_path('Filament/Owner/Pages'), for: 'App\\Filament\\Owner\\Pages')

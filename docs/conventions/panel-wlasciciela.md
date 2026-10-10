@@ -468,8 +468,8 @@ Uzasadnienie kształtu danych dokumentów: [ADR-017](../adr/ADR-017-dokumenty-i-
 
 ### Polityka zwrotu
 
-- **Ekran „Polityka zwrotu"** (`ManageRefundPolicy`, strona ustawień) stoi **za „Kalendarzem"** —
-  niczego w nim nie zmienia. Repeater na kolumnie JSON `fisheries.refund_policy`; zapis
+- **Ekran „Polityka zwrotu"** (`ManageRefundPolicy`, strona ustawień) stoi **za „Kalendarzem"
+  i „Rezerwacjami"** — niczego w nich nie zmienia. Repeater na kolumnie JSON `fisheries.refund_policy`; zapis
   normalizuje progi do liczb całkowitych od najdalszego, a brak progów zapisuje jako `null`.
 - ⚠️ **Brak progów = „polityka nieustawiona"**, pokazana wprost — nie 0% ani 100%.
 - **„0% zawsze" to ostrzeżenie, nie blokada** (D2). Warunek i brzmienie są **robocze** i czekają na
@@ -523,3 +523,12 @@ Uzasadnienie kształtu danych dokumentów: [ADR-017](../adr/ADR-017-dokumenty-i-
   niczego nie zmienia — ukryte pole nie jest dehydratowane.
 - **Liczby stanowisk nie ma w danych łowiska** — „Stanowiska w sprzedaży" to liczba wyliczana
   z `Position::available()`. ⚠️ Nie wracaj do kolumny `positions_count`: była drugą prawdą obok tabeli stanowisk.
+
+---
+
+## 11. Rezerwacje
+
+Reguły ekranów rezerwacji (pozycja w sub-nawigacji, formularz, modale, plakietka) żyją w
+[`rezerwacje.md`](rezerwacje.md) — wydzielone przy zadaniu 041, żeby ten plik nie przekraczał limitu.
+⚠️ Najważniejsze dla tego panelu: „Rezerwacje" stoją zaraz za „Kalendarzem", a krótkie akcje na
+rezerwacji są modalami — świadome, opisane tam odstępstwo od §2.

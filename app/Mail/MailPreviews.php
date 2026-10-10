@@ -2,6 +2,11 @@
 
 namespace App\Mail;
 
+use App\Models\Fishery;
+use App\Models\FisheryAngler;
+use App\Models\Position;
+use App\Models\Reservation;
+use App\Models\ReservationTerms;
 use Closure;
 
 /**
@@ -32,7 +37,47 @@ final class MailPreviews
         return [
             VerifyEmailMail::key() => fn (): PortalMailable => new VerifyEmailMail(url('/verify-email/1/preview')),
             TwoFactorCodeMail::key() => fn (): PortalMailable => new TwoFactorCodeMail('123456', url('/verify')),
+            ReservationCancelledMail::key() => fn (): PortalMailable => new ReservationCancelledMail(self::sampleReservation(
+                ['status' => 'cancelled', 'cancel_reason' => 'fishery_decision', 'cancel_message' => "Awaria pomostu na stanowisku.\nPrzepraszamy za kłopot."],
+            )),
         ];
+    }
+
+    /**
+     * Rezerwacja przykładowa w pamięci — bez zapisu w bazie.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public static function sampleReservation(array $attributes = []): Reservation
+    {
+        $fishery = new Fishery(['name' => 'Łowisko Pod Lasem', 'phone' => '+48 500 100 200', 'email' => 'kontakt@example.com', 'timezone' => Fishery::DEFAULT_TIMEZONE]);
+        $position = new Position(['name' => 'Stanowisko 7']);
+        $angler = new FisheryAngler(['given_name' => 'Jan Kowalski', 'given_email' => 'jan@example.com', 'given_phone' => '+48 600 000 000']);
+
+        $reservation = new Reservation(array_merge([
+            'status' => 'confirmed',
+            'payment_status' => 'unpaid',
+            'starts_at' => '2026-07-10 13:00:00',
+            'ends_at' => '2026-07-12 13:00:00',
+            'first_night_on' => '2026-07-10',
+            'nights' => 2,
+            'source' => 'operator',
+        ], $attributes));
+
+        $terms = new ReservationTerms([
+            'anglers' => 2,
+            'companions' => 1,
+            'total_cents' => 28000,
+            'currency' => 'PLN',
+            'position_snapshot' => ['name' => 'Stanowisko 7'],
+        ]);
+
+        $reservation->setRelation('fishery', $fishery);
+        $reservation->setRelation('position', $position);
+        $reservation->setRelation('angler', $angler);
+        $reservation->setRelation('terms', $terms);
+
+        return $reservation;
     }
 
     public static function make(string $key): ?PortalMailable

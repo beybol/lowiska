@@ -16,6 +16,7 @@ use App\Filament\Resources\FisheryResource\Pages\ManagePositionGroups;
 use App\Filament\Resources\FisheryResource\Pages\ManagePositions;
 use App\Filament\Resources\FisheryResource\Pages\ManagePricing;
 use App\Filament\Resources\FisheryResource\Pages\ManageRefundPolicy;
+use App\Filament\Resources\FisheryResource\Pages\ManageReservations;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleRules;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleSettings;
 use App\Filament\Resources\FisheryResource\Pages\PreviewDocumentTemplate;
@@ -563,6 +564,8 @@ class FisheryResource extends Resource
             ManagePricing::class,
             // Kalendarz stoi ZARAZ ZA konfiguracja: trzy ekrany ustawien, a po nich ich skutek.
             ManageCalendar::class,
+            // Rezerwacje zaraz za kalendarzem — z kalendarza się je zakłada (zadania 041, 042).
+            ManageReservations::class,
             // Polityka zwrotu za kalendarzem — niczego w nim nie zmienia (zadanie 021).
             ManageRefundPolicy::class,
             ManagePositions::class,
@@ -608,6 +611,7 @@ class FisheryResource extends Resource
             'sale-rules' => ManageSaleRules::route('/{record}/sale-rules'),
             'pricing' => ManagePricing::route('/{record}/pricing'),
             'calendar' => ManageCalendar::route('/{record}/calendar'),
+            'reservations' => ManageReservations::route('/{record}/reservations'),
             'positions' => ManagePositions::route('/{record}/positions'),
             'position-groups' => ManagePositionGroups::route('/{record}/position-groups'),
             'availability-blocks' => ManageAvailabilityBlocks::route('/{record}/availability-blocks'),

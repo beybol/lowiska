@@ -36,13 +36,13 @@ Aplikacja jest w fazie tworzenia i nie działa jeszcze produkcyjnie.
 Jedna aplikacja Laravel, **dwa panele Filament**:
 
 - **`/admin`** ([`AdminPanelProvider`](app/Providers/Filament/AdminPanelProvider.php)) — panel
-  administracyjny; siedemnaście zasobów w [`app/Filament/Resources/`](app/Filament/Resources/)
+  administracyjny; osiemnaście zasobów w [`app/Filament/Resources/`](app/Filament/Resources/)
   pokrywających cały model domenowy i słowniki.
 - **`/owner`** ([`OwnerPanelProvider`](app/Providers/Filament/OwnerPanelProvider.php)) — panel
   właściciela łowiska; strony w [`app/Filament/Owner/Pages/`](app/Filament/Owner/Pages/).
 
 **Autoryzacja** stoi na dwóch warstwach naraz i obie trzeba respektować: `bezhansalleh/filament-shield`
-(role i uprawnienia, stąd `RolePolicy`) oraz osiemnaście polityk w [`app/Policies/`](app/Policies/) —
+(role i uprawnienia, stąd `RolePolicy`) oraz dziewiętnaście polityk w [`app/Policies/`](app/Policies/) —
 po jednej na **zasób Filamenta**, nie na model (model bez zasobu autoryzuje się przez rodzica). Pokrycie testowe granic paneli żyje w `tests/Feature/AdminPanelTest.php`
 i `tests/Feature/OwnerPanelTest.php`.
 
@@ -72,6 +72,7 @@ da się odtworzyć z samego kodu.
 | `app/Services/FishingDay*`, `PositionAvailability`, `StaySellability*`, `AvailabilityBlock*`, `PositionServices*`, każde miejsce pytające o sprzedawalność doby albo pobytu albo o usługi stanowiska | `docs/conventions/dostepnosc.md` |
 | `app/Services/StayPricing*`, `PriceRule*`, `StayOffer*`, `RefundPolicy*`, `app/Models/PriceRule.php`, jednostka usług dodatkowych, każde miejsce pytające o cenę albo zwrot | `docs/conventions/cennik.md` |
 | `routes/**`, widoki Breeze, `resources/views/**` (poza `filament/`), portal wędkarza | `docs/conventions/strona-publiczna.md` |
+| Ekrany i przepływy rezerwacji: `ReservationResource/**`, `ManageReservations`, warstwa „Rezerwacje" kalendarza, `app/Services/Reservation*`, maile o rezerwacjach (rdzeń zapisu → `dostepnosc.md` §6) | `docs/conventions/rezerwacje.md` |
 
 **Dokumentacja projektu** - znajduje się w katalogu docs
 

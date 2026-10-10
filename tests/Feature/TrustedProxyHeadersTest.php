@@ -58,7 +58,7 @@ test('X-Forwarded-Host nie zmienia adresów podpisanych — podpis nie chroni pr
 
     Notification::assertSentTo($user, VerifyEmail::class, function (VerifyEmail $notification) use ($user) {
         $mail = $notification->toMail($user);
-        $signedUrl = $mail->viewData['url'];
+        $signedUrl = $mail->url;
 
         expect($signedUrl)->not->toContain('evil.tld');
         expect(parse_url($signedUrl, PHP_URL_HOST))->toBe(realAppHost());

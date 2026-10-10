@@ -149,6 +149,36 @@ final class ReservationBooking
     }
 
     /**
+     * Status płatności (etap 3: płatność na łowisku). Zwrot ustawia wyłącznie anulacja.
+     */
+    public function setPaymentStatus(Reservation $reservation, PaymentStatus $status): BookingOutcome
+    {
+        return $this->attempt(function () use ($reservation, $status): Reservation {
+            $locked = Reservation::query()->whereKey($reservation->getKey())->lockForUpdate()->firstOrFail();
+
+            if (! $locked->isActive() || $status === PaymentStatus::Refund) {
+                $this->refuseWith(BookingOutcome::problem(BookingProblem::NotActive));
+            }
+
+            $locked->update(['payment_status' => $status]);
+
+            return $locked;
+        });
+    }
+
+    /** Wędkarza trzeba powiadomić inną drogą — brak adresu albo błąd wysyłki (ADR-027 pkt 4). */
+    public function markNeedsContact(Reservation $reservation): void
+    {
+        $reservation->update(['needs_contact_at' => CarbonImmutable::now(), 'contacted_at' => null]);
+    }
+
+    /** „Oznacz jako załatwione" na liście „Do kontaktu". */
+    public function markContacted(Reservation $reservation): void
+    {
+        $reservation->update(['contacted_at' => CarbonImmutable::now()]);
+    }
+
+    /**
      * Wygaszenie niepotwierdzonej rezerwacji po `confirm_by` (ADR-024 pkt 7). Idempotentne: rezerwacja
      * już potwierdzona, anulowana albo wygaszona — albo przed terminem — zwraca `false` i niczego nie zmienia.
      */

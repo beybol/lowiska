@@ -256,6 +256,19 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   z ograniczoną liczbą egzemplarzy nie sprzeda się ponad stan w żadnej dobie pobytu.
 - Anulowana albo wygasła rezerwacja zwalnia termin i egzemplarze usług, ale zostaje w historii. Zmiany
   rezerwacji trafiają do trwałego dziennika zmian, którego automatyczne sprzątanie nie usuwa.
+- Łowisko ma nowy ekran **„Rezerwacje"** zaraz za kalendarzem: lista rezerwacji z wędkarzem, stanowiskiem,
+  terminem, statusem, płatnością i kwotą, z zakładkami „Bieżące i nadchodzące", „Do kontaktu"
+  i „Wszystkie" oraz wyszukiwaniem po wędkarzach tego łowiska. Plakietka przy pozycji pokazuje,
+  ile rezerwacji czeka na potwierdzenie w ciągu doby albo na kontakt.
+- Obsługa łowiska zakłada rezerwację na formularzu z danymi wędkarza (e-mail jest opcjonalny), wyborem
+  stanowiska, terminu, liczby osób i usług dodatkowych oraz podglądem ceny. Gdy termin narusza reguły
+  sprzedaży, formularz ostrzega i pozwala zarezerwować po podaniu powodu; cenę uzgodnioną też trzeba
+  uzasadnić.
+- Rezerwację można obejrzeć ze wszystkimi warunkami z chwili zawarcia i historią zmian, zmienić (termin,
+  stanowisko, osoby, cena — zawsze z powodem), potwierdzić, oznaczyć płatność albo anulować z komunikatem
+  do wędkarza. Anulacja trwającego pobytu wymaga dodatkowego potwierdzenia. Wędkarz dostaje mail
+  o anulacji; rezerwacja bez adresu e-mail trafia na listę „Do kontaktu", z której obsługa odhacza
+  załatwione sprawy. Kilka rezerwacji naraz da się potwierdzić, oznaczyć płatność albo anulować.
 
 ### Zmienione
 

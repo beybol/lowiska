@@ -210,9 +210,9 @@ Wzorzec: `tests/Feature/OwnerPanelTest.php`, przypadki „Owner can not…".
 ## 5. Polityka odpowiada zasobowi Filamenta; model bez zasobu autoryzuje się przez rodzica
 
 - **Niezmiennik:** plik w `app/Policies/` istnieje dla modelu, który ma **zarejestrowany zasób
-  Filamenta**. Dziś osiemnaście polityk odpowiada siedemnastu zasobom z `app/Filament/Resources/`
+  Filamenta**. Dziś dziewiętnaście polityk odpowiada osiemnastu zasobom z `app/Filament/Resources/`
   **plus zasobowi ról dostarczanemu przez Shielda** (stąd `RolePolicy` bez pliku w katalogu
-  zasobów) — licznik zgadza się dopiero z tym osiemnastym.
+  zasobów) — licznik zgadza się dopiero z tym dziewiętnastym. Osiemnasty zasób to `ReservationResource` (zadanie 041).
 - **Model bez własnego zasobu autoryzuje się przez rodzica.** `SalePeriod` istnieje wyłącznie
   przez łowisko: edytuje się go `Repeaterem` na stronie ustawień, a dostępu pilnuje
   `FisheryPolicy` — kto może edytować łowisko, ten edytuje jego sezony.
@@ -240,6 +240,10 @@ Wzorzec: `tests/Feature/OwnerPanelTest.php`, przypadki „Owner can not…".
 - **Dzisiejsze metody z tej drogi** (bez nowego literału): `FisheryPolicy::publish()` = reguła
   `update()` — kto edytuje łowisko, ten je publikuje i wycofuje z portalu; `FisheryPolicy::updateSlug()`
   = `is_admin` **i** `update()` — slug łowiska zmienia wyłącznie administrator (zadanie 030).
+- **`ReservationPolicy`** (zadanie 041) — wzorzec `AvailabilityBlockPolicy`: właściciel po `fishery.user_id`,
+  admin po uprawnieniu Shielda. `update` obejmuje zmianę warunków, potwierdzenie, płatność, anulację
+  i „do kontaktu". Rezerwacji się nie usuwa (historia), więc `delete` wymaga uprawnienia, którego rola
+  `owner` nie ma. `FisheryAngler`, `ReservationSlot`, `ReservationTerms`, `ReservationServiceItem` polityk nie mają.
 - **Zawężenie widoczności bierze się z rodzica.** Strona ustawień jest stroną `FisheryResource`,
   więc wiązanie rekordu przechodzi przez `getEloquentQuery()` z `forCurrentUser()`, a
   `EditRecord::authorizeAccess()` pyta `FisheryPolicy::update()`. Cudze łowisko **nie istnieje**
