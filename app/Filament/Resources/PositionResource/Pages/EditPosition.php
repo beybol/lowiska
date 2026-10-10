@@ -2,14 +2,17 @@
 
 namespace App\Filament\Resources\PositionResource\Pages;
 
+use App\Enums\PositionStatus;
 use App\Filament\Resources\FisheryResource\Pages\ManagePositions;
 use App\Filament\Resources\PositionResource;
 use App\Models\Position;
 use App\Services\AdditionalServiceSync;
+use App\Services\CollisionGate;
 use App\Services\FisheryAccess;
 use App\Services\FisheryNavigation;
 use App\Services\PositionAttributeWriter;
 use Filament\Actions\DeleteAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
 class EditPosition extends EditRecord
@@ -33,8 +36,26 @@ class EditPosition extends EditRecord
         // `mount()` sprawdza łowisko rekordu SPRZED zmiany, a `fishery_id` jest
         // w formularzu polem `Hidden` — bez tego dało się przenieść własny rekord
         // pod cudze łowisko, podmieniając wartość w żądaniu zapisu.
-        return FisheryAccess::forceVerifiedFishery($data);
+        $data = FisheryAccess::forceVerifiedFishery($data);
+
+        // ⚠️ Wycofanie stanowiska z przyszłymi rezerwacjami wymaga jawnej decyzji (ADR-027, zadanie 044):
+        // pozostałe zmiany zapisują się teraz, a samo wycofanie — na ekranie decyzji, razem z decyzjami.
+        $position = $this->record;
+        $withdrawing = PositionStatus::tryFrom((string) (($data['status'] ?? null) instanceof PositionStatus ? $data['status']->value : ($data['status'] ?? '')));
+
+        if ($position instanceof Position && $position->status === PositionStatus::Available && $withdrawing === PositionStatus::Withdrawn) {
+            $this->withdrawalDecisionUrl = (new CollisionGate)->forWithdrawal($position);
+
+            if ($this->withdrawalDecisionUrl !== null) {
+                $data['status'] = PositionStatus::Available->value;
+            }
+        }
+
+        return $data;
     }
+
+    /** Ekran decyzji o rezerwacjach przy wycofaniu — po zapisie pozostałych zmian. */
+    protected ?string $withdrawalDecisionUrl = null;
 
     protected function afterSave(): void
     {
@@ -87,6 +108,14 @@ class EditPosition extends EditRecord
 
     public function getRedirectUrl(): string
     {
+        if ($this->withdrawalDecisionUrl !== null) {
+            Notification::make()->warning()
+                ->title(__('Other changes were saved. Withdrawing the position needs a decision about its reservations.'))
+                ->send();
+
+            return $this->withdrawalDecisionUrl;
+        }
+
         return self::sectionUrl($this->record->fishery_id ?? null);
     }
 

@@ -4,9 +4,12 @@ namespace App\Filament\Resources\AvailabilityBlockResource\Pages;
 
 use App\Filament\Resources\AvailabilityBlockResource;
 use App\Filament\Resources\FisheryResource\Pages\ManageAvailabilityBlocks;
+use App\Services\CollisionGate;
 use App\Services\FisheryAccess;
 use App\Services\FisheryNavigation;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class CreateAvailabilityBlock extends CreateRecord
 {
@@ -23,6 +26,31 @@ class CreateAvailabilityBlock extends CreateRecord
         // przez bramkę — odwrotne zagnieżdżenie liczyło etykietę z danych od klienta
         // i było bezpieczne wyłącznie dlatego, że bramka przerywa przez `abort()`.
         return AvailabilityBlockResource::withSelectionLabel(FisheryAccess::forceVerifiedFishery($data));
+    }
+
+    /**
+     * ⚠️ Blokada kolidująca z rezerwacjami NIE zapisuje się tutaj — szkic idzie do ekranu decyzji,
+     * gdzie zmiana i decyzje zapisują się razem (ADR-027, zadanie 044). Bez kolizji — jak dotąd.
+     * Zawieszenie cechy tylko informuje o objętych rezerwacjach (ADR-027 pkt 8).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function handleRecordCreation(array $data): Model
+    {
+        $gate = (new CollisionGate)->forBlock($data, (array) ($this->data['positions'] ?? []));
+
+        if ($gate['redirect'] !== null) {
+            $this->redirect($gate['redirect']);
+            $this->halt();
+        }
+
+        if ($gate['informational'] > 0) {
+            Notification::make()->info()
+                ->title(trans_choice('The suspension applies to :count reservation|The suspension applies to :count reservations', $gate['informational'], ['count' => $gate['informational']]))
+                ->send();
+        }
+
+        return parent::handleRecordCreation($data);
     }
 
     public function mount(): void

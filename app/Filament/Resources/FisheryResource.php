@@ -20,6 +20,7 @@ use App\Filament\Resources\FisheryResource\Pages\ManageReservations;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleRules;
 use App\Filament\Resources\FisheryResource\Pages\ManageSaleSettings;
 use App\Filament\Resources\FisheryResource\Pages\PreviewDocumentTemplate;
+use App\Filament\Resources\FisheryResource\Pages\ResolveCollisions;
 use App\Models\Company;
 use App\Models\Convenience;
 use App\Models\Fish;
@@ -612,6 +613,8 @@ class FisheryResource extends Resource
             'pricing' => ManagePricing::route('/{record}/pricing'),
             'calendar' => ManageCalendar::route('/{record}/calendar'),
             'reservations' => ManageReservations::route('/{record}/reservations'),
+            // Ekran decyzji o rezerwacjach dotkniętych zmianą konfiguracji (zadanie 044) — poza sub-nawigacją.
+            'collisions' => ResolveCollisions::route('/{record}/collisions/{token}'),
             'positions' => ManagePositions::route('/{record}/positions'),
             'position-groups' => ManagePositionGroups::route('/{record}/position-groups'),
             'availability-blocks' => ManageAvailabilityBlocks::route('/{record}/availability-blocks'),

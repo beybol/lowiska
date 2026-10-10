@@ -9,7 +9,7 @@ i w mailach o rezerwacjach.
 [`dostepnosc.md`](dostepnosc.md) §6** (oś „czy wolno sprzedać") i [`cennik.md`](cennik.md) (warunki
 i zwrot). Ten plik niesie reguły EKRANÓW i PRZEPŁYWÓW, które na tym rdzeniu stoją.
 
-Zadania źródłowe: 041, 042, 043. Decyzje: ADR-024…027.
+Zadania źródłowe: 041, 042, 043, 044. Decyzje: ADR-024…027.
 
 ---
 
@@ -100,3 +100,34 @@ Logika: [`AnglerLinking`](../../app/Services/AnglerLinking.php); strony: [`stron
   wychodzi, rezerwacja → „Do kontaktu".
 - Zdarzenia (`link_requested`, `link_request_limited`, `linked`, `not_me`) idą do kanału `reservations` na relacji.
 - Poza zakresem etapu 3 (W9): propozycje zmian kontaktu przez operatora i cofanie dostępu (`revoked`).
+
+---
+
+## 4. Kolizje zmian konfiguracji z rezerwacjami (zadanie 044)
+
+Decyzja: [ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md); zasada G8.
+
+- **Jedna usługa — [`ConfigurationCollisionService`](../../app/Services/ConfigurationCollisionService.php)** — i jeden
+  ekran decyzji (`FisheryResource\Pages\ResolveCollisions`, `/{record}/collisions/{token}`). Opis zmiany to
+  `ConfigurationChange` (rodzaj + stanowiska + okno + to, co zapisać); zbiór decyzji zależy od rodzaju
+  (`ConfigurationChangeKind::decisions()`): blokada sprzedaży i wycofanie stanowiska — „anuluj z pełnym
+  zwrotem" albo „zostaw"; zawieszenie cechy — wyłącznie informacja. Kolejna zmiana konfiguracji dokłada rodzaj,
+  nie drugą logikę kolizji.
+- **Dotknięta = aktywna, jeszcze nierozpoczęta, nakładająca się na zmianę.** Pobytów w toku nie ma na liście
+  nigdy. Rezerwacja zostawiona przy danej blokadzie (wyjątek z `block_id`) nie wraca przy edycji tej blokady.
+- ⚠️ **Zmiana NIE zapisuje się przed decyzjami.** Strony zapisu pytają `CollisionGate` przed zapisem: przy
+  kolizji szkic idzie do SESJI (`CollisionDrafts`) i operator trafia na ekran decyzji, gdzie zmiana i decyzje
+  zapisują się w jednej transakcji, pod blokadą wierszy stanowisk. Lista liczy się od nowa przy zapisie —
+  nowa rezerwacja w międzyczasie wycofuje zapis (`StaleCollisionDecision`) i wraca do decyzji.
+  Wycofanie stanowiska w formularzu stanowiska: pozostałe zmiany zapisują się od razu, status zostaje,
+  a wycofanie — na ekranie decyzji.
+- **„Anuluj"** — `ReservationBooking::cancel()` z rodzajem `collision` (pełny zwrot jako status), komunikat
+  wspólny albo indywidualny trafia do maila. **„Zostaw"** — wyjątek w warunkach (`recordException()`):
+  `sale_blocked` z `block_id` przy blokadzie, `sale_rule` przy wycofaniu. Rezerwacja zostaje widoczna
+  w kalendarzu na zablokowanej dobie.
+- ⚠️ **Maile bez limitu, po kolei, PO zatwierdzeniu transakcji** (Q6, decyzja autora 10.10.2026). Błąd wysyłki
+  nie przerywa pętli — rezerwacja trafia do „Do kontaktu", a powiadomienie po zapisie podaje, do ilu wyszedł
+  mail. Świadome ryzyko: bardzo duża liczba anulacji wydłuża żądanie (limit czasu Cloud Run); gdyby się
+  zmaterializowało, odpowiedzią jest kolejka/partia — osobne zadanie.
+- Skrót „Zablokuj…" z kalendarza (042) nie przechodzi przez ekran decyzji — przy kolizji odmawia i odsyła do
+  ekranu blokad.

@@ -149,6 +149,27 @@ final class ReservationBooking
     }
 
     /**
+     * Jawny wyjątek dopisany do warunków istniejącej rezerwacji — np. decyzja „zostaw" przy blokadzie
+     * albo wycofaniu stanowiska (ADR-027 pkt 3, 7). Zawsze z powodem, autorem i chwilą.
+     *
+     * @param  array<string, mixed>  $details
+     */
+    public function recordException(Reservation $reservation, TermsExceptionKind $kind, string $reason, ?User $actor = null, array $details = []): void
+    {
+        DB::transaction(function () use ($reservation, $kind, $reason, $actor, $details): void {
+            $terms = Reservation::query()->whereKey($reservation->getKey())->lockForUpdate()->firstOrFail()->terms;
+
+            if ($terms === null) {
+                return;
+            }
+
+            $terms->update(['exceptions' => array_merge($terms->exceptions ?? [], [
+                ReservationTermsSnapshot::exception($kind, $reason, $actor, $details),
+            ])]);
+        });
+    }
+
+    /**
      * Status płatności (etap 3: płatność na łowisku). Zwrot ustawia wyłącznie anulacja.
      */
     public function setPaymentStatus(Reservation $reservation, PaymentStatus $status): BookingOutcome

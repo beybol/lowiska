@@ -291,6 +291,14 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - Obsługa łowiska po zapisie rezerwacji widzi zawsze ten sam komunikat o wysłanej prośbie — niezależnie
   od tego, czy wędkarz ma już konto. Prośby mają limit na adres i na łowisko; po przekroczeniu rezerwacja
   trafia na listę „Do kontaktu".
+- Blokada sprzedaży albo wycofanie stanowiska, które trafiają na termin z rezerwacją, nie zapisują się po
+  cichu: obsługa przechodzi do ekranu decyzji z listą objętych rezerwacji (wędkarz, termin, stanowisko,
+  płatność) i dla każdej wybiera **„anuluj z pełnym zwrotem"** albo **„zostaw"** — pojedynczo albo dla
+  wszystkich naraz, z opcjonalnym komunikatem do wędkarzy. Zmiana zapisuje się dopiero razem z decyzjami.
+  Pobyty, które już trwają, nigdy nie trafiają na tę listę. Anulowani wędkarze dostają mail z komunikatem,
+  a ci bez adresu e-mail trafiają na listę „Do kontaktu". Zostawiona rezerwacja jest widoczna w kalendarzu
+  na zablokowanej dobie.
+- Zawieszenie cechy stanowiska informuje, ilu rezerwacji dotyczy, bez wymuszania decyzji.
 
 ### Zmienione
 

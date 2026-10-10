@@ -5,10 +5,13 @@ namespace App\Filament\Resources\AvailabilityBlockResource\Pages;
 use App\Filament\Resources\AvailabilityBlockResource;
 use App\Filament\Resources\FisheryResource\Pages\ManageAvailabilityBlocks;
 use App\Models\AvailabilityBlock;
+use App\Services\CollisionGate;
 use App\Services\FisheryAccess;
 use App\Services\FisheryNavigation;
 use Filament\Actions\DeleteAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class EditAvailabilityBlock extends EditRecord
 {
@@ -26,6 +29,31 @@ class EditAvailabilityBlock extends EditRecord
         // przez bramkę — odwrotne zagnieżdżenie liczyło etykietę z danych od klienta
         // i było bezpieczne wyłącznie dlatego, że bramka przerywa przez `abort()`.
         return AvailabilityBlockResource::withSelectionLabel(FisheryAccess::forceVerifiedFishery($data));
+    }
+
+    /**
+     * ⚠️ Zmiana dat albo zbioru, która zaczyna kolidować z rezerwacjami, idzie przez ekran decyzji —
+     * zapis edycji i decyzje razem (ADR-027, zadanie 044). Rezerwacje już zostawione przy tej blokadzie
+     * nie wracają na listę.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        $gate = (new CollisionGate)->forBlock($data, (array) ($this->data['positions'] ?? []), (int) $record->getKey());
+
+        if ($gate['redirect'] !== null) {
+            $this->redirect($gate['redirect']);
+            $this->halt();
+        }
+
+        if ($gate['informational'] > 0) {
+            Notification::make()->info()
+                ->title(trans_choice('The suspension applies to :count reservation|The suspension applies to :count reservations', $gate['informational'], ['count' => $gate['informational']]))
+                ->send();
+        }
+
+        return parent::handleRecordUpdate($record, $data);
     }
 
     public function mount(string|int $record): void

@@ -147,7 +147,8 @@ i [ADR-025](../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md).
   Wpis nie ma wartości historycznej ani ścieżki dostępu poza łowiskiem.
 - **Blokada nie unieważnia sprzedanej rezerwacji sama z siebie.** Kolizja wymaga jawnej decyzji
   operatora — „anuluj z pełnym zwrotem" albo „zostaw"
-  ([ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md)). Rezerwacja operatora na
+  ([ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md)). Zapis blokady kolidującej z rezerwacją
+  idzie przez ekran decyzji — mechanizm w [`rezerwacje.md`](rezerwacje.md) §4. Rezerwacja operatora na
   zablokowanym stanowisku jest dozwolona jako wyjątek z powodem (§6).
 
 ---
