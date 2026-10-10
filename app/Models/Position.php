@@ -97,6 +97,24 @@ class Position extends Model
     }
 
     /**
+     * Sloty zajętości stanowiska (ADR-025) — czyta `PositionAvailability`, pisze `ReservationBooking`.
+     *
+     * @return HasMany<ReservationSlot, $this>
+     */
+    public function reservationSlots(): HasMany
+    {
+        return $this->hasMany(ReservationSlot::class);
+    }
+
+    /**
+     * @return HasMany<Reservation, $this>
+     */
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    /**
      * Stanowiska będące w sprzedaży — zastępuje dawny zakres `isActive()`.
      *
      * ⚠️ To jest stan WŁASNY stanowiska, decyzja operatora. Nie odpowiada na pytanie

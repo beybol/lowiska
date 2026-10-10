@@ -10,7 +10,7 @@ namespace App\Enums;
  * (zadanie 015, kryteria akceptacji).
  *
  * ⚠️ Enum jest JEDEN dla całej sprzedaży (`docs/conventions/dostepnosc.md` §2).
- * Pierwsze siedem wartości dotyczy pojedynczej DOBY (`PositionAvailability`),
+ * Pierwsze osiem wartości dotyczy pojedynczej DOBY (`PositionAvailability`; zajętość — zadanie 039),
  * kolejne sześć — POBYTU, czyli ciągu dób kupowanego razem (`StaySellability`,
  * zadanie 017, ADR-013), a ostatnia — braku ceny, który też jest odmową sprzedaży
  * (zadanie 018, ADR-014/ADR-015). Nowy warunek dokłada wartość tutaj, nie zakłada
@@ -42,6 +42,15 @@ enum SaleUnavailabilityReason: string
 
     /** Doba przecina okno blokady sprzedaży na tym stanowisku (zadanie 016). */
     case SaleBlocked = 'sale_blocked';
+
+    /**
+     * Doba nakłada się na slot rezerwacji na tym stanowisku (zadanie 039, ADR-025).
+     *
+     * ⚠️ Przyczyna najbardziej przemijająca, więc ostatnia w łańcuchu doby — po blokadzie.
+     * Jedyna odmowa, której operator NIE może ominąć wyjątkiem: jeden slot = jedna rezerwacja.
+     * Publicznie pokazuje się jako neutralne „Zajęte", bez danych rezerwującego (zadanie 046).
+     */
+    case Occupied = 'occupied';
 
     /** Pobyt jest krótszy niż `min_nights` łowiska (zadanie 017). */
     case StayTooShort = 'stay_too_short';
@@ -100,6 +109,7 @@ enum SaleUnavailabilityReason: string
             self::OutsideSalePeriod => __('The fishing day is outside every sale period'),
             self::PositionWithdrawn => __('The position is withdrawn from sale'),
             self::SaleBlocked => __('Sale at this position is blocked on that day'),
+            self::Occupied => __('The position is already booked on that day'),
             self::StayTooShort => __('The stay is shorter than this fishery allows'),
             self::StayTooLong => __('The stay is longer than this fishery allows'),
             self::WeekendBroken => __('This weekend is sold whole — take all of its nights or none'),

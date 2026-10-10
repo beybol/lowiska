@@ -8,6 +8,7 @@ use App\Enums\SaleUnavailabilityReason;
 use App\Models\AvailabilityBlock;
 use App\Models\Position;
 use App\Models\PositionAttribute;
+use App\Models\ReservationSlot;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -21,8 +22,8 @@ use InvalidArgumentException;
  * reguły granic z ADR-010), ta usługa o STANOWISKU (stan własny, blokady).
  *
  * ⚠️ Warunki składane są w stałej kolejności wyrażającej TRWAŁOŚĆ przyczyny:
- * stan stanowiska → okres sprzedaży → blokada. Odmowa niesie pierwszy napotkany
- * powód. Kolejność wyznaczona kosztem zapytania zmieniłaby komunikat widziany przez
+ * stan stanowiska → okres sprzedaży → blokada → zajętość (zadanie 039, ADR-025).
+ * Odmowa niesie pierwszy napotkany powód. Kolejność wyznaczona kosztem zapytania zmieniłaby komunikat widziany przez
  * wędkarza przy pierwszej optymalizacji — nie przestawiaj jej dla wydajności.
  *
  * ⚠️ Zawieszenie cechy NIE jest odmową sprzedaży. Stanowisko z zawieszonym pomostem
@@ -42,6 +43,13 @@ final class PositionAvailability
      * @var array<string, Collection<int, AvailabilityBlock>>
      */
     private array $blocksByEffect = [];
+
+    /**
+     * Sloty rezerwacji stanowiska wczytane RAZ na instancję (zadanie 039).
+     *
+     * @var Collection<int, ReservationSlot>|null
+     */
+    private ?Collection $slots = null;
 
     public function __construct(private readonly Position $position)
     {
@@ -81,7 +89,35 @@ final class PositionAvailability
             return FishingDayAvailability::refused(SaleUnavailabilityReason::SaleBlocked);
         }
 
+        // 4. Zajętość — przyczyna najbardziej przemijająca (ADR-025 pkt 5).
+        if ($this->isOccupied($fishingDay)) {
+            return FishingDayAvailability::refused(SaleUnavailabilityReason::Occupied);
+        }
+
         return FishingDayAvailability::sellable();
+    }
+
+    /**
+     * Czy dobę zajmuje rezerwacja — NIEZALEŻNIE od trwalszych przyczyn odmowy.
+     *
+     * ⚠️ `availability()` niesie pierwszy powód, więc dla stanowiska wycofanego ALBO zablokowanego
+     * zajętości nie zgłosi. Ścieżka zapisu operatora omija tamte przyczyny wyjątkiem, ale zajętości
+     * ominąć nie wolno (ADR-025, ADR-027 pkt 7) — dlatego pyta o nią wprost tą metodą.
+     *
+     * Semantyka nakładania jak przy blokadach (`FishingDay::overlaps()`), nie zawierania: przyleganie
+     * 13–15 i 15–17 nie koliduje, częściowe nakładanie 13–15 i 14–16 — tak.
+     */
+    public function isOccupied(FishingDay|CarbonInterface|string $day): bool
+    {
+        $fishingDay = $day instanceof FishingDay ? $day : $this->calendar()->dayStartingOn($day);
+
+        if (! $fishingDay instanceof FishingDay) {
+            return false;
+        }
+
+        return $this->slots()->contains(
+            fn (ReservationSlot $slot): bool => $fishingDay->overlaps($slot->starts_at, $slot->ends_at),
+        );
     }
 
     public function isSellable(FishingDay|CarbonInterface|string $day): bool
@@ -214,6 +250,19 @@ final class PositionAvailability
             ->withEffect($effect)
             ->with('attribute')
             ->get();
+    }
+
+    /**
+     * Sloty stanowiska — jedno zapytanie na instancję, tylko przedziały.
+     *
+     * ⚠️ To odczyt w obrębie jednego pytania, nie bufor werdyktu (`dostepnosc.md` §2). Ścieżka zapisu
+     * buduje NOWĄ instancję po założeniu blokady wiersza stanowiska, więc widzi stan po blokadzie.
+     *
+     * @return Collection<int, ReservationSlot>
+     */
+    private function slots(): Collection
+    {
+        return $this->slots ??= $this->position->reservationSlots()->get(['id', 'reservation_id', 'starts_at', 'ends_at']);
     }
 
     private function calendar(): FishingDayCalendar

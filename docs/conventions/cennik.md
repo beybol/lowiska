@@ -10,7 +10,7 @@ miejscu, które pyta, ile kosztuje doba albo pobyt**.
 odpowiada [`dostepnosc.md`](dostepnosc.md) — inna oś, osobny plik. Obie warstwy dzielą enum
 powodów odmowy i pojęcie doby, ale nie znają siebie nawzajem; składa je warstwa oferty (§5).
 
-Zadania źródłowe: 018, 020, 021. Uzasadnienia w
+Zadania źródłowe: 018, 020, 021, 039. Uzasadnienia w
 [ADR-014](../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md)
 i [ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md).
 
@@ -155,6 +155,12 @@ StaySellability           ciąg dób: spoiwo, długość, horyzont     (ADR-013)
         kalendarz (019) · przyszły koszyk · portal
 ```
 
+- **Zamrożone warunki rezerwacji składa wyłącznie `ReservationTermsSnapshot`** (ADR-026): kolumny dla
+  kwot w groszach (`stay_total_cents`, `services_total_cents`, `computed_total_cents`,
+  `agreed_total_cents`, `total_cents` = uzgodniona albo wyliczona), JSON dla rozbicia, usług, polityki
+  zwrotu, parametrów stanowiska, id wersji dokumentów, wyjątków i kontaktu. Cena wyliczona nie jest
+  nadpisywana ceną uzgodnioną — stoją obok siebie. Zmiana kształtu JSON podnosi
+  `ReservationTerms::SCHEMA_VERSION`.
 - **`StayOffer` jest JEDYNYM wejściem dla kalendarza (019), koszyka i portalu.** Panel
   konfiguracyjny nadal woła to, co odpowiada na jego pytanie — sam cennik albo samą sprzedawalność.
 - **Kolejność: najpierw sprzedawalność, potem cena.** Pobyt niesprzedawalny **nie jest wyceniany**,
@@ -301,9 +307,14 @@ Zadanie źródłowe: 020. Dostępność usługi na stanowisku opisuje [`dostepno
   jednostek razy liczba. Opłaty za każde użycie (prysznic płacony za wejście) nie da się sprzedać
   z góry, bo wędkarz nie zna liczby wejść — zostaje **na miejscu** i opisuje ją treść oferty łowiska.
 - ⚠️ **Egzemplarz usługi „za dobę" zajmuje WSZYSTKIE doby pobytu** — nie ma wyboru części dób.
-- **Rachunek z tabeli jest regułą jednostki**; kod liczący kwotę usługi dla pobytu powstaje razem
-  z modułem zakładania rezerwacji, jego pierwszym odbiorcą. Warstwa oferty i „ceny od" w kalendarzu
-  usług **nie doliczają**, a obniżka przedsprzedażowa ich nie obejmuje (§4).
+- **Rachunek z tabeli jest regułą jednostki i ma jeden dom — `StayServiceLine::amountInCents()`.**
+  Wycenę usług pobytu składa [`StayServicePricing`](../../app/Services/StayServicePricing.php)
+  (usługi stanowiska z `PositionServices`, zostało egzemplarzy z `ServiceStock`), a warstwa oferty
+  ją tylko udostępnia: `StayOffer::services()` (zadanie 039, aktualizacja ADR-015). Usługa
+  obowiązkowa wchodzi do wyceny z liczbą co najmniej 1.
+  ⚠️ `StayOffer::offer()`, kalendarz i „ceny od" usług **nadal nie doliczają** — usługi sumuje dopiero
+  zapis rezerwacji (`reservation_terms.services_total_cents`), a obniżka przedsprzedażowa ich nie
+  obejmuje (§4).
 - **Cena usługi może wynosić 0,00** — usługa darmowa („postawienie przyczepy") nadal niesie
   deklarację wędkarza i limit egzemplarzy. Pokazuje się jako **„bezpłatna"**, nie „0,00 zł / doba".
 - **Cenę z jednostką jako tekst składa `AdditionalService::priceLabel()`** („20,00 zł / doba") —
@@ -318,7 +329,9 @@ Zadanie źródłowe: 021. Ekran: [`panel-wlasciciela.md`](panel-wlasciciela.md) 
 - ⚠️ **Na pytanie „jaki procent zwrotu przy odwołaniu w chwili D pobytu od doby S" odpowiada
   WYŁĄCZNIE [`RefundPolicy`](../../app/Services/RefundPolicy.php).** Progi to lista `{days, percent}`
   w kolumnie JSON łowiska — bieżąca, bez wersji, jak cennik; zamrożenie w chwili zakupu robi
-  snapshot transakcji (G1, Z1).
+  snapshot transakcji (G1, Z1): `reservation_terms.refund_policy`. ⚠️ Zwrot rezerwacji liczy się
+  WYŁĄCZNIE z progów zamrożonych — `RefundPolicy::frozen($fishery, $terms->refund_policy)` — nigdy
+  z bieżącej konfiguracji (ADR-026 pkt 5). Inny zwrot to jawny wyjątek z powodem w warunkach.
 - **„N dni przed" to różnica DAT KALENDARZOWYCH w strefie łowiska** między dniem rozpoczęcia
   pierwszej doby a dniem odwołania — godziny doby nie grają roli. ⚠️ Liczona na datach, nie na
   momentach: doba przy zmianie czasu ma 23 albo 25 godzin i `diffInDays()` na momentach ucinałby dzień.

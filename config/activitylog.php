@@ -1,6 +1,6 @@
 <?php
 
-use Spatie\Activitylog\Actions\CleanActivityLogAction;
+use App\Actions\CleanActivityLogKeepingRetained;
 use Spatie\Activitylog\Actions\LogActivityAction;
 use Spatie\Activitylog\Models\Activity;
 
@@ -54,6 +54,6 @@ return [
 
     'actions' => [
         'log_activity' => LogActivityAction::class,
-        'clean_log' => CleanActivityLogAction::class,
+        'clean_log' => CleanActivityLogKeepingRetained::class,
     ],
 ];

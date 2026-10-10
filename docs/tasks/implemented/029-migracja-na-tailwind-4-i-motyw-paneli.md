@@ -51,10 +51,10 @@ osobno: regresja w panelach ma mieć jedną, oczywistą przyczynę.
 ## Kryteria akceptacji
 
 - [ ] W `package.json` nie ma Tailwinda 3; `npm run build` buduje wszystkie wejścia bez ostrzeżeń.
-- [ ] Wejście portalu zawiera tokeny v1 w `@theme` (przestrzenie `--color-*`, `--radius-*`,
+- [x] Wejście portalu zawiera tokeny v1 w `@theme` (przestrzenie `--color-*`, `--radius-*`,
       `--shadow-*`, `--font-*`) i nie zawiera styli paneli; zbudowany arkusz portalu nie odwołuje się
       do `fonts.googleapis.com`, a pliki fontów lądują w `public/build`.
-- [ ] Oba panele ładują wspólny `resources/css/filament/theme.css` przez `viteTheme()`.
+- [x] Oba panele ładują wspólny `resources/css/filament/theme.css` przez `viteTheme()`.
 - [ ] Siatka kalendarza 019 nie zawiera `style="…"` (poza wartościami wyliczanymi w locie, jeśli
       jakieś są — wtedy uzasadnione w podsumowaniu) i wygląda jak przed zmianą w obu panelach.
 - [ ] Ręczny przegląd obu paneli (lista, formularz, kalendarz podglądowy 019, strony ustawień
@@ -81,14 +81,14 @@ osobno: regresja w panelach ma mieć jedną, oczywistą przyczynę.
 
 ## Zmiany dokumentacji
 
-- [ ] `docs/operations/docker.md` / `obraz-produkcyjny.md` — potok zasobów, jeśli zmienia się budowanie.
-- [ ] `docs/conventions/panel-wlasciciela.md` — **obowiązkowo**: przepisać §1 (zdanie „żaden panel
+- [x] `docs/operations/docker.md` / `obraz-produkcyjny.md` — potok zasobów, jeśli zmienia się budowanie.
+- [x] `docs/conventions/panel-wlasciciela.md` — **obowiązkowo**: przepisać §1 (zdanie „żaden panel
       nie rejestruje własnego motywu") na granicę z ADR-016 A (klasy Tailwinda wyłącznie w widoku,
       którego nie da się złożyć ze standardowych komponentów, po uzasadnieniu w zadaniu; wspólny plik
       motywu) oraz usunąć z §8 („Ekran podglądowy obok stron ustawień") uwagę o „stanie TYMCZASOWYM" siatki. Reguła unieważniona jest
       przepisywana, nie dopisywana obok.
-- [ ] `docs/conventions/panel-admina.md` — odsyłacz do tej samej granicy (motyw wspólny dla obu paneli).
-- [ ] Tokeny portalu i hostowanie fontów — niezmiennik dla przyszłych widoków portalu; plik
+- [x] `docs/conventions/panel-admina.md` — odsyłacz do tej samej granicy (motyw wspólny dla obu paneli).
+- [x] Tokeny portalu i hostowanie fontów — niezmiennik dla przyszłych widoków portalu; plik
       `docs/conventions/strona-publiczna.md` zakłada zadanie 031, więc tu wystarczy komentarz
       w nagłówku `portal.css` + wpis w podsumowaniu zadania dla 031.
 - [ ] `docs/adr/ADR-020`, `ADR-016` — sekcja „Aktualizacja", jeśli implementacja odbiega od rekomendacji.
@@ -118,3 +118,15 @@ osobno: regresja w panelach ma mieć jedną, oczywistą przyczynę.
 
 - [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md) — Decyzja: A.
 - [ADR-016](../adr/ADR-016-wlasny-motyw-panelu.md) — Decyzja: A.
+
+## Stan weryfikacji (2026-10-08)
+
+Przegląd kodu względem kryteriów (bez uruchamiania testów i bez przeglądarki — sesja nie miała Dockera ani PHP):
+
+- **Potwierdzone w kodzie:** brak Tailwinda 3 w `package.json`, brak `tailwind.config.js` i `postcss.config.js`;
+  `@tailwindcss/vite` ^4; tokeny `@theme` w `resources/css/portal.css`; fonty `@fontsource-variable/*`
+  w `public/build/assets` i brak odwołań do `fonts.googleapis.com`; wspólny `resources/css/filament/theme.css`
+  przez `viteTheme()` w obu providerach; siatka kalendarza 019 bez `style="…"`; dokumentacja
+  (`docker.md`, `obraz-produkcyjny.md`, `panel-wlasciciela.md`, `panel-admina.md`) zaktualizowana.
+- **Do wykonania przez autora:** `npm run build` bez ostrzeżeń, `docker build --target prod`, ręczny przegląd
+  paneli i widoków Breeze (lista ekranów), pełny pakiet testów (T3).

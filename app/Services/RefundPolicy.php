@@ -27,7 +27,26 @@ use Carbon\CarbonInterface;
  */
 final class RefundPolicy
 {
-    public function __construct(private readonly Fishery $fishery) {}
+    /**
+     * @param  array<int, mixed>|null  $frozenTiers  progi zamrożone w warunkach rezerwacji
+     *                                               (`reservation_terms.refund_policy`, ADR-026 pkt 5);
+     *                                               `null` = bieżąca polityka łowiska
+     */
+    public function __construct(
+        private readonly Fishery $fishery,
+        private readonly ?array $frozenTiers = null,
+    ) {}
+
+    /**
+     * Polityka z chwili umowy — zwrot i anulacja liczą się wyłącznie z warunków rezerwacji,
+     * nigdy z bieżącej konfiguracji (ADR-026 pkt 5). Reguły progów zostają tutaj, w jednym domu.
+     *
+     * @param  array<int, mixed>|null  $tiers
+     */
+    public static function frozen(Fishery $fishery, ?array $tiers): self
+    {
+        return new self($fishery, $tiers ?? []);
+    }
 
     /**
      * Progi od najdalszego do najbliższego.
@@ -36,7 +55,7 @@ final class RefundPolicy
      */
     public function tiers(): array
     {
-        return self::normalize($this->fishery->refund_policy);
+        return self::normalize($this->frozenTiers ?? $this->fishery->refund_policy);
     }
 
     public function isSet(): bool

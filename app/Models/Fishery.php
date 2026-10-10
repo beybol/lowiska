@@ -375,4 +375,24 @@ class Fishery extends Model implements HasMedia
     {
         return $this->hasMany(PriceRule::class)->where('kind', PriceRuleKind::Surcharge->value);
     }
+
+    /**
+     * Rezerwacje łowiska (zadanie 039) — zapis wyłącznie przez `ReservationBooking`.
+     *
+     * @return HasMany<Reservation, $this>
+     */
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    /**
+     * Wędkarze łowiska — relacje, przez które łowisko widzi wędkarza (ADR-024).
+     *
+     * @return HasMany<FisheryAngler, $this>
+     */
+    public function anglers(): HasMany
+    {
+        return $this->hasMany(FisheryAngler::class);
+    }
 }

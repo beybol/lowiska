@@ -51,15 +51,15 @@ tabeli stanowisk. Bez tych danych strona główna (031) nie ma czego wylistować
 
 ## Kryteria akceptacji
 
-- [ ] Migracje dodają slug łowiska, slug województwa, kontakt, WWW, Facebook, flagę publikacji
+- [x] Migracje dodają slug łowiska, slug województwa, kontakt, WWW, Facebook, flagę publikacji
       i usuwają `positions_count`; istniejące rekordy mają slugi.
-- [ ] Slug nie zmienia się po zmianie nazwy; kolizja dostaje sufiks; admin może zmienić slug ręcznie.
-- [ ] Publikacja bez województwa jest zablokowana z komunikatem; pozostałe braki dają ostrzeżenie
+- [x] Slug nie zmienia się po zmianie nazwy; kolizja dostaje sufiks; admin może zmienić slug ręcznie.
+- [x] Publikacja bez województwa jest zablokowana z komunikatem; pozostałe braki dają ostrzeżenie
       z listą i odsyłaczami, publikacja jest możliwa; wycofanie czyści `published_at`.
-- [ ] Opublikowane łowisko nie zapisze się bez województwa.
-- [ ] Właściciel nie może zmienić sluga (pole tylko do odczytu, a próba zapisu z pominięciem
+- [x] Opublikowane łowisko nie zapisze się bez województwa.
+- [x] Właściciel nie może zmienić sluga (pole tylko do odczytu, a próba zapisu z pominięciem
       interfejsu nie zmienia wartości).
-- [ ] Testy: generowanie i stałość sluga, kolizja (także z łowiskiem usuniętym miękko), slug
+- [x] Testy: generowanie i stałość sluga, kolizja (także z łowiskiem usuniętym miękko), slug
       województwa, ostrzeżenie (każdy punkt listy, w tym „stanowiska są, ale żadne w sprzedaży"),
       blokada bez województwa, autoryzacja publikacji (właściciel tylko swojego łowiska),
       walidacja telefonu, e-maila, WWW i Facebooka.
@@ -148,3 +148,9 @@ Zrealizowane w całości. Odnotowane świadomie:
    tłumaczeń („Greater Poland"), a `Str::slug()` z samej nazwy dałby `greater-poland`.
 5. Linki do ekranów poprawy prowadzą: doba i okres → „Sprzedaż i sezony", stanowiska → „Stanowiska",
    cennik → „Cennik", regulamin → „Dokumenty", pozostałe → formularz edycji łowiska.
+
+## Stan weryfikacji (2026-10-08)
+
+Kryteria odhaczone po przeglądzie kodu i obecności testów (`FisheryPortalDataTest`, `FisheryPublicationTest`,
+`FisheryPublicationReadinessTest`); testów nie uruchamiano w tej sesji. **Otwarte:** pełny pakiet (T3) — do
+potwierdzenia w `/review-implementation`.

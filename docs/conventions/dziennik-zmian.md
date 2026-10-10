@@ -3,7 +3,7 @@
 Obowiązuje przy zmianach w modelach z traitem `LogsActivity`
 (`Spatie\Activitylog\Models\Concerns\LogsActivity`) i w `config/activitylog.php`.
 
-Zadania źródłowe: 010, 020, 021.
+Zadania źródłowe: 010, 020, 021, 039.
 
 ---
 
@@ -73,3 +73,18 @@ Zadania źródłowe: 010, 020, 021.
   w formacie `old`/`attributes` z nazwą kolekcji jako kluczem (`gallery`, `map`) — wywoływane z
   `MediaHasBeenAddedEvent` i zdarzenia `deleted` modelu `Media` (`AppServiceProvider`). Zmiana kolejności
   się nie loguje: zmienia układ, nie treść.
+
+## 6. Kanał `reservations` — trwały
+
+- **Rezerwacje, ich warunki i relacje z wędkarzami logują się w osobnym kanale `reservations`**
+  (`Reservation::LOG_NAME`, `useLogName()` w `getActivitylogOptions()` modeli `Reservation`,
+  `ReservationTerms`, `FisheryAngler`) — zadanie 039, ADR-026 pkt 4. Jawna zmiana warunków
+  (`ReservationBooking::rebook()`) dokłada wpis `terms_changed` z powodem w `properties`.
+- ⚠️ **Kanał nie podlega czyszczeniu.** `activitylog:clean` idzie przez
+  `App\Actions\CleanActivityLogKeepingRetained` (`config/activitylog.php`, `actions.clean_log`), który
+  pomija `CleanActivityLogKeepingRetained::RETAINED_LOGS` — także przy jawnym `activitylog:clean reservations`.
+  Warunki rezerwacji nie mają tabeli wersji; ich historię niesie wyłącznie ten kanał. Nie przywracaj
+  akcji pakietu w konfiguracji.
+- Sloty i egzemplarze usług (`ReservationSlot`, `ReservationServiceItem`) **nie** mają dziennika — są czystą
+  zajętością, a historię niesie rezerwacja. Tokeny (`link_token_hash`, `manage_token_hash`) nie są
+  wypełnialne, więc nie trafiają do wpisów.

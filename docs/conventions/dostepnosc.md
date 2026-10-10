@@ -2,18 +2,19 @@
 
 Obowiązuje przy zmianach w `app/Services/FishingDay*.php`, `app/Services/PositionAvailability.php`,
 `app/Services/AvailabilityBlockSelectionResolver.php`, `app/Services/StaySellability*.php`,
-`app/Services/PositionServices.php`,
-modelach `SalePeriod`, `AvailabilityBlock` i `WholeTermPeriod` oraz w **każdym miejscu, które pyta,
+`app/Services/PositionServices.php`, `app/Services/ReservationBooking.php`, `app/Services/ServiceStock.php`,
+modelach `Reservation`, `ReservationSlot`, `ReservationServiceItem`, `SalePeriod`, `AvailabilityBlock` i `WholeTermPeriod` oraz w **każdym miejscu, które pyta,
 czy dobę albo pobyt można sprzedać** — w panelu, w portalu wędkarza, w cenniku i w kalendarzu.
 
 ⚠️ Ten plik nie należy do żadnego panelu. Reguły niżej wiążą tak samo zasób Filamenta, przyszły
 portal, sprzedaż wpisywaną ręcznie i zadania 017–019. Dlatego mieszkają osobno, a nie w pliku
 o panelu właściciela.
 
-Zadania źródłowe: 015, 016, 017, 020. Uzasadnienia w
+Zadania źródłowe: 015, 016, 017, 020, 039. Uzasadnienia w
 [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md),
-[ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md)
-i [ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md).
+[ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md),
+[ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md)
+i [ADR-025](../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md).
 
 ---
 
@@ -73,11 +74,12 @@ i [ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md).
   może istnieć; bez łowiska nie ma jednak ani doby, ani okresów, więc nie ma o co pytać.
   **Nie zastępuj tego `assert()`** — asercje są wyłączone w obrazie produkcyjnym
   (`zend.assertions=-1`), czyli dokładnie tam, gdzie ochrona ma działać.
-- **Cztery warunki składane w STAŁEJ kolejności, wyrażającej trwałość przyczyny:**
+- **Pięć warunków składanych w STAŁEJ kolejności, wyrażającej trwałość przyczyny:**
   1. stan własny stanowiska (`withdrawn` → odmowa niezależnie od dat),
   2. konfiguracja doby i okres sprzedaży (przez kalendarz),
   3. blokada `sale_blocked` **przecinająca** dobę,
-  4. zawieszenia cech — **nie wpływają na sprzedawalność**, wracają osobno.
+  4. **zajętość** — slot rezerwacji nakładający się na dobę (`Occupied`, §6),
+  5. zawieszenia cech — **nie wpływają na sprzedawalność**, wracają osobno.
 
   ⚠️ Kolejność jest umową produktową, nie skutkiem kosztu zapytania. **Nie przestawiaj jej dla
   wydajności** — komunikat widziany przez wędkarza zmieniłby się przy okazji optymalizacji.
@@ -143,9 +145,10 @@ i [ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md).
   z wyboru wielokrotnego przychodzą od klienta (`autoryzacja.md` §4).
 - **Klucz obcy do łowiska jest WYMAGANY z kaskadą** — jak `sale_periods` i `position_groups`.
   Wpis nie ma wartości historycznej ani ścieżki dostępu poza łowiskiem.
-- **Blokada nie unieważnia sprzedanej rezerwacji sama z siebie.** Model rezerwacji jeszcze nie
-  istnieje; gdy powstanie, kolizja ma dawać ostrzeżenie z liczbą objętych rezerwacji, a odwołanie
-  ma być świadomą decyzją właściciela oznaczającą pełny zwrot.
+- **Blokada nie unieważnia sprzedanej rezerwacji sama z siebie.** Kolizja wymaga jawnej decyzji
+  operatora — „anuluj z pełnym zwrotem" albo „zostaw"
+  ([ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md)). Rezerwacja operatora na
+  zablokowanym stanowisku jest dozwolona jako wyjątek z powodem (§6).
 
 ---
 
@@ -321,7 +324,8 @@ Zadanie źródłowe: 020. Jednostka rozliczenia i cena usług: [`cennik.md`](cen
   Składa: `is_active` usługi, **zasięg**, przypięcia z `is_required` i **wymagane cechy**. Doby bierze
   z `FishingDayCalendar`, a wpisy zawieszające cechy z `PositionAvailability::attributeSuspensions()`
   — **nie pyta o blokady sama**, bo reguła przecięcia wpisu z dobą ma jeden dom (§2, §3).
-  To przyszłe wejście modułu rezerwacji; warstwa oferty jeszcze z niego nie korzysta.
+  Warstwa oferty korzysta z niego przez wycenę usług pobytu (`StayOffer::services()`,
+  [`cennik.md`](cennik.md) §7).
 - **Niedostępna usługa nie jest odmową sprzedaży** stanowiska ani pobytu — ma własny powód
   (`ServiceUnavailabilityReason`), nie dokłada wartości do `SaleUnavailabilityReason`.
 - **Zasięg jest JAWNYM polem** (`ServiceScope`): **całe łowisko** obejmuje każde stanowisko, także
@@ -346,6 +350,48 @@ Zadanie źródłowe: 020. Jednostka rozliczenia i cena usług: [`cennik.md`](cen
 - **`available_count` to liczba egzemplarzy dostępnych w KAŻDEJ dobie**; egzemplarz wzięty do pobytu
   jest zajęty w każdej jego dobie, przy obu jednostkach. `null` = bez limitu. Przełącznika „limit
   globalny" nie ma i mieć nie ma — pula globalna nie odpowiada na pytanie „czy w tę dobę jest wolna
-  łódka". Odliczanie sprzedanych egzemplarzy powstaje z modelem rezerwacji.
+  łódka". **Ile egzemplarzy zostało, liczy wyłącznie
+  [`ServiceStock`](../../app/Services/ServiceStock.php)** — limit minus największa suma zajętych
+  egzemplarzy w którejkolwiek dobie zakresu (`reservation_service_items`).
 - **Usługi, przypięcia i wartości cech wczytuje się RAZ na instancję**, dla wszystkich stanowisk
   łowiska — to odczyt w obrębie jednego pytania, nie bufor werdyktu (§2).
+
+---
+
+## 6. Zajętość i jedna ścieżka zapisu rezerwacji
+
+Zadanie źródłowe: 039. Uzasadnienia: [ADR-025](../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md),
+[ADR-026](../adr/ADR-026-zamrozenie-warunkow-rezerwacji.md),
+[ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md) pkt 7.
+
+- **Zajętość to sloty `[starts_at, ends_at)` w UTC** (`reservation_slots`), po jednym na dobę pobytu,
+  typ `fishing_day`. Kolizja to **nakładanie** (`FishingDay::overlaps()`) niezależnie od typu slotu —
+  przyleganie 13–15 / 15–17 jest dozwolone, częściowe nakładanie 13–15 / 14–16 nie.
+  ⚠️ Kolumny momentów rezerwacji czyta i pisze rzut `App\Casts\UtcDateTime` — strefą aplikacji jest
+  `Europe/Warsaw`, a wbudowany rzut `datetime` przesunąłby moment o różnicę stref.
+- **`PositionAvailability` zna zajętość dwojako:** jako czwarty powód w łańcuchu (`Occupied`) i jako
+  osobne pytanie `isOccupied()`. ⚠️ Łańcuch niesie tylko pierwszy powód, więc na stanowisku wycofanym
+  albo zablokowanym zajętości nie zgłosi — **ścieżka zapisu pyta o nią wprost**, zanim zapyta o ofertę.
+  Sloty stanowiska wczytuje się raz na instancję (odczyt w obrębie pytania, §2).
+- ⚠️ **Wszystkie zapisy slotów, egzemplarzy usług i warunków idą przez
+  [`ReservationBooking`](../../app/Services/ReservationBooking.php)** (`book()`, `rebook()`, `confirm()`,
+  `cancel()`, `expire()`): transakcja → `lockForUpdate` na wierszu stanowiska (przy zmianie stanowiska
+  na obu, rosnąco po id) → NOWA instancja dostępności → zapis. Zapis gdzie indziej jest defektem;
+  pilnuje tego `tests/Unit/ReservationWritePathTest.php`. `unique(position_id, starts_at)` w bazie to
+  siatka bezpieczeństwa, nie gwarancja — MySQL nie ma ograniczenia wykluczającego przedziały.
+- **Konflikt jest odmową z powodem (`BookingOutcome`), nie błędem.** Odmowa wewnątrz transakcji wycofuje
+  wszystko — także sloty zwolnione na początku `rebook()`.
+- **Zajętości nie omija nikt.** Kanał operatora i admina (`ReservationSource::allowsExceptions()`) może
+  zapisać rezerwację wbrew odmowie sprzedaży (sezon, reguły pobytu, wycofane stanowisko, blokada) —
+  wyłącznie z powodem, jako wyjątek w `reservation_terms.exceptions` (rodzaj, reguła, doba, powód, kto,
+  kiedy). Zapisuje się pierwszy powód odmowy. Kanał wędkarza (`Online`, etap 4) nie zapisuje wyjątków nigdy.
+- **Pojemność stanowiska jest walidacją składu** (`BookingProblem::CapacityExceeded`), nie zajętością.
+  **Usługi z limitem** sprawdza się pod blokadą wiersza usługi, po jej założeniu (`ServiceStock`).
+- **Zwolnienie zasobu usuwa sloty i egzemplarze usług**; rezerwacja i warunki zostają. Dlatego przedział
+  pobytu (`starts_at`, `ends_at`, `first_night_on`, `nights`) jest powtórzony na rezerwacji — historia
+  pokazuje termin anulowanej rezerwacji bez slotów.
+- **„W toku" nie jest stanem** (`ReservationStatus`: `pending`, `confirmed`, `cancelled`, `expired`) —
+  wylicza się z przedziału i chwili pytania (`Reservation::isInProgress()`).
+- **Relacja z wędkarzem** (`fishery_anglers`, ADR-024): zapis operatora wiąże rezerwację z relacją
+  znalezioną po znormalizowanym adresie e-mail w TYM łowisku albo tworzy nową; telefon nie łączy relacji.
+  Dane operatora poprawiają tylko relację niepowiązaną — do `users` operator nie pisze.

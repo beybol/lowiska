@@ -242,6 +242,20 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   przesuwaniem palcem, licznikiem „3 / 12" i powiększaniem mapy na telefonie.
 - Karta łowiska na stronie głównej ma **okładkę** — pierwsze zdjęcie galerii.
 - Właściciel ustawia **kolejność zdjęć** przeciąganiem w panelu; pierwsze zdjęcie jest okładką.
+- System przechowuje **rezerwacje stanowisk** razem z warunkami z chwili rezerwacji: ceną z rozbiciem na
+  doby, usługami dodatkowymi, polityką zwrotu, cechami stanowiska, obowiązującymi dokumentami i danymi
+  kontaktowymi wędkarza. Późniejsza zmiana cennika, polityki zwrotu czy stanowiska nie zmienia już
+  zawartych rezerwacji.
+- Tego samego terminu na tym samym stanowisku nie da się zarezerwować dwa razy, także gdy dwie osoby
+  zapisują go w tej samej chwili. Zarezerwowana doba jest niedostępna do sprzedaży z komunikatem
+  „Stanowisko jest w tym dniu już zarezerwowane".
+- Obsługa łowiska może świadomie zarezerwować termin wbrew regułom sprzedaży, na zablokowanym stanowisku
+  albo po cenie uzgodnionej z wędkarzem — zawsze z podanym powodem, który zostaje zapisany razem z osobą
+  i chwilą decyzji. Wędkarz kupujący samodzielnie takich wyjątków nie dostaje.
+- Usługi dodatkowe są wyceniane do rezerwacji według swojej jednostki (za dobę albo za pobyt), a usługa
+  z ograniczoną liczbą egzemplarzy nie sprzeda się ponad stan w żadnej dobie pobytu.
+- Anulowana albo wygasła rezerwacja zwalnia termin i egzemplarze usług, ale zostaje w historii. Zmiany
+  rezerwacji trafiają do trwałego dziennika zmian, którego automatyczne sprzątanie nie usuwa.
 
 ### Zmienione
 

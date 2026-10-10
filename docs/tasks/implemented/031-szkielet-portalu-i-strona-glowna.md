@@ -118,20 +118,20 @@ podstaw SEO i statystyk odwiedzin (Umami).
 
 ## Kryteria akceptacji
 
-- [ ] Wszystkie adresy z tabeli działają w obu językach; przełącznik języka prowadzi na odpowiednik.
-- [ ] `/` przekierowuje na wersję językową; schemat adresów łowiska (canonical, 301, krótki adres
+- [x] Wszystkie adresy z tabeli działają w obu językach; przełącznik języka prowadzi na odpowiednik.
+- [x] `/` przekierowuje na wersję językową; schemat adresów łowiska (canonical, 301, krótki adres
       `/{slug}` z 302, wielkie litery → 301, 404 dla nieopublikowanego i nieznanego) pokryty testami
       funkcjonalnymi; panele i logowanie działają obok krótkiego adresu.
-- [ ] Slug łowiska nie może zająć nazwy z listy zastrzeżonej ani pierwszego segmentu zarejestrowanej
+- [x] Slug łowiska nie może zająć nazwy z listy zastrzeżonej ani pierwszego segmentu zarejestrowanej
       trasy, ani mieć mniej niż 3 znaki — nadanie automatyczne dostaje sufiks, ręczna zmiana błąd walidacji.
-- [ ] `portal:check-slugs` wypisuje kolizję i kończy się kodem 0; jest wołana w `deploy.yml` po migracjach.
-- [ ] Strona główna pokazuje tylko łowiska opublikowane, alfabetycznie.
-- [ ] Canonical, `hreflang`, `sitemap.xml`, `robots.txt`; `noindex` poza produkcją.
-- [ ] Umami: skrypt obecny w portalu przy ustawionej konfiguracji, nieobecny bez niej, w panelach
+- [x] `portal:check-slugs` wypisuje kolizję i kończy się kodem 0; jest wołana w `deploy.yml` po migracjach.
+- [x] Strona główna pokazuje tylko łowiska opublikowane, alfabetycznie.
+- [x] Canonical, `hreflang`, `sitemap.xml`, `robots.txt`; `noindex` poza produkcją.
+- [x] Umami: skrypt obecny w portalu przy ustawionej konfiguracji, nieobecny bez niej, w panelach
       i w widokach Breeze; `deploy.yml` przekazuje zmienne wyłącznie dla produkcji.
-- [ ] Favicon widoczny w portalu, w obu panelach i w widokach Breeze.
-- [ ] `robots.txt`: produkcja — zezwala i wskazuje `sitemap.xml`; poza produkcją — `Disallow: /`.
-- [ ] `/dashboard` nie istnieje (404 portalu); po logowaniu hasłem, przez Google i po 2FA administrator
+- [x] Favicon widoczny w portalu, w obu panelach i w widokach Breeze.
+- [x] `robots.txt`: produkcja — zezwala i wskazuje `sitemap.xml`; poza produkcją — `Disallow: /`.
+- [x] `/dashboard` nie istnieje (404 portalu); po logowaniu hasłem, przez Google i po 2FA administrator
       trafia do `/admin`, pozostali do `/owner` — testy funkcjonalne każdej ścieżki.
 - [ ] **Ręczna weryfikacja** strony głównej, landingu, stron statycznych i 404 na: telefonie
       (390 px — iOS Safari i Android Chrome, realne urządzenia albo emulacja), tablecie i desktopie;
@@ -242,3 +242,10 @@ przez autora; w sesji brak przeglądarki). Odnotowane świadomie:
 7. **Favicon w Caddy** — `/favicon.ico` zostaje w `@static` z cache „immutable" na rok: przeglądarka,
    która zapamiętała ikonę Laravela, pokaże nową dopiero po wygaśnięciu. Nieistotne przed pierwszym
    wdrożeniem produkcyjnym.
+
+## Stan weryfikacji (2026-10-08)
+
+Kryteria odhaczone po przeglądzie kodu, konfiguracji (`deploy.yml`, `Caddyfile`, układy) i obecności testów
+(`PortalRoutingTest`, `PortalPagesTest`, `PortalSeoTest`, `PortalSlugReservationTest`, `PortalPanelHomeTest`);
+testów nie uruchamiano w tej sesji. **Otwarte:** ręczna weryfikacja na urządzeniach (390 px, tablet, desktop)
+oraz pełny pakiet (T3).

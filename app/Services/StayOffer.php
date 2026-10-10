@@ -59,6 +59,8 @@ final class StayOffer
 
     private ?StayPricing $pricing = null;
 
+    private ?StayServicePricing $servicePricing = null;
+
     /**
      * @param  array<int, PriceRule>|null  $rules  cennik łowiska wczytany przez wołającego —
      *                                             kalendarz (019) podaje go raz dla wszystkich
@@ -169,6 +171,30 @@ final class StayOffer
         }
 
         return ShortestStayVerdict::none(SaleUnavailabilityReason::StayTooLong);
+    }
+
+    /**
+     * Usługi dodatkowe pobytu z wyceną, limitem i liczbą egzemplarzy, które zostały (zadanie 039,
+     * aktualizacja ADR-015 z 08.10.2026).
+     *
+     * ⚠️ Liczy je osobna usługa (`StayServicePricing`) — ta warstwa tylko ją składa, tak jak
+     * sprzedawalność i cennik pobytu. Wycena usług nie pyta o sprzedawalność pobytu: wołający, który
+     * chce oferty, pyta najpierw `offer()`.
+     *
+     * @param  array<int, int>  $quantities  id usługi → liczba egzemplarzy
+     */
+    public function services(
+        CarbonInterface|string $startsOn,
+        int $nights,
+        array $quantities = [],
+        ?int $excludingReservationId = null,
+    ): StayServicesQuote {
+        return $this->servicePricing()->quote($startsOn, $nights, $quantities, $excludingReservationId);
+    }
+
+    private function servicePricing(): StayServicePricing
+    {
+        return $this->servicePricing ??= new StayServicePricing($this->position);
     }
 
     private function sellability(): StaySellability
