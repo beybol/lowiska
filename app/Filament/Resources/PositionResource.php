@@ -14,10 +14,12 @@ use App\Models\PositionAttribute;
 use App\Models\PositionGroup;
 use App\Rules\RecordsBelongToFishery;
 use App\Services\AdditionalServiceSync;
+use App\Services\CollisionGate;
 use App\Services\FisheryAccess;
 use App\Services\PositionAttributeWriter;
 use App\Services\PositionServices;
 use App\Services\SharedFormComponents;
+use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -38,6 +40,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Validation\ValidationException;
 
 class PositionResource extends Resource
@@ -314,9 +317,36 @@ class PositionResource extends Resource
                     static::setAttributeBulkAction(),
                     static::pinServiceBulkAction(),
                     static::unpinServiceBulkAction(),
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->before(fn (Collection $records, DeleteBulkAction $action) => static::refuseDeletionWithReservations($records, $action)),
                 ]),
             ]);
+    }
+
+    /**
+     * Usunięcie stanowiska z aktywnymi przyszłymi rezerwacjami jest blokowane z komunikatem (047, F1):
+     * usunięcie nie ma decyzji „zostaw", więc rezerwacje najpierw wycofaniem (ekran decyzji) albo anulacją.
+     * Reguła dotkniętej rezerwacji — `CollisionGate::blockingDeletion()`, nie tutaj.
+     *
+     * @param  SupportCollection<int, mixed>  $records
+     */
+    public static function refuseDeletionWithReservations(SupportCollection $records, Action $action): void
+    {
+        $gate = new CollisionGate;
+        $blocked = $records->filter(fn (mixed $position): bool => $position instanceof Position && $gate->blockingDeletion($position) > 0);
+
+        if ($blocked->isEmpty()) {
+            return;
+        }
+
+        Notification::make()->danger()
+            ->title(__('The position was not deleted'))
+            ->body(__('Positions with upcoming reservations: :positions. Withdraw the position from sale to decide about the reservations, or cancel them first.', [
+                'positions' => $blocked->pluck('name')->join(', '),
+            ]))
+            ->send();
+
+        $action->cancel();
     }
 
     /**

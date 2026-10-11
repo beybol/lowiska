@@ -274,9 +274,9 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   (potwierdzona, opłacona, do potwierdzenia z terminem, w toku), zablokowane doby, weekendy, dzisiejszy
   dzień oraz liczniki przyjazdów i wyjazdów dziś, niepotwierdzonych i „do kontaktu". Okno to tydzień
   albo dwa tygodnie, z filtrem grupy stanowisk i statusu.
-- Kliknięcie wolnej doby w kalendarzu zaznacza termin, a kolejne kliknięcie w tym samym wierszu go
-  wydłuża — nigdy przez dobę zajętą. Pod stanowiskiem pokazuje się przyjazd, wyjazd, liczba dób i cena,
-  a z niego krótki formularz rezerwacji, przejście do pełnego formularza albo blokada terminu.
+- Kliknięcie dnia w kalendarzu wskazuje przyjazd, kliknięcie późniejszego dnia — wyjazd (nigdy przez dobę
+  zajętą). W okienku nad kalendarzem widać przyjazd, wyjazd, liczbę dób i cenę, a z niego krótki formularz
+  rezerwacji, przejście do pełnego formularza albo blokada terminu.
   Kliknięcie paska rezerwacji daje podgląd, edycję, potwierdzenie, oznaczenie płatności i anulację bez
   wychodzenia z kalendarza.
 - Na telefonie kalendarz pokazuje pasek dni i listę stanowisk na wybrany dzień: wolne stanowisko podaje,
@@ -311,6 +311,47 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Zmienione
 
+- Kalendarz rezerwacji w panelu i kalendarz w portalu wędkarza pokazują dni kalendarzowe podzielone na połowy:
+  pasek rezerwacji zaczyna się w połowie dnia przyjazdu i kończy w połowie dnia wyjazdu, z ukośnymi końcami
+  biegnącymi od rogu do połowy krawędzi komórki, więc nazwisko i ikony mieszczą się w pasku. Dzień wyjazdu
+  jednego gościa jest od razu widoczny jako dzień, w którym może przyjechać następny. Pierwsze kliknięcie
+  wskazuje dzień przyjazdu, drugie — dzień wyjazdu; kliknięcie w zaznaczony dzień wyjazdu przedłuża pobyt
+  o kolejną dobę.
+- Blokady działają i wyglądają jak rezerwacje: daty „od" i „do" to pierwsza i ostatnia doba, a blokada
+  zaczyna się i kończy o godzinie doby, nie o północy. Formularz blokady pokazuje wynikające z tego godziny,
+  a kalendarz panelu i portal rysują blokadę tym samym ukośnym, szarym i kreskowanym paskiem z powodem;
+  w panelu po kliknięciu można ją edytować albo usunąć.
+- Oznaczenie rezerwacji jako opłaconej od razu ją potwierdza — tak samo będzie przy płatności wędkarza online.
+- Przełącznik „Łowiących" w portalu pokazuje co najmniej 1 i 2 łowiących, gdy stanowiska nie mają ustawionej
+  pojemności.
+- Kalendarz pamięta, gdzie użytkownik skończył — po powrocie z innej zakładki pokazuje tę samą warstwę,
+  to samo okno (tydzień albo dwa tygodnie) i ten sam, także przyszły, zakres dat.
+- Formularze rezerwacji (krótki w kalendarzu i pełny) pokazują obok liczby dób datę i godzinę przyjazdu
+  oraz wyjazdu, przeliczane na bieżąco; krótki formularz ma w nagłówku stanowisko („Rezerwacja stanowiska: 7").
+- „Zapisz i otwórz pełny formularz" w krótkim formularzu zapisuje rezerwację z wpisanych danych i od razu
+  otwiera jej pełną edycję — nic z wpisanego nie przepada.
+- Kalendarz rezerwacji w panelu wygląda i działa jak w projekcie: kliknięcie dnia otwiera okienko
+  nad wierszem zaznaczenia (albo pod nim, gdy brakuje miejsca), bez rozsuwania wierszy; kliknięcie w dzień
+  przyjazdu, Esc albo kliknięcie poza kalendarzem je zamyka. W pustych dobach widać szarą cenę pobytu albo „zacznij …", na paskach rezerwacji —
+  nazwisko, liczbę osób, status i kwotę rezerwacji, a niepotwierdzone mają zegar i godzinę wygaśnięcia.
+  Domyślnie widać dwa tygodnie, tydzień jest do wyboru, strzałki ‹ › przesuwają kalendarz o tydzień w obu
+  widokach, jest przycisk „Dziś" i nawigacja strzałkami z klawiatury.
+- „Zablokuj…" w kalendarzu przy kolizji z rezerwacją prowadzi na ekran decyzji zamiast odmawiać.
+- Liczniki nad kalendarzem (przyjazdy i wyjazdy dziś, niepotwierdzone, do kontaktu) filtrują po kliknięciu,
+  doszły filtr „wymagają reakcji" i przycisk „Nowa rezerwacja".
+- Na telefonie lista dnia dzieli się na przyjazdy, wyjazdy, aktualnie na łowisku i wolne stanowiska; wolne
+  stanowisko otwiera arkusz z wyborem liczby dób, terminem i ceną, a potem formularz z danymi wędkarza.
+- Formularze rezerwacji pokazują cenę z rozbiciem (stawka, dopłaty, obniżka, usługi, suma), która przelicza
+  się także po dodaniu albo zmianie usługi. Pole powodu rezerwacji wbrew regułom pojawia się dopiero wtedy,
+  gdy termin naprawdę łamie reguły, razem z ich listą. Usługa niedostępna na stanowisku albo w terminie jest
+  oznaczona ostrzeżeniem z przyczyną przed zapisem; obsługa może ją dodać z podanym powodem, chyba że
+  zabrakło wolnych egzemplarzy.
+- Edycja rezerwacji ma dwa wejścia: szybką edycję w okienku (jak „Zarezerwuj…") i pełną edycję na osobnej
+  stronie z usługami, ceną uzgodnioną i zapisanymi wyjątkami. Zmiana samego kontaktu albo notatki nie
+  przelicza już ceny, a wcześniejsze wyjątki, polityka zwrotu i dokumenty zostają przy rezerwacji.
+- Niepotwierdzona rezerwacja wygasa najpóźniej w chwili rozpoczęcia pobytu — rezerwacja na dziś nie wygaśnie
+  w trakcie trwającego pobytu.
+- Pole „E-mail" w formularzach rezerwacji nie ma już dopisku „(opcjonalnie)".
 - Portal ma białe tło, na którym odcinają się ramki: wyciąg zasad nad kalendarzem, box z ceną (z cieniem)
   i opisy grup. Kalendarz dostał kolory z projektu — nagłówek dni z wyróżnioną sobotą i niedzielą, ceny
   w kolorze akcentu, linie siatki w obu kierunkach, legendę tylko z tym, co jest w tygodniu — a nawigacja
@@ -404,6 +445,11 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Bezpieczeństwo
 
+- Formularz rezerwacji nie pokazuje stanowisk, usług ani wędkarzy innego łowiska po podmianie łowiska
+  w żądaniu.
+- Poprawienie adresu e-mail wędkarza unieważnia wysłany wcześniej link potwierdzenia, a link działa tylko
+  dla adresu, na który został wysłany — pomyłka w adresie nie pozwoli obcej osobie powiązać rezerwacji ze
+  swoim kontem. Potwierdzenie sprawdza link ponownie w chwili zapisu.
 - Logowanie przez Google i Facebook wymaga teraz kodu z drugiego składnika, tak samo jak
   logowanie hasłem — wcześniej pomijało ten krok w całości.
 - Panel właściciela wymaga teraz kodu z drugiego składnika przy każdym logowaniu; wcześniej
@@ -433,6 +479,16 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Poprawione
 
+- Blokada zaczynająca się w dniu wyjazdu gościa nie koliduje już z jego rezerwacją. Wcześniej rezerwacja
+  do niedzieli 15:00 trafiała na ekran decyzji przy blokadzie od niedzieli.
+- Stanowiska z nadchodzącymi rezerwacjami nie da się już usunąć z pominięciem decyzji o rezerwacjach —
+  panel prosi najpierw o wycofanie stanowiska albo anulowanie rezerwacji.
+- Potwierdzenie i zmiana statusu płatności rezerwacji anulowanej w międzyczasie pokazują komunikat odmowy
+  zamiast „Zapisano"; adres e-mail zajęty przez innego wędkarza łowiska daje komunikat zamiast błędu,
+  a notatkę wewnętrzną rezerwacji da się wyczyścić.
+- Rezerwacja anulowana w międzyczasie nie dostaje drugiego maila przy decyzji o kolizji z blokadą.
+- Strona po rezygnacji wędkarza nie twierdzi już, że łowisko zostało powiadomione — informuje, że anulację
+  widać na liście rezerwacji łowiska. Historia rezerwacji nie pokazuje pustych wpisów o zmianie.
 - Metody połowu zaznaczone w formularzu łowiska zapisują się — wcześniej formularz przyjmował wybór
   i po cichu go gubił, więc łowisko nie miało żadnej metody ani w panelu, ani w portalu.
 - Po angielsku teksty z liczbą — „up to 2 anglers", „min. 5 nights", liczba dób i liczniki w panelach —

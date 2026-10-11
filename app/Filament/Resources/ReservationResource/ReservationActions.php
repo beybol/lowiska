@@ -2,31 +2,25 @@
 
 namespace App\Filament\Resources\ReservationResource;
 
-use App\Enums\AnglerLinkStatus;
 use App\Enums\CancellationReason;
 use App\Enums\ConfirmationSource;
 use App\Enums\PaymentStatus;
-use App\Enums\ReservationSource;
-use App\Models\Position;
+use App\Filament\Resources\ReservationResource;
+use App\Models\Fishery;
 use App\Models\Reservation;
 use App\Services\BookingOutcome;
-use App\Services\BookingRequest;
 use App\Services\CancellationRequest;
-use App\Services\FisheryAccess;
 use App\Services\ReservationBooking;
 use App\Services\ReservationMailer;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Forms\Components\Checkbox;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Collection;
@@ -34,7 +28,8 @@ use Illuminate\Support\Facades\Gate;
 
 /**
  * Krótkie akcje na rezerwacji w MODALACH — współdzielone przez listę (B), szczegóły (D) i kalendarz
- * (zadanie 042): edycja, anulacja, potwierdzenie, status płatności, „do kontaktu".
+ * (zadanie 042): szybka edycja, anulacja, potwierdzenie, status płatności, „do kontaktu". „Pełna edycja"
+ * prowadzi na stronę `EditReservation` (zadanie 047, C1) — formularz jak C, z usługami i wyjątkami.
  *
  * ⚠️ **Świadome odstępstwo od „akcje prowadzą na pełne strony"** (`panel-wlasciciela.md` §2). Tamta
  * reguła chroni formularze z polem `fishery_id` od klienta; tutaj rekord przychodzi z zawężonego
@@ -43,7 +38,8 @@ use Illuminate\Support\Facades\Gate;
  * rezerwacji (formularz C) zostaje pełną stroną.
  *
  * ⚠️ Każda akcja sprawdza `update` na rezerwacji DWA razy — w `visible()` (przycisk) i w `action()`
- * (żądanie Livewire da się wysłać z pominięciem przycisku).
+ * (żądanie Livewire da się wysłać z pominięciem przycisku). Odmowa serwisu (np. rezerwacja anulowana
+ * w międzyczasie) daje komunikat odmowy, nigdy „Zapisano" (047, C5).
  */
 final class ReservationActions
 {
@@ -52,22 +48,33 @@ final class ReservationActions
      */
     public static function all(): array
     {
-        return [self::edit(), self::confirm(), self::payment(), self::markContacted(), self::cancel()];
+        return [self::quickEdit(), self::fullEdit(), self::confirm(), self::payment(), self::markContacted(), self::cancel()];
     }
 
-    public static function edit(): Action
+    /**
+     * Szybka edycja — ten sam krótki formularz co „Zarezerwuj…" w kalendarzu, wypełniony danymi rezerwacji
+     * (047, C1). Usługi i cena uzgodniona zostają z warunków; zmiana samego kontaktu nie przelicza ceny.
+     */
+    public static function quickEdit(): Action
     {
-        return Action::make('editReservation')
-            ->label(__('Edit'))
-            ->icon('heroicon-m-pencil-square')
-            ->modalHeading(__('Edit reservation'))
-            ->modalWidth('3xl')
+        return Action::make('quickEditReservation')
+            ->label(__('Quick edit'))
+            ->icon('heroicon-m-pencil')
+            ->modalHeading(fn (Reservation $record): string => __('Edit reservation').' #'.$record->getKey())
+            ->modalDescription(fn (Reservation $record): string => ($record->position->name ?? '').' · '.$record->stayLabel())
+            ->modalWidth('lg')
             ->visible(fn (Reservation $record): bool => $record->isActive() && Gate::allows('update', $record))
-            ->fillForm(fn (Reservation $record): array => self::editState($record))
-            ->schema(fn (Reservation $record): array => self::editSchema($record))
+            ->fillForm(fn (Reservation $record): array => ReservationFormSchema::quickState($record))
+            ->schema(fn (Reservation $record): array => ReservationFormSchema::quick(fn (): ?Fishery => $record->fishery, $record))
+            ->extraModalFooterActions(fn (Reservation $record): array => [
+                Action::make('openFullEdit')
+                    ->label(__('Full edit →'))
+                    ->color('gray')
+                    ->url(ReservationResource::getUrl('edit', ['record' => $record])),
+            ])
             ->action(function (Reservation $record, array $data, Action $action): void {
                 Gate::authorize('update', $record);
-                $outcome = self::rebook($record, $data);
+                $outcome = ReservationFormSubmission::update($record, $data);
 
                 if (! $outcome->succeeded) {
                     Notification::make()->danger()->title(__('The reservation was not changed'))->body($outcome->message())->send();
@@ -76,6 +83,16 @@ final class ReservationActions
 
                 Notification::make()->success()->title(__('The reservation was changed'))->send();
             });
+    }
+
+    public static function fullEdit(): Action
+    {
+        return Action::make('fullEditReservation')
+            ->label(__('Full edit'))
+            ->icon('heroicon-m-pencil-square')
+            ->color('gray')
+            ->visible(fn (Reservation $record): bool => $record->isActive() && Gate::allows('update', $record))
+            ->url(fn (Reservation $record): string => ReservationResource::getUrl('edit', ['record' => $record]));
     }
 
     public static function confirm(): Action
@@ -89,8 +106,11 @@ final class ReservationActions
             ->visible(fn (Reservation $record): bool => $record->status->value === 'pending' && Gate::allows('update', $record))
             ->action(function (Reservation $record): void {
                 Gate::authorize('update', $record);
-                (new ReservationBooking)->confirm($record, ConfirmationSource::Operator, auth()->user());
-                Notification::make()->success()->title(__('The reservation was confirmed'))->send();
+                $outcome = (new ReservationBooking)->confirm($record, ConfirmationSource::Operator, auth()->user());
+
+                $outcome->succeeded
+                    ? Notification::make()->success()->title(__('The reservation was confirmed'))->send()
+                    : self::refused($outcome);
             });
     }
 
@@ -105,8 +125,9 @@ final class ReservationActions
             ->schema([self::paymentSelect()])
             ->action(function (Reservation $record, array $data): void {
                 Gate::authorize('update', $record);
-                (new ReservationBooking)->setPaymentStatus($record, PaymentStatus::from($data['payment_status']));
-                Notification::make()->success()->title(__('Saved'))->send();
+                $outcome = (new ReservationBooking)->setPaymentStatus($record, PaymentStatus::from($data['payment_status']));
+
+                $outcome->succeeded ? Notification::make()->success()->title(__('Saved'))->send() : self::refused($outcome);
             });
     }
 
@@ -124,8 +145,9 @@ final class ReservationActions
                 && Gate::allows('update', $record))
             ->action(function (Reservation $record): void {
                 Gate::authorize('update', $record);
-                (new ReservationBooking)->setPaymentStatus($record, PaymentStatus::Paid);
-                Notification::make()->success()->title(__('Saved'))->send();
+                $outcome = (new ReservationBooking)->setPaymentStatus($record, PaymentStatus::Paid);
+
+                $outcome->succeeded ? Notification::make()->success()->title(__('Saved'))->send() : self::refused($outcome);
             });
     }
 
@@ -275,127 +297,10 @@ final class ReservationActions
         return $records->filter(fn (Reservation $record): bool => Gate::allows('update', $record));
     }
 
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private static function rebook(Reservation $record, array $data): BookingOutcome
+    /** Odmowa serwisu jako komunikat — np. rezerwacja anulowana w międzyczasie (047, C5). */
+    private static function refused(BookingOutcome $outcome): void
     {
-        $record->loadMissing(['angler', 'terms', 'fishery']);
-
-        // ⚠️ Stanowisko przychodzi od klienta — wyłącznie z łowiska rezerwacji.
-        $position = Position::query()
-            ->where('fishery_id', $record->fishery_id)
-            ->whereKey($data['position_id'] ?? null)
-            ->first();
-
-        // Opcje pola są zawężone do łowiska, więc obce id przychodzi wyłącznie z podmienionego żądania.
-        abort_if($position === null, 404);
-
-        $angler = $record->angler;
-
-        // Dane operatora poprawiają WYŁĄCZNIE relację niepowiązaną — konta wędkarza operator nie pisze.
-        if (in_array($angler->status, [AnglerLinkStatus::Unlinked, AnglerLinkStatus::Pending], true)) {
-            $angler->fill([
-                'given_name' => $data['angler_name'] ?? $angler->given_name,
-                'given_phone' => $data['angler_phone'] ?? null,
-                'given_email' => $data['angler_email'] ?? null,
-            ]);
-
-            if ($angler->isDirty()) {
-                $angler->save();
-            }
-        }
-
-        $services = collect($record->terms->services ?? [])
-            ->mapWithKeys(fn (array $line): array => [(int) $line['service_id'] => (int) $line['quantity']])
-            ->all();
-
-        return (new ReservationBooking)->rebook($record, new BookingRequest(
-            position: $position,
-            startsOn: (string) $data['starts_on'],
-            nights: (int) $data['nights'],
-            angler: $angler,
-            source: FisheryAccess::isAdminPanel() ? ReservationSource::Admin : ReservationSource::Operator,
-            actor: auth()->user(),
-            anglers: (int) $data['anglers'],
-            companions: (int) ($data['companions'] ?? 0),
-            services: $services,
-            agreedTotalCents: ! empty($data['agreed']) ? self::toCents($data['agreed_total'] ?? null) : null,
-            agreedPriceReason: ! empty($data['agreed']) ? ($data['agreed_reason'] ?? null) : null,
-            exceptionReason: $data['exception_reason'] ?? null,
-            internalNote: $data['internal_note'] ?? $record->internal_note,
-        ), (string) $data['change_reason']);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private static function editState(Reservation $record): array
-    {
-        $record->loadMissing(['angler', 'terms']);
-        $agreed = $record->terms?->agreed_total_cents;
-
-        return [
-            'angler_name' => $record->angler?->given_name,
-            'angler_phone' => $record->angler?->given_phone,
-            'angler_email' => $record->angler?->given_email,
-            'position_id' => $record->position_id,
-            'starts_on' => $record->first_night_on->toDateString(),
-            'nights' => $record->nights,
-            'anglers' => $record->terms->anglers,
-            'companions' => $record->terms->companions,
-            'agreed' => $agreed !== null,
-            'agreed_total' => $agreed === null ? null : number_format($agreed / 100, 2, '.', ''),
-            'agreed_reason' => null,
-            'internal_note' => $record->internal_note,
-        ];
-    }
-
-    /**
-     * @return array<int, mixed>
-     */
-    private static function editSchema(Reservation $record): array
-    {
-        $anglerEditable = in_array($record->angler?->status, [AnglerLinkStatus::Unlinked, AnglerLinkStatus::Pending], true);
-
-        return [
-            Section::make(__('Angler'))
-                ->description($anglerEditable ? null : __('The angler manages their own contact details in their account.'))
-                ->schema([
-                    TextInput::make('angler_name')->label(__('Name'))->required()->maxLength(255)->disabled(! $anglerEditable),
-                    TextInput::make('angler_phone')->label(__('Phone'))->tel()->maxLength(32)->disabled(! $anglerEditable),
-                    TextInput::make('angler_email')->label(__('Email'))->email()->maxLength(255)->disabled(! $anglerEditable),
-                ])
-                ->columns(3),
-            Section::make(__('Stay'))
-                ->schema([
-                    Select::make('position_id')
-                        ->label(__('Position'))
-                        ->options(fn (): array => Position::query()->where('fishery_id', $record->fishery_id)->orderBy('name')->pluck('name', 'id')->all())
-                        ->required(),
-                    DatePicker::make('starts_on')->label(__('Arrival (first night)'))->required(),
-                    TextInput::make('nights')->label(__('Nights'))->integer()->minValue(1)->maxValue(365)->required(),
-                    TextInput::make('anglers')->label(__('Anglers'))->integer()->minValue(1)->maxValue(50)->required(),
-                    TextInput::make('companions')->label(__('Companions'))->integer()->minValue(0)->maxValue(50)->default(0),
-                ])
-                ->columns(5),
-            Section::make(__('Price and exceptions'))
-                ->schema([
-                    Toggle::make('agreed')->label(__('Agreed price'))->live(),
-                    Grid::make(2)->schema([
-                        TextInput::make('agreed_total')->label(__('Agreed total'))->numeric()->minValue(0)
-                            ->required(fn (Get $get): bool => (bool) $get('agreed')),
-                        TextInput::make('agreed_reason')->label(__('Reason for the agreed price'))->maxLength(500)
-                            ->required(fn (Get $get): bool => (bool) $get('agreed')),
-                    ])->visible(fn (Get $get): bool => (bool) $get('agreed')),
-                    TextInput::make('exception_reason')
-                        ->label(__('Reason to book against the sale rules'))
-                        ->helperText(__('Needed only when the new term breaks the sale rules or a block.'))
-                        ->maxLength(500),
-                    Textarea::make('internal_note')->label(__('Internal note'))->rows(2),
-                ]),
-            TextInput::make('change_reason')->label(__('Reason for the change'))->required()->maxLength(500),
-        ];
+        Notification::make()->danger()->title(__('Nothing was changed'))->body($outcome->message())->send();
     }
 
     /**

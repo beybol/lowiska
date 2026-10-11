@@ -81,7 +81,8 @@ class EditPosition extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            // ⚠️ Usunięcie nie omija mechanizmu kolizji (047, F1) — reguła w `CollisionGate`.
+            DeleteAction::make()->before(fn (DeleteAction $action) => PositionResource::refuseDeletionWithReservations(collect([$this->position()]), $action)),
         ];
     }
 
@@ -136,5 +137,13 @@ class EditPosition extends EditRecord
     public function getTitle(): string
     {
         return __('Edit position');
+    }
+
+    private function position(): Position
+    {
+        $record = $this->getRecord();
+        assert($record instanceof Position);
+
+        return $record;
     }
 }

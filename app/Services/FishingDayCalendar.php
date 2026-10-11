@@ -59,6 +59,27 @@ final class FishingDayCalendar
     }
 
     /**
+     * Okno wpisu o dostępności (blokady, zawieszenia cechy) w momentach: od POCZĄTKU doby zaczętej
+     * pierwszego dnia do KOŃCA doby zaczętej ostatniego dnia — „od" i „do" to pierwsza i ostatnia doba,
+     * jak w rezerwacji (przełom dnia o godzinie doby, nie o północy). `null` jako `$last` = „do odwołania".
+     *
+     * ⚠️ Łowisko bez zdefiniowanej doby nie ma przełomu dnia — wtedy okno to całe dni kalendarzowe.
+     *
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable|null}
+     */
+    public function nightsWindow(CarbonInterface|string $first, CarbonInterface|string|null $last): array
+    {
+        $timezone = $this->fishery->timezoneName();
+        $start = $this->dayStartingOn($first)->startsAt ?? CarbonImmutable::parse($first, $timezone)->startOfDay();
+
+        if ($last === null) {
+            return [$start, null];
+        }
+
+        return [$start, $this->dayStartingOn($last)->endsAt ?? CarbonImmutable::parse($last, $timezone)->endOfDay()];
+    }
+
+    /**
      * Doby ZAWARTE w podanym zakresie dat — czyli takie, których cały przedział
      * mieści się między początkiem dnia `$from` a końcem dnia `$to`.
      *

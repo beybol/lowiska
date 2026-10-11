@@ -82,8 +82,8 @@ enum CalendarWindow: string
     {
         return match ($this) {
             self::Month => $this->startFor($day)->addMonth(),
-            self::TwoWeeks => $this->startFor($day)->addWeeks(2),
-            self::Week => $this->startFor($day)->addWeek(),
+            // „2 tygodnie" przesuwa się o tydzień — drugi tydzień zostaje na ekranie jako kontekst.
+            self::TwoWeeks, self::Week => $this->startFor($day)->addWeek(),
         };
     }
 
@@ -91,8 +91,7 @@ enum CalendarWindow: string
     {
         return match ($this) {
             self::Month => $this->startFor($day)->subMonth(),
-            self::TwoWeeks => $this->startFor($day)->subWeeks(2),
-            self::Week => $this->startFor($day)->subWeek(),
+            self::TwoWeeks, self::Week => $this->startFor($day)->subWeek(),
         };
     }
 }

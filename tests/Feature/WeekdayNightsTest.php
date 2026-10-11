@@ -115,3 +115,12 @@ it('ciąg sześciu dób nie zawija się w pełny tydzień', function (): void {
 it('wszystkie siedem dób nie ma początku ani końca — zostaje sama liczba', function (): void {
     expect((new WeekdayNights('15:00', '15:00'))->summary(range(1, 7), '—'))->toBe('7 dób');
 });
+
+it('podsumowanie i skrót podają liczbę dób, a cały tydzień to sama liczba', function (): void {
+    $nights = new WeekdayNights('15:00', '15:00');
+
+    expect($nights->summary([5, 6], ''))->toContain('2 doby')
+        ->and($nights->shortForm([1, 2, 3, 4, 5, 6, 7]))->toBe('7 dób')
+        ->and($nights->runsText([1, 2, 3, 4, 5, 6, 7]))->toBe('7 dób')
+        ->and($nights->runsText([]))->toBe('');
+});

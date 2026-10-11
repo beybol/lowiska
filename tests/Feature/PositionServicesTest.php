@@ -241,7 +241,9 @@ test('the availability lists the entries suspending attributes in a night or a r
 
     $availability = new PositionAvailability($position->fresh());
 
-    expect($availability->attributeSuspensions('2026-06-09')->pluck('id')->all())->toBe([$june->id])
+    // Wpis 10–12.06 obejmuje doby 10, 11 i 12.06 (przełom dnia o godzinie doby, jak rezerwacja).
+    expect($availability->attributeSuspensions('2026-06-12')->pluck('id')->all())->toBe([$june->id])
+        ->and($availability->attributeSuspensions('2026-06-09')->all())->toBe([])
         ->and($availability->attributeSuspensions('2026-06-13')->all())->toBe([])
         ->and($availability->attributeSuspensions('2026-06-01', '2026-07-05')->pluck('id')->sort()->values()->all())
         ->toBe(collect([$june->id, $july->id])->sort()->values()->all())

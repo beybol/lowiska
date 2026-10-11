@@ -1,7 +1,7 @@
 # 030 — Dane łowiska dla portalu
 
-> **Etap 1, zadanie 3** ([roadmapa](../project/ROADMAPA.md)). Założone 30.09.2026.
-> Specyfikacja: [portal-v3 §6](../project/mockups/portal-v3/README.md). Może iść równolegle z 029.
+> **Etap 1, zadanie 3** ([roadmapa](../../project/ROADMAPA.md)). Założone 30.09.2026.
+> Specyfikacja: [portal-v3 §6](../../project/mockups/portal-v3/README.md). Może iść równolegle z 029.
 
 ## Opis problemu
 

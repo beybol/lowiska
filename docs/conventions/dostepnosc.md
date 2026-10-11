@@ -10,7 +10,7 @@ czy dobę albo pobyt można sprzedać** — w panelu, w portalu wędkarza, w cen
 portal, sprzedaż wpisywaną ręcznie i zadania 017–019. Dlatego mieszkają osobno, a nie w pliku
 o panelu właściciela.
 
-Zadania źródłowe: 015, 016, 017, 020, 039. Uzasadnienia w
+Zadania źródłowe: 015, 016, 017, 020, 039, 047. Uzasadnienia w
 [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md),
 [ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md),
 [ADR-013](../adr/ADR-013-warstwa-regul-pobytu-i-spoiwo-dob.md)
@@ -138,8 +138,15 @@ i [ADR-025](../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md).
   Pilnuje tego `app/Rules/AvailabilityBlockEffectMatchesAttribute`.
 - **Zawieszenie nie zmienia wartości cechy na stanowisku.** Po upływie okresu wszystko wraca samo,
   bez żadnej operacji — to warunek, bez którego ograniczenie byłoby nieodwracalne.
-- **Puste `ends_on` znaczy „do odwołania".** Okno wpisu to `starts_on` od północy do `ends_on`
-  do końca dnia w strefie łowiska; przecięcie z dobą liczy `FishingDay::overlaps()`.
+- **Puste `ends_on` znaczy „do odwołania".** **`starts_on` i `ends_on` to pierwsza i ostatnia DOBA wpisu, jak
+  w rezerwacji** ([ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md), aktualizacja 11.10). Okno w momentach
+  to początek doby z `starts_on` → koniec doby z `ends_on`, a przełom dnia wypada o godzinie doby, nie o północy. Okno
+  ma jeden dom: `FishingDayCalendar::nightsWindow()`. Korzystają z niego dostępność (`PositionAvailability`),
+  podpowiedzi siatki (`SaleCalendar`), kolizje z rezerwacjami (`ConfigurationCollisionService`) i podpowiedź
+  godzin w formularzu blokady (`AvailabilityBlockResource`). Przecięcie z dobą
+  liczy `FishingDay::overlaps()`. Blokada 12.06 to więc dokładnie doba 12.06, a rezerwacja kończąca się w chwili
+  startu blokady z nią nie koliduje. ⚠️ Nie wracaj do okna od północy: blokada wycinała wtedy także dobę
+  poprzednią i kolidowała z wyjazdem w dniu „od".
 - ⚠️ **Zbiór jest niepusty i w całości z łowiska wpisu** — pilnuje tego
   `app/Rules/PositionsBelongToFishery`, a nie samo zawężenie opcji w formularzu. Identyfikatory
   z wyboru wielokrotnego przychodzą od klienta (`autoryzacja.md` §4).
@@ -258,7 +265,8 @@ pakiet**, a nie „za krótki" — tylko pierwszy komunikat mówi, co zrobić.
   Flaga `presale_whole_terms_bypass_min_nights` (**domyślnie włączona**) zwalnia z tego minimum
   pobyt obejmujący pakiet ze świętem; weekend sam z siebie nigdy nie zwalnia.
 - **Okno obejmuje CAŁE dni brzegowe** — od `presale_opens_on` od północy do `presale_closes_on`
-  do końca dnia w strefie łowiska, tak samo jak okno blokady (§3). Porównywanym momentem jest
+  do końca dnia w strefie łowiska — ⚠️ inaczej niż okno blokady (§3), liczone od godziny doby do godziny
+  doby. Porównywanym momentem jest
   **chwila zakupu**.
 
 ### Granice święta znaczą co innego niż granice okresu sprzedaży
@@ -396,9 +404,16 @@ Zadanie źródłowe: 039. Uzasadnienia: [ADR-025](../adr/ADR-025-zajetosc-stanow
   `includeOccupancy: false`, a wtedy łańcuch nie zgłasza `Occupied`. ⚠️ Ścieżka zapisu i panel zawsze liczą
   zajętość (wartość domyślna); nie przekazuj `false` nigdzie poza `PortalCalendar`.
 - **Kalendarze pokazują zajętość z tego samego źródła:** warstwa „Oferta" (019) — powód `Occupied`
-  jako krótka etykieta „zajęte"; warstwa „Rezerwacje" (042) — `isOccupied()`/`isBlocked()` na komórkach
-  ([`rezerwacje.md`](rezerwacje.md) §2). Wołający pytający o wiele stanowisk wczytuje sloty i blokady
-  z góry; `PositionAvailability` używa wczytanych relacji zamiast zapytań per stanowisko.
+  jako krótka etykieta „zajęte"; warstwa „Rezerwacje" (042) — `isOccupied()`/`isBlocked()` na komórkach,
+  paski blokad z `saleBlocksOn()` ([`rezerwacje.md`](rezerwacje.md) §2). Wołający pytający o wiele stanowisk
+  wczytuje sloty i blokady z góry; `PositionAvailability` używa wczytanych relacji zamiast zapytań per stanowisko.
+- ⚠️ **Sloty wczytane z góry wyłącznie od okna widoku w przód** (zadanie 047, G1): `SaleCalendar` od dnia
+  przed pierwszą dobą okna (doba zaczęta dzień wcześniej przecina okno), `ReservationCalendar` od północy
+  pierwszego dnia okna (jego pierwsza połowa należy do doby sprzed okna) — wiersz nie rośnie z historią rezerwacji. Przy `includeOccupancy: false` sloty nie są
+  wczytywane wcale. Kto pyta o doby PRZED oknem, nie może polegać na tej relacji.
+- **Kolizja zmiany konfiguracji z rezerwacjami ma jedną regułę — `ConfigurationCollisionService::affected()`**
+  (ADR-027). Skrót „Zablokuj…" kalendarza i usuwanie stanowiska pytają ją przez `CollisionGate`; własna reguła
+  nakładania w skrócie byłaby drugim źródłem prawdy (zadanie 047, A9/F1).
 - **„W toku" nie jest stanem** (`ReservationStatus`: `pending`, `confirmed`, `cancelled`, `expired`) —
   wylicza się z przedziału i chwili pytania (`Reservation::isInProgress()`).
 - **Relacja z wędkarzem** (`fishery_anglers`, ADR-024): zapis operatora wiąże rezerwację z relacją

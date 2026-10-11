@@ -1,10 +1,10 @@
 # 027 — Specyfikacja portalu wędkarza: makiety v2 uzgodnione z konfiguracją łowiska
 
-> **Etap 1, zadanie 1** ([roadmapa](../project/ROADMAPA.md)). **Zadanie koncepcyjne — bez kodu.**
+> **Etap 1, zadanie 1** ([roadmapa](../../project/ROADMAPA.md)). **Zadanie koncepcyjne — bez kodu.**
 > Wynikiem są dokumenty i makiety, na których staną zadania implementacyjne etapów 1 i 2.
 > Założone 24.09.2026 na podstawie przeglądu makiet portalu wobec konfiguracji z etapu 0.
 
-**Makiety v1 zostają bez zmian:** [`docs/project/design/fisherya-design.html`](../project/design/fisherya-design.html)
+**Makiety v1 zostają bez zmian:** [`docs/project/design/fisherya-design.html`](../../project/design/fisherya-design.html)
 (ekrany portalu 1–8, 17.08.2026). Ich **wygląd jest zaakceptowany** i obowiązuje w v2.
 **Makiety v2** powstają w osobnym katalogu `docs/project/mockups/portal-v2/`.
 **Makiety v3** (przegląd v2 z 30.09.2026, pkt 9) — `docs/project/mockups/portal-v3/`; ich specyfikacja
@@ -153,7 +153,7 @@ Do wykorzystania przy specyfikacji etapu 4:
 - **Tailwind dla portalu.** Projekt kompiluje dziś Tailwinda 3; motyw Filamenta 5 wymaga
   Tailwinda 4 (zadanie 019, „Stan po implementacji"; ADR-016). Portal ma mieć „własny Tailwind"
   (decyzja 6 w v1) — trzeba rozstrzygnąć wersję i potok zasobów, bo dotyczy też istniejącej strony
-  publicznej. **Założony [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)**
+  publicznej. **Założony [ADR-020](../../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)**
   (rekomendacja: cały projekt na Tailwind 4, jeden potok Vite z osobnymi wejściami; migracja jako
   pierwsze zadanie implementacyjne etapu 1).
 - **Kalendarz jako komponent wspólny** dla portalu i panelu — **rozstrzygnięte: wspólne dane
@@ -306,4 +306,4 @@ Ustalone przy przeglądzie makiet v2, 30.09.2026 (pełna dyskusja — pkt 9):
 
 ## Powiązane ADR-y
 
-- [ADR-020 — Wersja Tailwinda dla portalu wędkarza i jeden potok zasobów front-endu](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md) — **Decyzja: A** (cały projekt na Tailwind 4, jeden potok Vite).
+- [ADR-020 — Wersja Tailwinda dla portalu wędkarza i jeden potok zasobów front-endu](../../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md) — **Decyzja: A** (cały projekt na Tailwind 4, jeden potok Vite).

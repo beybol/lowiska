@@ -82,10 +82,36 @@ final class StayServicePricing
             );
         }
 
-        $unknown = array_values(array_filter(
+        $requestedElsewhere = array_values(array_filter(
             array_map('intval', array_keys(array_filter($quantities, fn ($quantity): bool => (int) $quantity > 0))),
             fn (int $id): bool => ! isset($offered[$id]),
         ));
+
+        // Usługa TEGO łowiska, aktywna, ale nieoferowana na stanowisku — trafia do wyceny jako niedostępna
+        // (`offered = false`), żeby operator mógł ją dodać wyjątkiem z powodem (047, B6). Usługa spoza łowiska
+        // albo nieaktywna zostaje „nieznana" — tej nie dodaje nikt.
+        $elsewhere = $requestedElsewhere === [] ? collect() : $fishery->additionalServices()
+            ->isActive()
+            ->whereKey($requestedElsewhere)
+            ->get();
+
+        foreach ($elsewhere as $service) {
+            $lines[] = new StayServiceLine(
+                service: $service,
+                isRequired: false,
+                problems: [],
+                unit: $service->billing_unit ?? ServiceBillingUnit::PerNight,
+                quantity: max(1, (int) ($quantities[(int) $service->getKey()] ?? 1)),
+                nights: count($days),
+                unitPriceInCents: $service->priceInCents() ?? 0,
+                availableCount: $service->available_count === null ? null : (int) $service->available_count,
+                remaining: ServiceStock::remaining($service, $days, $excludingReservationId),
+                offered: false,
+            );
+        }
+
+        $known = $elsewhere->map(fn ($service): int => (int) $service->getKey())->all();
+        $unknown = array_values(array_diff($requestedElsewhere, $known));
 
         return new StayServicesQuote($lines, $unknown);
     }

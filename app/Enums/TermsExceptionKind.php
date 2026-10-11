@@ -20,6 +20,12 @@ enum TermsExceptionKind: string
     /** Zwrot inny niż z polityki zwrotu z chwili umowy (ADR-026, aktualizacja 10.10). */
     case Refund = 'refund';
 
+    /**
+     * Usługa nieoferowana na stanowisku albo bez wymaganej cechy (zadanie 047, ADR-026 aktualizacja 11.10).
+     * ⚠️ Wyczerpany limit egzemplarzy wyjątku nie ma — to podwójna sprzedaż przedmiotu (ADR-025 pkt 7).
+     */
+    case Service = 'service';
+
     public function label(): string
     {
         return match ($this) {
@@ -27,6 +33,7 @@ enum TermsExceptionKind: string
             self::SaleRule => __('Booked against the sale rules'),
             self::SaleBlocked => __('Booked on a blocked position'),
             self::Refund => __('Refund other than the policy'),
+            self::Service => __('Service added despite being unavailable'),
         };
     }
 }

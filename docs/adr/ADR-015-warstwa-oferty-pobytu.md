@@ -163,3 +163,10 @@ czwarte źródło prawdy — i wtedy ten ADR trzeba będzie odwrócić, a nie ro
 
 ## Decyzja
 Decyzja: A
+
+## Aktualizacja (2026-10-08)
+
+Wycena usług dodatkowych dla pobytu wchodzi do warstwy oferty w **etapie 3**, nie w etapie 4
+([ADR-026](ADR-026-zamrozenie-warunkow-rezerwacji.md) pkt 9). Decyzja A zostaje w mocy; warstwa nadal
+niczego własnego nie liczy — wycena usług trafia do osobnej usługi, którą składa `StayOffer`, tak jak
+sprzedawalność i cennik pobytu.

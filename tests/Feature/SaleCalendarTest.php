@@ -228,10 +228,8 @@ test('zlewanie pakietów widać: doby w środku pakietu mówią „zacznij wcze�
 test('przycinanie pakietu widać: piątek sprzedaje się jednodobowo mimo reguły weekendu', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition(['weekend_days' => [5, 6]]);
     StayFixtures::rate($fishery, 70.00);
-    // ⚠️ Blokada działa przez PRZECIĘCIE z dobą, nie przez zawieranie: doba zaczynająca się
-    // 01.05 kończy się 02.05, więc blokada 02.05 ucięłaby także piątek. Żeby przyciąć samą
-    // sobotę, blokada musi stać 03.05 (`dostepnosc.md` — asymetria okresów i blokad).
-    StayFixtures::blockSale($fishery, $position, '2026-05-03', '2026-05-03');
+    // Blokada 02.05 = sama doba sob→nd (daty blokady to doby, `dostepnosc.md` §3).
+    StayFixtures::blockSale($fishery, $position, '2026-05-02', '2026-05-02');
 
     $grid = (new SaleCalendar($fishery->fresh()))
         ->grid(CarbonImmutable::parse('2026-04-27'), CalendarWindow::Week);

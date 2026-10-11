@@ -22,6 +22,7 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use LogicException;
 
 /**
  * JEDYNA ścieżka zapisu rezerwacji (ADR-025 pkt 4, G10) — zakładanie, zmiana warunków, potwierdzenie,
@@ -51,16 +52,20 @@ final class ReservationBooking
      * Jawna zmiana warunków rezerwacji — terminu, stanowiska, składu, usług, ceny (ADR-026 pkt 3).
      * Zawsze z powodem i wpisem w kanale `reservations`; stare i nowe wartości zostają w dzienniku.
      */
-    public function rebook(Reservation $reservation, BookingRequest $request, string $reason): BookingOutcome
+    public function rebook(Reservation $reservation, BookingRequest $request, string $reason, ?AnglerDetails $contact = null): BookingOutcome
     {
         if (trim($reason) === '') {
             throw new InvalidArgumentException('A change of the reservation terms needs a reason.');
         }
 
-        return $this->attempt(function () use ($reservation, $request, $reason): Reservation {
-            $locked = Reservation::query()->whereKey($reservation->getKey())->lockForUpdate()->firstOrFail();
+        return $this->attempt(function () use ($reservation, $request, $reason, $contact): Reservation {
+            // ⚠️ Kolejność blokad jak w każdej ścieżce: NAJPIERW wiersze stanowisk (rosnąco po id), potem
+            // rezerwacja — ta sama co w usłudze kolizji, więc równoległe operacje się nie zakleszczają (047, F2).
+            $current = Reservation::query()->whereKey($reservation->getKey())->firstOrFail();
+            $this->lockPositions([(int) $request->position->getKey(), (int) $current->position_id]);
+            $locked = Reservation::query()->with(['terms', 'angler'])->whereKey($reservation->getKey())->lockForUpdate()->firstOrFail();
 
-            if (! $locked->isActive()) {
+            if (! $locked->isActive() || (int) $locked->position_id !== (int) $current->position_id) {
                 $this->refuseWith(BookingOutcome::problem(BookingProblem::NotActive));
             }
 
@@ -68,7 +73,41 @@ final class ReservationBooking
                 throw new InvalidArgumentException('A reservation can not move to a position of another fishery.');
             }
 
+            if ($contact !== null && $locked->angler !== null) {
+                $this->applyContact($locked->angler, $contact);
+            }
+
             return $this->write($request, $locked, $reason);
+        });
+    }
+
+    /**
+     * Zmiana samych danych kontaktowych relacji i notatki — BEZ przeliczania warunków (047, C2).
+     *
+     * Dane operatora poprawiają wyłącznie relację niepowiązaną (ADR-024 — do `users` operator nie pisze).
+     * ⚠️ Zmiana adresu unieważnia wysłaną prośbę o powiązanie (047, D2) — inaczej stary link z maila
+     * wysłanego na pomylony adres dowiązałby rezerwację do konta właściciela poprawionego adresu.
+     */
+    public function updateContact(Reservation $reservation, AnglerDetails $contact, ?string $internalNote, ?User $actor = null): BookingOutcome
+    {
+        return $this->attempt(function () use ($reservation, $contact, $internalNote): Reservation {
+            $locked = Reservation::query()->with('angler')->whereKey($reservation->getKey())->lockForUpdate()->firstOrFail();
+
+            if (! $locked->isActive()) {
+                $this->refuseWith(BookingOutcome::problem(BookingProblem::NotActive));
+            }
+
+            if ($locked->angler !== null) {
+                $this->applyContact($locked->angler, $contact);
+            }
+
+            $note = $internalNote !== null && trim($internalNote) !== '' ? $internalNote : null;
+
+            if ($locked->internal_note !== $note) {
+                $locked->update(['internal_note' => $note]);
+            }
+
+            return $locked->refresh();
         });
     }
 
@@ -117,8 +156,10 @@ final class ReservationBooking
             $now = CarbonImmutable::now();
             $percent = $request->refundPercent ?? $this->refundPercentFromTerms($locked, $request, $now);
 
-            if ($request->refundPercent !== null && $locked->terms !== null) {
-                $terms = $locked->terms;
+            if ($request->refundPercent !== null) {
+                // Wyjątek od zwrotu ma powód i autora — bez warunków nie ma go gdzie zapisać, więc nie
+                // stosujemy procentu po cichu (047, C6). Warunki powstają z każdą rezerwacją.
+                $terms = $locked->terms ?? throw new LogicException("Reservation {$locked->getKey()} has no terms to record the refund exception.");
                 $terms->update(['exceptions' => array_merge($terms->exceptions ?? [], [
                     ReservationTermsSnapshot::exception(
                         TermsExceptionKind::Refund,
@@ -171,6 +212,10 @@ final class ReservationBooking
 
     /**
      * Status płatności (etap 3: płatność na łowisku). Zwrot ustawia wyłącznie anulacja.
+     *
+     * ⚠️ **Opłacona rezerwacja jest zawsze potwierdzona** — oznaczenie płatności potwierdza oczekującą
+     * rezerwację (źródło „płatność") i zdejmuje termin wygaśnięcia. Ta sama reguła obowiązuje płatność
+     * wędkarza online: ma przejść tędy, a nie obok.
      */
     public function setPaymentStatus(Reservation $reservation, PaymentStatus $status): BookingOutcome
     {
@@ -181,7 +226,18 @@ final class ReservationBooking
                 $this->refuseWith(BookingOutcome::problem(BookingProblem::NotActive));
             }
 
-            $locked->update(['payment_status' => $status]);
+            $attributes = ['payment_status' => $status];
+
+            if ($status === PaymentStatus::Paid && $locked->status === ReservationStatus::Pending) {
+                $attributes += [
+                    'status' => ReservationStatus::Confirmed,
+                    'confirmed_at' => CarbonImmutable::now(),
+                    'confirmation_source' => ConfirmationSource::Payment,
+                    'confirm_by' => null,
+                ];
+            }
+
+            $locked->update($attributes);
 
             return $locked;
         });
@@ -214,6 +270,13 @@ final class ReservationBooking
                 || $locked->status !== ReservationStatus::Pending
                 || $locked->confirm_by === null
                 || $locked->confirm_by > $now) {
+                return false;
+            }
+
+            // Pobyt w toku nie wygasa (047, E1). Termin potwierdzenia nie przekracza początku pobytu, więc
+            // rezerwacja wygasa najpóźniej w chwili rozpoczęcia — harmonogram co 5 minut może to zrobić chwilę
+            // po starcie. Pomijamy wyłącznie rezerwacje z terminem PO początku pobytu (sprzed tej reguły).
+            if ($locked->starts_at <= $now && $locked->confirm_by > $locked->starts_at) {
                 return false;
             }
 
@@ -301,9 +364,16 @@ final class ReservationBooking
         }
 
         // 5. Oferta: sprzedawalność, potem cena — z wyjątkami operatora.
+        //
+        // ⚠️ Zmiana warunków (047, C2) NIE zaczyna od zera: istniejące wyjątki są punktem wyjścia. Wyjątek
+        // od tej samej reguły nie wymaga ponownego powodu; „zostaw" z kolizji (`block_id`) i zwroty zostają
+        // zawsze; wyjątki od reguł, których nowy termin już nie narusza, odpadają (historia w dzienniku).
+        $previous = $existing?->terms->exceptions ?? [];
         $offer = new StayOffer($position);
         $verdict = $offer->offer($first, $request->nights, $request->anglers, $request->companions);
-        $exceptions = [];
+        $exceptions = array_values(array_filter($previous, fn (array $exception): bool => ! in_array($exception['kind'] ?? null, [
+            TermsExceptionKind::SaleRule->value, TermsExceptionKind::SaleBlocked->value, TermsExceptionKind::AgreedPrice->value, TermsExceptionKind::Service->value,
+        ], true) || isset($exception['block_id'])));
         $breakdown = $verdict->breakdown;
         $unpriced = null;
 
@@ -317,16 +387,30 @@ final class ReservationBooking
                     $this->refuseWith(BookingOutcome::refused($reason, $night));
                 }
 
-                if (trim((string) $request->exceptionReason) === '') {
+                $kind = $reason === SaleUnavailabilityReason::SaleBlocked ? TermsExceptionKind::SaleBlocked : TermsExceptionKind::SaleRule;
+                $carried = array_values(array_filter($previous, fn (array $exception): bool => ($exception['kind'] ?? null) === $kind->value
+                    && ($exception['rule'] ?? null) === $reason->value
+                    && ! isset($exception['block_id'])));
+                $given = trim((string) $request->exceptionReason);
+
+                // Blokada zostawiona decyzją przy kolizji (wyjątek z `block_id`) już uzasadnia tę dobę.
+                $coveredByCollision = $kind === TermsExceptionKind::SaleBlocked && collect($previous)
+                    ->contains(fn (array $exception): bool => ($exception['kind'] ?? null) === TermsExceptionKind::SaleBlocked->value && isset($exception['block_id']));
+
+                if ($given === '' && $carried === [] && ! $coveredByCollision) {
                     $this->refuseWith(BookingOutcome::problem(BookingProblem::ExceptionReasonRequired, $reason, $night));
                 }
 
-                $exceptions[] = ReservationTermsSnapshot::exception(
-                    $reason === SaleUnavailabilityReason::SaleBlocked ? TermsExceptionKind::SaleBlocked : TermsExceptionKind::SaleRule,
-                    (string) $request->exceptionReason,
-                    $request->actor,
-                    ['rule' => $reason->value, 'night' => $night?->toDateString()],
-                );
+                array_push($exceptions, ...$carried);
+
+                if ($given !== '' && ! collect($carried)->contains(fn (array $exception): bool => ($exception['reason'] ?? null) === $given)) {
+                    $exceptions[] = ReservationTermsSnapshot::exception(
+                        $kind,
+                        $given,
+                        $request->actor,
+                        ['rule' => $reason->value, 'night' => $night?->toDateString()],
+                    );
+                }
 
                 // Pobyt niesprzedawalny warstwa oferty pomija przy wycenie — wyjątek operatora
                 // potrzebuje ceny wyliczonej, więc pyta cennik wprost.
@@ -345,8 +429,13 @@ final class ReservationBooking
         }
 
         // 6. Cena uzgodniona — tylko kanał operatora, zawsze z powodem; cena wyliczona zostaje obok.
+        // Ta sama kwota co dotąd przy zmianie warunków nie wymaga ponownego powodu (047, C2).
+        $previousAgreed = $existing?->terms?->agreed_total_cents;
+        $agreedUnchanged = $request->agreedTotalCents !== null && $request->agreedTotalCents === $previousAgreed
+            && trim((string) $request->agreedPriceReason) === '';
+
         if ($request->agreedTotalCents !== null) {
-            if (! $request->source->allowsExceptions() || trim((string) $request->agreedPriceReason) === '') {
+            if (! $request->source->allowsExceptions() || (trim((string) $request->agreedPriceReason) === '' && ! $agreedUnchanged)) {
                 $this->refuseWith(BookingOutcome::problem(BookingProblem::AgreedPriceReasonRequired));
             }
         } elseif ($unpriced !== null) {
@@ -363,12 +452,36 @@ final class ReservationBooking
         $limited = [];
 
         foreach ($quote->chosen() as $line) {
+            $serviceId = (int) $line->service->getKey();
+
+            // Usługa nieoferowana na stanowisku albo bez wymaganej cechy: wyjątek operatora z powodem (047, B6).
+            // ⚠️ Wyczerpany limit egzemplarzy wyjątku NIE ma — sprawdza go blok niżej, dla każdego kanału.
             if (! $line->isAvailable()) {
-                $this->refuseWith(BookingOutcome::problem(BookingProblem::ServiceUnavailable, serviceId: (int) $line->service->getKey()));
+                if (! $request->source->allowsExceptions()) {
+                    $this->refuseWith(BookingOutcome::problem(BookingProblem::ServiceUnavailable, serviceId: $serviceId));
+                }
+
+                $carried = array_values(array_filter($previous, fn (array $exception): bool => ($exception['kind'] ?? null) === TermsExceptionKind::Service->value
+                    && (int) ($exception['service_id'] ?? 0) === $serviceId));
+                $given = trim((string) $request->serviceExceptionReason);
+
+                if ($given === '' && $carried === []) {
+                    $this->refuseWith(BookingOutcome::problem(BookingProblem::ServiceExceptionReasonRequired, serviceId: $serviceId));
+                }
+
+                array_push($exceptions, ...$carried);
+
+                if ($given !== '' && ! collect($carried)->contains(fn (array $exception): bool => ($exception['reason'] ?? null) === $given)) {
+                    $exceptions[] = ReservationTermsSnapshot::exception(TermsExceptionKind::Service, $given, $request->actor, [
+                        'service_id' => $serviceId,
+                        'service' => $line->service->name,
+                        'causes' => $line->warnings(),
+                    ]);
+                }
             }
 
             if ($line->availableCount !== null) {
-                $limited[(int) $line->service->getKey()] = $line;
+                $limited[$serviceId] = $line;
             }
         }
 
@@ -386,7 +499,9 @@ final class ReservationBooking
             }
         }
 
-        if ($request->agreedTotalCents !== null) {
+        if ($agreedUnchanged) {
+            array_push($exceptions, ...array_values(array_filter($previous, fn (array $exception): bool => ($exception['kind'] ?? null) === TermsExceptionKind::AgreedPrice->value)));
+        } elseif ($request->agreedTotalCents !== null) {
             $computed = $breakdown === null ? null : $breakdown->totalInCents() + $quote->totalInCents();
             $exceptions[] = ReservationTermsSnapshot::exception(
                 TermsExceptionKind::AgreedPrice,
@@ -465,6 +580,7 @@ final class ReservationBooking
         if ($existing === null) {
             $reservation->terms()->create($terms);
         } else {
+            $terms = $this->keepFrozen($existing, $before, $terms, $request, $first);
             $reservation->terms()->updateOrCreate([], $terms);
 
             activity(Reservation::LOG_NAME)
@@ -529,6 +645,105 @@ final class ReservationBooking
         }
 
         return $existing;
+    }
+
+    /**
+     * Przy zmianie warunków zostaje to, co zamrożone (ADR-026 pkt 3 i 5; 047, C2):
+     * - polityka zwrotu, wersje dokumentów i kontakt z chwili rezerwacji — nigdy z bieżącej konfiguracji;
+     * - cena z rozbiciem i usługi — dopóki nie zmieniło się nic, co je kształtuje (stanowisko, termin,
+     *   skład, usługi). Zmiana samej notatki czy telefonu nie przelicza ceny po dzisiejszym cenniku.
+     *
+     * @param  array<string, mixed>  $before  stanowisko, pierwsza doba i liczba dób SPRZED zmiany
+     * @param  array<string, mixed>  $terms  świeżo złożone warunki
+     * @return array<string, mixed>
+     */
+    private function keepFrozen(Reservation $existing, array $before, array $terms, BookingRequest $request, CarbonImmutable $first): array
+    {
+        $old = $existing->terms;
+
+        if ($old === null) {
+            return $terms;
+        }
+
+        $terms['refund_policy'] = $old->refund_policy;
+        $terms['documents'] = $old->documents;
+        $terms['contact_snapshot'] = $old->contact_snapshot;
+
+        $oldServices = collect($old->services ?? [])->mapWithKeys(fn (array $line): array => [(int) $line['service_id'] => (int) $line['quantity']])->sortKeys()->all();
+        $newServices = collect($terms['services'])->mapWithKeys(fn (array $line): array => [(int) $line['service_id'] => (int) $line['quantity']])->sortKeys()->all();
+
+        $beforeFirst = $before['first_night_on'] ?? null;
+
+        $priceDriversUnchanged = (int) ($before['position_id'] ?? 0) === (int) $request->position->getKey()
+            && $beforeFirst !== null
+            && CarbonImmutable::parse($beforeFirst instanceof \DateTimeInterface ? $beforeFirst->format('Y-m-d') : (string) $beforeFirst)->toDateString() === $first->toDateString()
+            && (int) ($before['nights'] ?? 0) === $request->nights
+            && $old->anglers === $request->anglers
+            && $old->companions === $request->companions
+            && $oldServices === $newServices;
+
+        if ($priceDriversUnchanged) {
+            foreach (['price_breakdown', 'stay_total_cents', 'services', 'services_total_cents', 'computed_total_cents'] as $field) {
+                $terms[$field] = $old->{$field};
+            }
+
+            $terms['total_cents'] = $terms['agreed_total_cents'] ?? (int) $old->computed_total_cents;
+        }
+
+        return $terms;
+    }
+
+    /**
+     * Dane kontaktowe relacji od operatora (ADR-024) — wyłącznie relacja niepowiązana.
+     */
+    private function applyContact(FisheryAngler $angler, AnglerDetails $contact): void
+    {
+        if (! in_array($angler->status, [AnglerLinkStatus::Unlinked, AnglerLinkStatus::Pending], true)) {
+            return;
+        }
+
+        $email = FisheryAngler::normalizeEmail($contact->email);
+
+        if ($email !== $angler->given_email_normalized && $email !== null && FisheryAngler::query()
+            ->where('fishery_id', $angler->fishery_id)
+            ->where('given_email_normalized', $email)
+            ->whereKeyNot($angler->getKey())
+            ->exists()) {
+            $this->refuseWith(BookingOutcome::problem(BookingProblem::EmailTaken));
+        }
+
+        $emailChanged = $email !== $angler->given_email_normalized;
+
+        $angler->fill([
+            'given_name' => filled($contact->name) ? $contact->name : $angler->given_name,
+            'given_phone' => filled($contact->phone) ? $contact->phone : null,
+            'given_email' => $email === null ? null : trim((string) $contact->email),
+        ]);
+
+        // ⚠️ Nowy adres = stara prośba o powiązanie przestaje działać (047, D2).
+        if ($emailChanged) {
+            $angler->forceFill([
+                'link_token_hash' => null,
+                'link_expires_at' => null,
+                'link_email' => null,
+                'status' => AnglerLinkStatus::Unlinked,
+            ]);
+        }
+
+        if ($angler->isDirty()) {
+            $angler->save();
+        }
+    }
+
+    /**
+     * @param  array<int, int>  $positionIds
+     */
+    private function lockPositions(array $positionIds): void
+    {
+        $ids = array_values(array_unique(array_filter($positionIds)));
+        sort($ids);
+
+        Position::query()->whereKey($ids)->orderBy('id')->lockForUpdate()->get();
     }
 
     /**

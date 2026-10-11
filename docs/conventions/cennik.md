@@ -235,6 +235,16 @@ pakietu działają **same z siebie**. Odmowa ze spoiwa niesie zakres pakietu, wi
   kalendarza (019); bez argumentu analiza jest bez zmian. Nie przepisuj tego w portalu na porównanie
   dat stawki. Parametr daty zawęża analizę do dób od niej (z `$dziś` jedyna, już zakończona stawka też
   jest martwa).
+### Rozbicie ceny do pokazania człowiekowi — jedno miejsce (zadanie 047)
+
+- **Linie rozbicia składa WYŁĄCZNIE [`StayPriceExplanation`](../../app/Services/StayPriceExplanation.php)**:
+  stawka × osoby × doby, osoba towarzysząca (tylko płatna), dopłaty pod nazwami z cennika, obniżka
+  przedsprzedażowa, usługi według jednostki × liczba, suma. Wejście to rozbicie warstwy oferty
+  (`StayPriceBreakdown`) i wycena usług (`StayServicesQuote`); klasa grupuje, niczego nie liczy od nowa.
+  Korzystają z niej dymek kalendarza portalu (`PortalCalendar`) i formularze rezerwacji panelu
+  (`ReservationFormQuote`). Kwoty w groszach — formatuje widok (portal `forVisitor`, panel `cents`).
+  ⚠️ Warstwa oferty nie przejmuje prezentacji (granica ADR-015) — nie dokładaj linii rozbicia do `StayOffer`.
+
 - **Tekst warunku dopłaty ma jeden dom — `PriceRule::conditionText()`** (obsada, dni tygodnia jako
   przedział dób, daty), okres stawki — `PriceRule::visitorPeriod()`; `periodText()` zostaje dla
   operatora (daty ISO). Doby tygodnia piszą się jako PRZEDZIAŁ dób (`WeekdayNights`): „czw→pon" to doby
@@ -315,6 +325,12 @@ Zadanie źródłowe: 020. Dostępność usługi na stanowisku opisuje [`dostepno
   ⚠️ `StayOffer::offer()`, kalendarz i „ceny od" usług **nadal nie doliczają** — usługi sumuje dopiero
   zapis rezerwacji (`reservation_terms.services_total_cents`), a obniżka przedsprzedażowa ich nie
   obejmuje (§4).
+- **Trzy rodzaje niedostępności usługi w wycenie pobytu** (`StayServiceLine`, zadanie 047): nieoferowana na
+  stanowisku (`offered = false`), brak albo zawieszenie wymaganej cechy (`problems`) i brak egzemplarzy
+  (`exceedsStock()`). Dwa pierwsze operator i admin przekraczają wyjątkiem z powodem (`TermsExceptionKind::Service`
+  w warunkach: usługa, przyczyny, powód, kto, kiedy — ADR-026, aktualizacja 11.10.2026); **wyczerpanego limitu
+  egzemplarzy nie przekracza nikt** — to podwójna sprzedaż tego samego przedmiotu (ADR-025 pkt 7). Kanał wędkarza
+  nie zapisuje takich wyjątków nigdy. Przyczyny dla operatora składa `StayServiceLine::warnings()`.
 - **Cena usługi może wynosić 0,00** — usługa darmowa („postawienie przyczepy") nadal niesie
   deklarację wędkarza i limit egzemplarzy. Pokazuje się jako **„bezpłatna"**, nie „0,00 zł / doba".
 - **Cenę z jednostką jako tekst składa `AdditionalService::priceLabel()`** („20,00 zł / doba") —

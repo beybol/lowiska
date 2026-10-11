@@ -127,7 +127,7 @@ Zakazy zachowują się identycznie jak w A.
 | Doba **01.02** | 01.02 15:00 → 02.02 15:00 | **tak** — pierwsza doba sezonu | tak | tak |
 | Doba **29.09** | 29.09 15:00 → 30.09 15:00 | **tak** — ostatnia doba sezonu | tak | tak |
 | Doba **30.09** | 30.09 15:00 → 01.10 15:00 | **nie** — kończy się po sezonie | ⚠️ **tak** | ⚠️ **tak** |
-| Doba **04.07** przy blokadzie 05.07 | 04.07 15:00 → 05.07 15:00 | **zablokowana** | ⚠️ **sprzedana** | zablokowana |
+| Doba **04.07** przy blokadzie 05.07 | 04.07 15:00 → 05.07 15:00 | **zablokowana** (po Aktualizacji 11.10.2026: sprzedawalna — zob. niżej) | ⚠️ **sprzedana** | zablokowana |
 | Doba **24.10.2026** | 24.10 15:00 → 25.10 15:00 | jedna doba, 25 h, jedna cena | ⚠️ brak reprezentacji | jedna doba, 25 h |
 
 Czytelny wniosek: **A i C różnią się wyłącznie w wierszach sezonowych** (31.01 i 30.09). Przy zakazach
@@ -169,3 +169,16 @@ dobę kalendarzową.
 
 ## Decyzja
 Decyzja: A
+
+## Aktualizacja (11.10.2026) — okno blokady liczone w dobach
+
+Decyzja autora po przeglądzie kalendarza w modelu połówek: **blokada działa i wygląda jak rezerwacja**.
+Daty „od" i „do" wpisu o dostępności (blokada sprzedaży, zawieszenie cechy) to pierwsza i ostatnia **doba**,
+a okno w momentach biegnie od początku doby zaczętej w dniu „od" do końca doby zaczętej w dniu „do"
+(`FishingDayCalendar::nightsWindow()`), nie od północy do północy. Przełom dnia wypada o godzinie doby.
+
+Reguła przecięcia (`FishingDay::overlaps()`) i asymetria z okresem sprzedaży zostają bez zmian. Zmienia się
+tylko to, gdzie leżą brzegi okna. Skutek dla przykładu z tego dokumentu: blokada 05.07 obejmuje dobę
+**05.07 15:00 → 06.07 15:00**, a doba 04.07 jest sprzedawalna, bo kończy się w chwili startu blokady.
+Rezerwacja kończąca się w dniu „od" nie koliduje z blokadą. Wcześniej kolidowała i trafiała na ekran
+decyzji, co operator odebrał jako błąd: rezerwacja do niedzieli 15:00 i blokada od niedzieli.

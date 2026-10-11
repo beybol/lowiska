@@ -10,6 +10,7 @@ use App\Filament\Resources\FisheryResource\Pages\ManageCalendar;
 use App\Filament\Resources\FisheryResource\Pages\ManageReservations;
 use App\Filament\Resources\ReservationResource;
 use App\Filament\Resources\ReservationResource\Pages\CreateReservation;
+use App\Filament\Resources\ReservationResource\Pages\EditReservation;
 use App\Filament\Resources\ReservationResource\Pages\ViewReservation;
 use App\Mail\ReservationCancelledMail;
 use App\Models\Reservation;
@@ -264,18 +265,19 @@ test('a refund other than the terms needs a reason and is recorded as an excepti
     expect($reservation->fresh()->terms->exceptionsOf(TermsExceptionKind::Refund)[0]['percent'])->toBe(50);
 });
 
-test('the edit modal changes the term through the booking service', function () {
+test('the full edit page changes the term through the booking service', function () {
     [$fishery, $position, $owner] = ReservationFixtures::bookableFishery();
     $reservation = ReservationFixtures::book($position, '2026-05-13', 2);
     $this->actingAs($owner);
 
-    Livewire::test(ViewReservation::class, ['record' => $reservation->getKey()])
-        ->callAction('editReservation', data: [
+    Livewire::test(EditReservation::class, ['record' => $reservation->getKey()])
+        ->fillForm([
             'starts_on' => '2026-05-20',
             'nights' => 3,
             'change_reason' => 'Prośba wędkarza',
         ])
-        ->assertHasNoActionErrors();
+        ->call('save')
+        ->assertHasNoFormErrors();
 
     $fresh = $reservation->fresh();
 

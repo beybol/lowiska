@@ -88,7 +88,10 @@ class Reservation extends Model
     {
         return LogOptions::defaults()
             ->useLogName(self::LOG_NAME)
-            ->logOnly($this->fillable);
+            ->logOnly($this->fillable)
+            // Bez pustych wpisów "updated" przy zapisie tokenu zarządzania (047, H3).
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
     }
 
     /**

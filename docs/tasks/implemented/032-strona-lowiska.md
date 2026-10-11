@@ -1,7 +1,7 @@
 # 032 — Strona łowiska: zakładki „Mapa i terminy" i „Szczegóły"
 
-> **Etap 2, zadanie 1** ([roadmapa](../project/ROADMAPA.md)). Założone 30.09.2026.
-> Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md) §1, §4, §6; makiety
+> **Etap 2, zadanie 1** ([roadmapa](../../project/ROADMAPA.md)). Założone 30.09.2026.
+> Specyfikacja: [portal-v3](../../project/mockups/portal-v3/README.md) §1, §4, §6; makiety
 > „Łowisko — Mapa i terminy", „Łowisko — Szczegóły", „Wersja mobilna". Wymaga 031.
 
 ## Opis problemu

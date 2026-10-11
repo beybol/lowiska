@@ -150,10 +150,8 @@ test('the maximum stay length still applies to a stay covering a term', function
 test('a package is trimmed to the nights that are sellable', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition(['weekend_days' => [5, 6]]);
 
-    // ⚠️ Blokada WYŁĄCZA, więc wystarczy PRZECIĘCIE doby z oknem (`dostepnosc.md` §1).
-    // Okno na 02.05 objęłoby także dobę pt 01.05 15:00 → 02.05 15:00, bo ta przecina
-    // 02.05 od północy. Żeby wyciąć wyłącznie dobę sob→nd, okno musi stać na 03.05.
-    StayFixtures::blockSale($fishery, $position, '2026-05-03', '2026-05-03');
+    // Blokada 02.05 = doba sob 02.05 → nd 03.05 (daty blokady to doby, `dostepnosc.md` §3).
+    StayFixtures::blockSale($fishery, $position, '2026-05-02', '2026-05-02');
 
     // Tej soboty i tak nie ma, więc piątek sprzedaje się sam.
     expect(StayFixtures::stay($position)->isSellable('2026-05-01', 1))->toBeTrue();
@@ -163,9 +161,8 @@ test('a trimmed term keeps its exemption from the minimum', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition(['min_nights' => 5]);
     StayFixtures::wholeTerm($fishery, '2026-04-30', 3);
     // Blokada zabiera dwie z trzech dób święta (01.05 i 02.05); zostaje pakiet
-    // jednodobowy na 30.04. ⚠️ Okno startuje 02.05, nie 01.05 — inaczej przecięłoby
-    // także dobę czw 30.04 15:00 → 01.05 15:00 i nie zostałoby nic do kupienia.
-    StayFixtures::blockSale($fishery, $position, '2026-05-02', '2026-05-03');
+    // jednodobowy na 30.04.
+    StayFixtures::blockSale($fishery, $position, '2026-05-01', '2026-05-02');
 
     expect(StayFixtures::stay($position)->isSellable('2026-04-30', 1))->toBeTrue();
 });
@@ -211,10 +208,8 @@ test('a merged package is refused as broken, not as too short', function () {
 test('a refusal passed from the day level points at the night that failed', function () {
     [$fishery, $position] = StayFixtures::fisheryWithPosition();
 
-    // ⚠️ Okno na 16.06 wycina dobę rozpoczynającą się 15.06 (15.06 15:00 → 16.06 15:00),
-    // bo blokadzie wystarczy PRZECIĘCIE. Doba z 14.06 kończy się 15.06 o 15:00, więc
-    // okna nie dotyka — to jest cały sens asymetrii z `dostepnosc.md` §1.
-    StayFixtures::blockSale($fishery, $position, '2026-06-16', '2026-06-16');
+    // Blokada 15.06 = doba 15.06 15:00 → 16.06 15:00; doba z 14.06 kończy się w chwili jej startu.
+    StayFixtures::blockSale($fishery, $position, '2026-06-15', '2026-06-15');
 
     // Pobyt ośmiodobowy od 10.06; blokada wypada na szóstej dobie.
     $verdict = StayFixtures::stay($position)->verdict('2026-06-10', 8);

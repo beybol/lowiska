@@ -46,7 +46,6 @@ final class ConfigurationCollisionService
         }
 
         $fishery = Fishery::query()->findOrFail($change->fisheryId);
-        $timezone = $fishery->timezoneName();
         $now = CarbonImmutable::instance($now ?? now());
 
         $query = Reservation::query()
@@ -57,11 +56,13 @@ final class ConfigurationCollisionService
             ->where('starts_at', '>', $now->utc()->format('Y-m-d H:i:s'));
 
         if ($change->kind !== ConfigurationChangeKind::PositionWithdrawal && $change->startsOn !== null) {
-            // Okno blokady: całe dni w strefie łowiska (`dostepnosc.md` §3), semantyka nakładania.
-            $query->where('ends_at', '>', CarbonImmutable::parse($change->startsOn, $timezone)->startOfDay()->utc()->format('Y-m-d H:i:s'));
+            // Okno blokady: doby od „od" do „do", z przełomem dnia o godzinie doby (`dostepnosc.md` §3),
+            // semantyka nakładania — rezerwacja kończąca się w chwili startu blokady z nią nie koliduje.
+            [$windowStart, $windowEnd] = (new FishingDayCalendar($fishery))->nightsWindow($change->startsOn, $change->endsOn);
+            $query->where('ends_at', '>', $windowStart->utc()->format('Y-m-d H:i:s'));
 
-            if ($change->endsOn !== null) {
-                $query->where('starts_at', '<', CarbonImmutable::parse($change->endsOn, $timezone)->endOfDay()->utc()->format('Y-m-d H:i:s'));
+            if ($windowEnd !== null) {
+                $query->where('starts_at', '<', $windowEnd->utc()->format('Y-m-d H:i:s'));
             }
         }
 
@@ -97,7 +98,8 @@ final class ConfigurationCollisionService
 
         DB::transaction(function () use ($change, $decisions, $persist, $actor, $message, $messages, $reason, &$cancelled, &$kept): void {
             // Ta sama blokada wierszy stanowisk co w ścieżce zapisu rezerwacji — nowa rezerwacja nie
-            // wejdzie między wyliczenie listy a zapis zmiany.
+            // wejdzie między wyliczenie listy a zapis zmiany. Kolejność jak w `ReservationBooking`:
+            // stanowiska rosnąco po id, potem wiersze rezerwacji (w `cancel()`) — bez zakleszczeń (047, F2).
             Position::query()->whereKey($change->positionIds)->orderBy('id')->lockForUpdate()->get();
 
             $affected = $this->affected($change);
@@ -122,12 +124,16 @@ final class ConfigurationCollisionService
                         ? (string) $messages[$reservation->getKey()]
                         : $message;
 
-                    $this->booking->cancel($reservation, new CancellationRequest(
+                    $outcome = $this->booking->cancel($reservation, new CancellationRequest(
                         reason: CancellationReason::Collision,
                         actor: $actor,
                         message: filled($text) ? $text : null,
                     ));
-                    $cancelled[] = $reservation;
+
+                    // Anulowana w międzyczasie inną drogą: nie liczy się i nie dostaje drugiego maila (047, F2).
+                    if ($outcome->succeeded) {
+                        $cancelled[] = $reservation;
+                    }
 
                     continue;
                 }

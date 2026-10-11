@@ -1,7 +1,7 @@
 # 033 — Kalendarz portalu: płaska siatka stanowisk
 
-> **Etap 2, zadanie 2** ([roadmapa](../project/ROADMAPA.md)). Założone 30.09.2026.
-> Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md) §3; makiety „Łowisko — Mapa
+> **Etap 2, zadanie 2** ([roadmapa](../../project/ROADMAPA.md)). Założone 30.09.2026.
+> Specyfikacja: [portal-v3](../../project/mockups/portal-v3/README.md) §3; makiety „Łowisko — Mapa
 > i terminy", „Łopienno — dopłata", „Mapa i terminy z zajętością" (wygląd etapu 3 — informacyjnie),
 > „Wersja mobilna". Wymaga 032.
 
@@ -38,7 +38,7 @@ portalu: płaskiej siatki stanowisk z przełącznikami grup i cech, wersji mobil
 - **Wersja mobilna** (§3.5): pasek dób z klamrą pakietów, przełączniki przewijane poziomo, płaska
   lista stanowisk dla wybranej doby, karta doby z rozbiciem; skrócony wyciąg zasad z „Zasady ›".
 - Siatka na desktopie z przyklejonym nagłówkiem dni i kolumną stanowisk.
-- **Mechanizm przełączania** — wg [ADR-022](../adr/ADR-022-mechanizm-interakcji-portalu.md)
+- **Mechanizm przełączania** — wg [ADR-022](../../adr/ADR-022-mechanizm-interakcji-portalu.md)
   (rekomendacja: GET z parametrami, renderowanie po stronie serwera, stopniowe ulepszenie w `portal.js`).
 - **Parametry adresu zależne od języka** (Rozstrzygnięcie 1), jeden dom obok `PortalRoutes`:
   PL `tydzien`, `lowiacych`, `grupa`, `cecha`, `doba`, `st`; EN `week`, `anglers`, `group`,
@@ -117,5 +117,5 @@ portalu: płaskiej siatki stanowisk z przełącznikami grup i cech, wersji mobil
 
 ## Powiązane ADR-y
 
-- [ADR-022 — Mechanizm interakcji portalu](../adr/ADR-022-mechanizm-interakcji-portalu.md) — ⚠️ Decyzja do wypełnienia.
-- [ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md) — warstwa oferty jako jedyne wejście portalu (bez zmian).
+- [ADR-022 — Mechanizm interakcji portalu](../../adr/ADR-022-mechanizm-interakcji-portalu.md) — ⚠️ Decyzja do wypełnienia.
+- [ADR-015](../../adr/ADR-015-warstwa-oferty-pobytu.md) — warstwa oferty jako jedyne wejście portalu (bez zmian).

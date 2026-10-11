@@ -1,7 +1,7 @@
 # 029 — Migracja na Tailwind 4 i motyw paneli
 
-> **Etap 1, zadanie 2** ([roadmapa](../project/ROADMAPA.md)). Założone 30.09.2026 przy planowaniu
-> implementacji makiet [portal-v3](../project/mockups/portal-v3/README.md) (§8, §10).
+> **Etap 1, zadanie 2** ([roadmapa](../../project/ROADMAPA.md)). Założone 30.09.2026 przy planowaniu
+> implementacji makiet [portal-v3](../../project/mockups/portal-v3/README.md) (§8, §10).
 > **Pierwsze zadanie ścieżki portalu** — przed pierwszym widokiem portalu.
 
 ## Opis problemu
@@ -116,8 +116,8 @@ osobno: regresja w panelach ma mieć jedną, oczywistą przyczynę.
 
 ## Powiązane ADR-y
 
-- [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md) — Decyzja: A.
-- [ADR-016](../adr/ADR-016-wlasny-motyw-panelu.md) — Decyzja: A.
+- [ADR-020](../../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md) — Decyzja: A.
+- [ADR-016](../../adr/ADR-016-wlasny-motyw-panelu.md) — Decyzja: A.
 
 ## Stan weryfikacji (2026-10-08)
 

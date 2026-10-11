@@ -248,6 +248,24 @@ test('the anglers switch changes the price and turns a too small position into o
     expect($options)->toBe([1, 2]);
 });
 
+test('positions without a capacity still offer 1 and 2 anglers', function () {
+    $fishery = klasztorne();
+    $fishery->positions()->update(['max_anglers' => null]);
+
+    expect(collect(portalCalendar($fishery->fresh())->anglerOptions())->pluck('count')->all())->toBe([1, 2])
+        ->and(portalCalendar($fishery->fresh(), ['lowiacych' => '2'])->anglers())->toBe(2);
+
+    // Jedno stanowisko z pojemnością 1, drugie bez — nadal 1 i 2.
+    addPosition($fishery, '2', ['max_anglers' => 1]);
+
+    expect(collect(portalCalendar($fishery->fresh())->anglerOptions())->pluck('count')->all())->toBe([1, 2]);
+
+    // Wszystkie z pojemnością 1 — sama „1", bo tak skonfigurował operator.
+    $fishery->positions()->update(['max_anglers' => 1]);
+
+    expect(collect(portalCalendar($fishery->fresh())->anglerOptions())->pluck('count')->all())->toBe([1]);
+});
+
 test('invalid parameters fall back to the defaults', function () {
     $fishery = klasztorne();
 

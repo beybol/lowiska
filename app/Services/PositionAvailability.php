@@ -9,7 +9,6 @@ use App\Models\AvailabilityBlock;
 use App\Models\Position;
 use App\Models\PositionAttribute;
 use App\Models\ReservationSlot;
-use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -162,7 +161,7 @@ final class PositionAvailability
      * usług stanowiska nie pyta o blokady sama.
      *
      * Zakres podaje się dniami rozpoczęcia PIERWSZEJ i OSTATNIEJ doby (obie włącznie), tak jak
-     * kolumny siatki kalendarza — to nie jest reguła zawierania z `sellableDaysBetween()`.
+     * `starts_on`/`ends_on` wpisu i rezerwacji — to nie jest reguła zawierania z `sellableDaysBetween()`.
      * Wpisy czyta to samo jedno zapytanie na instancję co reszta tej klasy.
      *
      * @return Collection<int, AvailabilityBlock>
@@ -215,27 +214,23 @@ final class PositionAvailability
     /**
      * Wpisy o podanym skutku, których okno PRZECINA dobę.
      *
-     * Okno wpisu to `starts_on` od północy do `ends_on` do końca dnia w strefie łowiska;
-     * puste `ends_on` oznacza „do odwołania". Przecięcie liczy `FishingDay::overlaps()`
-     * na momentach — jedyna implementacja tej reguły.
+     * Okno wpisu to doby od `starts_on` do `ends_on` — od początku pierwszej do końca ostatniej, jak
+     * w rezerwacji (`FishingDayCalendar::nightsWindow()`); puste `ends_on` oznacza „do odwołania".
+     * Przecięcie liczy `FishingDay::overlaps()` na momentach — jedyna implementacja tej reguły.
      *
      * @return Collection<int, AvailabilityBlock>
      */
     private function blocksIntersecting(FishingDay $day, BlockEffect $effect): Collection
     {
-        $timezone = $this->position->fishery->timezoneName();
-
         return $this->blocksWithEffect($effect)
-            ->filter(function (AvailabilityBlock $block) use ($day, $timezone): bool {
-                $windowStart = CarbonImmutable::parse($block->starts_on->toDateString(), $timezone)->startOfDay();
+            ->filter(function (AvailabilityBlock $block) use ($day): bool {
+                [$windowStart, $windowEnd] = $this->calendar()->nightsWindow($block->starts_on->toDateString(), $block->ends_on?->toDateString());
 
                 // „Do odwołania" nie ma końca okna: przecięcie sprowadza się do tego,
                 // czy doba kończy się PO otwarciu okna.
-                if ($block->ends_on === null) {
+                if ($windowEnd === null) {
                     return $day->endsAt > $windowStart;
                 }
-
-                $windowEnd = CarbonImmutable::parse($block->ends_on->toDateString(), $timezone)->endOfDay();
 
                 return $day->overlaps($windowStart, $windowEnd);
             })
@@ -297,6 +292,21 @@ final class PositionAvailability
 
         return $fishingDay instanceof FishingDay
             && $this->blocksIntersecting($fishingDay, BlockEffect::SaleBlocked)->isNotEmpty();
+    }
+
+    /**
+     * Blokady sprzedaży przecinające dobę — którą blokadą to było (pasek blokady w kalendarzu
+     * rezerwacji, zadanie 047 A6). Ta sama reguła przecięcia co `isBlocked()`; o sprzedaży nic tu nie zapada.
+     *
+     * @return Collection<int, AvailabilityBlock>
+     */
+    public function saleBlocksOn(FishingDay|CarbonInterface|string $day): Collection
+    {
+        $fishingDay = $day instanceof FishingDay ? $day : $this->calendar()->dayStartingOn($day);
+
+        return $fishingDay instanceof FishingDay
+            ? $this->blocksIntersecting($fishingDay, BlockEffect::SaleBlocked)
+            : new Collection;
     }
 
     private function calendar(): FishingDayCalendar

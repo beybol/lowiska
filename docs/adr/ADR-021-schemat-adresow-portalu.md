@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-09-30
-- **Zadanie:** [031 — Szkielet portalu, strona główna i strony statyczne](../tasks/031-szkielet-portalu-i-strona-glowna.md)
+- **Zadanie:** [031 — Szkielet portalu, strona główna i strony statyczne](../tasks/implemented/031-szkielet-portalu-i-strona-glowna.md)
 
 ## Kontekst
 

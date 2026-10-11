@@ -218,6 +218,9 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   klawiaturą na `:focus-visible`, dotykiem na fokus wyłącznie przy `hover: none`. ⚠️ Nie wracaj do
   zwykłego `:focus-within` — kliknięcie myszą zostawiało dymek otwarty. `portal.js` przypina dymek
   do okna (`position: fixed`), żeby nic go nie przycinało.
+  **Linie rozbicia w dymku składa `StayPriceExplanation`** — to samo miejsce co w formularzach rezerwacji panelu
+  (zadanie 047, `cennik.md` §5); `PortalCalendar` tylko formatuje kwoty dla wędkarza i dokłada usługi obowiązkowe
+  pod sumą.
   Na telefonie — pasek dób, lista stanowisk dla doby (`doba`) i karta stanowiska (`st`).
 - **Strona łowiska liczy rzeczy wspólne RAZ:** „cenę od" i wyciąg zasad trzyma `PortalFisheryPage`
   (`priceFrom()`, `rules()`), a kalendarz i Cennik dostają tę samą instancję wyciągu; pozycje wyciągu liczą
@@ -236,9 +239,10 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   `text-faint` wielkimi literami; cena w komórce `text-b600`, najechanie `bg-b50` z obwódką `b400`; linie
   `border-line2` poziome i pionowe, kolumna stanowisk z prawą linią `border-line`. **Weekend (sobota,
   niedziela) wyłącznie w nagłówku dni** — `bg-a100`/`text-a800`, także na kafelku dnia w pasku na telefonie
-  (dzień wybrany zostaje `bg-b700`). ⚠️ Nie barw komórek weekendu: kreskowanie `a100/a200` w komórce znaczy
+  (dzień wybrany zostaje `bg-b700`). ⚠️ Nie barw komórek weekendu: kreskowanie `a100/a200` (pasek blokady łowiska) znaczy
   „niedostępne — powód od łowiska", a piątku nie wyróżniamy, bo kolor sugerowałby regułę sprzedaży.
-- **Nagłówek sekcji:** tytuł po lewej; „Łowiących" (przełącznik segmentowy, aktywny `bg-b800`) i nawigacja
+- **Nagłówek sekcji:** tytuł po lewej; „Łowiących" (przełącznik segmentowy, aktywny `bg-b800`, zakres 1 … największa
+  pojemność stanowiska w sprzedaży; stanowisko bez pojemności = bez limitu, więc zakres co najmniej 1–2) i nawigacja
   tygodnia (przyciski `‹` `›` z ramką, zakres pogrubiony) po prawej — na telefonie zawijają się pod tytuł.
   Aktywny chip grupy i cechy też `bg-b800`. **Legenda pod siatką pokazuje tylko to, co jest w widocznym
   tygodniu** — „zacznij wcześniej" przy pakiecie, kreskowanie przy niedostępności z powodu od łowiska.
@@ -273,9 +277,13 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 - **Wyłączona = portal jak przed etapem 3**: siatka liczy się bez zajętości (`SaleCalendar::grid(..., includeOccupancy: false)`),
   zarezerwowana doba ma cenę jak wolna, nad siatką „Łowisko potwierdzi wolne terminy telefonicznie". ⚠️ Zajętość
   nie może przeciekać do widoku przy wyłączonym ustawieniu — ani jako odmowa, ani jako inny stan komórki.
-- **Włączona**: komórka `occupied` — neutralne „Zajęte" na `bg-line2`, **bez kreskowania** (kreskowanie znaczy
-  „niedostępne — powód od łowiska"), legenda „Zajęte" tylko, gdy taka doba jest w widocznym tygodniu; ten sam stan
-  w liście dnia na telefonie. Niepotwierdzona rezerwacja też jest zajęta (W10 — ryzyko przyjęte).
+- **Włączona**: zajętość w siatce to **pasek w modelu połówek, jak w kalendarzu panelu** (`rezerwacje.md` §2,
+  kształt z `CalendarBarShape`): kolejne zajęte doby = jeden pasek „Zajęte" od połowy dnia przyjazdu do połowy dnia
+  wyjazdu (`PortalCalendar::stayBars()`, komórka z zajętym rankiem — `morning_taken`, cena w prawym rogu).
+  Neutralne `bg-line2`, **bez kreskowania** (kreskowanie znaczy „niedostępne — powód od łowiska"). **Blokada
+  łowiska rysuje się tym samym kształtem**: kreskowany pasek z krótkim powodem i pełnym w `title` (`kind` =
+  `blocked`, niezależnie od `showsOccupancy()`). Inne odmowy zostają w komórkach. Legenda „Zajęte" tylko, gdy taka doba jest w widocznym tygodniu;
+  lista dnia na telefonie pokazuje stan doby („Zajęte"). Niepotwierdzona rezerwacja też jest zajęta (W10 — ryzyko przyjęte).
 - ⚠️ **Prywatność: komórka „Zajęte" nie niesie ŻADNYCH danych rezerwacji** — ani wędkarza, ani numeru, ani statusu.
   Stan pochodzi z powodu `Occupied` warstwy oferty; widok nie liczy go sam. Pilnuje tego `PortalOccupancyTest`
   (pełna strona i fragment `X-Portal-Fragment`).

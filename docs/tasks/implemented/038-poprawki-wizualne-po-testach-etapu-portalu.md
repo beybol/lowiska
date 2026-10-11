@@ -1,8 +1,8 @@
 # 038 — Poprawki wizualne po testach manualnych portalu i formularza łowiska
 
 > Założone 01.10.2026 po testach manualnych zadań 031–037 (etap 1–2 portalu wędkarza).
-> Wzorzec wyglądu: [`portal-v3.html`](../project/mockups/portal-v3/portal-v3.html) (układ) i
-> [`fisherya-design.html`](../project/design/fisherya-design.html) (wygląd v1 — wg README portal-v3
+> Wzorzec wyglądu: [`portal-v3.html`](../../project/mockups/portal-v3/portal-v3.html) (układ) i
+> [`fisherya-design.html`](../../project/design/fisherya-design.html) (wygląd v1 — wg README portal-v3
 > obowiązuje **bez zmian**).
 
 ## Opis problemu

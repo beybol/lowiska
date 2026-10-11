@@ -107,3 +107,19 @@ test('a rate starting after the season ends does not count', function () {
 
     expect(priceFromOf($fishery))->toBe(9000);
 });
+
+/**
+ * „Cenę od" da się policzyć z cennika podanego przez wołającego albo z relacji wczytanej z góry (lista kart) —
+ * wtedy NIE pyta bazy. Test pilnuje, że źródłem jest to, co podano, a nie świeże zapytanie (038, mutacje).
+ */
+test('the price from uses the rules passed in or the loaded relation instead of querying again', function () {
+    [$fishery] = StayFixtures::fisheryWithPosition();
+    $rate = StayFixtures::rate($fishery, 90.00);
+
+    $loaded = $fishery->fresh()->load('priceRules');
+    StayFixtures::rate($fishery, 50.00);
+
+    expect((new PriceFrom($loaded))->amountInCents())->toBe(9000)
+        ->and((new PriceFrom($fishery->fresh(), [$rate]))->amountInCents())->toBe(9000)
+        ->and(priceFromOf($fishery))->toBe(5000);
+});

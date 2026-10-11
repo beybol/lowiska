@@ -6,6 +6,7 @@ use App\Enums\AnglerLinkStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Filament\Resources\ReservationResource\Pages\CreateReservation;
+use App\Filament\Resources\ReservationResource\Pages\EditReservation;
 use App\Filament\Resources\ReservationResource\Pages\ListReservations;
 use App\Filament\Resources\ReservationResource\Pages\ViewReservation;
 use App\Filament\Resources\ReservationResource\ReservationActions;
@@ -145,6 +146,7 @@ class ReservationResource extends Resource
             'index' => ListReservations::route('/'),
             'create' => CreateReservation::route('/create'),
             'view' => ViewReservation::route('/{record}'),
+            'edit' => EditReservation::route('/{record}/edit'),
         ];
     }
 

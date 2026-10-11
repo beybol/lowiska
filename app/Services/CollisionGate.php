@@ -69,6 +69,22 @@ final class CollisionGate
         return $this->collisions->affected($change)->isEmpty() ? null : self::decisionUrl($change);
     }
 
+    /**
+     * Usunięcie stanowiska (047, F1) — z aktywnymi przyszłymi rezerwacjami jest BLOKOWANE: usunięcie
+     * nie ma decyzji „zostaw", więc operator najpierw wycofuje stanowisko (ekran decyzji) albo anuluje
+     * rezerwacje. Ta sama definicja dotkniętej rezerwacji co przy wycofaniu (ADR-027 pkt 2).
+     *
+     * @return int liczba rezerwacji, które blokują usunięcie (0 = można usuwać)
+     */
+    public function blockingDeletion(Position $position): int
+    {
+        return $this->collisions->affected(new ConfigurationChange(
+            kind: ConfigurationChangeKind::PositionWithdrawal,
+            fisheryId: (int) $position->fishery_id,
+            positionIds: [(int) $position->getKey()],
+        ))->count();
+    }
+
     private static function decisionUrl(ConfigurationChange $change): string
     {
         return FisheryResource::getUrl('collisions', [

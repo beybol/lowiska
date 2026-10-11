@@ -17,7 +17,9 @@ use App\Rules\AvailabilityBlockEffectMatchesAttribute;
 use App\Rules\PositionsBelongToFishery;
 use App\Services\AvailabilityBlockSelectionResolver;
 use App\Services\FisheryAccess;
+use App\Services\FishingDayCalendar;
 use App\Services\SharedFormComponents;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -31,6 +33,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
@@ -38,6 +41,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 
 /**
  * Blokady i ograniczenia — jeden wpis ze skutkiem, zasób współdzielony przez oba panele.
@@ -59,6 +63,38 @@ class AvailabilityBlockResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         return false;
+    }
+
+    /**
+     * Okno blokady w momentach (`FishingDayCalendar::nightsWindow()`) — „od 11.10 15:00 do 13.10 15:00".
+     * Łowisko wyłącznie przez `FisheryAccess` — `fishery_id` w formularzu to dane od klienta.
+     */
+    private static function blockPeriod(): Text
+    {
+        return Text::make(function (Get $get): HtmlString {
+            $fishery = filled($get('fishery_id')) ? FisheryAccess::findFishery($get('fishery_id')) : null;
+            $date = fn (mixed $value): ?string => is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}/', $value) === 1 ? substr($value, 0, 10) : null;
+            $from = $date($get('starts_on'));
+            $to = $date($get('ends_on'));
+
+            if (! $fishery instanceof Fishery || $from === null || ($to !== null && $to < $from)) {
+                return new HtmlString('');
+            }
+
+            try {
+                [$start, $end] = (new FishingDayCalendar($fishery))->nightsWindow($from, $to);
+            } catch (\Throwable) {
+                return new HtmlString('');
+            }
+
+            $timezone = $fishery->timezoneName();
+            $format = fn (CarbonImmutable $moment): string => $moment->setTimezone($timezone)->locale(app()->getLocale())->isoFormat('dd DD.MM.YYYY HH:mm');
+            $text = $end === null
+                ? __('Blocked from :from until revoked.', ['from' => $format($start)])
+                : __('Blocked from :from to :to.', ['from' => $format($start), 'to' => $format($end)]);
+
+            return new HtmlString('<div class="text-sm text-gray-600 dark:text-gray-300" data-block-period>'.e($text).'</div>');
+        });
     }
 
     public static function form(Schema $schema): Schema
@@ -104,13 +140,18 @@ class AvailabilityBlockResource extends Resource
                         // Układ, nie reguła: pola zachowują się dokładnie jak wcześniej.
                         Grid::make(2)
                             ->schema([
+                                // „Od"/„Do" to pierwsza i ostatnia DOBA — przełom dnia o godzinie doby, jak
+                                // w rezerwacji (`dostepnosc.md` §3); obok widać wynikające z tego momenty.
                                 DatePicker::make('starts_on')
-                                    ->label(__('From'))
+                                    ->label(__('From (first night)'))
+                                    ->live()
                                     ->required(),
                                 DatePicker::make('ends_on')
-                                    ->label(__('To'))
+                                    ->label(__('To (last night)'))
                                     ->helperText(__('Leave empty for an entry valid until revoked.'))
+                                    ->live()
                                     ->afterOrEqual('starts_on'),
+                                self::blockPeriod()->columnSpanFull(),
                             ])
                             ->columnSpanFull(),
                         Textarea::make('reason')

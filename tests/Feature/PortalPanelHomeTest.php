@@ -53,7 +53,7 @@ test('a registration through Breeze lands in the owner panel', function () {
         'name' => 'Jan',
         'surname' => 'Rejestrowany',
         'email' => 'jan.rejestrowany@example.com',
-        'password' => 'Haslo-Testowe-123',
-        'password_confirmation' => 'Haslo-Testowe-123',
+        'password' => 'Haslo-Testowe-123', // gitleaks:allow
+        'password_confirmation' => 'Haslo-Testowe-123', // gitleaks:allow
     ])->assertRedirect(url('owner'));
 });

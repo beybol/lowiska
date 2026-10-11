@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-10-01
-- **Zadanie:** [033 — Kalendarz portalu: płaska siatka stanowisk](../tasks/033-kalendarz-portalu.md)
+- **Zadanie:** [033 — Kalendarz portalu: płaska siatka stanowisk](../tasks/implemented/033-kalendarz-portalu.md)
 
 ## Kontekst
 

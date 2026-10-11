@@ -1,8 +1,8 @@
 # 031 — Szkielet portalu, strona główna i strony statyczne
 
-> **Etap 1, zadanie 4** ([roadmapa](../project/ROADMAPA.md)). Założone 30.09.2026.
-> Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md) §1, §1.1, §5, §6.1, §8;
-> makiety: [`portal-v3.html`](../project/mockups/portal-v3/portal-v3.html) — „Strona główna",
+> **Etap 1, zadanie 4** ([roadmapa](../../project/ROADMAPA.md)). Założone 30.09.2026.
+> Specyfikacja: [portal-v3](../../project/mockups/portal-v3/README.md) §1, §1.1, §5, §6.1, §8;
+> makiety: [`portal-v3.html`](../../project/mockups/portal-v3/portal-v3.html) — „Strona główna",
 > „Dla łowisk", „Adresy stron", „Wersja mobilna". Wymaga 029 (Tailwind 4) i 030 (slug, publikacja).
 
 ## Opis problemu
@@ -67,7 +67,7 @@ podstaw SEO i statystyk odwiedzin (Umami).
   w migracji danych tego zadania; kolizja dostaje sufiks.
 - W tym zadaniu strona pod adresem kanonicznym to **zaślepka** (nazwa łowiska w układzie portalu);
   treść dostarcza 032.
-- **ADR schematu adresów** — [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md), Decyzja: B.
+- **ADR schematu adresów** — [ADR-021](../../adr/ADR-021-schemat-adresow-portalu.md), Decyzja: B.
   Trasy stron statycznych rejestrowane **przed** trasą łowiska (ten sam kształt trzech segmentów).
 
 ### Strona główna i landing
@@ -217,8 +217,8 @@ podstaw SEO i statystyk odwiedzin (Umami).
 
 ## Powiązane ADR-y
 
-- [ADR-021 — Schemat adresów portalu wędkarza](../adr/ADR-021-schemat-adresow-portalu.md) — Decyzja: B.
-- [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md) — wejście stylów portalu (Decyzja: A).
+- [ADR-021 — Schemat adresów portalu wędkarza](../../adr/ADR-021-schemat-adresow-portalu.md) — Decyzja: B.
+- [ADR-020](../../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md) — wejście stylów portalu (Decyzja: A).
 
 ## Stan po implementacji (2026-10-01)
 

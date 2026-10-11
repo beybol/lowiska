@@ -316,7 +316,13 @@ braku, bo pusty kod traktuje jako „brak oczekującego wyzwania".
   właścicielem jak przy otwartej samorejestracji. Rozdzielenie kont wędkarza i właściciela to etap 4
   (`docs/project/DECYZJE-I-TODO-BIZNESOWE.md`).
 
-Zadania źródłowe: 012, 028, 043; security-review 2026-09-20.
+- ⚠️ **Token prośby o powiązanie jest związany z adresem z chwili wysyłki** (`fishery_anglers.link_email`,
+  zadanie 047 D2): link działa tylko, gdy adres relacji (efektywny) jest wciąż tym, na który poszedł mail.
+  Zmiana adresu przez operatora dodatkowo zeruje token i cofa relację do `Unlinked`. `AnglerLinking::confirm()`
+  sprawdza token, ważność i adres PONOWNIE na zablokowanym wierszu (D3) — „To nie ja" wysłane równolegle albo
+  poprawka adresu wygrywa z potwierdzeniem. Kolumna jest ukryta (`$hidden`) i nie trafia do dziennika.
+
+Zadania źródłowe: 012, 028, 043, 047; security-review 2026-09-20.
 
 ---
 

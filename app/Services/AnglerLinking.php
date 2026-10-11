@@ -76,6 +76,8 @@ final class AnglerLinking
         $angler->forceFill([
             'link_token_hash' => self::hash($linkToken),
             'link_expires_at' => CarbonImmutable::now()->addDays(self::VALID_DAYS),
+            // Token ważny wyłącznie dla adresu z chwili wysyłki (047, D2).
+            'link_email' => $email,
             'status' => $angler->status === AnglerLinkStatus::Linked ? AnglerLinkStatus::Linked : AnglerLinkStatus::Pending,
         ])->save();
 
@@ -101,7 +103,8 @@ final class AnglerLinking
     {
         $angler = FisheryAngler::query()->with(['fishery', 'user'])->where('link_token_hash', self::hash($token))->first();
 
-        if ($angler === null) {
+        // Adres zmieniony po wysyłce — link z maila na stary adres jest nieważny (047, D2).
+        if ($angler === null || ! self::sentToCurrentEmail($angler)) {
             return ['angler' => null, 'expired' => false];
         }
 
@@ -166,11 +169,19 @@ final class AnglerLinking
      *
      * @param  string  $phoneChoice  przy konflikcie telefonu: `profile` · `save` · `fishery`
      */
-    public function confirm(FisheryAngler $angler, string $phoneChoice = 'profile'): FisheryAngler
+    public function confirm(FisheryAngler $angler, string $phoneChoice = 'profile', ?string $token = null): ?FisheryAngler
     {
-        $linked = DB::transaction(function () use ($angler, $phoneChoice): FisheryAngler {
+        $linked = DB::transaction(function () use ($angler, $phoneChoice, $token): ?FisheryAngler {
             /** @var FisheryAngler $locked */
             $locked = FisheryAngler::query()->whereKey($angler->getKey())->lockForUpdate()->firstOrFail();
+
+            // Ważność tokenu sprawdzana PONOWNIE pod blokadą (047, D3): "To nie ja" wysłane równolegle
+            // zeruje token, a adres mógł się zmienić od otwarcia strony.
+            if ($token !== null && ($locked->link_token_hash !== self::hash($token)
+                || $locked->link_expires_at === null || $locked->link_expires_at < CarbonImmutable::now()
+                || ! self::sentToCurrentEmail($locked))) {
+                return null;
+            }
             $user = $this->accountFor($locked) ?? $this->createAccount($locked);
             $override = null;
 
@@ -191,12 +202,17 @@ final class AnglerLinking
                 'phone_override' => $override,
                 'link_token_hash' => null,
                 'link_expires_at' => null,
+                'link_email' => null,
             ])->save();
 
             $this->log($locked, 'linked');
 
             return $locked;
         });
+
+        if ($linked === null) {
+            return null;
+        }
 
         foreach ($linked->reservations()->where('status', ReservationStatus::Pending->value)->get() as $reservation) {
             $this->booking->confirm($reservation, ConfirmationSource::Link);
@@ -230,6 +246,7 @@ final class AnglerLinking
             $angler->forceFill([
                 'link_token_hash' => null,
                 'link_expires_at' => null,
+                'link_email' => null,
                 'status' => $angler->status === AnglerLinkStatus::Pending ? AnglerLinkStatus::Unlinked : $angler->status,
             ])->save();
             $this->log($angler, 'not_me');
@@ -237,6 +254,12 @@ final class AnglerLinking
 
         $reservation->forceFill(['manage_token_hash' => null])->save();
         $this->booking->markNeedsContact($reservation);
+    }
+
+    /** Prośba poszła na adres, który relacja ma dziś (047, D2). */
+    private static function sentToCurrentEmail(FisheryAngler $angler): bool
+    {
+        return $angler->link_email === null || $angler->link_email === FisheryAngler::normalizeEmail($angler->effectiveEmail());
     }
 
     public static function hash(string $token): string

@@ -8,7 +8,7 @@
     Linki przełączników mają `rel="nofollow"` — robot nie mnoży wariantów strony.
 
     ⚠️ Weekend (sobota, niedziela) jest wyróżniony WYŁĄCZNIE w nagłówku dni (038, R3) — komórki z cenami
-    zostają białe, bo kreskowanie `a100/a200` w komórce znaczy „niedostępne — powód od łowiska".
+    zostają białe, bo kreskowanie `a100/a200` (pasek blokady łowiska) znaczy „niedostępne — powód od łowiska".
 --}}
 @php
     // Ta sama instancja wyciągu co w Cenniku — pozycje liczą się raz na stronę (038).
@@ -162,9 +162,38 @@
                             @if ($row['message'] !== null)
                                 <td colspan="7" class="border-b border-line2 bg-a100/60 px-3 py-2 text-[12.5px] font-semibold text-a700">{{ $row['message'] }}</td>
                             @else
-                                @foreach ($row['cells'] as $cell)
-                                    <td class="border-b border-l border-line2 p-1 text-center align-middle">
-                                        @include('portal.partials.calendar-cell', ['cell' => $cell, 'tooltip' => true])
+                                @foreach ($row['cells'] as $index => $cell)
+                                    {{-- Model połówek jak w kalendarzu panelu: zajętość i blokada łowiska to paski od połowy
+                                         pierwszego dnia do połowy dnia po ostatniej dobie; dzień z zajętym rankiem ma cenę w prawym rogu. --}}
+                                    @php
+                                        $underBar = $cell['state'] === 'occupied' || ($cell['state'] === 'refused' && ($cell['from_fishery'] ?? false));
+                                    @endphp
+                                    <td class="relative border-b border-l border-line2 p-1 align-middle {{ ($cell['morning_taken'] ?? false) ? 'text-right' : 'text-center' }}">
+                                        @if ($underBar)
+                                            <span class="block h-9" aria-hidden="true"></span>
+                                        @else
+                                            @include('portal.partials.calendar-cell', ['cell' => $cell, 'tooltip' => true])
+                                        @endif
+                                        @foreach ($row['bars'] as $bar)
+                                            @if ($bar['column'] === $index)
+                                                @php
+                                                    $shape = \App\Support\CalendarBarShape::css($bar['span'], ! $bar['starts_before'], ! $bar['ends_after']);
+                                                    $blocked = $bar['kind'] === 'blocked';
+                                                @endphp
+                                                {{-- ⚠️ Prywatność (046): pasek „Zajęte" niesie wyłącznie ten napis — żadnych danych rezerwacji.
+                                                     Blokada: kreskowanie „powód od łowiska", krótki powód w pasku, pełny w `title`. --}}
+                                                <span @class([
+                                                          'absolute top-1 bottom-1 left-0 flex items-center overflow-hidden text-[11px] font-semibold',
+                                                          'bg-line2 text-muted' => ! $blocked,
+                                                          'bg-[repeating-linear-gradient(-45deg,var(--color-a100),var(--color-a100)_3px,var(--color-a200)_3px,var(--color-a200)_6px)] text-a700' => $blocked,
+                                                      ])
+                                                      style="z-index:5;{{ $shape['style'] }}"
+                                                      title="{{ $blocked ? $bar['title'] : __('Booked') }}"
+                                                      @if ($blocked) data-blocked @else data-occupied @endif>
+                                                    @if ($bar['span'] > 1)<span class="block min-w-0 truncate" style="{{ $shape['top'] }}">{{ $blocked ? $bar['text'] : __('Booked') }}</span>@endif
+                                                </span>
+                                            @endif
+                                        @endforeach
                                     </td>
                                 @endforeach
                             @endif

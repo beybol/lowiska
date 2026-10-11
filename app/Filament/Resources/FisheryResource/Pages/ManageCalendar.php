@@ -5,13 +5,17 @@ namespace App\Filament\Resources\FisheryResource\Pages;
 use App\Enums\CalendarLayer;
 use App\Enums\CalendarWindow;
 use App\Enums\SaleUnavailabilityReason;
+use App\Filament\Resources\AvailabilityBlockResource;
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\ReservationResource;
 use App\Filament\Resources\ReservationResource\Pages\CreateReservation;
 use App\Filament\Resources\ReservationResource\ReservationActions;
+use App\Filament\Resources\ReservationResource\ReservationFormQuote;
+use App\Filament\Resources\ReservationResource\ReservationFormSchema;
 use App\Filament\Resources\ReservationResource\ReservationFormSubmission;
 use App\Models\AvailabilityBlock;
 use App\Models\Fishery;
+use App\Models\Position;
 use App\Models\PriceRule;
 use App\Models\Reservation;
 use App\Models\SalePeriod;
@@ -26,18 +30,15 @@ use App\Services\SaleCalendar;
 use App\Services\SaleCalendarCell;
 use App\Services\SaleCalendarGrid;
 use App\Services\SaleCalendarRow;
-use App\Services\StayOffer;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
-use Filament\Schemas\Components\Grid;
 use Illuminate\Support\Facades\Gate;
+use Livewire\Attributes\Renderless;
 use Livewire\Attributes\Url;
 
 /**
@@ -46,10 +47,13 @@ use Livewire\Attributes\Url;
  * - **„Oferta"** (`?layer=offer`) — podgląd konfiguracji sprzedaży „co z tego wynika" (019).
  *   ⚠️ **Ta warstwa jest WYŁĄCZNIE podglądem.** Nie ma z niej edycji ani skrótów „napraw to"
  *   i niczego nie zapisuje. Kliknięcie prowadzi co najwyżej do właściwego ekranu konfiguracji.
- * - **„Rezerwacje"** (domyślna) — warstwa operacyjna: paski rezerwacji i blokady na stanowiskach,
- *   klik w dobę → zaznaczenie i popover w wierszu, krótki formularz rezerwacji, blokada, akcje
- *   na rezerwacji (modale z `ReservationActions`). Siatkę składa `ReservationCalendar`; zapis idzie
- *   wyłącznie przez `ReservationBooking`.
+ * - **„Rezerwacje"** (domyślna) — warstwa operacyjna (§3/§3a makiety etapu 3): paski rezerwacji
+ *   i blokad na stanowiskach, oferta drobnym drukiem w pustych dobach, klik w dzień → zaznaczenie
+ *   (przyjazd, potem wyjazd — `selectCell()`) i popover-WARSTWA nad siatką (zakotwiczona przy zaznaczeniu;
+ *   klik w dzień przyjazdu albo ponownie w ten sam pasek zamyka), krótki formularz
+ *   rezerwacji, blokada (przy kolizji → ekran decyzji E), akcje na rezerwacji (modale z
+ *   `ReservationActions`). Siatkę składa `ReservationCalendar`; zapis idzie wyłącznie przez
+ *   `ReservationBooking`.
  *
  * ⚠️ To jest STRONA ZASOBU `FisheryResource`, nie strona panelu — trafia więc do obu paneli
  * bez dotykania providerów (`panel-wlasciciela.md` §6). Test sprawdza to jawnie, bo dopisanie
@@ -91,7 +95,10 @@ class ManageCalendar extends Page
     #[Url]
     public string $layer = 'reservations';
 
-    /** Filtry warstwy „Rezerwacje": grupa stanowisk i status (`pending` · `confirmed` · `paid`). */
+    /**
+     * Filtry warstwy „Rezerwacje": grupa stanowisk i filtr pasków (`ReservationCalendar::FILTERS` — status
+     * z listy, liczniki nad siatką, „wymagają reakcji"). Filtr przygasza niepasujące paski.
+     */
     public ?int $groupId = null;
 
     public ?string $statusFilter = null;
@@ -108,6 +115,9 @@ class ManageCalendar extends Page
 
     /** Kliknięty pasek rezerwacji (popover z akcjami). */
     public ?int $selReservation = null;
+
+    /** Kliknięty pasek blokady (popover: powód, okres, edycja, usunięcie). */
+    public ?int $selBlock = null;
 
     /** Dzień listy stanowisk w widoku telefonu. */
     public ?string $phoneDay = null;
@@ -152,10 +162,18 @@ class ManageCalendar extends Page
         // a nie wynikać z ubocznego skutku zakresu widoczności.
         abort_unless(auth()->user()?->can('view', $this->getRecord()) ?? false, 404);
 
+        // Bez `?layer=` w adresie wracamy do warstwy, na której użytkownik był ostatnio w tym łowisku.
+        $remembered = $this->rememberedState();
+
+        if (! request()->has('layer') && is_string($remembered['layer'] ?? null)) {
+            $this->layer = $remembered['layer'];
+        }
+
         $this->layer = $this->layer()->value;
 
         if ($this->layer() === CalendarLayer::Reservations) {
             $this->startReservationsLayer();
+            $this->restoreWindow();
 
             return;
         }
@@ -171,6 +189,79 @@ class ManageCalendar extends Page
 
         if ($anchor instanceof CarbonImmutable) {
             $this->windowStart = $this->unit()->startFor($anchor)->toDateString();
+        }
+
+        $this->restoreWindow();
+    }
+
+    /**
+     * Ostatnie miejsce w kalendarzu (warstwa, okno, początek okna, sezon) — w sesji, osobno dla łowiska
+     * i warstwy, żeby powrót z innej zakładki trafiał tam, gdzie użytkownik skończył.
+     */
+    public function dehydrate(): void
+    {
+        if (! $this->record instanceof Fishery) {
+            return;
+        }
+
+        $key = $this->stateKey();
+        $state = (array) session()->get($key, []);
+        $state['layer'] = $this->layer()->value;
+        $state[$this->layer()->value] = [
+            'window' => $this->window,
+            'windowStart' => $this->windowStart,
+            'seasonId' => $this->seasonId,
+        ];
+        session()->put($key, $state);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function rememberedState(): array
+    {
+        return (array) session()->get($this->stateKey(), []);
+    }
+
+    private function stateKey(): string
+    {
+        return 'calendar.'.$this->fishery()->getKey();
+    }
+
+    /**
+     * ⚠️ Stan z sesji traktujemy jak dane od klienta: okno tylko z listy warstwy, data tylko w kształcie
+     * ISO (resztę i tak sprawdza `currentStart()`), sezon tylko spośród sezonów łowiska.
+     */
+    private function restoreWindow(): void
+    {
+        $saved = $this->rememberedState()[$this->layer()->value] ?? null;
+
+        if (! is_array($saved)) {
+            return;
+        }
+
+        if (is_string($saved['window'] ?? null) && array_key_exists($saved['window'], CalendarWindow::optionsFor($this->layer()))) {
+            $this->window = $saved['window'];
+        }
+
+        if ($this->layer() === CalendarLayer::Offer && is_numeric($saved['seasonId'] ?? null)) {
+            foreach ($this->calendar()->seasons() as $period) {
+                if ((int) $period->id === (int) $saved['seasonId']) {
+                    $this->seasonId = (int) $period->id;
+                }
+            }
+        }
+
+        if (is_string($saved['windowStart'] ?? null) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $saved['windowStart']) === 1) {
+            $this->windowStart = $saved['windowStart'];
+            $this->windowStart = $this->unit()->startFor($this->currentStart())->toDateString();
+        }
+
+        if ($this->layer() === CalendarLayer::Reservations) {
+            $start = $this->currentStart();
+            $today = CarbonImmutable::now($this->fishery()->timezoneName())->startOfDay();
+            $inWindow = $today >= $start && $today <= $this->unit()->endFor($start);
+            $this->phoneDay = ($inWindow ? $today : $start)->toDateString();
         }
     }
 
@@ -199,6 +290,7 @@ class ManageCalendar extends Page
 
         if ($this->layer() === CalendarLayer::Reservations) {
             $this->startReservationsLayer();
+            $this->restoreWindow();
 
             return;
         }
@@ -208,9 +300,10 @@ class ManageCalendar extends Page
         $seasons = $this->calendar()->seasons();
         $this->seasonId = $seasons === [] ? null : (int) $seasons[0]->id;
         $this->windowStart = $anchor instanceof CarbonImmutable ? $this->unit()->startFor($anchor)->toDateString() : null;
+        $this->restoreWindow();
     }
 
-    /** Warstwa „Rezerwacje" startuje od bieżącego tygodnia, w oknie dwóch tygodni. */
+    /** Warstwa „Rezerwacje" startuje od bieżącego tygodnia, w oknie dwóch tygodni (tydzień do wyboru). */
     private function startReservationsLayer(): void
     {
         $this->window = CalendarWindow::TwoWeeks->value;
@@ -236,6 +329,15 @@ class ManageCalendar extends Page
         if ($this->canGoBack()) {
             $this->windowStart = $this->unit()->previous($this->currentStart())->toDateString();
         }
+    }
+
+    /** „Dziś" — okno zawierające bieżący dzień (warstwa „Rezerwacje"). */
+    public function goToToday(): void
+    {
+        $this->clearSelection();
+        $today = CarbonImmutable::now($this->fishery()->timezoneName())->startOfDay();
+        $this->windowStart = $this->unit()->startFor($today)->toDateString();
+        $this->phoneDay = $today->toDateString();
     }
 
     public function nextWindow(): void
@@ -524,9 +626,18 @@ class ManageCalendar extends Page
         }
 
         $days = $this->unit() === CalendarWindow::Week ? 7 : 14;
-        $status = in_array($this->statusFilter, ['pending', 'confirmed', 'paid'], true) ? $this->statusFilter : null;
+        $filter = in_array($this->statusFilter, ReservationCalendar::FILTERS, true) ? $this->statusFilter : null;
+        // Oferta w pustych dobach (047, A3) — ta sama siatka `SaleCalendar` co warstwa „Oferta", to samo okno.
+        $offer = $this->calendar()->grid(from: $this->currentStart(), unit: $this->unit());
 
-        return $this->reservationCalendar()->grid($this->currentStart(), $days, $this->groupId ?: null, $status);
+        return $this->reservationCalendar()->grid($this->currentStart(), $days, $this->groupId ?: null, $filter, offer: $offer);
+    }
+
+    /** Licznik nad siatką jako filtr — drugi klik zdejmuje filtr (047, A8). */
+    public function toggleFilter(string $filter): void
+    {
+        $this->clearSelection();
+        $this->statusFilter = $this->statusFilter === $filter || ! in_array($filter, ReservationCalendar::FILTERS, true) ? null : $filter;
     }
 
     /** Grupy stanowisk do filtra — tylko tego łowiska. @return array<int, string> */
@@ -536,54 +647,100 @@ class ManageCalendar extends Page
     }
 
     /**
-     * Klik w wolną dobę: pierwszy zaznacza, drugi w tym samym wierszu wydłuża zakres — ale nigdy
-     * przez dobę zajętą (zatrzymuje się przed nią). Przeszłość i doby zajęte są nieklikalne.
+     * Klik w dzień (model połówek): pierwszy klik wskazuje PRZYJAZD (doba od tego dnia musi być wolna),
+     * klik w późniejszy dzień tego wiersza wskazuje WYJAZD — zakres dób kończy się przed pierwszą zajętą.
+     * Klik we wcześniejszy dzień przesuwa przyjazd, o ile doby do dotychczasowego są wolne. Ponowny klik
+     * w dzień PRZYJAZDU zamyka zaznaczenie. Wyjątek: klik w bieżący dzień wyjazdu przedłuża pobyt o dobę
+     * (działa jak klik w dzień następny); po pierwszym kliku wyjazdem jest już dzień tuż po przyjeździe.
+     * `selStart`/`selEnd` to pierwsza i OSTATNIA doba.
      */
     public function selectCell(int $positionId, string $date): void
     {
-        $this->selReservation = null;
+        $this->selReservation = $this->selBlock = null;
         $grid = $this->getReservationGrid();
         $row = $grid?->row($positionId);
         $day = $this->parseDay($date);
         $cell = $day === null ? null : $row?->cellOn($day);
 
-        if ($row === null || $cell === null || ! $cell->isSelectable()) {
+        if ($row === null || $day === null || $cell === null || $cell->past) {
             return;
         }
 
         $start = $this->parseDay($this->selStart);
+        $end = $this->parseDay($this->selEnd);
+        $sameRow = $this->selPosition === $positionId && $start !== null && $end !== null;
 
-        if ($this->selPosition !== $positionId || $start === null || $day <= $start) {
-            $this->selPosition = $positionId;
-            $this->selStart = $this->selEnd = $day->toDateString();
+        if ($sameRow && $day->equalTo($start)) {
+            $this->clearSelection();
 
             return;
         }
 
-        $end = $start;
-
-        for ($next = $start->addDay(); $next <= $day; $next = $next->addDay()) {
-            $nextCell = $row->cellOn($next);
-
-            if ($nextCell === null || ! $nextCell->isSelectable()) {
-                break;
+        if ($sameRow && $day > $start) {
+            // Klik w BIEŻĄCY dzień wyjazdu przedłuża pobyt o dobę (działa jak klik w dzień następny) —
+            // inaczej nie dawałby żadnego efektu. Po pierwszym kliku wyjazdem jest dzień tuż po przyjeździe.
+            if ($day->equalTo($end->addDay())) {
+                $day = $day->addDay();
             }
 
-            $end = $next;
+            $last = $start;
+
+            for ($night = $start->addDay(); $night < $day; $night = $night->addDay()) {
+                if (! ($row->cellOn($night)?->isSelectable() ?? false)) {
+                    break;
+                }
+
+                $last = $night;
+            }
+
+            $this->selEnd = $last->toDateString();
+
+            return;
         }
 
-        $this->selEnd = $end->toDateString();
+        if (! $cell->isSelectable()) {
+            return;
+        }
+
+        if ($sameRow && $day < $start) {
+            $first = $start;
+
+            for ($night = $start->subDay(); $night >= $day; $night = $night->subDay()) {
+                if (! ($row->cellOn($night)?->isSelectable() ?? false)) {
+                    break;
+                }
+
+                $first = $night;
+            }
+
+            $this->selStart = $first->toDateString();
+
+            return;
+        }
+
+        $this->selPosition = $positionId;
+        $this->selStart = $this->selEnd = $day->toDateString();
     }
 
+    /** Klik w pasek rezerwacji; ponowny klik w ten sam pasek zamyka popover. */
     public function selectReservation(int $reservationId): void
     {
-        $this->selPosition = $this->selStart = $this->selEnd = null;
-        $this->selReservation = $this->scopedReservation($reservationId)?->getKey();
+        $toggle = $this->selReservation === $reservationId;
+        $this->clearSelection();
+        $this->selReservation = $toggle ? null : $this->scopedReservation($reservationId)?->getKey();
+    }
+
+    /** Klik w pasek blokady (047, A6) — wyłącznie blokada TEGO łowiska. */
+    public function selectBlock(int $blockId): void
+    {
+        $toggle = $this->selBlock === $blockId;
+        $this->clearSelection();
+        $this->selBlock = $toggle ? null : $this->scopedBlock($blockId)?->getKey();
     }
 
     public function clearSelection(): void
     {
-        $this->selPosition = $this->selStart = $this->selEnd = $this->selReservation = null;
+        $this->selPosition = $this->selStart = $this->selEnd = $this->selReservation = $this->selBlock = null;
     }
 
     public function selectPhoneDay(string $date): void
@@ -592,7 +749,12 @@ class ManageCalendar extends Page
         $this->phoneDay = $day?->toDateString();
     }
 
-    /** Zaznaczony zakres: stanowisko, przyjazd, wyjazd, liczba dób i odpowiedź warstwy oferty. */
+    /**
+     * Zaznaczony zakres: stanowisko, przyjazd, wyjazd, liczba dób, odpowiedź warstwy oferty i ile dób
+     * da się wydłużyć.
+     *
+     * @return array{position: Position, from: string, to: string, nights: int, arrival: ?CarbonImmutable, departure: ?CarbonImmutable, price: ?string, refusal: ?string, max_nights: int}|null
+     */
     public function selection(): ?array
     {
         $start = $this->parseDay($this->selStart);
@@ -605,23 +767,90 @@ class ManageCalendar extends Page
 
         $position->setRelation('fishery', $this->fishery());
         $nights = (int) $start->diffInDays($end) + 1;
-        $calendar = new FishingDayCalendar($this->fishery());
-        $verdict = (new StayOffer($position))->offer($start, $nights);
+        $quote = $this->quoteFor($position, $start, $nights);
 
         return [
             'position' => $position,
             'from' => $start->toDateString(),
+            'to' => $end->toDateString(),
             'nights' => $nights,
+            'arrival' => $quote['arrival'],
+            'departure' => $quote['departure'],
+            'price' => $quote['price'],
+            'refusal' => $quote['refusal'],
+            'max_nights' => $this->reservationCalendar()->freeNightsFrom($position, $start),
+        ];
+    }
+
+    /**
+     * Orientacyjna cena pobytu dla arkusza telefonu (047, A10) — bez przerysowania strony.
+     *
+     * @return array{price: ?string, refusal: ?string, arrival: ?string, departure: ?string}
+     */
+    #[Renderless]
+    public function quote(int $positionId, string $date, int $nights): array
+    {
+        $position = $this->fishery()->positions()->whereKey($positionId)->first();
+        $day = $this->parseDay($date);
+
+        if ($position === null || $day === null) {
+            return ['price' => null, 'refusal' => null, 'arrival' => null, 'departure' => null];
+        }
+
+        $position->setRelation('fishery', $this->fishery());
+        $quote = $this->quoteFor($position, $day, $this->clamp($nights, 1, ReservationCalendar::MAX_FREE_NIGHTS));
+        $timezone = $this->fishery()->timezoneName();
+
+        return [
+            'price' => $quote['price'],
+            'refusal' => $quote['refusal'],
+            'arrival' => $quote['arrival']?->setTimezone($timezone)->format('d.m H:i'),
+            'departure' => $quote['departure']?->setTimezone($timezone)->format('d.m H:i'),
+        ];
+    }
+
+    /**
+     * @return array{price: ?string, refusal: ?string, arrival: ?CarbonImmutable, departure: ?CarbonImmutable}
+     */
+    private function quoteFor(Position $position, CarbonImmutable $start, int $nights): array
+    {
+        $calendar = new FishingDayCalendar($this->fishery());
+        $form = ReservationFormQuote::for($this->fishery(), [
+            'position_id' => $position->getKey(),
+            'starts_on' => $start->toDateString(),
+            'nights' => $nights,
+            'anglers' => 1,
+            'companions' => 0,
+        ]);
+
+        return [
             'arrival' => $calendar->dayStartingOn($start)?->startsAt,
-            'departure' => $calendar->dayStartingOn($end)?->endsAt,
-            'price' => $verdict->available ? AmountFormatter::cents((int) $verdict->breakdown?->totalInCents(), $this->fishery()->currency?->name) : null,
-            'refusal' => $verdict->available ? null : $verdict->reason?->label(),
+            'departure' => $calendar->dayStartingOn($start->addDays($nights - 1))?->endsAt,
+            'price' => $form?->totalLabel(),
+            'refusal' => $form !== null && $form->refused() ? implode(' ', $form->refusalLines) : null,
         ];
     }
 
     public function selectedReservation(): ?Reservation
     {
         return $this->selReservation === null ? null : $this->scopedReservation($this->selReservation);
+    }
+
+    public function selectedBlock(): ?AvailabilityBlock
+    {
+        return $this->selBlock === null ? null : $this->scopedBlock($this->selBlock);
+    }
+
+    /** Adres edycji blokady (zasób blokad) — z popovera paska blokady. */
+    public function blockEditUrl(AvailabilityBlock $block): string
+    {
+        return AvailabilityBlockResource::getUrl('edit', ['record' => $block, 'fishery' => $this->fishery()->getKey()]);
+    }
+
+    /** „Nowa rezerwacja" nad siatką — pełny formularz C. */
+    public function newReservationUrl(): string
+    {
+        return ReservationResource::getUrl('create', ['fishery' => $this->fishery()->getKey()]);
     }
 
     /** Adres pełnego formularza (C) z parametrami zaznaczenia. */
@@ -635,43 +864,29 @@ class ManageCalendar extends Page
         ]);
     }
 
+    /**
+     * Krótki formularz „Zarezerwuj…" — `ReservationFormSchema::quick()`, ten sam co szybka edycja (047, C1):
+     * cena z rozbiciem, pole powodu tylko przy odmowie oferty, wyjątek usługi niepotrzebny (brak pola usług).
+     */
     public function quickBookAction(): Action
     {
         return Action::make('quickBook')
             ->label(__('Book…'))
             ->icon('heroicon-m-plus')
-            ->modalHeading(__('New reservation'))
+            ->modalHeading(fn (array $arguments): string => $this->quickBookHeading($arguments))
             ->modalWidth('lg')
             ->visible(fn (): bool => Gate::allows('create', Reservation::class))
             ->fillForm(fn (array $arguments): array => $this->quickBookDefaults($arguments))
-            ->schema(fn (array $arguments): array => [
-                Hidden::make('position_id'),
-                Hidden::make('starts_on'),
-                TextInput::make('angler_name')->label(__('Name'))->required()->maxLength(255),
-                TextInput::make('angler_phone')->label(__('Phone'))->tel()->maxLength(32),
-                TextInput::make('angler_email')->label(__('Email (optional)'))->email()->maxLength(255),
-                Grid::make(3)->schema([
-                    TextInput::make('nights')->label(__('Nights'))->integer()->required()->minValue(1)
-                        ->maxValue(fn (): int => max(1, $this->quickBookDefaults($arguments)['max_nights'])),
-                    TextInput::make('anglers')->label(__('Anglers'))->integer()->required()->minValue(1)->maxValue(50),
-                    TextInput::make('companions')->label(__('Companions'))->integer()->minValue(0)->maxValue(50),
-                ]),
-                TextInput::make('exception_reason')
-                    ->label(__('Reason to book against the sale rules'))
-                    ->helperText(__('Needed only when the offer is refused — the exception is recorded with your name.'))
-                    ->maxLength(500),
+            ->schema(fn (array $arguments): array => ReservationFormSchema::quick(
+                fn (): Fishery => $this->fishery(),
+                maxNights: $this->quickBookDefaults($arguments)['max_nights'],
+            ))
+            // „Pełny formularz →" zapisuje rezerwację z wpisanych danych i przechodzi do jej pełnej edycji —
+            // nic z krótkiego formularza nie przepada.
+            ->extraModalFooterActions(fn (Action $action): array => [
+                $action->makeModalSubmitAction('saveAndEdit', ['full' => true])->label(__('Save and open full form →')),
             ])
-            ->extraModalFooterActions(fn (array $arguments): array => [
-                Action::make('fullForm')
-                    ->label(__('Full form →'))
-                    ->color('gray')
-                    ->url(fn (): string => $this->fullFormUrl(
-                        (int) $this->quickBookDefaults($arguments)['position_id'],
-                        (string) $this->quickBookDefaults($arguments)['starts_on'],
-                        (int) $this->quickBookDefaults($arguments)['nights'],
-                    )),
-            ])
-            ->action(function (array $data, Action $action): void {
+            ->action(function (array $data, array $arguments, Action $action): void {
                 Gate::authorize('create', Reservation::class);
                 $outcome = ReservationFormSubmission::book($this->fishery(), $data);
 
@@ -683,15 +898,20 @@ class ManageCalendar extends Page
                 $this->clearSelection();
                 $this->reservationCalendar = null;
                 Notification::make()->success()->title(__('The reservation was saved'))->body(CreateReservation::requestNotice($outcome->reservation))->send();
+
+                if (! empty($arguments['full']) && $outcome->reservation !== null) {
+                    $this->redirect(ReservationResource::getUrl('edit', ['record' => $outcome->reservation]));
+                }
             });
     }
 
     /**
-     * Blokada zaznaczonych dób jednego stanowiska — skrót do zasobu blokad (zadanie 042).
+     * Blokada zaznaczonych dób jednego stanowiska — skrót do zasobu blokad (zadania 042, 047 A9).
      *
-     * ⚠️ Okno blokady obejmuje całe dni, więc przecina też dobę zaczętą dzień wcześniej. Kolizja
-     * z rezerwacją wymaga jawnej decyzji (G8, ADR-027) — skrót jej nie podejmuje, tylko odsyła do
-     * ekranu blokad; mechanizm decyzji to zadanie 044.
+     * ⚠️ Okno blokady to doby od „od" do „do" (`FishingDayCalendar::nightsWindow()`, przełom dnia o godzinie
+     * doby), więc rezerwacja kończąca się w dniu „od" z nią nie koliduje. Kolizja
+     * z rezerwacją wymaga jawnej decyzji (G8, ADR-027): skrót pyta `CollisionGate` i przy kolizji
+     * przechodzi na ekran decyzji E — blokada zapisze się tam razem z decyzjami.
      */
     public function quickBlockAction(): Action
     {
@@ -723,8 +943,9 @@ class ManageCalendar extends Page
                 );
 
                 if ($outcome !== null) {
-                    Notification::make()->danger()->title(__('The block was not saved'))->body($outcome)->send();
-                    $action->halt();
+                    $this->redirect($outcome);
+
+                    return;
                 }
 
                 $this->clearSelection();
@@ -733,9 +954,36 @@ class ManageCalendar extends Page
             });
     }
 
-    public function editReservationAction(): Action
+    /** „Usuń blokadę…" z popovera paska blokady — polityka blokady jawnie (047, A6). */
+    public function deleteBlockAction(): Action
     {
-        return ReservationActions::edit()->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments));
+        return Action::make('deleteBlock')
+            ->label(__('Delete block…'))
+            ->icon('heroicon-m-trash')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading(__('Delete the block'))
+            ->modalDescription(__('Sale on these nights opens again. Reservations kept at this block stay as they are.'))
+            ->visible(fn (array $arguments): bool => ($block = $this->scopedBlock($arguments['block'] ?? null)) !== null && Gate::allows('delete', $block))
+            ->action(function (array $arguments): void {
+                $block = $this->scopedBlock($arguments['block'] ?? null);
+                abort_if($block === null, 404);
+                Gate::authorize('delete', $block);
+                $block->delete();
+                $this->clearSelection();
+                $this->reservationCalendar = null;
+                Notification::make()->success()->title(__('The block was deleted'))->send();
+            });
+    }
+
+    public function quickEditReservationAction(): Action
+    {
+        return ReservationActions::quickEdit()->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments));
+    }
+
+    public function fullEditReservationAction(): Action
+    {
+        return ReservationActions::fullEdit()->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments));
     }
 
     public function confirmReservationAction(): Action
@@ -776,6 +1024,31 @@ class ManageCalendar extends Page
     private function scopedReservation(int $id): ?Reservation
     {
         return $this->fishery()->reservations()->with(ReservationResource::eagerLoads())->whereKey($id)->first();
+    }
+
+    /** ⚠️ Id przychodzi od klienta — wyłącznie blokada sprzedaży TEGO łowiska. */
+    private function scopedBlock(mixed $id): ?AvailabilityBlock
+    {
+        return is_numeric($id)
+            ? $this->fishery()->availabilityBlocks()->with('positions')->whereKey((int) $id)->first()
+            : null;
+    }
+
+    /**
+     * Nagłówek krótkiego formularza: „Rezerwacja stanowiska: X" (bez stanowiska — „Nowa rezerwacja").
+     *
+     * @param  array<string, mixed>  $arguments
+     */
+    private function quickBookHeading(array $arguments): string
+    {
+        $defaults = $this->quickBookDefaults($arguments);
+        $position = $defaults['position_id'] === null ? null : $this->fishery()->positions()->whereKey($defaults['position_id'])->first();
+
+        // Stanowisko w samym nagłówku („Rezerwacja stanowiska: 7") — sama nazwa pod nagłówkiem bywa gołym
+        // numerem i nic nie mówi. Termin z godzinami stoi obok liczby dób w formularzu.
+        return $position === null
+            ? __('New reservation')
+            : __('Position reservation: :position', ['position' => $position->name]);
     }
 
     /**

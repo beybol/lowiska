@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\CalendarWindow;
-use App\Enums\ParticipantRole;
 use App\Enums\PositionAttributeType;
 use App\Enums\PriceRuleKind;
 use App\Enums\SaleUnavailabilityReason;
@@ -13,6 +12,7 @@ use App\Models\Position;
 use App\Models\PositionAttributeValue;
 use App\Models\PositionGroup;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -46,6 +46,9 @@ final class PortalCalendar
 
     private ?SaleCalendarGrid $grid = null;
 
+    /** @var array<int, list<AvailabilityBlock>>|null */
+    private ?array $blocksByPosition = null;
+
     /** Domyślny tydzień — liczony RAZ: woła go każdy link siatki przez `url()` (038, N+1). */
     private ?CarbonImmutable $defaultWeek = null;
 
@@ -73,7 +76,6 @@ final class PortalCalendar
 
     // ------------------------------------------------------------------ stan i adresy
 
-    /** Wyciąg zasad nad siatką — ta sama instancja co w Cenniku, gdy podała ją strona łowiska. */
     /**
      * Czy portal pokazuje zajętość — ustawienie łowiska (`public_availability_enabled`, zadanie 045/046).
      */
@@ -82,6 +84,7 @@ final class PortalCalendar
         return (bool) $this->fishery->public_availability_enabled;
     }
 
+    /** Wyciąg zasad nad siatką — ta sama instancja co w Cenniku, gdy podała ją strona łowiska. */
     public function rules(): FisheryRulesSummary
     {
         return $this->rules ??= new FisheryRulesSummary($this->fishery);
@@ -156,13 +159,13 @@ final class PortalCalendar
     // ------------------------------------------------------------------ przełączniki
 
     /**
-     * Przełącznik łowiących: 1 … największa pojemność stanowiska w sprzedaży.
+     * Przełącznik łowiących: 1 … największa pojemność stanowiska w sprzedaży (`maxAnglers()`).
      *
      * @return list<array{count: int, url: string, active: bool}>
      */
     public function anglerOptions(): array
     {
-        $max = max(1, (int) $this->positions()->max('max_anglers'));
+        $max = $this->maxAnglers();
 
         return array_map(fn (int $count): array => [
             'count' => $count,
@@ -242,7 +245,7 @@ final class PortalCalendar
     /**
      * Wiersze siatki w naturalnej kolejności etykiet.
      *
-     * @return list<array{position: Position, header: array<string, mixed>, cells: list<array<string, mixed>>, message: string|null}>
+     * @return list<array{position: Position, header: array<string, mixed>, cells: list<array<string, mixed>>, bars: list<array{kind: string, column: int, span: int, starts_before: bool, ends_after: bool, text: string, title: string}>, message: string|null}>
      */
     public function rows(): array
     {
@@ -257,6 +260,8 @@ final class PortalCalendar
 
         foreach ($visible->sort(fn (Position $a, Position $b): int => strnatcasecmp($a->name, $b->name)) as $position) {
             $gridRow = $gridRows[(int) $position->id] ?? null;
+            $cells = $gridRow === null ? [] : array_map(fn (SaleCalendarCell $cell): array => $this->cell($cell, $gridRow), $gridRow->cells);
+            [$cells, $bars] = $this->stayBars($cells, $gridRow);
 
             $rows[] = [
                 'position' => $position,
@@ -267,11 +272,105 @@ final class PortalCalendar
                         'anglers' => $this->anglers,
                     ])
                     : null,
-                'cells' => $gridRow === null ? [] : array_map(fn (SaleCalendarCell $cell): array => $this->cell($cell, $gridRow), $gridRow->cells),
+                'cells' => $cells,
+                'bars' => $bars,
             ];
         }
 
         return $rows;
+    }
+
+    /**
+     * Paski w modelu połówek (jak w kalendarzu panelu, `rezerwacje.md` §2): kolejne doby „Zajęte" albo
+     * zablokowane przez łowisko to jeden pasek od połowy pierwszego dnia do połowy dnia po ostatniej dobie.
+     * Komórka dostaje `morning_taken`, gdy jej pierwszą połowę zajmuje pasek doby z dnia poprzedniego — dla
+     * poniedziałku to doba sprzed tygodnia (sloty wczytane przez `SaleCalendar` z zapasem doby wstecz).
+     *
+     * ⚠️ Prywatność (046): pasek „Zajęte" niesie WYŁĄCZNIE geometrię — kolejne zajęte doby łączą się w jeden
+     * pasek bez względu na to, czy to jedna rezerwacja, czy kilka. Zajętość tylko przy `showsOccupancy()`.
+     *
+     * @param  list<array<string, mixed>>  $cells
+     * @return array{0: list<array<string, mixed>>, 1: list<array{kind: string, column: int, span: int, starts_before: bool, ends_after: bool, text: string, title: string}>}
+     */
+    private function stayBars(array $cells, ?SaleCalendarRow $row): array
+    {
+        if ($cells === [] || $row === null) {
+            return [$cells, []];
+        }
+
+        $kindOf = fn (array $cell): ?string => match (true) {
+            $cell['state'] === 'occupied' => 'booked',
+            $cell['state'] === 'refused' && ($cell['from_fishery'] ?? false) => 'blocked',
+            default => null,
+        };
+
+        // Kolejność jak w łańcuchu dostępności: blokada przed zajętością. Wpisy łowiska wczytane RAZ na
+        // render i podane w relację — `PositionAvailability` nie pyta wtedy bazy per stanowisko.
+        $row->position->setRelation('availabilityBlocks', new EloquentCollection($this->blocksByPosition()[(int) $row->position->id] ?? []));
+        $availability = new PositionAvailability($row->position);
+        $previousDay = $this->week->subDay();
+        $previousKind = match (true) {
+            $availability->saleBlocksOn($previousDay)->isNotEmpty() => 'blocked',
+            $this->showsOccupancy() && $availability->isOccupied($previousDay) => 'booked',
+            default => null,
+        };
+
+        $last = count($cells) - 1;
+        $bars = [];
+
+        // Koniec paska z poprzedniego tygodnia rano w poniedziałek — sam trójkąt.
+        if ($previousKind !== null && $kindOf($cells[0]) !== $previousKind) {
+            $bars[] = ['kind' => $previousKind, 'column' => 0, 'span' => 1, 'starts_before' => true, 'ends_after' => false, 'text' => '', 'title' => ''];
+        }
+
+        $start = null;
+
+        foreach ($cells as $index => $cell) {
+            $kind = $kindOf($cell);
+            $cells[$index]['morning_taken'] = ($index === 0 ? $previousKind : $kindOf($cells[$index - 1])) !== null;
+
+            if ($kind !== null && $start === null) {
+                $start = $index;
+            }
+
+            $closes = $start !== null && ($index === $last || $kindOf($cells[$index + 1]) !== $kindOf($cells[$start]));
+
+            if ($closes) {
+                $bars[] = [
+                    'kind' => (string) $kindOf($cells[$start]),
+                    'column' => $start,
+                    // Pasek sięga połowy dnia po ostatniej dobie, przycięty do tygodnia.
+                    'span' => min($last, $index + 1) - $start + 1,
+                    'starts_before' => $start === 0 && $previousKind === $kindOf($cells[$start]),
+                    'ends_after' => $index === $last,
+                    'text' => (string) ($cells[$start]['text'] ?? ''),
+                    'title' => (string) ($cells[$start]['title'] ?? ''),
+                ];
+                $start = null;
+            }
+        }
+
+        return [$cells, $bars];
+    }
+
+    /**
+     * Wpisy o dostępności łowiska po stanowisku — jedno zapytanie na render (doba sprzed tygodnia w `stayBars()`).
+     *
+     * @return array<int, list<AvailabilityBlock>>
+     */
+    private function blocksByPosition(): array
+    {
+        if ($this->blocksByPosition === null) {
+            $this->blocksByPosition = [];
+
+            foreach ($this->fishery->availabilityBlocks()->with(['positions:id', 'attribute'])->get() as $block) {
+                foreach ($block->positions as $position) {
+                    $this->blocksByPosition[(int) $position->id][] = $block;
+                }
+            }
+        }
+
+        return $this->blocksByPosition;
     }
 
     /**
@@ -517,40 +616,21 @@ final class PortalCalendar
     }
 
     /**
-     * Rozbicie ceny z warstwy oferty: stawka × doby, osoba towarzysząca (tylko płatna), dopłaty pod
-     * nazwami łowiska, obniżka przedsprzedażowa, suma; usługi obowiązkowe POD sumą, osobno (§3.4).
+     * Rozbicie ceny ze wspólnego miejsca (`StayPriceExplanation`, zadanie 047 B2) — ten sam skład co
+     * w formularzach panelu; tutaj tylko formatowanie dla wędkarza. Usługi obowiązkowe POD sumą, osobno (§3.4).
      *
      * @return array{title: string, lines: list<array{label: string, amount: string}>, total: string, discount: string|null, services: list<string>}
      */
     private function breakdown(SaleCalendarCell $cell, SaleCalendarRow $row): array
     {
-        $groups = [];
+        $explanation = $cell->breakdown === null ? null : StayPriceExplanation::of($cell->breakdown);
 
-        foreach ($cell->breakdown?->items() ?? [] as $item) {
-            if ($item->role === ParticipantRole::Companion && $item->amountInCents() === 0) {
-                continue;
-            }
+        $lines = array_map(fn (array $line): array => [
+            'label' => $line['label'],
+            'amount' => AmountFormatter::forVisitor($line['cents'], $this->currency()),
+        ], $explanation->stayLines ?? []);
 
-            $label = match (true) {
-                $item->kind === PriceRuleKind::Surcharge => (string) ($item->label ?: __('Surcharge')),
-                $item->role === ParticipantRole::Companion => __('Companion'),
-                default => __('Angler'),
-            };
-
-            $key = $label.'|'.$item->amountPerPersonInCents;
-            $groups[$key]['label'] = $label;
-            $groups[$key]['per'] = $item->amountPerPersonInCents;
-            $groups[$key]['people'] = max($groups[$key]['people'] ?? 0, $item->people);
-            $groups[$key]['nights'] = ($groups[$key]['nights'] ?? 0) + 1;
-            $groups[$key]['total'] = ($groups[$key]['total'] ?? 0) + $item->amountInCents();
-        }
-
-        $lines = array_map(fn (array $g): array => [
-            'label' => $g['label'].($g['people'] > 1 ? ' × '.$g['people'] : '').' × '.trans_choice(':count night|:count nights', $g['nights'], ['count' => $g['nights']]),
-            'amount' => AmountFormatter::forVisitor($g['total'], $this->currency()),
-        ], array_values($groups));
-
-        $discount = (int) $cell->breakdown?->discountInCents();
+        $discount = (int) $explanation?->discountInCents;
         $services = [];
 
         foreach ($row->services as $status) {
@@ -752,10 +832,23 @@ final class PortalCalendar
 
     private function resolveAnglers(?string $raw): int
     {
-        $max = max(1, (int) $this->positions()->max('max_anglers'));
+        $max = $this->maxAnglers();
         $value = filter_var($raw, FILTER_VALIDATE_INT);
 
         return is_int($value) && $value >= 1 && $value <= $max ? $value : 1;
+    }
+
+    /**
+     * Górna granica przełącznika łowiących. Pojemność stanowiska jest opcjonalna, a brak znaczy „bez
+     * limitu" — stanowisko bez pojemności podnosi więc granicę co najmniej do 2, żeby przełącznik nie
+     * zostawał z samą „1".
+     */
+    private function maxAnglers(): int
+    {
+        $capacities = $this->positions()->pluck('max_anglers');
+        $max = max(1, (int) $capacities->filter(fn ($value): bool => $value !== null)->max());
+
+        return $capacities->contains(fn ($value): bool => $value === null) ? max(2, $max) : $max;
     }
 
     private function resolveGroup(?string $raw): ?string

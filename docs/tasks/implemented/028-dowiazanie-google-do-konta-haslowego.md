@@ -174,5 +174,5 @@ Ustalone przy `/review-task`, 24.09.2026:
 
 ## Powiązane ADR-y
 
-- [ADR-019 — Dowiązanie logowania dostawcy do istniejącego konta po potwierdzonym adresie](../adr/ADR-019-dowiazanie-dostawcy-logowania-do-istniejacego-konta.md) —
+- [ADR-019 — Dowiązanie logowania dostawcy do istniejącego konta po potwierdzonym adresie](../../adr/ADR-019-dowiazanie-dostawcy-logowania-do-istniejacego-konta.md) —
   przyjęty 24.09.2026.

@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-10-01
-- **Zadanie:** [036 — Galeria zdjęć łowiska i warianty rozmiarów](../tasks/036-galeria-i-warianty-zdjec.md)
+- **Zadanie:** [036 — Galeria zdjęć łowiska i warianty rozmiarów](../tasks/implemented/036-galeria-i-warianty-zdjec.md)
 
 ## Kontekst
 

@@ -57,7 +57,7 @@ final class SalePeriodFinder
      * Czy okno przedsprzedaży tego okresu jest otwarte W TEJ CHWILI.
      *
      * Okno obejmuje CAŁE dni brzegowe — od `presale_opens_on` od północy do `presale_closes_on`
-     * do końca dnia w strefie łowiska, tak samo jak okno blokady (`dostepnosc.md` §3).
+     * do końca dnia w strefie łowiska — inaczej niż okno blokady, liczone w dobach (`dostepnosc.md` §3).
      * Porównywanym momentem jest chwila zakupu.
      */
     public function hasOpenPresale(SalePeriod $period): bool

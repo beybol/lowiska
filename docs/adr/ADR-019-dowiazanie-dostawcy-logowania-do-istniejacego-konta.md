@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-09-24
-- **Zadanie:** [028 — Dowiązanie logowania Google do istniejącego konta hasłowego](../tasks/028-dowiazanie-google-do-konta-haslowego.md)
+- **Zadanie:** [028 — Dowiązanie logowania Google do istniejącego konta hasłowego](../tasks/implemented/028-dowiazanie-google-do-konta-haslowego.md)
 
 ## Kontekst
 

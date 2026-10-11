@@ -39,6 +39,7 @@ class FisheryAngler extends Model
 
     protected $hidden = [
         'link_token_hash',
+        'link_email',
     ];
 
     protected $attributes = [
@@ -72,7 +73,8 @@ class FisheryAngler extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->useLogName(self::LOG_NAME)->logOnly($this->fillable);
+        // Bez pustych wpisów "updated" przy zmianie tokenu (047, H3) — tokeny nie są wypełnialne.
+        return LogOptions::defaults()->useLogName(self::LOG_NAME)->logOnly($this->fillable)->logOnlyDirty()->dontLogEmptyChanges();
     }
 
     /**

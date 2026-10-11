@@ -194,13 +194,19 @@ final class SaleCalendar
         bool $includeOccupancy = true,
     ): SaleCalendarGrid {
         $days = $this->daysOf($from, $unit);
+        // Zapas jednej doby wstecz: doba zaczęta dzień przed oknem przecina jego pierwszy dzień.
+        $slotsFrom = CarbonImmutable::parse($days[0]->toDateString(), $this->fishery->timezoneName())
+            ->subDay()->utc()->format('Y-m-d H:i:s');
 
         /** @var array<int, Position> $positions */
         $positions = $this->fishery->positions()
             ->when($onlyPositionIds !== null, fn ($query) => $query->whereKey($onlyPositionIds))
             // Sloty rezerwacji z góry (039): `PositionAvailability` pyta o zajętość każdej doby,
-            // a bez tego każde stanowisko zadałoby własne zapytanie.
-            ->with('reservationSlots')
+            // a bez tego każde stanowisko zadałoby własne zapytanie. Wyłącznie od okna w przód — wiersz
+            // nie rośnie z historią; przy wyłączonej zajętości (portal, 046) wcale (zadanie 047, G1).
+            ->when($includeOccupancy, fn ($query) => $query->with([
+                'reservationSlots' => fn ($slots) => $slots->where('ends_at', '>', $slotsFrom),
+            ]))
             ->orderBy('name')
             ->get()
             ->all();
@@ -418,21 +424,18 @@ final class SaleCalendar
             return [];
         }
 
-        $timezone = $this->fishery->timezoneName();
         $covering = [];
 
         foreach ($blocks as $block) {
-            $windowStart = CarbonImmutable::parse($block->starts_on->toDateString(), $timezone)->startOfDay();
+            [$windowStart, $windowEnd] = $this->calendar()->nightsWindow($block->starts_on->toDateString(), $block->ends_on?->toDateString());
 
-            if ($block->ends_on === null) {
+            if ($windowEnd === null) {
                 if ($night->endsAt > $windowStart) {
                     $covering[] = $block;
                 }
 
                 continue;
             }
-
-            $windowEnd = CarbonImmutable::parse($block->ends_on->toDateString(), $timezone)->endOfDay();
 
             if ($night->overlaps($windowStart, $windowEnd)) {
                 $covering[] = $block;

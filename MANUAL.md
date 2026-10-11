@@ -32,8 +32,8 @@ Najwygodniej iść po kolei; każdy krok korzysta z tego, co ustawiłeś wcześn
 2. [Sprzedaż i sezony](#4-sprzedaż-i-sezony) — powiedz systemowi, czym handlujesz i kiedy.
 3. [Reguły sprzedaży](#5-reguły-sprzedaży) — powiedz, jaki pobyt wolno kupić.
 4. [Cennik](#6-cennik) — powiedz, ile to kosztuje.
-5. [Kalendarz](#7-kalendarz) — **sprawdź, co z tego wyszło.** To jedyny krok, w którym niczego nie
-   wypełniasz: pokazuje skutek wszystkiego, co ustawiłeś wyżej.
+5. [Kalendarz](#7-kalendarz) — **sprawdź, co z tego wyszło.** Warstwa „Oferta" pokazuje skutek
+   wszystkiego, co ustawiłeś wyżej; warstwa „Rezerwacje" jest Twoim codziennym ekranem pracy.
 6. [Polityka zwrotu](#8-polityka-zwrotu) — ustal, ile wędkarz odzyska, gdy odwoła pobyt.
 7. [Stanowiska](#9-stanowiska) — wprowadź miejsca, które sprzedajesz.
 8. [Grupy stanowisk](#10-grupy-stanowisk) — pogrupuj stanowiska, jeśli to ułatwi Ci pracę.
@@ -42,6 +42,9 @@ Najwygodniej iść po kolei; każdy krok korzysta z tego, co ustawiłeś wcześn
 11. [Blokady i ograniczenia](#13-blokady-i-ograniczenia) — wracaj tutaj, ilekroć coś wypada z użytku.
 12. [Dokumenty](#14-dokumenty) — wprowadź regulamin i politykę prywatności łowiska.
 13. [Publikacja w portalu](#publikacja-w-portalu) — pokaż łowisko wędkarzom, kiedy uznasz, że jest gotowe.
+
+Od tej chwili codzienna praca to [Rezerwacje](#15-rezerwacje) — przyjmowanie, potwierdzanie i anulowanie
+pobytów — prowadzone głównie z [Kalendarza](#7-kalendarz).
 
 Usługi dodatkowe o zasięgu „wybrane stanowiska" i pozwolenia przypisuje się do konkretnych stanowisk —
 na formularzu stanowiska albo (usługi) działaniem „Przypnij usługę" na liście stanowisk. Dlatego po ich
@@ -62,7 +65,7 @@ Część pól na tym formularzu to **wybór ze słownika prowadzonego przez admi
 łowiska, metody łowienia, udogodnienia, występujące ryby, waluta rozliczenia, kraj i województwo.
 Nie dopisujesz do nich własnych pozycji — zaznaczasz te, które pasują do Twojego obiektu. Jeśli
 któregoś z tych pól w ogóle nie widzisz, znaczy to, że odpowiedni słownik jest jeszcze pusty
-(patrz [Słowniki](#17-słowniki--wspólne-dla-całego-portalu)).
+(patrz [Słowniki](#18-słowniki--wspólne-dla-całego-portalu)).
 
 **Wymagania wobec wędkarza** — czy potrzebna jest karta wędkarska, ile wędek jest w cenie, czy
 obowiązuje zakaz zabierania ryb (no-kill) i czy obowiązuje zakaz ognisk. Po tych polach wędkarz będzie
@@ -118,6 +121,18 @@ rozpoczynająca się dokładnie tyle dni od dziś jeszcze się sprzedaje. Okno p
 wyjątkiem właśnie od horyzontu — pozwala kupić doby dalej, niż on sięga. Jeśli nie ustawisz
 horyzontu, samo okno niczego nie otworzy (doby i tak są kupowalne), a jedynie ograniczy sprzedaż
 swoim wymaganiem długości; system ostrzeże Cię o tym przy zapisie.
+
+**Rezerwacje.** Ostatnia sekcja strony ma trzy ustawienia:
+
+- **Rezerwacje ręczne wymagają potwierdzenia** (domyślnie wyłączone) i **okno potwierdzenia**
+  w godzinach (domyślnie 48, od 1 do 720). Rezerwacja, którą założysz w panelu, czeka wtedy na
+  potwierdzenie i wygasa, jeśli nikt jej nie potwierdzi — najpóźniej w chwili rozpoczęcia pobytu, nigdy
+  w jego trakcie. Wygaśnięcie zwalnia termin. Zmiana ustawienia dotyczy kolejnych rezerwacji, nie już
+  założonych. Więcej w [Rezerwacjach](#15-rezerwacje).
+- **Pokazuj zajęte doby w portalu** — wędkarz widzi w kalendarzu łowiska, które doby są zajęte (bez
+  żadnych danych o tym, kto rezerwował). ⚠️ Włącz to dopiero wtedy, gdy **każda** rezerwacja, także
+  telefoniczna, trafia do systemu — inaczej wędkarz zobaczy jako wolny termin, który już sprzedałeś.
+  Bez tego ustawienia portal pokazuje tylko ceny i blokady.
 
 ## 5. Reguły sprzedaży
 
@@ -216,8 +231,64 @@ cennika, więc wydłużenie sezonu może otworzyć dziurę później.
 
 ## 7. Kalendarz
 
-To jedyny ekran, na którym **niczego nie wypełniasz**. Pokazuje, **co wynika** z tego, co ustawiłeś
-na trzech poprzednich: kiedy da się kupić pobyt, po jakiej cenie, a jeśli się nie da — dlaczego.
+Kalendarz ma dwie warstwy, przełączane nad siatką: **Rezerwacje** (domyślna) — codzienny ekran pracy,
+z którego przyjmujesz pobyty i zakładasz blokady — oraz **Oferta** — podgląd tego, co i za ile da się
+kupić. Kalendarz pamięta, gdzie byłeś: po powrocie z innej zakładki otwiera tę samą warstwę i ten sam
+tydzień.
+
+### Warstwa „Rezerwacje"
+
+Siatka ma **wiersz na stanowisko** i **kolumnę na dzień kalendarzowy**. Okno to **2 tygodnie**
+(domyślnie) albo tydzień, zawsze od poniedziałku; strzałki ‹ › przesuwają je o tydzień, „Dziś" wraca do
+bieżącego tygodnia.
+
+**Jak czytać siatkę.** Każdy dzień ma dwie połowy: rano kończy się doba zaczęta dzień wcześniej,
+po południu zaczyna się doba od tego dnia. Dlatego pasek rezerwacji zaczyna się **w połowie dnia
+przyjazdu** i kończy **w połowie dnia wyjazdu**, z ukośnymi końcami. Dzień, w którym jeden gość
+wyjeżdża, a drugi przyjeżdża, to jedna komórka z dwoma paskami. Pasek pokazuje nazwisko, liczbę osób,
+status i kwotę; rezerwacja niepotwierdzona jest kreskowana i ma zegar z terminem wygaśnięcia
+(„wygasa 14.05 12:00"). Pusta doba pokazuje drobnym drukiem cenę pobytu od tego dnia albo „zacznij …",
+jeśli leży w środku pakietu sprzedawanego w całości.
+
+**Blokady** wyglądają tak samo jak rezerwacje — ukośny pasek od połowy pierwszego dnia do połowy dnia po
+ostatniej zablokowanej dobie — tylko szary, kreskowany, z powodem. Kliknięcie w pasek pokazuje powód
+i okres oraz przyciski „Edytuj blokadę" i „Usuń blokadę…".
+
+**Zaznaczanie pobytu:**
+
+- pierwsze kliknięcie w wolny dzień wskazuje **dzień przyjazdu** — to już pobyt na jedną dobę;
+- kliknięcie w późniejszy dzień wskazuje **dzień wyjazdu**;
+- kliknięcie w zaznaczony dzień wyjazdu **przedłuża pobyt o dobę** (każde kolejne — o następną);
+- kliknięcie we wcześniejszy dzień przesuwa przyjazd, kliknięcie w dzień przyjazdu zamyka zaznaczenie;
+- zaznaczenie nigdy nie przechodzi przez zajętą dobę — zatrzymuje się przed nią. Dzień, którego
+  popołudnie jest zajęte, może być tylko dniem wyjazdu.
+
+Nad zaznaczeniem otwiera się okienko z dwiema akcjami: **Zarezerwuj…** i **Zablokuj…**. Zamyka je
+ponowne kliknięcie, Esc, ✕ albo kliknięcie poza kalendarzem.
+
+**Zarezerwuj…** otwiera krótki formularz „Rezerwacja stanowiska: …": dane wędkarza, liczba dób (nie
+więcej, niż jest wolnych — najwyżej 30), skład i cena. Obok liczby dób widzisz przyjazd i wyjazd
+z godzinami. **„Zapisz i otwórz pełny formularz →"** zapisuje rezerwację i przechodzi do jej pełnej
+edycji, gdzie dodasz usługi, cenę uzgodnioną i resztę szczegółów.
+
+**Zablokuj…** zakłada blokadę sprzedaży zaznaczonego stanowiska na zaznaczone doby. Jeśli na tych dobach
+jest rezerwacja, trafisz na ekran decyzji (patrz [Blokady i ograniczenia](#13-blokady-i-ograniczenia)).
+
+Kliknięcie w pasek rezerwacji otwiera okienko z jej akcjami: szybka i pełna edycja, potwierdzenie,
+płatność, anulacja (patrz [Rezerwacje](#15-rezerwacje)).
+
+**Liczniki nad siatką** — przyjazdy dziś, wyjazdy dziś, niepotwierdzone (w tym wygasające w ciągu
+24 godzin), do kontaktu — działają jak filtry: kliknięcie przygasza pozostałe paski (nie chowa ich, żeby
+zajęta doba nie wyglądała na wolną), drugie kliknięcie zdejmuje filtr.
+
+**Na telefonie** zamiast siatki widzisz pasek dni i listę wybranego dnia: przyjazdy, wyjazdy, kto jest
+na łowisku i wolne stanowiska („wolne do 18.05 · maks. 4 doby"). Wolne stanowisko otwiera od dołu
+arkusz: najpierw liczba dób i cena, potem dane wędkarza i zapis.
+
+### Warstwa „Oferta"
+
+Tu **niczego nie wypełniasz**. Warstwa pokazuje, **co wynika** z ustawień sprzedaży, reguł i cennika:
+kiedy da się kupić pobyt, po jakiej cenie, a jeśli się nie da — dlaczego.
 
 Siatka ma **wiersz na stanowisko** i **kolumnę na dobę**. Nad nią wybierasz sezon, okno (miesiąc
 albo tydzień) oraz **skład, dla którego liczymy**: ilu łowiących, ile osób towarzyszących i jak
@@ -287,7 +358,7 @@ dodatkowych. Jeśli tę samą cechę chcesz ustawić wielu miejscom naraz, zazna
 działania **Ustaw cechę** — przed zapisem zobaczysz, ilu stanowisk dotyczy.
 
 Sekcja z cechami pojawia się dopiero wtedy, gdy administrator dopisał do słownika choć jedną cechę
-(patrz [Cechy stanowisk](#18-cechy-stanowisk)).
+(patrz [Cechy stanowisk](#19-cechy-stanowisk)).
 
 ## 10. Grupy stanowisk
 
@@ -361,8 +432,11 @@ Tutaj wyłączasz coś na określony czas: zawody, zarybianie, remont, decyzja u
 skutki — albo **blokuje sprzedaż** wskazanych stanowisk, albo **zawiesza jedną cechę** (na przykład
 wjazd samochodem), nie zmieniając jej na stałe. Po upływie terminu wszystko wraca samo.
 
-Wybierasz daty (data końcowa może zostać pusta, czyli „do odwołania"), wpisujesz powód i decydujesz,
-czy wędkarz go zobaczy. Zbiór stanowisk wskazujesz dowolnie — całe łowisko, grupa, stanowiska z daną
+Wybierasz daty, wpisujesz powód i decydujesz, czy wędkarz go zobaczy. ⚠️ Daty to **pierwsza
+i ostatnia doba** blokady — tak jak w rezerwacji, a nie dni od północy do północy. Blokada „od 20.05 do
+21.05" przy dobie 15:00–15:00 trwa od 20.05 15:00 do 22.05 15:00; pod polami widzisz ten wyliczony okres.
+Dzięki temu gość, który wyjeżdża 20.05 o 15:00, nie koliduje z blokadą od 20.05. Data końcowa może zostać
+pusta, czyli „do odwołania". Zbiór stanowisk wskazujesz dowolnie — całe łowisko, grupa, stanowiska z daną
 cechą albo ręczne zaznaczenie — a po przeliczeniu listy możesz ją jeszcze poprawić. Zapisana lista już
 się nie zmienia: stanowisko założone później nie wejdzie do istniejącego wpisu, o czym system ostrzeże
 przy jego zakładaniu.
@@ -370,6 +444,20 @@ przy jego zakładaniu.
 Skutek „zawieszenie cechy" i kryterium „stanowiska z cechą" widać tylko wtedy, gdy w słowniku jest
 choć jedna cecha typu **tak/nie** — tylko taka da się zawiesić. Przy pustym słowniku obie opcje są
 ukryte, bo nie miałyby czego dotyczyć.
+
+**Blokada na termin z rezerwacjami.** Jeśli blokada (albo wycofanie stanowiska ze sprzedaży) obejmuje
+rezerwacje, które jeszcze się nie zaczęły, zmiana **nie zapisuje się od razu**. Trafiasz na ekran decyzji
+z listą tych rezerwacji i przy każdej wybierasz: **anuluj** (wędkarz dostaje pełny zwrot i maila z Twoim
+komunikatem — wspólnym albo osobnym dla każdego) albo **zostaw** (rezerwacja zostaje i jest widoczna
+w kalendarzu na zablokowanej dobie). Blokada i wszystkie decyzje zapisują się razem. Pobyty, które już
+trwają, nie trafiają na listę i blokada ich nie rusza. Przy zawieszeniu cechy ekran tylko informuje,
+których rezerwacji to dotyczy. Stanowiska z przyszłymi rezerwacjami nie da się usunąć — najpierw je
+wycofaj (przejdziesz przez ekran decyzji) albo anuluj rezerwacje.
+
+**Jak blokadę widać.** W kalendarzu panelu blokada jest szarym, kreskowanym paskiem z powodem, w tym
+samym ukośnym kształcie co rezerwacja. W portalu wędkarz widzi ją zawsze tym samym kształtem — jako
+kreskowany pasek z powodem, jeśli zdecydowałeś, że powód ma być widoczny, a inaczej z napisem
+„niedostępne".
 
 ## 14. Dokumenty
 
@@ -398,11 +486,71 @@ dwa przełączniki: **„wymagany przy zakupie"** i **„wymagany przy rejestrac
 i skopiować go do swojej wersji (Ctrl+C, Ctrl+V). Szablon regulaminu jest roboczy i czeka na
 weryfikację prawną; szablonu polityki prywatności jeszcze nie ma.
 
+## 15. Rezerwacje
+
+Rezerwację zakładasz najczęściej z [Kalendarza](#7-kalendarz) (zaznaczenie → **Zarezerwuj…**) albo
+przyciskiem **Nowa rezerwacja**, który otwiera pełny formularz. Zakładka **Rezerwacje** w menu łowiska
+stoi zaraz za „Kalendarzem" i zbiera wszystkie pobyty w trzech zakładkach: **Bieżące i nadchodzące**
+(domyślna), **Do kontaktu** i **Wszystkie**. Plakietka przy pozycji menu liczy rezerwacje, którym
+termin potwierdzenia mija w ciągu 24 godzin, oraz te do kontaktu.
+
+**Pełny formularz** zbiera stanowisko, termin, skład (łowiący i osoby towarzyszące), dane wędkarza,
+usługi dodatkowe i notatkę. Na bieżąco pokazuje cenę z rozbiciem — tę samą, którą zapłaciłby wędkarz
+w portalu.
+
+- **Wyjątek od reguł.** Gdy termin łamie regułę sprzedaży, leży na blokadzie albo stanowisko jest
+  wycofane, formularz pokaże, co jest naruszone, i poprosi o **powód** — z nim rezerwacja przejdzie.
+  Powód zapisuje się razem z Twoim nazwiskiem i godziną. Zajętego terminu nie da się zarezerwować
+  w żaden sposób.
+- **Cena uzgodniona** zastępuje cenę z cennika, na przykład gdy cennik nie ma stawki na tę dobę.
+- **Usługa niedostępna** na tym stanowisku albo w tym terminie jest oznaczona ostrzeżeniem; możesz ją
+  dodać jako wyjątek z powodem. Gdy brakuje wolnych egzemplarzy (np. wszystkie łódki zajęte), zapis
+  się nie uda.
+- **Warunki są zamrożone.** Rezerwacja pamięta cenę, politykę zwrotu, wersje dokumentów i dane
+  kontaktowe z chwili zapisu. Późniejsza zmiana cennika czy regulaminu jej nie zmienia.
+
+**Szczegóły rezerwacji** pokazują zamrożone warunki i historię zmian. Edytujesz ją na dwa sposoby:
+**Szybka edycja** (okienko z krótkim formularzem) albo **Pełna edycja** (strona z pełnym formularzem).
+Zmiana samego kontaktu czy notatki niczego innego nie rusza; zmiana terminu, stanowiska, składu, usług
+albo ceny wymaga podania powodu i przelicza cenę.
+
+**Potwierdzenie.** Jeśli łowisko wymaga potwierdzania (patrz [Sprzedaż i sezony](#4-sprzedaż-i-sezony)),
+nowa rezerwacja jest **niepotwierdzona** do czasu, aż:
+
+- wędkarz kliknie **„Potwierdź i połącz"** w mailu, który dostaje po zapisie rezerwacji z adresem
+  e-mail;
+- Ty klikniesz **Potwierdź** (na przykład po rozmowie telefonicznej);
+- oznaczysz ją jako opłaconą — **opłacona rezerwacja jest zawsze potwierdzona**, tak samo będzie przy
+  płatności wędkarza online.
+
+Niepotwierdzona rezerwacja wygasa po upływie okna, najpóźniej w chwili rozpoczęcia pobytu, a wędkarz
+z adresem e-mail dostaje o tym maila.
+
+**Wędkarz i jego konto.** Po zapisie rezerwacji z adresem e-mail zawsze widzisz ten sam komunikat
+o wysłaniu prośby o potwierdzenie — panel nie zdradza, czy ten adres ma konto w portalu. Kliknięcie
+„Potwierdź i połącz" zakłada wędkarzowi konto (albo dowiązuje istniejące) i potwierdza jego oczekujące
+rezerwacje w Twoim łowisku. Od tej chwili widzisz dane z jego konta. W tym samym mailu wędkarz może
+**zrezygnować** (anuluje rezerwację ze zwrotem według polityki zwrotu) albo kliknąć **„To nie ja"** —
+rezerwacja zostaje, ale trafia do kontaktu, żebyś sprawdził adres. Ty nigdy nie zmieniasz danych konta
+wędkarza; zmieniasz tylko dane, które podałeś łowisku.
+
+**Płatność** ustawiasz akcją **Oznacz jako opłaconą** albo zmianą statusu płatności — także dla wielu
+rezerwacji naraz z listy.
+
+**Anulacja.** Przy anulacji wybierasz zwrot według polityki zwrotu albo inny, z powodem. Anulacja
+pobytu, który już trwa, wymaga dodatkowego potwierdzenia, a akcja zbiorcza takie pobyty pomija.
+Anulacja i wygaśnięcie zwalniają termin, a rezerwacja zostaje w historii. Wędkarz z adresem dostaje
+maila.
+
+**Do kontaktu.** Rezerwacja trafia tu, gdy system nie mógł się z wędkarzem skontaktować za Ciebie: nie
+wyszedł mail (brak adresu, błąd wysyłki, limit próśb o potwierdzenie) albo wędkarz kliknął „To nie
+ja". Zadzwoń i kliknij **Oznacz jako załatwione**.
+
 ---
 
 # Część II — Admin (panel administratora)
 
-## 15. Do czego służy panel administratora
+## 16. Do czego służy panel administratora
 
 Panel administratora jest narzędziem **prowadzących portal**, nie operatorów łowisk. Odpowiada za
 trzy rzeczy:
@@ -414,7 +562,7 @@ trzy rzeczy:
 Właściciel łowiska nie ma tu wstępu i nie edytuje niczego z tej listy. Odwrotnie też: administrator
 nie ustawia za niego cen, sezonów ani stanowisk — to należy do panelu właściciela.
 
-## 16. Firmy i łowiska
+## 17. Firmy i łowiska
 
 **Firmy** to podmioty gospodarcze prowadzące łowiska. Dane adresowe da się pobrać automatycznie
 z rejestru GUS po numerze NIP albo REGON, zamiast przepisywać je ręcznie. Numer rachunku bankowego
@@ -432,7 +580,7 @@ wydrukować na banerze — przekierowania ze starego adresu nie ma. Ten sam zapi
 **województw**: segment adresu (np. „wielkopolskie") powstaje z polskiej nazwy i nie zmienia się
 razem z nią.
 
-## 17. Słowniki — wspólne dla całego portalu
+## 18. Słowniki — wspólne dla całego portalu
 
 Grupa **Słowniki** w menu zbiera listy, z których korzystają formularze właścicieli. Zasada jest
 jedna i ważna: **słownik jest wspólny dla całego portalu, a właściciel tylko z niego wybiera**.
@@ -461,7 +609,7 @@ w podglądzie. Typ porządkuje listę i podpowiada, ale nie ogranicza wyboru. We
 **kopię** treści, więc zmiana albo usunięcie szablonu nie rusza dokumentów łowisk. Roboczy szablon
 regulaminu jest oznaczony jako wymagający weryfikacji prawnej.
 
-## 18. Cechy stanowisk
+## 19. Cechy stanowisk
 
 Najmłodsza i najbogatsza pozycja słownikowa. Cecha opisuje **pojedyncze stanowisko**, a nie cały
 obiekt: pomost, zadaszenie, wjazd samochodem, odległość do parkingu, rodzaj dna.
@@ -486,7 +634,7 @@ Dodatkowo:
 - Tylko cecha typu **tak/nie** da się zawiesić wpisem w „Blokadach i ograniczeniach". Zawieszenie
   liczby albo wyboru z listy byłoby nadpisaniem wartości, czyli czymś innym niż czasowe wyłączenie.
 
-## 19. Udogodnienia a cechy stanowisk — gdzie przebiega granica
+## 20. Udogodnienia a cechy stanowisk — gdzie przebiega granica
 
 Oba słowniki opisują „co tu jest", więc łatwo je pomylić. Różni je **przedmiot opisu**:
 
@@ -512,7 +660,7 @@ Gdyby kiedyś przyszła decyzja o połączeniu obu słowników w jeden, kierunek
 udogodnienia stają się cechami na poziomie łowiska, nie odwrotnie. Jest to jednak osobna decyzja
 wymagająca migracji danych, a nie porządek do zrobienia przy okazji.
 
-## 20. Dostępy: użytkownicy i role
+## 21. Dostępy: użytkownicy i role
 
 Grupa **Dostępy** zbiera konta i uprawnienia.
 

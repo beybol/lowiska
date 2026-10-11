@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Enums\CalendarWindow;
 use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\FisheryResource\Pages\ManageCalendar;
+use App\Filament\Resources\ReservationResource;
+use App\Filament\Resources\ReservationResource\Pages\CreateReservation;
 use App\Models\AvailabilityBlock;
 use App\Models\Position;
 use App\Models\Reservation;
@@ -33,7 +35,7 @@ afterEach(function () {
     Date::setTestNow();
 });
 
-test('the reservations layer is the default and starts this week in a two-week window', function () {
+test('the reservations layer is the default and starts this week in a one-week window', function () {
     [$fishery, , $owner] = ReservationFixtures::bookableFishery();
     $this->actingAs($owner);
 
@@ -72,12 +74,15 @@ test('bars are clipped to the window and mark a stay that started earlier', func
     $grid = (new ReservationCalendar($fishery->fresh()))->grid(CarbonImmutable::parse('2026-05-11'), 14);
     $bars = collect($grid->rows[0]->bars)->keyBy(fn ($bar) => $bar->reservation->id);
 
+    // Model połówek: pasek sięga dnia wyjazdu (jego pierwszej połowy).
     expect($bars[$before->id]->column)->toBe(0)
-        ->and($bars[$before->id]->span)->toBe(2) // 11 i 12.05
+        ->and($bars[$before->id]->span)->toBe(3) // 11, 12 i rano 13.05
         ->and($bars[$before->id]->startsBefore)->toBeTrue()
+        ->and($bars[$before->id]->endsAfter)->toBeFalse()
         ->and($bars[$inside->id]->column)->toBe(3)
-        ->and($bars[$inside->id]->span)->toBe(2)
+        ->and($bars[$inside->id]->span)->toBe(3) // od popołudnia 14.05 do rana 16.05
         ->and($bars[$inside->id]->startsBefore)->toBeFalse()
+        ->and($bars[$inside->id]->coversNight(5))->toBeFalse() // 16.05 to dzień wyjazdu, nie doba pobytu
         ->and($bars[$after->id]->column)->toBe(12)
         ->and($bars[$after->id]->span)->toBe(2)
         ->and($bars[$after->id]->endsAfter)->toBeTrue()
@@ -95,29 +100,67 @@ test('blocked nights are marked and past nights are not selectable', function ()
     expect($cells['2026-05-12']->past)->toBeTrue()
         ->and($cells['2026-05-12']->isSelectable())->toBeFalse()
         ->and($cells['2026-05-13']->isSelectable())->toBeTrue()
-        // Doba 17.05 kończy się 18.05 15:00, więc przecina okno blokady od północy 18.05.
-        ->and($cells['2026-05-17']->blocked)->toBeTrue()
+        // Blokada zajmuje całe dni kalendarzowe: komórka 18.05, nie 17.05 (choć doba od 17.05 ją przecina
+        // i jej sprzedaż odmawia — to rozstrzyga PositionAvailability, nie wygląd komórki).
+        ->and($cells['2026-05-17']->blocked)->toBeFalse()
         ->and($cells['2026-05-18']->blocked)->toBeTrue()
         ->and($cells['2026-05-19']->blocked)->toBeFalse();
 });
 
-test('a second click extends the selection but never across an occupied night', function () {
+test('the second click picks the departure day and never runs across an occupied night', function () {
     [$fishery, $position, $owner] = ReservationFixtures::bookableFishery();
-    ReservationFixtures::book($position, '2026-05-17', 1);
+    ReservationFixtures::book($position, '2026-05-17', 1); // 17.05 15:00 → 18.05 12:00
     $this->actingAs($owner);
 
     Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->set('window', 'two_weeks')
         ->call('selectCell', $position->id, '2026-05-12') // przeszłość — nic
+        ->assertSet('selStart', null)
+        ->call('selectCell', $position->id, '2026-05-17') // doba od 17.05 zajęta — nie może być przyjazdem
         ->assertSet('selStart', null)
         ->call('selectCell', $position->id, '2026-05-14')
         ->assertSet('selStart', '2026-05-14')
-        ->call('selectCell', $position->id, '2026-05-20') // przez zajęte 17.05 → stop na 16.05
+        ->assertSet('selEnd', '2026-05-14') // jedna doba, wyjazd 15.05
+        ->call('selectCell', $position->id, '2026-05-16') // wyjazd 16.05 → doby 14 i 15
+        ->assertSet('selEnd', '2026-05-15')
+        ->call('selectCell', $position->id, '2026-05-20') // przez zajętą dobę 17.05 → wyjazd 17.05
         ->assertSet('selEnd', '2026-05-16')
         ->assertSeeHtml('data-selection-popover')
-        ->call('selectCell', $position->id, '2026-05-17') // zajęte — nic
+        ->assertSeeHtml('data-selection-overlay')
+        ->call('selectCell', $position->id, '2026-05-17') // klik w dzień wyjazdu przedłużyłby, ale doba 17.05 zajęta
         ->assertSet('selEnd', '2026-05-16')
-        ->call('clearSelection')
-        ->assertSet('selStart', null);
+        ->call('selectCell', $position->id, '2026-05-14') // klik w dzień przyjazdu zamyka
+        ->assertSet('selStart', null)
+        // Klik w dzień tuż po przyjeździe działa jak klik w następny: pobyt na dwie doby (wyjazd 16.05).
+        ->call('selectCell', $position->id, '2026-05-14')
+        ->call('selectCell', $position->id, '2026-05-15')
+        ->assertSet('selStart', '2026-05-14')
+        ->assertSet('selEnd', '2026-05-15')
+        ->assertSeeHtml('data-selection-popover')
+        ->call('selectCell', $position->id, '2026-05-16') // klik w bieżący dzień wyjazdu przedłuża o dobę
+        ->assertSet('selEnd', '2026-05-16')
+        ->call('selectCell', $position->id, '2026-05-15') // klik wewnątrz pobytu skraca (wyjazd 15.05)
+        ->assertSet('selEnd', '2026-05-14')
+        ->call('selectCell', $position->id, '2026-05-14') // zamyka
+        // …ale nie przez zajętą dobę: przyjazd 16.05, klik 17.05 — doba od 17.05 zajęta, zostaje jedna doba.
+        ->call('selectCell', $position->id, '2026-05-16')
+        ->call('selectCell', $position->id, '2026-05-17')
+        ->assertSet('selStart', '2026-05-16')
+        ->assertSet('selEnd', '2026-05-16');
+
+    // Dzień wyjazdu rezerwacji (18.05, rano zajęty) jest dniem przyjazdu następnej.
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->call('selectCell', $position->id, '2026-05-18')
+        ->assertSet('selStart', '2026-05-18');
+
+    $grid = (new ReservationCalendar($fishery->fresh()))->grid(CarbonImmutable::parse('2026-05-11'), 14);
+    $cells = collect($grid->rows[0]->cells)->keyBy(fn ($cell) => $cell->day->toDateString());
+
+    expect($cells['2026-05-17']->occupied)->toBeTrue()
+        ->and($cells['2026-05-17']->morningOccupied)->toBeFalse()
+        ->and($cells['2026-05-18']->morningOccupied)->toBeTrue()
+        ->and($cells['2026-05-18']->occupied)->toBeFalse()
+        ->and($cells['2026-05-18']->isSelectable())->toBeTrue();
 });
 
 test('quick booking from the popover saves through the booking service', function () {
@@ -126,7 +169,8 @@ test('quick booking from the popover saves through the booking service', functio
 
     Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
         ->call('selectCell', $position->id, '2026-05-14')
-        ->call('selectCell', $position->id, '2026-05-15')
+        ->call('selectCell', $position->id, '2026-05-16') // wyjazd 16.05 = 2 doby
+        ->assertSet('selEnd', '2026-05-15')
         ->callAction(
             TestAction::make('quickBook')->arguments(['position' => $position->id, 'date' => '2026-05-14', 'nights' => 2]),
             data: ['angler_name' => 'Telefoniczny Klient', 'angler_phone' => '+48600', 'nights' => 2, 'anglers' => 1, 'companions' => 0],
@@ -155,7 +199,7 @@ test('quick booking can not exceed the free nights', function () {
     expect(Reservation::query()->count())->toBe(1);
 });
 
-test('the quick block saves a sale block for the selected nights and refuses over a reservation', function () {
+test('the quick block saves a sale block for the selected nights and sends a collision to the decision screen', function () {
     [$fishery, $position, $owner] = ReservationFixtures::bookableFishery();
     ReservationFixtures::book($position, '2026-05-20', 1);
     $this->actingAs($owner);
@@ -166,12 +210,21 @@ test('the quick block saves a sale block for the selected nights and refuses ove
 
     expect(AvailabilityBlock::query()->sole()->positions()->pluck('positions.id')->all())->toBe([$position->id]);
 
-    // 21.05 przecina dobę 20.05 (do 21.05 15:00) — skrót odmawia i odsyła do ekranu blokad.
+    // Blokada od 21.05 zaczyna się 21.05 o 15:00 — rezerwacja kończąca się tego dnia z nią nie koliduje
+    // (przełom dnia jak w rezerwacji, `dostepnosc.md` §3).
     Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
-        ->callAction(TestAction::make('quickBlock')->arguments(['position' => $position->id, 'from' => '2026-05-21', 'to' => '2026-05-21']), data: ['reason' => 'X'])
-        ->assertNotified();
+        ->callAction(TestAction::make('quickBlock')->arguments(['position' => $position->id, 'from' => '2026-05-21', 'to' => '2026-05-22']), data: ['reason' => 'Po wyjeździe'])
+        ->assertHasNoActionErrors()
+        ->assertNoRedirect();
 
-    expect(AvailabilityBlock::query()->count())->toBe(1);
+    expect(AvailabilityBlock::query()->count())->toBe(2);
+
+    // 20.05 to doba rezerwacji — skrót przechodzi na ekran decyzji E (047, A9).
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->callAction(TestAction::make('quickBlock')->arguments(['position' => $position->id, 'from' => '2026-05-19', 'to' => '2026-05-20']), data: ['reason' => 'X'])
+        ->assertRedirectContains('/collisions/');
+
+    expect(AvailabilityBlock::query()->count())->toBe(2);
 });
 
 test('reservation actions work from the calendar without leaving it, also cancelling an ongoing stay', function () {
@@ -247,7 +300,82 @@ test('the layer switch is in the address and both panels open the page', functio
     $this->get(FisheryResource::getUrl('calendar', ['record' => $fishery], panel: 'owner').'?layer=offer')
         ->assertOk()
         ->assertSee(__('Season'));
+    // Bez parametru wraca ostatnio oglądana warstwa (pamięć w sesji); parametr ją przełącza.
     $this->get(FisheryResource::getUrl('calendar', ['record' => $fishery], panel: 'owner'))
         ->assertOk()
+        ->assertSee(__('Season'));
+    $this->get(FisheryResource::getUrl('calendar', ['record' => $fishery], panel: 'owner').'?layer=reservations')
+        ->assertOk()
         ->assertSee(__('Arrivals today'));
+});
+
+test('the calendar comes back to the last window and week after visiting another tab', function () {
+    [$fishery, , $owner] = ReservationFixtures::bookableFishery();
+    $this->actingAs($owner);
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->set('window', 'week')
+        ->call('nextWindow')
+        ->call('nextWindow')
+        ->assertSet('windowStart', '2026-05-25');
+
+    // Powrót bez parametrów w adresie — to samo okno i ten sam (przyszły) zakres.
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->assertSet('layer', 'reservations')
+        ->assertSet('window', 'week')
+        ->assertSet('windowStart', '2026-05-25')
+        ->assertSet('phoneDay', '2026-05-25');
+
+    // Stan z sesji to dane od klienta: śmieci wracają do domyślnych.
+    session()->put('calendar.'.$fishery->getKey(), ['layer' => 'reservations', 'reservations' => ['window' => 'year', 'windowStart' => 'x']]);
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->assertSet('window', 'two_weeks')
+        ->assertSet('windowStart', '2026-05-11');
+});
+
+test('the two-week window moves by one week', function () {
+    [$fishery, , $owner] = ReservationFixtures::bookableFishery();
+    $this->actingAs($owner);
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->assertSet('window', 'two_weeks')
+        ->call('nextWindow')
+        ->assertSet('windowStart', '2026-05-18')
+        ->call('previousWindow')
+        ->call('previousWindow')
+        ->assertSet('windowStart', '2026-05-04');
+
+    expect(CalendarWindow::TwoWeeks->endFor(CarbonImmutable::parse('2026-05-18'))->toDateString())->toBe('2026-05-31');
+});
+
+test('the quick form shows the stay period and "save and open full form" saves and opens the full edit', function () {
+    [$fishery, $position, $owner] = ReservationFixtures::bookableFishery();
+    $this->actingAs($owner);
+
+    // Ta sama informacja obok liczby dób stoi w pełnym formularzu (modal krótkiego nie renderuje się w teście).
+    Livewire::withQueryParams(['fishery' => $fishery->id, 'position' => $position->id, 'from' => '2026-05-14', 'nights' => 2])
+        ->test(CreateReservation::class)
+        ->assertSeeHtml('data-stay-period')
+        ->assertSee('14.05.2026 15:00')
+        ->assertSee('16.05.2026 15:00');
+
+    // Stanowisko stoi w nagłówku okna, nie gołą nazwą pod nim.
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->mountAction(TestAction::make('quickBook')->arguments(['position' => $position->id, 'date' => '2026-05-14', 'nights' => 2]))
+        ->assertActionMounted('quickBook')
+        ->assertMountedActionModalSee(__('Position reservation: :position', ['position' => $position->name]));
+
+    $component = Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->callAction(
+            TestAction::make('quickBook')->arguments(['position' => $position->id, 'date' => '2026-05-14', 'nights' => 2, 'full' => true]),
+            data: ['angler_name' => 'Do pełnego', 'angler_phone' => '+48600', 'nights' => 2, 'anglers' => 2, 'companions' => 1],
+        )
+        ->assertHasNoActionErrors();
+
+    $reservation = Reservation::query()->sole();
+    $component->assertRedirect(ReservationResource::getUrl('edit', ['record' => $reservation]));
+
+    expect($reservation->terms->anglers)->toBe(2)
+        ->and($reservation->terms->companions)->toBe(1);
 });

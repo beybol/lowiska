@@ -18,15 +18,20 @@ use Carbon\CarbonImmutable;
  */
 final class ReservationConfirmation
 {
-    public static function deadlineFor(Fishery $fishery, ?CarbonImmutable $now = null): ?CarbonImmutable
+    /**
+     * Termin nie przekracza początku pobytu (047, E1; ADR-024 aktualizacja 11.10): niepotwierdzona
+     * rezerwacja wygasa najpóźniej w chwili rozpoczęcia — pobyt w toku nigdy nie wygasa.
+     */
+    public static function deadlineFor(Fishery $fishery, ?CarbonImmutable $now = null, ?CarbonImmutable $stayStartsAt = null): ?CarbonImmutable
     {
         if (! $fishery->manual_reservation_confirmation_required) {
             return null;
         }
 
         $hours = (int) ($fishery->manual_reservation_hold_hours ?: Fishery::DEFAULT_HOLD_HOURS);
+        $deadline = CarbonImmutable::instance($now ?? now())->addHours(max(1, min(Fishery::MAX_HOLD_HOURS, $hours)));
 
-        return CarbonImmutable::instance($now ?? now())->addHours(max(1, min(Fishery::MAX_HOLD_HOURS, $hours)));
+        return $stayStartsAt !== null && $stayStartsAt < $deadline ? $stayStartsAt : $deadline;
     }
 
     public static function afterBooking(Reservation $reservation): void

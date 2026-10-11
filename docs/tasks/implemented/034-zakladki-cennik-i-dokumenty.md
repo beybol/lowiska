@@ -1,6 +1,6 @@
 # 034 — Strona łowiska: zakładki „Cennik" i „Dokumenty"
 
-> **Etap 2, zadanie 3** ([roadmapa](../project/ROADMAPA.md)). Założone 30.09.2026 przy planowaniu
+> **Etap 2, zadanie 3** ([roadmapa](../../project/ROADMAPA.md)). Założone 30.09.2026 przy planowaniu
 > implementacji (uzupełnienie makiet v3, które tych zakładek nie rysują). Wymaga 032.
 
 ## Opis problemu
@@ -132,5 +132,5 @@ jako jeden regulamin. To za mało:
 
 ## Powiązane ADR-y
 
-- [ADR-017 — dokumenty i wersje dokumentów](../adr/ADR-017-dokumenty-i-wersje-dokumentow.md) (bez nowej decyzji; aktualizacja informacyjna)
-- [ADR-014](../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md), [ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md)
+- [ADR-017 — dokumenty i wersje dokumentów](../../adr/ADR-017-dokumenty-i-wersje-dokumentow.md) (bez nowej decyzji; aktualizacja informacyjna)
+- [ADR-014](../../adr/ADR-014-cennik-jako-lista-regul-z-warunkami.md), [ADR-015](../../adr/ADR-015-warstwa-oferty-pobytu.md)

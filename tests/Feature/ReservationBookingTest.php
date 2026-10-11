@@ -267,6 +267,35 @@ test('capacity is validated on the write path', function () {
         ->toBeTrue();
 });
 
+test('marking a pending reservation as paid confirms it', function () {
+    [, $position] = ReservationFixtures::bookableFishery();
+    $pending = ReservationFixtures::book($position, '2026-05-13', 1, ['confirmBy' => CarbonImmutable::now()->addDays(2)]);
+    $confirmed = ReservationFixtures::book($position, '2026-05-20');
+    $confirmedAt = $confirmed->confirmed_at;
+
+    expect($pending->status)->toBe(ReservationStatus::Pending);
+
+    // Inny status płatności niż „opłacona" nie potwierdza.
+    (new ReservationBooking)->setPaymentStatus($pending, PaymentStatus::Unpaid);
+    expect($pending->fresh()->status)->toBe(ReservationStatus::Pending);
+
+    expect((new ReservationBooking)->setPaymentStatus($pending, PaymentStatus::Paid)->succeeded)->toBeTrue();
+
+    $fresh = $pending->fresh();
+
+    expect($fresh->status)->toBe(ReservationStatus::Confirmed)
+        ->and($fresh->payment_status)->toBe(PaymentStatus::Paid)
+        ->and($fresh->confirmation_source)->toBe(ConfirmationSource::Payment)
+        ->and($fresh->confirmed_at)->not->toBeNull()
+        ->and($fresh->confirm_by)->toBeNull();
+
+    // Już potwierdzona zachowuje swoje źródło i chwilę potwierdzenia.
+    (new ReservationBooking)->setPaymentStatus($confirmed, PaymentStatus::Paid);
+
+    expect($confirmed->fresh()->confirmation_source)->toBe(ConfirmationSource::Operator)
+        ->and($confirmed->fresh()->confirmed_at?->equalTo($confirmedAt))->toBeTrue();
+});
+
 test('cancellation frees the slots and keeps the reservation and terms', function () {
     [, $position, $owner] = ReservationFixtures::bookableFishery();
     $reservation = ReservationFixtures::book($position, '2026-05-13', 2);

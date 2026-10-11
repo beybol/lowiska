@@ -24,6 +24,12 @@ enum BookingProblem: string
     /** Cena uzgodniona bez powodu — albo w kanale, który jej nie dopuszcza. */
     case AgreedPriceReasonRequired = 'agreed_price_reason_required';
 
+    /** Usługa niedostępna (nieoferowana, brak cechy) bez powodu wyjątku — albo w kanale bez wyjątków (047). */
+    case ServiceExceptionReasonRequired = 'service_exception_reason_required';
+
+    /** Adres e-mail ma już inna relacja wędkarza w tym łowisku (`unique(fishery_id, given_email_normalized)`). */
+    case EmailTaken = 'email_taken';
+
     /** Rezerwacja nie jest aktywna, więc nie da się jej zmienić. */
     case NotActive = 'not_active';
 
@@ -35,6 +41,8 @@ enum BookingProblem: string
             self::ServiceLimitExceeded => __('Not enough units of this service are left on those nights'),
             self::ExceptionReasonRequired => __('Give a reason to book against the sale rules'),
             self::AgreedPriceReasonRequired => __('Give a reason for the agreed price'),
+            self::ServiceExceptionReasonRequired => __('Give a reason to add a service that is not available'),
+            self::EmailTaken => __('Another angler of this fishery already uses this email address'),
             self::NotActive => __('The reservation is no longer active'),
         };
     }

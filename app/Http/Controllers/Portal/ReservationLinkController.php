@@ -51,7 +51,10 @@ class ReservationLinkController extends Controller
         }
 
         $choice = $request->validate(['phone' => ['nullable', 'in:profile,save,fishery']])['phone'] ?? 'profile';
-        $this->linking->confirm($angler, $choice);
+
+        if ($this->linking->confirm($angler, $choice, $token) === null) {
+            return $this->invalid(false);
+        }
 
         return response()->view('portal.reservation.done', [
             'heading' => __('Reservation confirmed'),
@@ -102,7 +105,8 @@ class ReservationLinkController extends Controller
 
         return response()->view('portal.reservation.done', [
             'heading' => __('Reservation cancelled'),
-            'message' => __('Your reservation has been cancelled and the fishery has been informed.'),
+            // Prawda o skutku (047, H2): operator widzi anulację przez wędkarza na liście i w kalendarzu.
+            'message' => __('Your reservation has been cancelled. The fishery sees the cancellation in its reservation list.'),
             'fishery' => $reservation->fishery,
         ]);
     }

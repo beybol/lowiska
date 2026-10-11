@@ -1,6 +1,6 @@
 # 036 — Galeria zdjęć łowiska i warianty rozmiarów
 
-> **Etap 2, zadanie 5 — ostatnie w ścieżce** ([roadmapa](../project/ROADMAPA.md)). Założone 30.09.2026.
+> **Etap 2, zadanie 5 — ostatnie w ścieżce** ([roadmapa](../../project/ROADMAPA.md)). Założone 30.09.2026.
 > Do tego czasu strona łowiska (032) i karty strony głównej (031) pokazują zaślepki z makiet.
 
 ## Opis problemu
@@ -12,7 +12,7 @@ strony głównej i na telefonie. Ten sam problem ma mapa łowiska (`map_image_pa
 
 ## Wymagania
 
-### Warianty zdjęć — wg [ADR-023](../adr/ADR-023-warianty-rozmiarow-zdjec.md)
+### Warianty zdjęć — wg [ADR-023](../../adr/ADR-023-warianty-rozmiarow-zdjec.md)
 - Mechanizm rozmiarów dla zdjęć galerii i mapy łowiska zgodnie z Decyzją ADR-023, z wymaganiami
   wiążącymi każdą opcję: jedna usługa adresów zdjęć; brakujący wariant generowany przy wyświetleniu,
   synchronicznie pod blokadą; bez powiększania (żądanie większego rozmiaru zwraca największy dostępny);
@@ -101,5 +101,5 @@ strony głównej i na telefonie. Ten sam problem ma mapa łowiska (`map_image_pa
 
 ## Powiązane ADR-y
 
-- [ADR-023 — Warianty rozmiarów zdjęć łowiska](../adr/ADR-023-warianty-rozmiarow-zdjec.md) — opcja B (medialibrary), z aktualizacją z 01.10.2026 (libvips, oczyszczanie oryginału).
-- [ADR-004](../adr/ADR-004-wykonywanie-kolejki-na-cloud-run.md) (kolejka `sync`), [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md), [ADR-022](../adr/ADR-022-mechanizm-interakcji-portalu.md).
+- [ADR-023 — Warianty rozmiarów zdjęć łowiska](../../adr/ADR-023-warianty-rozmiarow-zdjec.md) — opcja B (medialibrary), z aktualizacją z 01.10.2026 (libvips, oczyszczanie oryginału).
+- [ADR-004](../../adr/ADR-004-wykonywanie-kolejki-na-cloud-run.md) (kolejka `sync`), [ADR-020](../../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md), [ADR-022](../../adr/ADR-022-mechanizm-interakcji-portalu.md).

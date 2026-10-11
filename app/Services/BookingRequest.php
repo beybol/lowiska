@@ -35,6 +35,8 @@ final readonly class BookingRequest
         public ?int $agreedTotalCents = null,
         public ?string $agreedPriceReason = null,
         public ?string $exceptionReason = null,
+        // Powód dodania usługi niedostępnej (nieoferowanej, bez cechy) — wyjątek operatora (047, B6).
+        public ?string $serviceExceptionReason = null,
         public ?string $internalNote = null,
         public ?CarbonImmutable $confirmBy = null,
     ) {}

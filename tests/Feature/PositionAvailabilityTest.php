@@ -76,7 +76,7 @@ test('a day outside the sale period is refused even without any block', function
         ->and($verdict->reason)->toBe(SaleUnavailabilityReason::StartsBeforeSalePeriod);
 });
 
-test('a day intersecting a sale block is refused even when only part of the day overlaps', function () {
+test('a block covers the nights from its first to its last day, with the turnover at the day start time', function () {
     $fishery = sellingFishery();
     $position = sellablePosition($fishery);
     $block = AvailabilityBlock::factory()->create([
@@ -86,12 +86,15 @@ test('a day intersecting a sale block is refused even when only part of the day 
     ]);
     $block->positions()->attach($position->id);
 
-    // Doba 10.06 15:00 → 11.06 15:00 wchodzi w blokadę z 11.06 tylko drugą połową —
-    // i mimo to jest objęta. To jest reguła przecięcia, nie zawierania.
-    $verdict = (new PositionAvailability($position))->availability('2026-06-10');
+    // Blokada 11.06 = doba 11.06 15:00 → 12.06 15:00, jak rezerwacja na jedną dobę. Doba 10.06
+    // kończy się 11.06 15:00, w chwili startu blokady — styka się, nie przecina (dostepnosc.md §3).
+    $availability = new PositionAvailability($position);
+    $verdict = $availability->availability('2026-06-11');
 
     expect($verdict->sellable)->toBeFalse()
-        ->and($verdict->reason)->toBe(SaleUnavailabilityReason::SaleBlocked);
+        ->and($verdict->reason)->toBe(SaleUnavailabilityReason::SaleBlocked)
+        ->and($availability->isSellable('2026-06-10'))->toBeTrue()
+        ->and($availability->isSellable('2026-06-12'))->toBeTrue();
 });
 
 test('a day touching the block window without intersecting it stays sellable', function () {
@@ -104,13 +107,12 @@ test('a day touching the block window without intersecting it stays sellable', f
     ]);
     $block->positions()->attach($position->id);
 
-    // Doba 10.06 15:00 → 11.06 15:00 kończy się PRZED północą otwierającą 12.06 —
-    // styka się z oknem po dacie, ale go nie przecina po momentach.
+    // Doba 11.06 15:00 → 12.06 15:00 kończy się dokładnie w chwili startu blokady (12.06 15:00) —
+    // styka się z oknem, ale go nie przecina.
     $availability = new PositionAvailability($position);
 
-    expect($availability->isSellable('2026-06-10'))->toBeTrue()
-        // Doba 11.06 15:00 → 12.06 15:00 już wchodzi w 12.06 — przecina.
-        ->and($availability->isSellable('2026-06-11'))->toBeFalse();
+    expect($availability->isSellable('2026-06-11'))->toBeTrue()
+        ->and($availability->isSellable('2026-06-12'))->toBeFalse();
 });
 
 test('an open ended block applies to every day from its start', function () {
@@ -215,9 +217,9 @@ test('sellable days between two dates skip the blocked ones', function () {
     $days = (new PositionAvailability($position))->sellableDaysBetween('2026-06-10', '2026-06-15');
 
     // W zakresie 10–15.06 zawarte są doby 10–14.06 (ostatnia kończy się 15.06 15:00);
-    // blokada 12.06 zdejmuje doby 11.06 (kończy się 12.06) i 12.06 (zaczyna się 12.06).
+    // blokada 12.06 zdejmuje wyłącznie dobę 12.06.
     expect(array_map(fn ($day) => $day->startsOn->toDateString(), $days))
-        ->toBe(['2026-06-10', '2026-06-13', '2026-06-14']);
+        ->toBe(['2026-06-10', '2026-06-11', '2026-06-13', '2026-06-14']);
 });
 
 test('the service relies on the calendar so a changed sale period changes its verdict', function () {

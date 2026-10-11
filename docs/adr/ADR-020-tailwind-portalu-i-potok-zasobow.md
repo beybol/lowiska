@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-09-24
-- **Zadanie:** [027 — Specyfikacja portalu wędkarza: makiety v2 uzgodnione z konfiguracją łowiska](../tasks/027-specyfikacja-portalu-wedkarza-makiety-v2.md)
+- **Zadanie:** [027 — Specyfikacja portalu wędkarza: makiety v2 uzgodnione z konfiguracją łowiska](../tasks/implemented/027-specyfikacja-portalu-wedkarza-makiety-v2.md)
 
 ## Kontekst
 

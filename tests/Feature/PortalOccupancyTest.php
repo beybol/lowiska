@@ -15,6 +15,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\ReservationFixtures;
+use Tests\Support\StayFixtures;
 
 /**
  * Publiczna dostępność w portalu — stan „Zajęte" (zadanie 046, ekran I, W10).
@@ -123,7 +124,44 @@ test('an unconfirmed reservation counts as booked', function () {
     expect($calendar->rows()[0]['cells'][4]['state'])->toBe('occupied');
 });
 
-test('showing occupancy adds no queries and they do not grow with reservations', function () {
+test('booked and blocked nights become half-day bars: from the first afternoon to the morning after', function () {
+    [$fishery, $position] = occupancyFishery(true); // doba 13.05 → wyjazd 14.05
+    ReservationFixtures::book($position, '2026-05-10', 2, ['angler' => new AnglerDetails('A', 'a@example.com')]); // 10–11.05 → wyjazd pon 12.05
+    ReservationFixtures::book($position, '2026-05-17', 1, ['angler' => new AnglerDetails('B', 'b@example.com')]); // nd 17.05 → za tygodniem
+
+    // Blokada łowiska na dobę pt 15.05 — ten sam kształt, osobny pasek.
+    StayFixtures::blockSale($fishery, $position, '2026-05-15', '2026-05-15')->update(['reason' => 'Zawody']);
+
+    $row = (new PortalCalendar(PortalFisheryPage::load($fishery->fresh()), ['tydzien' => '2026-05-11'], 'pl'))->rows()[0];
+    $geometry = fn (array $bars): array => array_map(fn (array $bar): array => array_intersect_key($bar, array_flip(['kind', 'column', 'span', 'starts_before', 'ends_after'])), $bars);
+
+    expect($geometry($row['bars']))->toBe([
+        // Pobyt sprzed tygodnia: doba 11.05 i ranek 12.05, bez ukosu po lewej.
+        ['kind' => 'booked', 'column' => 0, 'span' => 2, 'starts_before' => true, 'ends_after' => false],
+        // Popołudnie 13.05 i ranek 14.05.
+        ['kind' => 'booked', 'column' => 2, 'span' => 2, 'starts_before' => false, 'ends_after' => false],
+        // Blokada: popołudnie 15.05 i ranek 16.05.
+        ['kind' => 'blocked', 'column' => 4, 'span' => 2, 'starts_before' => false, 'ends_after' => false],
+        // Niedziela wieczorem, wyjazd w następnym tygodniu.
+        ['kind' => 'booked', 'column' => 6, 'span' => 1, 'starts_before' => false, 'ends_after' => true],
+    ])
+        ->and($row['cells'][0]['morning_taken'])->toBeTrue()
+        ->and($row['cells'][1]['morning_taken'])->toBeTrue()
+        ->and($row['cells'][1]['state'])->toBe('sellable') // dzień wyjazdu jest dniem przyjazdu następnego
+        ->and($row['cells'][3]['morning_taken'])->toBeTrue()
+        ->and($row['cells'][4]['morning_taken'])->toBeFalse()
+        ->and($row['cells'][5]['morning_taken'])->toBeTrue();
+
+    $this->get(weekUrl($fishery))->assertOk()->assertSeeHtml('data-blocked');
+
+    // Przy wyłączonej publicznej dostępności zostaje sama blokada — zajętość nie przecieka.
+    $fishery->update(['public_availability_enabled' => false]);
+    $bars = (new PortalCalendar(PortalFisheryPage::load($fishery->fresh()), ['tydzien' => '2026-05-11'], 'pl'))->rows()[0]['bars'];
+
+    expect(array_column($bars, 'kind'))->toBe(['blocked']);
+});
+
+test('showing occupancy costs one query for the slots and it does not grow with reservations', function () {
     [$fishery, $position] = occupancyFishery(true);
     $queries = 0;
     DB::listen(function () use (&$queries): void {
@@ -145,6 +183,7 @@ test('showing occupancy adds no queries and they do not grow with reservations',
         ReservationFixtures::book($position, $day, 1, ['angler' => new AnglerDetails('X'.$day, "x{$day}@example.com")]);
     }
 
-    expect($withOccupancy)->toBe($withoutOccupancy)
+    // Wyłączona zajętość nie wczytuje slotów wcale (047, G1); włączona — jednym zapytaniem z góry.
+    expect($withOccupancy)->toBe($withoutOccupancy + 1)
         ->and($count())->toBe($withOccupancy);
 });

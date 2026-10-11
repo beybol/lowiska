@@ -8,8 +8,8 @@ use App\Enums\ConfigurationChangeKind;
  * Opis zmiany konfiguracji: rodzaj + parametry (ADR-027 pkt 1). Obiekt wartości — da się go
  * zapisać w sesji jako tablicę (`toArray()`/`fromArray()`) na czas ekranu decyzji.
  *
- * `positionIds` — stanowiska objęte zmianą; `startsOn`/`endsOn` — okno blokady w dniach strefy łowiska
- * (`endsOn = null` = „do odwołania"); przy wycofaniu stanowiska okna nie ma (wszystkie przyszłe pobyty).
+ * `positionIds` — stanowiska objęte zmianą; `startsOn`/`endsOn` — pierwsza i ostatnia doba blokady
+ * (daty w strefie łowiska; okno w momentach liczy `FishingDayCalendar::nightsWindow()`, `endsOn = null` = „do odwołania"); przy wycofaniu stanowiska okna nie ma (wszystkie przyszłe pobyty).
  * `payload` — to, co zapisze się po decyzji (pola blokady, id edytowanej blokady, id stanowiska).
  */
 final readonly class ConfigurationChange
