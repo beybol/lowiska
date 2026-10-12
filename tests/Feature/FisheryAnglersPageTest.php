@@ -19,6 +19,7 @@ use App\Services\OwnerRoleProvisioner;
 use App\Services\ReservationBooking;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Livewire\Features\SupportTesting\Testable;
@@ -263,6 +264,18 @@ test('the preview of a revoked relation says so and shows no personal data', fun
     expect($html)->toContain(__('Access revoked'))
         ->not->toContain('Roman Cofniety')
         ->not->toContain('roman@example.com');
+});
+
+test('the preview puts no relation data into the client-side action state', function () {
+    [$fishery, $position, $owner] = ReservationFixtures::bookableFishery();
+    $revoked = anglerWithReservation($position, 'Roman Cofniety', 'roman@example.com', '2026-05-16', ['status' => AnglerLinkStatus::Revoked->value, 'notes' => 'tajna-notatka'], '+48123');
+    $this->actingAs($owner);
+
+    $page = Livewire::test(ManageAnglers::class, ['record' => $fishery->getKey()])->mountTableAction('preview', $revoked);
+    $data = $page->instance()->mountedActions[0]['data'] ?? [];
+
+    expect($data)->not->toHaveKeys(['given_name', 'given_email', 'given_phone', 'phone_override', 'notes'])
+        ->and(json_encode($data))->not->toContain('Roman')->not->toContain('roman@example.com')->not->toContain('tajna-notatka');
 });
 
 test('the preview of a pending relation shows the link validity and of a linked one the link date', function () {

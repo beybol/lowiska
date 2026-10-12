@@ -252,7 +252,8 @@ po południu zaczyna się doba od tego dnia. Dlatego pasek rezerwacji zaczyna si
 przyjazdu** i kończy **w połowie dnia wyjazdu**, z ukośnymi końcami. Dzień, w którym jeden gość
 wyjeżdża, a drugi przyjeżdża, to jedna komórka z dwoma paskami. Pasek pokazuje nazwisko, liczbę osób,
 status i kwotę; rezerwacja niepotwierdzona jest kreskowana i ma zegar z terminem wygaśnięcia
-(„wygasa 14.05 12:00"). Pusta doba pokazuje drobnym drukiem cenę pobytu od tego dnia albo „zacznij …",
+(„wygasa 14.05 12:00"). Trójkąt ostrzegawczy na pasku oznacza rezerwację zapisaną mimo blokady albo reguł sprzedaży
+— na przykład zostawioną, gdy zablokowałeś stanowisko (najedź na trójkąt, żeby zobaczyć powód). Pusta doba pokazuje drobnym drukiem cenę pobytu od tego dnia albo „zacznij …",
 jeśli leży w środku pakietu sprzedawanego w całości.
 
 **Blokady** wyglądają tak samo jak rezerwacje — ukośny pasek od połowy pierwszego dnia do połowy dnia po
@@ -549,8 +550,8 @@ na ten adres, musi się na nie zalogować; jeśli nie ma, zakłada je (hasłem a
 z rezerwacji. Przy połączeniu akceptuje Twoje dokumenty oznaczone jako „wymagany przy połączeniu
 konta". Link z maila działa do połączenia przez 14 dni.
 
-W kolumnie **„Dane wędkarza"** (lista, szczegóły i okienko w kalendarzu) widzisz, czy dane są **wpisane
-ręcznie** (to, co wpisałeś), czy **potwierdzone konto** — wtedy widzisz dane z konta wędkarza. To
+Pod nazwiskiem wędkarza (na liście — ikona i podpis), w szczegółach i w okienku w kalendarzu widzisz, czy dane są
+**wpisane ręcznie** (to, co wpisałeś), czy **potwierdzone konto** — wtedy widzisz dane z konta wędkarza. To
 informacja niezależna od statusu rezerwacji: rezerwacja może być potwierdzona, a wędkarz bez konta.
 W tym samym mailu wędkarz może
 **zrezygnować** (anuluje rezerwację ze zwrotem według polityki zwrotu) albo kliknąć **„To nie ja"** —

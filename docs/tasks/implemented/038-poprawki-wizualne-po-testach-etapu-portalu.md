@@ -165,21 +165,21 @@ i rozliczeń.
 - Akcja „Edytuj" w nagłówku bez zmian; granica „podgląd ≠ formularz" z `ManageFishery` zostaje.
 
 ## Kryteria akceptacji
-- [ ] Na stronie łowiska wyciąg zasad, box z ceną i opisy grup mają widoczne tło `surface` na białej
+- [x] Na stronie łowiska wyciąg zasad, box z ceną i opisy grup mają widoczne tło `surface` na białej
       stronie (desktop i 390 px).
-- [ ] Box z ceną ma `shadow-2`, ramka kalendarza `shadow-1`.
-- [ ] Nagłówek kalendarza i wiersz „Pakiety" na `surface`, cena w komórce `b600`, linie pionowe,
+- [x] Box z ceną ma `shadow-2`, ramka kalendarza `shadow-1`.
+- [x] Nagłówek kalendarza i wiersz „Pakiety" na `surface`, cena w komórce `b600`, linie pionowe,
       sobota i niedziela w nagłówku na `a100`/`a800` (także w pasku dni na telefonie), legenda pod
       siatką, wyciąg zasad z pogrubionymi etykietami, nawigacja tygodnia w wierszu nagłówka.
-- [ ] Cennik i Stanowiska: na desktopie tabele z `<thead>`, na 390 px wiersze listy jak w makiecie
+- [x] Cennik i Stanowiska: na desktopie tabele z `<thead>`, na 390 px wiersze listy jak w makiecie
       telefonu, bez poziomego przewijania strony.
-- [ ] Pasek zakładek bez pionowego suwaka (Chrome na Windows).
+- [x] Pasek zakładek bez pionowego suwaka (Chrome na Windows).
 - [ ] Strona główna i strony informacyjne po zmianie tła — bez utraty kontrastu (przegląd ręczny).
-- [ ] Formularz łowiska w układzie z tabeli A1 w edycji (admin, właściciel) i w kreatorze; galeria
+- [x] Formularz łowiska w układzie z tabeli A1 w edycji (admin, właściciel) i w kreatorze; galeria
       na pełną szerokość w siatce kafelków; zapis formularza działa jak przed zmianą.
-- [ ] Podgląd „Dane łowiska" ma te same sekcje, kolejność i siatkę co formularz i pokazuje każde jego
+- [x] Podgląd „Dane łowiska" ma te same sekcje, kolejność i siatkę co formularz i pokazuje każde jego
       pole; układ sekcji zdefiniowany w jednym miejscu.
-- [ ] Testy z zakresu niżej zielone; **pełny pakiet odroczony** na `/review-implementation` (Krok 1).
+- [x] Testy z zakresu niżej zielone; **pełny pakiet odroczony** na `/review-implementation` (Krok 1).
 
 ## Zakres testów
 - **Tier:** T2 — zależności
@@ -201,14 +201,14 @@ i rozliczeń.
 - Testy przeglądarkowe zrzutów ekranu (zadanie 035).
 
 ## Zmiany dokumentacji
-- [ ] `docs/conventions/strona-publiczna.md` — §4: portal na białym tle, ramki informacyjne na
+- [x] `docs/conventions/strona-publiczna.md` — §4: portal na białym tle, ramki informacyjne na
       `surface` (`bg-surface` na body to błąd); §5: Cennik i Stanowiska jako `spec-table` (tabela na
       desktopie, wiersze listy na telefonie) — przepisać regułę „Stanowiska: jedno w wierszu"; legenda
       i kolory kalendarza; pasek zakładek bez pionowego przewijania.
-- [ ] `docs/conventions/panel-admina.md` — układ formularza łowiska w sekcjach i kolejność sekcji;
+- [x] `docs/conventions/panel-admina.md` — układ formularza łowiska w sekcjach i kolejność sekcji;
       niezmiennik: podgląd „Dane łowiska" i formularz układa ta sama lista sekcji.
-- [ ] `docs/project/mockups/portal-v3/README.md` — odnotować: Stanowiska w tabeli z nagłówkiem.
-- [ ] `CHANGELOG.md` — wpis w changelogu
+- [x] `docs/project/mockups/portal-v3/README.md` — odnotować: Stanowiska w tabeli z nagłówkiem.
+- [x] `CHANGELOG.md` — wpis w changelogu
 
 ## Ograniczenia techniczne
 - Tailwind 4, tokeny z `portal.css` (`bg-surface`, `text-b600`, `shadow-2`) — bez wartości na sztywno

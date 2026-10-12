@@ -112,7 +112,7 @@ w fazie pośredniej.** Oznaczenie oczekującej rezerwacji jako opłaconej — r�
 ## Aktualizacja (2026-10-11) — rozdzielenie potwierdzenia rezerwacji od połączenia z kontem
 
 Zmiana pkt 3 i pkt 8 (decyzja autora po testach zadania 043, realizacja: zadanie
-[049](../tasks/049-potwierdzenie-rezerwacji-a-konto-wedkarza.md)). Powód: link z maila działał jak klucz do
+[049](../tasks/implemented/049-potwierdzenie-rezerwacji-a-konto-wedkarza.md)). Powód: link z maila działał jak klucz do
 cudzego konta. Przekazany albo podejrzany mail pozwalał dowiązać istniejące konto do łowiska i zapisać
 w jego profilu nowy telefon bez logowania. Konto zakładane po cichu, bez hasła, było dla wędkarza
 niewidoczne.

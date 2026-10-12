@@ -230,6 +230,33 @@ test('the two-factor step returns to the account page while linking and to the p
         ->assertRedirect(PanelHome::urlFor($user));
 });
 
+test('"not now" clears the marker and a stale marker never hijacks a later sign-in', function () {
+    $user = User::factory()->create(['email' => 'jan@example.com']);
+    [$reservation, , $url] = linkRequest049();
+    $this->post($url, ['action' => 'account']);
+
+    // „Nie teraz": znacznik znika, kolejne logowanie idzie do panelu.
+    $this->post(PortalRoutes::reservationAccountUrl('pl'), ['action' => 'dismiss'])
+        ->assertRedirect(PortalRoutes::homeUrl());
+    expect(AnglerLinkSession::hash())->toBeNull();
+
+    // Znacznik został, ale link przestał być ważny (tu: zużyty) — logowanie nie kończy się stroną „link nieaktualny".
+    $this->post($url, ['action' => 'account']);
+    $reservation->angler->forceFill(['link_token_hash' => null])->save();
+    $user->generateTwoFactorCode();
+
+    $this->actingAs($user)
+        ->post(route('verify.store'), ['two_factor_code' => $user->fresh()->two_factor_code])
+        ->assertRedirect(PanelHome::urlFor($user));
+    expect(AnglerLinkSession::hash())->toBeNull();
+
+    // „Nie teraz" przy znaczniku już nieważnym: strona główna, nie „link nieaktualny".
+    AnglerLinkSession::remember(hash('sha256', 'nieistniejacy-token'), 'pl');
+    $this->post(PortalRoutes::reservationAccountUrl('pl'), ['action' => 'dismiss'])
+        ->assertRedirect(PortalRoutes::homeUrl());
+    expect(AnglerLinkSession::hash())->toBeNull();
+});
+
 // ─── Zgody przy zakładaniu konta (R3) ─────────────────────────────────────────────
 
 test('registration requires the Fisherya documents in force and records them', function () {

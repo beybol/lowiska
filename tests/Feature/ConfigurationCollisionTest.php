@@ -11,6 +11,7 @@ use App\Enums\ReservationStatus;
 use App\Enums\SelectionKind;
 use App\Enums\TermsExceptionKind;
 use App\Filament\Resources\AvailabilityBlockResource\Pages\CreateAvailabilityBlock;
+use App\Filament\Resources\FisheryResource\Pages\ManageCalendar;
 use App\Filament\Resources\FisheryResource\Pages\ResolveCollisions;
 use App\Filament\Resources\PositionResource\Pages\EditPosition;
 use App\Mail\ReservationCancelledMail;
@@ -159,7 +160,19 @@ test('keep records the exception and the reservation stays visible on the blocke
     $row = $grid->rows[0];
 
     expect($row->barOn(CarbonImmutable::parse('2026-05-20'))?->reservation->id)->toBe($reservation->id)
-        ->and($row->cellOn(CarbonImmutable::parse('2026-05-20'))->blocked)->toBeTrue();
+        ->and($row->cellOn(CarbonImmutable::parse('2026-05-20'))->blocked)->toBeTrue()
+        // Pasek niesie oznaczenie wyjątku — w siatce i w kalendarzu na ekranie.
+        ->and($row->barOn(CarbonImmutable::parse('2026-05-20'))->exceptionLabels())->toBe([TermsExceptionKind::SaleBlocked->label()]);
+
+    Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->set('windowStart', '2026-05-18')
+        ->assertSeeHtml('data-bar-exception')
+        ->assertSeeHtml('aria-label="'.e(TermsExceptionKind::SaleBlocked->label()).'"');
+
+    // Rezerwacja bez wyjątku nie ma oznaczenia.
+    $plain = ReservationFixtures::book($position, '2026-05-22', 1, ['angler' => new AnglerDetails('Bez Wyjatku', 'bez@example.com')]);
+    expect((new ReservationCalendar($fishery->fresh()))->grid(CarbonImmutable::parse('2026-05-18'), 7)->rows[0]
+        ->barOn(CarbonImmutable::parse('2026-05-22'))?->exceptionLabels())->toBe([]);
 
     // Edycja tej blokady nie pyta drugi raz o rezerwację już zostawioną.
     expect((new ConfigurationCollisionService)->affected(blockChange($fishery, [$position->id], '2026-05-19', '2026-05-21', ['block_id' => $block->id])))->toHaveCount(0);

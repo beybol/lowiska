@@ -5,10 +5,10 @@ System zna konfigurację sprzedaży (stanowiska, sezony, reguły, cennik, usług
 rezerwacji**. Bez nich nie da się odpowiedzieć na pytanie „czy stanowisko jest wolne" (`PositionAvailability`
 nie ma powodu `Occupied`), a każdy z kanałów — operator (etap 3) i wędkarz (etap 4) — musiałby budować własną
 ścieżkę zapisu. Zadanie zakłada warstwę danych i jedną ścieżkę zapisu, na której stoją zadania 040–046.
-Decyzje: [ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md),
-[ADR-025](../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md),
-[ADR-026](../adr/ADR-026-zamrozenie-warunkow-rezerwacji.md), aktualizacja
-[ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md); wnioski dla modelu: `docs/project/mockups/etap3/README.md` §9.
+Decyzje: [ADR-024](../../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md),
+[ADR-025](../../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md),
+[ADR-026](../../adr/ADR-026-zamrozenie-warunkow-rezerwacji.md), aktualizacja
+[ADR-015](../../adr/ADR-015-warstwa-oferty-pobytu.md); wnioski dla modelu: `docs/project/mockups/etap3/README.md` §9.
 
 ## Wymagania
 - Tabele i modele:
@@ -41,19 +41,19 @@ Decyzje: [ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lo
 - Brak interfejsu — serwis i modele weryfikowane testami; ekrany w zadaniach 041–042.
 
 ## Kryteria akceptacji
-- [ ] Migracje tworzą 5 tabel (`fishery_anglers`, `reservations`, `reservation_slots`, `reservation_terms`,
+- [x] Migracje tworzą 5 tabel (`fishery_anglers`, `reservations`, `reservation_slots`, `reservation_terms`,
       `reservation_service_items`) z ograniczeniami z wymagań, bez rozbicia na kilka rewizji.
-- [ ] Zapis rezerwacji przechodzi wyłącznie przez serwis; dwa równoległe zapisy tego samego terminu na tym
+- [x] Zapis rezerwacji przechodzi wyłącznie przez serwis; dwa równoległe zapisy tego samego terminu na tym
       samym stanowisku — drugi dostaje `Occupied` (test na dwóch połączeniach lub symulacji blokady).
-- [ ] Częściowe nakładanie (13–15 vs 14–16) jest odrzucane; przyleganie (13–15, 15–17) dozwolone.
-- [ ] `PositionAvailability` zwraca `Occupied` dla zajętej doby; istniejące testy 016–019 i portalu zielone.
-- [ ] `reservation_terms` kopiuje cenę z rozbiciem, politykę zwrotu i atrybuty; późniejsza zmiana cennika
+- [x] Częściowe nakładanie (13–15 vs 14–16) jest odrzucane; przyleganie (13–15, 15–17) dozwolone.
+- [x] `PositionAvailability` zwraca `Occupied` dla zajętej doby; istniejące testy 016–019 i portalu zielone.
+- [x] `reservation_terms` kopiuje cenę z rozbiciem, politykę zwrotu i atrybuty; późniejsza zmiana cennika
       nie zmienia istniejącej rezerwacji (test).
-- [ ] Wyjątki operatora zapisują powód, autora i czas; kanał wędkarza nie przepuszcza naruszenia blokady.
-- [ ] Anulacja i wygaśnięcie usuwają sloty; rezerwacja i terms zostają.
-- [ ] `StayOffer` wycenia usługi dodatkowe; testy 020 zielone.
-- [ ] Wpisy w kanale `reservations` dla utworzenia, zmiany warunków i anulacji.
-- [ ] Pełny pakiet testów (T3 — migracje).
+- [x] Wyjątki operatora zapisują powód, autora i czas; kanał wędkarza nie przepuszcza naruszenia blokady.
+- [x] Anulacja i wygaśnięcie usuwają sloty; rezerwacja i terms zostają.
+- [x] `StayOffer` wycenia usługi dodatkowe; testy 020 zielone.
+- [x] Wpisy w kanale `reservations` dla utworzenia, zmiany warunków i anulacji.
+- [x] Pełny pakiet testów (T3 — migracje).
 
 ## Zakres testów
 - **Tier:** T3
@@ -69,11 +69,11 @@ Decyzje: [ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lo
 - Zmiana nazw istniejących klas „doba".
 
 ## Zmiany dokumentacji
-- [ ] `docs/conventions/dostepnosc.md` — powód `Occupied`, kolejność sprawdzania, ścieżka zapisu
-- [ ] `docs/conventions/dziennik-zmian.md` — kanał `reservations`
-- [ ] `docs/conventions/cennik.md` — pozycje usług w ofercie
-- [ ] `docs/adr/ADR-015-warstwa-oferty-pobytu.md` — jeśli wdrożenie odbiega od aktualizacji z 08.10
-- [ ] `CHANGELOG.md` — wpis w changelogu
+- [x] `docs/conventions/dostepnosc.md` — powód `Occupied`, kolejność sprawdzania, ścieżka zapisu
+- [x] `docs/conventions/dziennik-zmian.md` — kanał `reservations`
+- [x] `docs/conventions/cennik.md` — pozycje usług w ofercie
+- [x] `docs/adr/ADR-015-warstwa-oferty-pobytu.md` — jeśli wdrożenie odbiega od aktualizacji z 08.10
+- [x] `CHANGELOG.md` — wpis w changelogu
 
 ## Ograniczenia techniczne
 - Laravel 13, MySQL; schemat testowy `lowiska_test` (pięć warstw izolacji — `CLAUDE.md`).
@@ -102,7 +102,7 @@ Decyzje: [ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lo
 - Czas: sloty w UTC; „doba wędkarska" liczona istniejącymi klasami `FishingDay*` (bez przemianowania).
 
 ## Powiązane ADR-y
-- [ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md),
-  [ADR-025](../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md),
-  [ADR-026](../adr/ADR-026-zamrozenie-warunkow-rezerwacji.md),
-  [ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md), aktualizacja ADR-015 — wszystkie rozstrzygnięte.
+- [ADR-024](../../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md),
+  [ADR-025](../../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md),
+  [ADR-026](../../adr/ADR-026-zamrozenie-warunkow-rezerwacji.md),
+  [ADR-027](../../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md), aktualizacja ADR-015 — wszystkie rozstrzygnięte.

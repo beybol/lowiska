@@ -136,7 +136,7 @@ podstaw SEO i statystyk odwiedzin (Umami).
 - [ ] **Ręczna weryfikacja** strony głównej, landingu, stron statycznych i 404 na: telefonie
       (390 px — iOS Safari i Android Chrome, realne urządzenia albo emulacja), tablecie i desktopie;
       lista sprawdzonych ekranów i urządzeń w podsumowaniu zadania. Testy przeglądarkowe — zadanie 035.
-- [ ] Pełny pakiet testów zielony (T3).
+- [x] Pełny pakiet testów zielony (T3).
 
 ## Zakres testów
 

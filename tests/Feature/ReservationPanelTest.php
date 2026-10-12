@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AnglerLinkStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\TermsExceptionKind;
@@ -163,6 +164,25 @@ test('the list shows only this fishery, filters by tab and searches within its a
         ->set('activeTab', 'to_contact')
         ->assertCanSeeTableRecords([$contact])
         ->assertCanNotSeeTableRecords([$mine]);
+});
+
+test('the reservation search uses the effective data: account data when linked, nothing when revoked', function () {
+    [$fishery, $position, $owner] = ReservationFixtures::bookableFishery();
+    $account = User::factory()->create(['name' => 'Waldemar', 'surname' => 'Konto', 'email' => 'waldemar@konto.example']);
+    $linked = ReservationFixtures::book($position, '2026-05-13', 1, ['angler' => new AnglerDetails('Dawna Nazwa', 'dawny@example.com')]);
+    $linked->angler->update(['status' => AnglerLinkStatus::Linked->value, 'user_id' => $account->id]);
+    $revoked = ReservationFixtures::book($position, '2026-05-20', 1, ['angler' => new AnglerDetails('Roman Cofniety', 'roman@example.com')]);
+    $revoked->angler->update(['status' => AnglerLinkStatus::Revoked->value]);
+    $this->actingAs($owner);
+
+    Livewire::test(ManageReservations::class, ['record' => $fishery->getKey()])
+        ->set('activeTab', 'all')
+        ->searchTable('waldemar@konto')->assertCanSeeTableRecords([$linked])
+        ->searchTable('Waldemar Konto')->assertCanSeeTableRecords([$linked])
+        ->searchTable('Dawna')->assertCanNotSeeTableRecords([$linked])
+        ->searchTable('dawny@example')->assertCanNotSeeTableRecords([$linked])
+        ->searchTable('Roman')->assertCanNotSeeTableRecords([$revoked])
+        ->searchTable('roman@example')->assertCanNotSeeTableRecords([$revoked]);
 });
 
 test('the reservations page sits right after the calendar and its badge counts what needs attention', function () {

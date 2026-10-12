@@ -24,6 +24,7 @@ use App\Models\AdditionalService;
 use App\Models\AvailabilityBlock;
 use App\Models\FisheryAngler;
 use App\Models\Position;
+use App\Models\User;
 use App\Services\AnglerDetails;
 use App\Services\AnglerLinking;
 use App\Services\CancellationRequest;
@@ -224,9 +225,11 @@ test('quick edit from the calendar replaces the old edit modal', function () {
 // ─── D: bezpieczeństwo ────────────────────────────────────────────────────────────
 
 test('a swapped fishery id gives the reactive fields nothing from the other fishery', function () {
-    [$fishery, , $owner] = ReservationFixtures::bookableFishery();
-    [$foreign, $foreignPosition] = ReservationFixtures::bookableFishery();
+    [$fishery, $position, $owner] = ReservationFixtures::bookableFishery([], 444.00);
+    ReservationFixtures::service($fishery, $position, ['name' => 'WLASNA-USLUGA', 'price' => '55.00']);
+    [$foreign, $foreignPosition] = ReservationFixtures::bookableFishery([], 333.00);
     $foreignPosition->update(['name' => 'OBCE-STANOWISKO']);
+    ReservationFixtures::service($foreign, $foreignPosition, ['name' => 'OBCA-USLUGA', 'price' => '77.00']);
     $foreignReservation = ReservationFixtures::book($foreignPosition, '2026-05-20', 1, ['angler' => new AnglerDetails('Obcy Wędkarz', 'obcy@example.com')]);
     $this->actingAs($owner);
 
@@ -237,7 +240,16 @@ test('a swapped fishery id gives the reactive fields nothing from the other fish
         ->test(CreateReservation::class)
         ->fillForm(['fishery_id' => $foreign->id, 'fishery_angler_id' => $foreignReservation->fishery_angler_id])
         ->assertDontSee('OBCE-STANOWISKO')
-        ->assertDontSee('obcy@example.com');
+        ->assertDontSee('obcy@example.com')
+        // Opcje usług i podgląd ceny (D1) też nie sięgają do obcego łowiska — nawet ze wskazanym obcym stanowiskiem.
+        ->fillForm(['fishery_id' => $foreign->id, 'position_id' => $foreignPosition->id, 'starts_on' => '2026-05-13', 'nights' => 1, 'anglers' => 1, 'services' => [['service_id' => null, 'quantity' => 1]]])
+        ->assertDontSee('OBCA-USLUGA')
+        ->assertDontSee('333')
+        ->assertDontSee('77,00')
+        // Kontrola: ten sam formularz z WŁASNYM stanowiskiem pokazuje usługę i cenę — test nie przechodzi „na pusto".
+        ->fillForm(['fishery_id' => $fishery->id, 'position_id' => $position->id, 'starts_on' => '2026-05-13', 'nights' => 1, 'anglers' => 1, 'services' => [['service_id' => null, 'quantity' => 1]]])
+        ->assertSee('WLASNA-USLUGA')
+        ->assertSee('444');
 });
 
 test('changing the address of a pending angler invalidates the link sent to the old address', function () {
@@ -305,6 +317,23 @@ test('the link token is bound to the address it was sent to and re-checked under
     expect($linking->findByLinkToken($olaToken)['angler'])->toBeNull();
 });
 
+test('the angler suggestions in the form use the effective data and never offer a revoked relation', function () {
+    [$fishery, $position] = ReservationFixtures::bookableFishery();
+    $account = User::factory()->create(['name' => 'Waldemar', 'surname' => 'Konto', 'email' => 'waldemar@konto.example']);
+    $linked = ReservationFixtures::book($position, '2026-05-13', 1, ['angler' => new AnglerDetails('Dawna Nazwa', 'dawny@example.com')])->angler;
+    $linked->update(['status' => AnglerLinkStatus::Linked->value, 'user_id' => $account->id]);
+    $revoked = ReservationFixtures::book($position, '2026-05-20', 1, ['angler' => new AnglerDetails('Roman Cofniety', 'roman@example.com')])->angler;
+    $revoked->update(['status' => AnglerLinkStatus::Revoked->value]);
+    $options = fn (?string $search, ?int $id = null): array => (new \ReflectionMethod(ReservationFormSchema::class, 'anglerOptions'))->invoke(null, $fishery, $search, $id);
+
+    expect(array_keys($options('Waldemar')))->toBe([$linked->id])
+        ->and($options('Dawna'))->toBe([])
+        ->and($options('Roman'))->toBe([])
+        ->and(array_keys($options(null)))->not->toContain($revoked->id)
+        // Rezerwacja, która już wskazuje relację, nadal ją pokazuje (etykieta bez danych).
+        ->and(array_keys($options(null, $revoked->id)))->toBe([$revoked->id]);
+});
+
 // ─── E: wygasanie ─────────────────────────────────────────────────────────────────
 
 test('the confirmation deadline never passes the start of the stay and a stay in progress does not expire', function () {
@@ -329,6 +358,39 @@ test('the confirmation deadline never passes the start of the stay and a stay in
 
     expect((new ReservationBooking)->expire($legacy, CarbonImmutable::parse('2026-05-17 13:00', 'Europe/Warsaw')))->toBeFalse()
         ->and($legacy->fresh()->status)->toBe(ReservationStatus::Pending);
+});
+
+test('moving a pending reservation earlier pulls its deadline to the new start, so it still expires', function () {
+    [, $position, $owner] = ReservationFixtures::bookableFishery();
+    $reservation = ReservationFixtures::book($position, '2026-05-20', 1, [
+        'confirmBy' => CarbonImmutable::parse('2026-05-14 12:00', 'Europe/Warsaw'),
+    ]);
+
+    $moved = (new ReservationBooking)->rebook($reservation, ReservationFixtures::request($position, '2026-05-10', 1, ['actor' => $owner]), 'Prośba wędkarza');
+
+    expect($moved->succeeded)->toBeTrue()
+        ->and($moved->reservation->confirm_by->equalTo($moved->reservation->starts_at))->toBeTrue()
+        ->and((new ReservationBooking)->expire($moved->reservation, CarbonImmutable::parse('2026-05-10 16:00', 'Europe/Warsaw')))->toBeTrue()
+        ->and($reservation->fresh()->status)->toBe(ReservationStatus::Expired);
+
+    // Przesunięcie na później NIE przedłuża okna potwierdzenia.
+    $later = ReservationFixtures::book($position, '2026-05-25', 1, [
+        'angler' => new AnglerDetails('Inny', 'inny@example.com'),
+        'confirmBy' => CarbonImmutable::parse('2026-05-14 12:00', 'Europe/Warsaw'),
+    ]);
+    $movedLater = (new ReservationBooking)->rebook($later, ReservationFixtures::request($position, '2026-05-28', 1, [
+        'actor' => $owner, 'angler' => new AnglerDetails('Inny', 'inny@example.com'),
+    ]), 'Prośba wędkarza');
+
+    expect($movedLater->reservation->confirm_by->equalTo(CarbonImmutable::parse('2026-05-14 12:00', 'Europe/Warsaw')))->toBeTrue();
+
+    // Zmiana bez zmiany terminu (tu: skład) też nie rusza terminu potwierdzenia.
+    $sameTerm = (new ReservationBooking)->rebook($movedLater->reservation, ReservationFixtures::request($position, '2026-05-28', 1, [
+        'actor' => $owner, 'angler' => new AnglerDetails('Inny', 'inny@example.com'), 'companions' => 1,
+    ]), 'Dodatkowa osoba');
+
+    expect($sameTerm->succeeded)->toBeTrue()
+        ->and($sameTerm->reservation->confirm_by->equalTo(CarbonImmutable::parse('2026-05-14 12:00', 'Europe/Warsaw')))->toBeTrue();
 });
 
 // ─── F: kolizje i stanowiska ──────────────────────────────────────────────────────

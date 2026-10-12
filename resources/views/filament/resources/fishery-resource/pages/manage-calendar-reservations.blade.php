@@ -294,6 +294,10 @@
                                                     @if ($bar->startsBefore)<span class="shrink-0" aria-label="{{ __('started earlier') }}">◀</span>@endif
                                                     @if ($reservation->needsContact())<span class="shrink-0 rounded bg-white px-1 text-[10px] font-bold text-red-600" aria-label="{{ __('To contact') }}">☎</span>@endif
                                                     @if ($bar->kind === 'pending')<x-filament::icon icon="heroicon-m-clock" class="h-3.5 w-3.5 shrink-0" />@endif
+                                                    {{-- Wyjątek od dzisiejszej konfiguracji (044: „zostaw" przy blokadzie/wycofaniu, reguły sprzedaży). --}}
+                                                    @if ($exceptionLabels = $bar->exceptionLabels())
+                                                        <span class="shrink-0" data-bar-exception title="{{ implode(' · ', $exceptionLabels) }}" aria-label="{{ implode(' · ', $exceptionLabels) }}"><x-filament::icon icon="heroicon-m-exclamation-triangle" class="h-3.5 w-3.5" /></span>
+                                                    @endif
                                                     <span class="min-w-0 truncate">{{ $bar->label() }}</span>
                                                 </span>
                                                 <span class="truncate text-[10.5px] opacity-90" style="{{ $shape['meta'] }}">

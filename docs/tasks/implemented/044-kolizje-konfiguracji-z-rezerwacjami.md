@@ -3,7 +3,7 @@
 ## Opis problemu
 Blokada dostępności albo wycofanie stanowiska może wypaść na termin z już sprzedaną rezerwacją. Zasada G8:
 kolizja wymaga jawnej decyzji operatora, a nie cichego nadpisania. Decyzje:
-[ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md) (usługa kolizji, dwie decyzje, komunikat,
+[ADR-027](../../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md) (usługa kolizji, dwie decyzje, komunikat,
 „Do kontaktu", zwrot jako status). Specyfikacja: README makiet, ekran E.
 
 ## Wymagania
@@ -22,13 +22,13 @@ kolizja wymaga jawnej decyzji operatora, a nie cichego nadpisania. Decyzje:
 - Wysyłka wielu maili w jednym żądaniu: ustalić limit i zachowanie przy przekroczeniu (Q6, `sync` bez workera).
 
 ## Kryteria akceptacji
-- [ ] Zapis blokady kolidującej z rezerwacjami przekierowuje do ekranu decyzji; bez kolizji zapisuje się jak dotąd.
-- [ ] Pobyty w toku nie występują na liście kolizji (test).
-- [ ] Decyzja „anuluj" zwalnia sloty, ustawia „zwrot", wysyła mail z komunikatem (lub „Do kontaktu" bez e-maila).
-- [ ] Decyzja „zostaw" zapisuje wyjątek; rezerwacja widoczna w kalendarzu z oznaczeniem.
-- [ ] Decyzja zbiorcza i indywidualna dają ten sam skutek dla pojedynczej rezerwacji (test).
-- [ ] Wycofanie stanowiska korzysta z tej samej usługi z innym zbiorem decyzji (test).
-- [ ] Zachowanie przy przekroczeniu limitu maili opisane i przetestowane.
+- [x] Zapis blokady kolidującej z rezerwacjami przekierowuje do ekranu decyzji; bez kolizji zapisuje się jak dotąd.
+- [x] Pobyty w toku nie występują na liście kolizji (test).
+- [x] Decyzja „anuluj" zwalnia sloty, ustawia „zwrot", wysyła mail z komunikatem (lub „Do kontaktu" bez e-maila).
+- [x] Decyzja „zostaw" zapisuje wyjątek; rezerwacja widoczna w kalendarzu z oznaczeniem.
+- [x] Decyzja zbiorcza i indywidualna dają ten sam skutek dla pojedynczej rezerwacji (test).
+- [x] Wycofanie stanowiska korzysta z tej samej usługi z innym zbiorem decyzji (test).
+- [x] Zachowanie przy przekroczeniu limitu maili opisane i przetestowane.
 
 ## Zakres testów
 - **Tier:** T2
@@ -43,9 +43,9 @@ kolizja wymaga jawnej decyzji operatora, a nie cichego nadpisania. Decyzje:
 - Klauzula „zamknięcie łowiska bez rekompensaty" (prawnik, TODO-3 pkt 4).
 
 ## Zmiany dokumentacji
-- [ ] `docs/conventions/dostepnosc.md` — blokada a rezerwacje
-- [ ] `docs/project/ZASADY-PROJEKTOWE.md` — G8 (jeśli wdrożenie coś doprecyzuje)
-- [ ] `CHANGELOG.md` — wpis w changelogu
+- [x] `docs/conventions/dostepnosc.md` — blokada a rezerwacje
+- [x] `docs/project/ZASADY-PROJEKTOWE.md` — G8 (jeśli wdrożenie coś doprecyzuje)
+- [x] `CHANGELOG.md` — wpis w changelogu
 
 ## Ograniczenia techniczne
 - Zależność: 039, 040, 041 (modal anulacji i mail).
@@ -65,4 +65,4 @@ kolizja wymaga jawnej decyzji operatora, a nie cichego nadpisania. Decyzje:
 - Anulacja korzysta z tego samego serwisu anulacji co modal z 041 (jedna ścieżka).
 
 ## Powiązane ADR-y
-- [ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md) — rozstrzygnięty.
+- [ADR-027](../../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md) — rozstrzygnięty.

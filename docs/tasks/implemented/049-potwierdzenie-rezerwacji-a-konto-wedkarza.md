@@ -98,31 +98,31 @@ rejestracją oraz zgodami.
   założenia konta albo zalogowania się. „Zrezygnuj / to nie ja” bez zmian.
 
 ## Kryteria akceptacji
-- [ ] Potwierdzenie z linku zmienia oczekujące rezerwacje w potwierdzone, nie tworzy ani nie zmienia
+- [x] Potwierdzenie z linku zmienia oczekujące rezerwacje w potwierdzone, nie tworzy ani nie zmienia
       rekordu `users` i nie zużywa tokenu.
-- [ ] Bez zalogowania nie da się dowiązać istniejącego konta ani zapisać telefonu w jego profilu.
+- [x] Bez zalogowania nie da się dowiązać istniejącego konta ani zapisać telefonu w jego profilu.
       Test POST bez sesji odrzuca próbę.
-- [ ] Zalogowany na konto o innym adresie dostaje odmowę i propozycję wylogowania, a relacja zostaje
+- [x] Zalogowany na konto o innym adresie dostaje odmowę i propozycję wylogowania, a relacja zostaje
       niepowiązana.
-- [ ] Zalogowany na właściwe konto po zaznaczeniu wymaganych zgód łowiska łączy relację (`linked`).
+- [x] Zalogowany na właściwe konto po zaznaczeniu wymaganych zgód łowiska łączy relację (`linked`).
       Bez zgód połączenie nie przechodzi.
-- [ ] Rejestracja hasłem z linku zakłada konto z `has_password = true`, adresem z prośby (adresu
+- [x] Rejestracja hasłem z linku zakłada konto z `has_password = true`, adresem z prośby (adresu
       z żądania nie bierze pod uwagę) i zweryfikowanym e-mailem. Wymaga zgód Fisherya i łowiska.
-- [ ] Rejestracja i logowanie przez Google z innym adresem niż adres z prośby nie łączą relacji.
-- [ ] W kodzie nie ma ścieżki zakładającej konto z `has_password = false` poza `SocialAuthController`.
-- [ ] Zgody zapisują się zgodnie z ADR-028. Da się odtworzyć, kto, kiedy, w jakim kontekście i którą
+- [x] Rejestracja i logowanie przez Google z innym adresem niż adres z prośby nie łączą relacji.
+- [x] W kodzie nie ma ścieżki zakładającej konto z `has_password = false` poza `SocialAuthController`.
+- [x] Zgody zapisują się zgodnie z ADR-028. Da się odtworzyć, kto, kiedy, w jakim kontekście i którą
       wersję dokumentu zaakceptował.
-- [ ] Zwykła rejestracja (`/register`) bez wymaganych zgód Fisherya jest odrzucana. Nowe konto przez
+- [x] Zwykła rejestracja (`/register`) bez wymaganych zgód Fisherya jest odrzucana. Nowe konto przez
       Google bez zgód nie powstaje, także z przycisku na stronie logowania.
-- [ ] Logowanie hasłem, przez Google i przez ekran kodu 2FA wraca na stronę łączenia, gdy w sesji jest
+- [x] Logowanie hasłem, przez Google i przez ekran kodu 2FA wraca na stronę łączenia, gdy w sesji jest
       znacznik łączenia (R2). Bez znacznika przekierowanie się nie zmienia.
-- [ ] „Nie teraz” zostawia relację `pending` z ważnym tokenem, więc link z maila pozwala połączyć konto
+- [x] „Nie teraz” zostawia relację `pending` z ważnym tokenem, więc link z maila pozwala połączyć konto
       później (R1).
-- [ ] Panel pokazuje stan wędkarza („dane od łowiska” / „potwierdzone konto”) niezależnie od statusu
+- [x] Panel pokazuje stan wędkarza („dane od łowiska” / „potwierdzone konto”) niezależnie od statusu
       rezerwacji.
-- [ ] Teksty UI po angielsku, tłumaczenia w `lang/pl.json`. Motyw przebudowany po zmianach widoków
+- [x] Teksty UI po angielsku, tłumaczenia w `lang/pl.json`. Motyw przebudowany po zmianach widoków
       (`docker compose exec -T app npm run build`).
-- [ ] `vendor/bin/pint` czysty, pełny pakiet testów zielony (T3).
+- [x] `vendor/bin/pint` czysty, pełny pakiet testów zielony (T3).
 
 ## Zakres testów
 - **Tier:** T3
@@ -145,20 +145,20 @@ rejestracją oraz zgodami.
 - Zmiana zachowania „Zrezygnuj” i „To nie ja”.
 
 ## Zmiany dokumentacji
-- [ ] `docs/conventions/rezerwacje.md` — §3: przepływ potwierdzenia i łączenia, zgody, stan wędkarza
+- [x] `docs/conventions/rezerwacje.md` — §3: przepływ potwierdzenia i łączenia, zgody, stan wędkarza
       w panelu.
-- [ ] `docs/conventions/autoryzacja.md` — §6: konto powstaje wyłącznie z udziałem wędkarza (hasło albo
+- [x] `docs/conventions/autoryzacja.md` — §6: konto powstaje wyłącznie z udziałem wędkarza (hasło albo
       dostawca); usunąć opis kont zakładanych z linku bez hasła.
-- [ ] `docs/conventions/strona-publiczna.md` — strony pod tokenem: logowanie i rejestracja z powrotem
+- [x] `docs/conventions/strona-publiczna.md` — strony pod tokenem: logowanie i rejestracja z powrotem
       na stronę łączenia.
-- [ ] `docs/conventions/panel-admina.md` — strona wersji dokumentów platformy (ADR-028).
-- [ ] `MANUAL.md` — §1 (rejestracja ze zgodami), §15 (rezerwacje: co widzi wędkarz po kliknięciu
+- [x] `docs/conventions/panel-admina.md` — strona wersji dokumentów platformy (ADR-028).
+- [x] `MANUAL.md` — §1 (rejestracja ze zgodami), §15 (rezerwacje: co widzi wędkarz po kliknięciu
       i co widzi łowisko), rozdział admina o dokumentach platformy.
-- [ ] `docs/project/DECYZJE-I-TODO-BIZNESOWE.md` — TODO-6: zdanie „konto powstaje po kliknięciu linku
+- [x] `docs/project/DECYZJE-I-TODO-BIZNESOWE.md` — TODO-6: zdanie „konto powstaje po kliknięciu linku
       (bez hasła)” przestaje być prawdą; przepisać na „konto zakłada wędkarz sam (hasło albo Google)”.
-- [ ] ADR-024 — Aktualizacja z 2026-10-11 już zapisana. ADR-028 — status `accepted` po decyzji
+- [x] ADR-024 — Aktualizacja z 2026-10-11 już zapisana. ADR-028 — status `accepted` po decyzji
       autora.
-- [ ] `CHANGELOG.md` — wpis w changelogu.
+- [x] `CHANGELOG.md` — wpis w changelogu.
 
 ## Ograniczenia techniczne
 - Laravel 13, Breeze (logowanie, rejestracja, 2FA kodem z maila), Socialite (Google), portal wędkarza
@@ -184,10 +184,10 @@ rejestracją oraz zgodami.
   i akceptację nowych wersji przeniesiono do **ADR-028** (decyzja autora wymagana przed implementacją).
 
 ## Powiązane ADR-y
-- [ADR-028](../adr/ADR-028-zapis-zgod-i-dokumenty-platformy.md) — rejestr zgód i akceptacji,
+- [ADR-028](../../adr/ADR-028-zapis-zgod-i-dokumenty-platformy.md) — rejestr zgód i akceptacji,
   dokumenty portalu, rynek z kraju łowiska (**sekcja Decyzja do wypełnienia przez autora**).
-- [ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md) — Aktualizacja
+- [ADR-024](../../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md) — Aktualizacja
   2026-10-11 (decyzja autora, podstawa zadania).
-- [ADR-017](../adr/ADR-017-dokumenty-i-wersje-dokumentow.md) — dokumenty i flagi wymagalności.
-- [ADR-019](../adr/ADR-019-dowiazanie-dostawcy-logowania-do-istniejacego-konta.md) — dowiązanie Google
+- [ADR-017](../../adr/ADR-017-dokumenty-i-wersje-dokumentow.md) — dokumenty i flagi wymagalności.
+- [ADR-019](../../adr/ADR-019-dowiazanie-dostawcy-logowania-do-istniejacego-konta.md) — dowiązanie Google
   do konta.

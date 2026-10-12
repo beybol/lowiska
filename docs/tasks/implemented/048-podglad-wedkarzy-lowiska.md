@@ -49,17 +49,17 @@ a przy każdym wędkarzu lista jego rezerwacji z przejściem do istniejących sz
 
 ## Kryteria akceptacji
 
-- [ ] W menu łowiska jest pozycja „Wędkarze” w obu panelach; operator widzi wyłącznie wędkarzy swojego
+- [x] W menu łowiska jest pozycja „Wędkarze” w obu panelach; operator widzi wyłącznie wędkarzy swojego
       łowiska, a wejście na stronę cudzego łowiska kończy się odmową.
-- [ ] Status `linked` pokazuje dane konta (z `phone_override`), `unlinked`/`pending` dane od łowiska,
+- [x] Status `linked` pokazuje dane konta (z `phone_override`), `unlinked`/`pending` dane od łowiska,
       a `revoked` dane puste z informacją o cofniętym dostępie.
-- [ ] Każdy z czterech filtrów zawęża listę zgodnie z opisem. Wyszukiwarka nie znajduje wędkarza
+- [x] Każdy z czterech filtrów zawęża listę zgodnie z opisem. Wyszukiwarka nie znajduje wędkarza
       z innego łowiska.
-- [ ] Podgląd wędkarza pokazuje jego rezerwacje tylko z tego łowiska, każda z działającym przejściem
+- [x] Podgląd wędkarza pokazuje jego rezerwacje tylko z tego łowiska, każda z działającym przejściem
       do szczegółów.
-- [ ] Liczba zapytań tabeli nie rośnie z liczbą wędkarzy (test liczby zapytań).
-- [ ] Testy z zakresu T2 przechodzą, `pint` i PHPStan są czyste.
-- [ ] Pełny pakiet testów jest **odroczony** na koniec sesji (`/review-implementation`, Krok 1).
+- [x] Liczba zapytań tabeli nie rośnie z liczbą wędkarzy (test liczby zapytań).
+- [x] Testy z zakresu T2 przechodzą, `pint` i PHPStan są czyste.
+- [x] Pełny pakiet testów jest **odroczony** na koniec sesji (`/review-implementation`, Krok 1).
 
 ## Zakres testów
 
@@ -81,12 +81,12 @@ a przy każdym wędkarzu lista jego rezerwacji z przejściem do istniejących sz
 
 ## Zmiany dokumentacji
 
-- [ ] `docs/conventions/rezerwacje.md`: nowa sekcja o stronie „Wędkarze” (źródło danych = relacje
+- [x] `docs/conventions/rezerwacje.md`: nowa sekcja o stronie „Wędkarze” (źródło danych = relacje
       łowiska, dane efektywne, tylko odczyt, autoryzacja przez rodzica).
 - [ ] `docs/conventions/panel-wlasciciela.md`: pozycja sub-nawigacji łowiska, jeśli plik wylicza
       kolejność pozycji.
-- [ ] `MANUAL.md`: opis strony „Wędkarze” dla operatora.
-- [ ] `CHANGELOG.md`: wpis w changelogu.
+- [x] `MANUAL.md`: opis strony „Wędkarze” dla operatora.
+- [x] `CHANGELOG.md`: wpis w changelogu.
 
 ## Ograniczenia techniczne
 
@@ -124,5 +124,5 @@ a przy każdym wędkarzu lista jego rezerwacji z przejściem do istniejących sz
 
 ## Powiązane ADR-y
 
-- [ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md): wędkarz jako tożsamość globalna
+- [ADR-024](../../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md): wędkarz jako tożsamość globalna
   i relacja z łowiskiem. Wiąże źródło danych i widoczność.

@@ -55,19 +55,19 @@ portalu: płaskiej siatki stanowisk z przełącznikami grup i cech, wersji mobil
 
 ## Kryteria akceptacji
 
-- [ ] Komórki zgodne z kalendarzem podglądowym panelu (019) dla tych samych danych — test
+- [x] Komórki zgodne z kalendarzem podglądowym panelu (019) dla tych samych danych — test
       porównujący werdykty dla Klasztornego (tydzień z Bożym Ciałem) i Łopienna (dopłata czw–nd).
-- [ ] Przełączniki: grupa, cecha, łowiący, tydzień — testy funkcjonalne wyniku (wiersze, komórki).
-- [ ] Stanowisko w dwóch grupach widoczne po wybraniu każdej z nich.
-- [ ] Parametry: PL i EN nazwy, błędne wartości ignorowane, przełącznik języka przenosi stan,
+- [x] Przełączniki: grupa, cecha, łowiący, tydzień — testy funkcjonalne wyniku (wiersze, komórki).
+- [x] Stanowisko w dwóch grupach widoczne po wybraniu każdej z nich.
+- [x] Parametry: PL i EN nazwy, błędne wartości ignorowane, przełącznik języka przenosi stan,
       canonical bez parametrów, linki przełączników z `rel="nofollow"`.
-- [ ] Wiersz „Pakiety" zgodny z komórkami „zacznij wcześniej" (Boże Ciało w Klasztornym, weekend).
-- [ ] Stanowisko wycofane nie ma wiersza; stanowisko o mniejszej pojemności — komunikat na wiersz.
-- [ ] Liczba zapytań siatki portalu nie rośnie z liczbą widocznych wierszy (test jak w 019).
-- [ ] Linijka zasad na karcie strony głównej z tej samej metody co wyciąg.
+- [x] Wiersz „Pakiety" zgodny z komórkami „zacznij wcześniej" (Boże Ciało w Klasztornym, weekend).
+- [x] Stanowisko wycofane nie ma wiersza; stanowisko o mniejszej pojemności — komunikat na wiersz.
+- [x] Liczba zapytań siatki portalu nie rośnie z liczbą widocznych wierszy (test jak w 019).
+- [x] Linijka zasad na karcie strony głównej z tej samej metody co wyciąg.
 - [ ] **Ręczna weryfikacja** na telefonie (390 px, iOS Safari i Android Chrome), tablecie i desktopie
       (26 wierszy Klasztornego, przyklejony nagłówek), w obu językach; lista w podsumowaniu.
-- [ ] Testy w zadeklarowanym zakresie zielone (T2); **pełny pakiet odroczony** na `/review-implementation`.
+- [x] Testy w zadeklarowanym zakresie zielone (T2); **pełny pakiet odroczony** na `/review-implementation`.
 
 ## Zakres testów
 
@@ -88,10 +88,10 @@ portalu: płaskiej siatki stanowisk z przełącznikami grup i cech, wersji mobil
 
 ## Zmiany dokumentacji
 
-- [ ] `docs/conventions/dostepnosc.md`, `cennik.md` — kalendarz portalu jako trzeci widok tej samej prawdy.
-- [ ] `docs/conventions/strona-publiczna.md` — przełączniki zamiast grupowania, stan w adresie
+- [x] `docs/conventions/dostepnosc.md`, `cennik.md` — kalendarz portalu jako trzeci widok tej samej prawdy.
+- [x] `docs/conventions/strona-publiczna.md` — przełączniki zamiast grupowania, stan w adresie
       (nazwy parametrów zależne od języka, jeden dom), mechanizm z ADR-022, wiersz „Pakiety" z werdyktów.
-- [ ] `CHANGELOG.md` — wpis (kalendarz na stronie łowiska).
+- [x] `CHANGELOG.md` — wpis (kalendarz na stronie łowiska).
 
 ## Ograniczenia techniczne
 

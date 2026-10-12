@@ -53,16 +53,16 @@ i karta na stronie głównej.
 
 ## Kryteria akceptacji
 
-- [ ] „Cena od" liczona jedną metodą w warstwie cennika; testy: kilka stawek, sezon trwający
+- [x] „Cena od" liczona jedną metodą w warstwie cennika; testy: kilka stawek, sezon trwający
       i przyszły, stawka zawieszona, stawka tylko w minionej części sezonu, okres zakończony, dopłata
       i kwota za towarzyszącą nie wpływają, brak stawki; karta strony głównej ją pokazuje.
-- [ ] Box bez telefonu pokazuje e-mail albo nic, a pasek „Zadzwoń" znika.
-- [ ] Obie zakładki w jednym dokumencie; kotwica otwiera właściwą zakładkę; bez JS widać obie treści.
-- [ ] Puste pola (ryby, rekord, WWW, Facebook, parametry 021) nie są pokazywane jako „nie"/puste etykiety.
-- [ ] Stanowiska: tylko w sprzedaży, kolejność etykiet, grupy przy numerze.
+- [x] Box bez telefonu pokazuje e-mail albo nic, a pasek „Zadzwoń" znika.
+- [x] Obie zakładki w jednym dokumencie; kotwica otwiera właściwą zakładkę; bez JS widać obie treści.
+- [x] Puste pola (ryby, rekord, WWW, Facebook, parametry 021) nie są pokazywane jako „nie"/puste etykiety.
+- [x] Stanowiska: tylko w sprzedaży, kolejność etykiet, grupy przy numerze.
 - [ ] **Ręczna weryfikacja** na telefonie (390 px, iOS Safari i Android Chrome), tablecie i desktopie,
       w obu językach, na danych Klasztornego i Łopienna; lista w podsumowaniu. Testy przeglądarkowe — 035.
-- [ ] Testy w zadeklarowanym zakresie zielone (T2); **pełny pakiet odroczony** na `/review-implementation`.
+- [x] Testy w zadeklarowanym zakresie zielone (T2); **pełny pakiet odroczony** na `/review-implementation`.
 
 ## Zakres testów
 
@@ -81,13 +81,13 @@ i karta na stronie głównej.
 
 ## Zmiany dokumentacji
 
-- [ ] `docs/conventions/cennik.md` — metoda „ceny od" jako jedyne źródło **i jawny wyjątek w §5**:
+- [x] `docs/conventions/cennik.md` — metoda „ceny od" jako jedyne źródło **i jawny wyjątek w §5**:
       portal czyta „cenę od" z cennika, nie z `StayOffer` — to odczyt konfiguracji, nie werdykt
       sprzedaży (wzorem listy usług z 020); cena pobytu nadal wyłącznie przez `StayOffer`.
-- [ ] `docs/conventions/strona-publiczna.md` — zakładki w jednym dokumencie (skrypt `portal.js`, treść bez JS),
+- [x] `docs/conventions/strona-publiczna.md` — zakładki w jednym dokumencie (skrypt `portal.js`, treść bez JS),
       box z ceną i kontaktem (e-mail albo nic przy braku telefonu), „cena od" wyłącznie z metody cennika.
-- [ ] `docs/operations/docker.md` — tabela wejść Vite: nowe wejście `resources/js/portal.js`.
-- [ ] `CHANGELOG.md` — wpis (strona łowiska w portalu).
+- [x] `docs/operations/docker.md` — tabela wejść Vite: nowe wejście `resources/js/portal.js`.
+- [x] `CHANGELOG.md` — wpis (strona łowiska w portalu).
 
 ## Ograniczenia techniczne
 

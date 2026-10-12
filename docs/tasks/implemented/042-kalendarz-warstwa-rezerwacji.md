@@ -31,15 +31,15 @@ drugi, podobny ekran, przerabiamy `ManageCalendar`: ta sama siatka i ten sam uk�
 - Amendment zasady G4 w `ZASADY-PROJEKTOWE.md`: kalendarz ma warstwę podglądową i operacyjną.
 
 ## Kryteria akceptacji
-- [ ] Warstwa Oferta: zachowanie 019 bez zmian (testy 019 zielone), zajęta doba = „Zajęte".
-- [ ] Warstwa Rezerwacje pokazuje rezerwacje i blokady poprawnie przycięte do okna (test jednostkowy układu).
-- [ ] Zaznaczenie zakresu nie przeskakuje zajętej doby; przeszłość nieklikalna (test Livewire).
+- [x] Warstwa Oferta: zachowanie 019 bez zmian (testy 019 zielone), zajęta doba = „Zajęte".
+- [x] Warstwa Rezerwacje pokazuje rezerwacje i blokady poprawnie przycięte do okna (test jednostkowy układu).
+- [x] Zaznaczenie zakresu nie przeskakuje zajętej doby; przeszłość nieklikalna (test Livewire).
 - [ ] Popover i modal pojawiają się w polu widzenia dla pierwszego i ostatniego wiersza (ręcznie/Playwright, zad. 035).
 - [ ] „Zarezerwuj…" zapisuje przez serwis z 039; „Pełny formularz →" otwiera C z parametrami.
-- [ ] Akcje na rezerwacji działają bez przejścia do szczegółów; „Anuluj…" trwającej pyta dodatkowo.
-- [ ] Widok telefonu: poprawna liczba dób „do następnej rezerwacji"; stepper nie przekracza maksimum.
-- [ ] Liczba zapytań stała względem liczby dób (test).
-- [ ] G4 zaktualizowane; docblock i test `ManageCalendar` odzwierciedlają dwie warstwy.
+- [x] Akcje na rezerwacji działają bez przejścia do szczegółów; „Anuluj…" trwającej pyta dodatkowo.
+- [x] Widok telefonu: poprawna liczba dób „do następnej rezerwacji"; stepper nie przekracza maksimum.
+- [x] Liczba zapytań stała względem liczby dób (test).
+- [x] G4 zaktualizowane; docblock i test `ManageCalendar` odzwierciedlają dwie warstwy.
 
 ## Zakres testów
 - **Tier:** T2
@@ -54,10 +54,10 @@ drugi, podobny ekran, przerabiamy `ManageCalendar`: ta sama siatka i ten sam uk�
 - Testy przeglądarkowe (zadanie 035, etap 2).
 
 ## Zmiany dokumentacji
-- [ ] `docs/project/ZASADY-PROJEKTOWE.md` — G4: dwie warstwy
-- [ ] `docs/conventions/panel-wlasciciela.md` — wyjątek: modale dla krótkich akcji w kalendarzu
-- [ ] `docs/conventions/dostepnosc.md` — kalendarz a `Occupied`
-- [ ] `CHANGELOG.md` — wpis w changelogu
+- [x] `docs/project/ZASADY-PROJEKTOWE.md` — G4: dwie warstwy
+- [x] `docs/conventions/panel-wlasciciela.md` — wyjątek: modale dla krótkich akcji w kalendarzu
+- [x] `docs/conventions/dostepnosc.md` — kalendarz a `Occupied`
+- [x] `CHANGELOG.md` — wpis w changelogu
 
 ## Ograniczenia techniczne
 - Siatka jako widok Blade (tabela Filamenta nie zna colspanu); styl z motywu panelu (Tailwind 4); popover
@@ -74,5 +74,5 @@ drugi, podobny ekran, przerabiamy `ManageCalendar`: ta sama siatka i ten sam uk�
 - Domyślna warstwa „Rezerwacje" dla operatora; admin też domyślnie Rezerwacje. Parametr `?layer=` z niedozwoloną wartością → domyślna.
 
 ## Powiązane ADR-y
-- [ADR-025](../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md),
-  [ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md) — rozstrzygnięte.
+- [ADR-025](../../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md),
+  [ADR-027](../../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md) — rozstrzygnięte.

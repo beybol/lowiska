@@ -9,6 +9,7 @@ use App\Filament\Resources\ReservationResource\Pages\EditReservation;
 use App\Filament\Resources\ReservationResource\Pages\ListReservations;
 use App\Filament\Resources\ReservationResource\Pages\ViewReservation;
 use App\Filament\Resources\ReservationResource\ReservationActions;
+use App\Models\FisheryAngler;
 use App\Models\Reservation;
 use App\Services\AmountFormatter;
 use App\Services\FisheryAccess;
@@ -71,9 +72,16 @@ class ReservationResource extends Resource
                     ->iconColor(fn (Reservation $record): string => $record->angler?->status->accountColor() ?? 'gray')
                     ->description(fn (Reservation $record): ?string => collect([$record->angler?->effectiveContact()['phone'], $record->angler?->status->accountLabel()])->filter()->implode(' · ') ?: null)
                     ->wrap()
-                    // ⚠️ Wyszukiwanie wyłącznie w relacjach TEGO łowiska (ADR-024) — zapytanie tabeli jest
-                    // już zawężone do łowiska, a wyszukiwarka nie sięga do `users`.
-                    ->searchable(['given_name', 'given_phone', 'given_email']),
+                    // ⚠️ Wyszukiwanie wyłącznie w relacjach TEGO łowiska (ADR-024) — zapytanie tabeli jest już zawężone
+                    // do łowiska. Szuka po danych EFEKTYWNYCH, tą samą regułą co lista wędkarzy (`matchingContact()`):
+                    // cofnięty dostęp nie pasuje nigdy, dane konta tylko przy relacji powiązanej.
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        /** @var Builder<Reservation> $query */
+                        return $query->whereHas('angler', function (Builder $angler) use ($search): void {
+                            /** @var Builder<FisheryAngler> $angler */
+                            $angler->matchingContact($search);
+                        });
+                    }),
                 TextColumn::make('position.name')
                     ->label(__('Position')),
                 TextColumn::make('starts_at')

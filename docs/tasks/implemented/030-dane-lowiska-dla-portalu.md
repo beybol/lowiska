@@ -63,7 +63,7 @@ tabeli stanowisk. Bez tych danych strona główna (031) nie ma czego wylistować
       województwa, ostrzeżenie (każdy punkt listy, w tym „stanowiska są, ale żadne w sprzedaży"),
       blokada bez województwa, autoryzacja publikacji (właściciel tylko swojego łowiska),
       walidacja telefonu, e-maila, WWW i Facebooka.
-- [ ] Pełny pakiet testów zielony (T3).
+- [x] Pełny pakiet testów zielony (T3).
 
 ## Zakres testów
 

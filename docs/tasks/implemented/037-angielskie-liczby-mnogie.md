@@ -47,13 +47,13 @@ to obejście, nie rozwiązanie.
 
 ## Kryteria akceptacji
 
-- [ ] Strony portalu w EN pokazują angielskie teksty ze wszystkich dotychczasowych kluczy z liczbą mnogą
+- [x] Strony portalu w EN pokazują angielskie teksty ze wszystkich dotychczasowych kluczy z liczbą mnogą
       (stanowiska „up to N anglers", wyciąg zasad „min./max. N nights", liczba dób, warunek dopłaty).
-- [ ] Ekrany paneli po przełączeniu na EN nie mają polskich fragmentów z liczbą mnogą.
-- [ ] Test zgodności kluczy z liczbą mnogą i test języka zapasowego zielone.
-- [ ] Teksty polskie niezmienione — poza warunkiem dopłaty, który wraca do „przy 1 łowiącym" (R2).
+- [x] Ekrany paneli po przełączeniu na EN nie mają polskich fragmentów z liczbą mnogą.
+- [x] Test zgodności kluczy z liczbą mnogą i test języka zapasowego zielone.
+- [x] Teksty polskie niezmienione — poza warunkiem dopłaty, który wraca do „przy 1 łowiącym" (R2).
 - [ ] **Ręczna weryfikacja** strony łowiska w EN i jednego ekranu panelu w EN (po zmianie lokalnego `.env`).
-- [ ] Pełny pakiet testów zielony (T3).
+- [x] Pełny pakiet testów zielony (T3).
 
 ## Zakres testów
 
@@ -73,11 +73,11 @@ to obejście, nie rozwiązanie.
 
 ## Zmiany dokumentacji
 
-- [ ] `docs/conventions/strona-publiczna.md` §5 — przepisać uwagę o pułapce `trans_choice` na regułę:
+- [x] `docs/conventions/strona-publiczna.md` §5 — przepisać uwagę o pułapce `trans_choice` na regułę:
       język zapasowy to `en`, liczba mnoga przez `trans_choice()` z angielskim kluczem i formami w `pl.json`.
-- [ ] `docs/conventions/panel-admina.md` — jedno zdanie o języku zapasowym, jeśli panel ma sekcję o tłumaczeniach;
+- [x] `docs/conventions/panel-admina.md` — jedno zdanie o języku zapasowym, jeśli panel ma sekcję o tłumaczeniach;
       inaczej bez zmian.
-- [ ] `CHANGELOG.md` — wpis w changelogu (sekcja „Poprawione").
+- [x] `CHANGELOG.md` — wpis w changelogu (sekcja „Poprawione").
 
 ## Ograniczenia techniczne
 

@@ -47,16 +47,16 @@ jako jeden regulamin. To za mało:
 - [ ] Makieta zakładek zatwierdzona.
 - [ ] Cennik Klasztornego i Łopienna na stronie zgadza się z konfiguracją (stawki, dopłata
       Łopienna z warunkiem, prysznic, łódka, przyczepa z wymaganą cechą).
-- [ ] Stawka zakończona, zawieszona albo martwa od dziś nie pokazuje się w cenniku. Stawka
+- [x] Stawka zakończona, zawieszona albo martwa od dziś nie pokazuje się w cenniku. Stawka
       przyszła pokazuje się ze swoim okresem.
-- [ ] Dokumenty: dla każdego rodzaju wyłącznie wersja obowiązująca. Wersja zaplanowana
+- [x] Dokumenty: dla każdego rodzaju wyłącznie wersja obowiązująca. Wersja zaplanowana
       i archiwalna się nie pokazują. Rodzaj bez wersji obowiązującej nie ma sekcji. Łowisko bez
       żadnego dokumentu ma zakładkę z komunikatem.
-- [ ] Rodzaj „Inne" działa w panelu właściciela i admina (zakładka na liście wersji, szablony)
+- [x] Rodzaj „Inne" działa w panelu właściciela i admina (zakładka na liście wersji, szablony)
       i nie zmienia warunków publikacji łowiska (wymagany nadal wyłącznie regulamin).
-- [ ] Treść dokumentów przechodzi przez `Str::sanitizeHtml()`.
+- [x] Treść dokumentów przechodzi przez `Str::sanitizeHtml()`.
 - [ ] **Ręczna weryfikacja** na telefonie (390 px), tablecie i desktopie, w obu językach.
-- [ ] Testy w zadeklarowanym zakresie zielone; **pełny pakiet odroczony** na `/review-implementation`.
+- [x] Testy w zadeklarowanym zakresie zielone; **pełny pakiet odroczony** na `/review-implementation`.
 
 ## Zakres testów
 
@@ -77,16 +77,16 @@ jako jeden regulamin. To za mało:
 
 ## Zmiany dokumentacji
 
-- [ ] `docs/project/mockups/portal-v3/`: makieta zakładek; README §1 (lista zakładek).
-- [ ] `docs/conventions/strona-publiczna.md` §5: zakładki „Cennik" i „Dokumenty" (kotwice,
+- [x] `docs/project/mockups/portal-v3/`: makieta zakładek; README §1 (lista zakładek).
+- [x] `docs/conventions/strona-publiczna.md` §5: zakładki „Cennik" i „Dokumenty" (kotwice,
       reguły widoczności sekcji dokumentów); §1: odsyłacz do odczytu cennika.
-- [ ] `docs/conventions/cennik.md` §5: odczyt cennika dla portalu jako drugi jawny wyjątek obok
+- [x] `docs/conventions/cennik.md` §5: odczyt cennika dla portalu jako drugi jawny wyjątek obok
       `PriceFrom` (R4), filtr „żywa od dziś" w `PricingConfigurationAudit` (R5).
-- [ ] `docs/conventions/panel-wlasciciela.md` §9: trzeci rodzaj „Inne" (zakładka, nie wpływa na
+- [x] `docs/conventions/panel-wlasciciela.md` §9: trzeci rodzaj „Inne" (zakładka, nie wpływa na
       gotowość publikacji).
-- [ ] `docs/adr/ADR-017`: sekcja „Aktualizacja" z jednym zdaniem: rodzaj „Inne" dodany w 034
+- [x] `docs/adr/ADR-017`: sekcja „Aktualizacja" z jednym zdaniem: rodzaj „Inne" dodany w 034
       zgodnie z regułą „kolejny rodzaj bez nowej mechaniki".
-- [ ] `CHANGELOG.md`: wpis.
+- [x] `CHANGELOG.md`: wpis.
 
 ## Ograniczenia techniczne
 

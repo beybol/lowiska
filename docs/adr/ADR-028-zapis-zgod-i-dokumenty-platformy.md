@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Data:** 2026-10-12
-- **Zadanie:** [049 — Potwierdzenie rezerwacji oddzielone od połączenia z kontem wędkarza](../tasks/049-potwierdzenie-rezerwacji-a-konto-wedkarza.md)
+- **Zadanie:** [049 — Potwierdzenie rezerwacji oddzielone od połączenia z kontem wędkarza](../tasks/implemented/049-potwierdzenie-rezerwacji-a-konto-wedkarza.md)
 
 ## Kontekst
 

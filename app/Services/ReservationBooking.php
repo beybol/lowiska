@@ -542,6 +542,15 @@ final class ReservationBooking
         } else {
             $reservation = $existing;
             $before = $reservation->only(['position_id', 'first_night_on', 'nights', 'fishery_angler_id']);
+
+            // Niepotwierdzona rezerwacja przeniesiona na wcześniej nie może mieć terminu potwierdzenia po starcie
+            // pobytu — inaczej `expire()` nigdy by jej nie wygasił (ADR-024 akt. pkt 7). Okna nie przedłużamy.
+            if ($reservation->status === ReservationStatus::Pending
+                && $reservation->confirm_by !== null
+                && $reservation->confirm_by > $stayStart) {
+                $attributes['confirm_by'] = $stayStart;
+            }
+
             $reservation->update($attributes);
         }
 

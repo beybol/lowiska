@@ -162,6 +162,9 @@ class ManageAnglers extends ManageRelatedRecords
                     ->modalHeading(fn (FisheryAngler $record): string => $record->effectiveContact()['name'] ?? __('Access revoked'))
                     ->slideOver()
                     ->modalWidth('3xl')
+                    // ⚠️ Bez domyślnego `attributesToArray()`: pola `given_*` trafiłyby do stanu Livewire w przeglądarce,
+                    // także przy cofniętym dostępie. Schemat ma jawne `state()` z `effectiveContact()`.
+                    ->fillForm(fn (): array => [])
                     ->schema(fn (): array => $this->previewSchema()),
             ])])
             ->emptyStateHeading(__('No anglers yet'))
@@ -188,16 +191,19 @@ class ManageAnglers extends ManageRelatedRecords
                         ->state(fn (FisheryAngler $record): ?string => $record->effectiveContact()['phone'])
                         ->placeholder(fn (FisheryAngler $record): string => $this->missingLabel($record)),
                     TextEntry::make('status')->label(__('Angler data'))
+                        ->state(fn (FisheryAngler $record): AnglerLinkStatus => $record->status)
                         ->badge()
                         ->formatStateUsing(fn (AnglerLinkStatus $state): string => $state->accountLabel())
                         ->color(fn (AnglerLinkStatus $state): string => $state->accountColor()),
                     TextEntry::make('link_status')->label(__('Account link'))
                         ->state(fn (FisheryAngler $record): string => $this->linkDetail($record)),
                 ]),
-                TextEntry::make('notes')->label(__('Notes'))->placeholder(__('Not provided'))->columnSpanFull(),
+                TextEntry::make('notes')->label(__('Notes'))
+                    ->state(fn (FisheryAngler $record): ?string => $record->notes)
+                    ->placeholder(__('Not provided'))->columnSpanFull(),
             ]),
             Section::make(__('Reservations'))->schema([
-                // ⚠️ Stan z relacji, nie z wypełnionego formularza: `ViewAction` wypełnia go `attributesToArray()`.
+                // Stan z relacji — formularz akcji jest pusty (`fillForm`), każdy wpis ma jawny `state()`.
                 RepeatableEntry::make('reservationHistory')
                     ->state(fn (FisheryAngler $record): array => $record->reservationHistory->all())
                     ->hiddenLabel()

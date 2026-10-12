@@ -29,16 +29,16 @@ oraz zobaczyć ich listę — to zastępuje ręczny grafik. Specyfikacja i makie
   wyłącznie rezerwacje swoich łowisk, admin wszystkie.
 
 ## Kryteria akceptacji
-- [ ] Operator zakłada rezerwację z formularza; zapis idzie przez serwis z 039 (test funkcjonalny).
-- [ ] Formularz ostrzega przy naruszeniu reguł sprzedaży i zapisuje wyjątek; kwota uzgodniona wymaga powodu.
-- [ ] Lista filtruje po statusie i „Do kontaktu"; wyszukiwanie nie wychodzi poza łowisko.
-- [ ] Anulacja zwalnia sloty, ustawia status płatności „zwrot" (gdy opłacona) i wysyła mail z komunikatem;
+- [x] Operator zakłada rezerwację z formularza; zapis idzie przez serwis z 039 (test funkcjonalny).
+- [x] Formularz ostrzega przy naruszeniu reguł sprzedaży i zapisuje wyjątek; kwota uzgodniona wymaga powodu.
+- [x] Lista filtruje po statusie i „Do kontaktu"; wyszukiwanie nie wychodzi poza łowisko.
+- [x] Anulacja zwalnia sloty, ustawia status płatności „zwrot" (gdy opłacona) i wysyła mail z komunikatem;
       bez e-maila trafia do „Do kontaktu".
-- [ ] Anulacja trwającej rezerwacji wymaga dodatkowego potwierdzenia (test).
-- [ ] Zwrot inny niż z warunków wymaga powodu i zapisuje wyjątek.
-- [ ] Operator cudzego łowiska dostaje 404/403; zmiany widoczne w historii szczegółów.
-- [ ] Zachowane konwencje `panel-wlasciciela.md` (pełne strony dla formularza, natywne komponenty, kolejność menu).
-- [ ] Pełny pakiet testów (T3 — polityka i Shield).
+- [x] Anulacja trwającej rezerwacji wymaga dodatkowego potwierdzenia (test).
+- [x] Zwrot inny niż z warunków wymaga powodu i zapisuje wyjątek.
+- [x] Operator cudzego łowiska dostaje 404/403; zmiany widoczne w historii szczegółów.
+- [x] Zachowane konwencje `panel-wlasciciela.md` (pełne strony dla formularza, natywne komponenty, kolejność menu).
+- [x] Pełny pakiet testów (T3 — polityka i Shield).
 
 ## Zakres testów
 - **Tier:** T3
@@ -53,10 +53,10 @@ oraz zobaczyć ich listę — to zastępuje ręczny grafik. Specyfikacja i makie
 - Eksport grafiku/listy (Q4).
 
 ## Zmiany dokumentacji
-- [ ] `docs/conventions/panel-wlasciciela.md` — pozycja „Rezerwacje", plakietki, odstępstwo „modal dla krótkich akcji w kalendarzu"
-- [ ] `docs/conventions/autoryzacja.md` — `ReservationPolicy`
-- [ ] `docs/project/mockups/etap3/README.md` — stan realizacji
-- [ ] `CHANGELOG.md` — wpis w changelogu
+- [x] `docs/conventions/panel-wlasciciela.md` — pozycja „Rezerwacje", plakietki, odstępstwo „modal dla krótkich akcji w kalendarzu"
+- [x] `docs/conventions/autoryzacja.md` — `ReservationPolicy`
+- [x] `docs/project/mockups/etap3/README.md` — stan realizacji
+- [x] `CHANGELOG.md` — wpis w changelogu
 
 ## Ograniczenia techniczne
 - Filament 5, strona zasobu `FisheryResource` (jak `ManageCalendar`); tabela przez `ManageRelatedRecords` lub
@@ -78,6 +78,6 @@ oraz zobaczyć ich listę — to zastępuje ręczny grafik. Specyfikacja i makie
 - Wysyłka maila po zapisie rezerwacji (potwierdzenie z tokenami) dochodzi w 043, nie tutaj.
 
 ## Powiązane ADR-y
-- [ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md),
-  [ADR-026](../adr/ADR-026-zamrozenie-warunkow-rezerwacji.md),
-  [ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md) — rozstrzygnięte.
+- [ADR-024](../../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md),
+  [ADR-026](../../adr/ADR-026-zamrozenie-warunkow-rezerwacji.md),
+  [ADR-027](../../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md) — rozstrzygnięte.

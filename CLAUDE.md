@@ -39,7 +39,9 @@ Jedna aplikacja Laravel, **dwa panele Filament**:
   administracyjny; dziewiętnaście zasobów w [`app/Filament/Resources/`](app/Filament/Resources/)
   pokrywających cały model domenowy i słowniki.
 - **`/owner`** ([`OwnerPanelProvider`](app/Providers/Filament/OwnerPanelProvider.php)) — panel
-  właściciela łowiska; strony w [`app/Filament/Owner/Pages/`](app/Filament/Owner/Pages/).
+  właściciela łowiska; rejestruje jawnie część zasobów z `app/Filament/Resources/` (m.in. `FisheryResource`
+  z ekranami jednego łowiska w sub-nawigacji), a katalogi `app/Filament/Owner/{Resources,Pages}` przegląda
+  provider, choć dziś są puste.
 
 **Autoryzacja** stoi na dwóch warstwach naraz i obie trzeba respektować: `bezhansalleh/filament-shield`
 (role i uprawnienia, stąd `RolePolicy`) oraz dwadzieścia polityk w [`app/Policies/`](app/Policies/) —
@@ -65,14 +67,15 @@ da się odtworzyć z samego kodu.
 | Dotykasz | Przeczytaj |
 |---|---|
 | `app/Filament/Resources/**`, `app/Providers/Filament/AdminPanelProvider.php` | `docs/conventions/panel-admina.md` ⛏️ |
-| `app/Filament/Owner/**`, `app/Providers/Filament/OwnerPanelProvider.php` | `docs/conventions/panel-wlasciciela.md` |
+| `app/Filament/Owner/**`, `app/Providers/Filament/OwnerPanelProvider.php`, sub-nawigacja łowiska, układ tabel paneli (`app/Support/RowActions.php`, `Table::configureUsing()` w `AppServiceProvider`) | `docs/conventions/panel-wlasciciela.md` |
+| Ekrany konfiguracji jednego łowiska: `FisheryResource\Pages\Manage*` (ustawienia sprzedaży, reguły, stanowiska, grupy, cechy, dokumenty, polityka zwrotu, publikacja; „Rezerwacje" i „Wędkarze" → `rezerwacje.md`) | `docs/conventions/konfiguracja-lowiska.md` |
 | `app/Policies/**`, role i uprawnienia Shielda, `User` | `docs/conventions/autoryzacja.md` |
 | `app/Services/CSOService.php`, `app/Rules/IbanValidation.php`, `app/Helpers/**`, maile (`app/Mail/**`, `resources/views/emails/**`, `resources/views/components/mail/**`) | `docs/conventions/integracje.md` ⛏️ |
 | Modele z traitem `LogsActivity`, `config/activitylog.php` | `docs/conventions/dziennik-zmian.md` |
 | `app/Services/FishingDay*`, `PositionAvailability`, `StaySellability*`, `AvailabilityBlock*`, `PositionServices*`, każde miejsce pytające o sprzedawalność doby albo pobytu albo o usługi stanowiska | `docs/conventions/dostepnosc.md` |
 | `app/Services/StayPricing*`, `PriceRule*`, `StayOffer*`, `RefundPolicy*`, `app/Models/PriceRule.php`, jednostka usług dodatkowych, każde miejsce pytające o cenę albo zwrot | `docs/conventions/cennik.md` |
 | `routes/**`, widoki Breeze, `resources/views/**` (poza `filament/`), portal wędkarza | `docs/conventions/strona-publiczna.md` |
-| Ekrany i przepływy rezerwacji: `ReservationResource/**`, `ManageReservations`, `ManageAnglers`, warstwa „Rezerwacje" kalendarza, `app/Services/Reservation*`, maile o rezerwacjach (rdzeń zapisu → `dostepnosc.md` §6) | `docs/conventions/rezerwacje.md` |
+| Ekrany i przepływy rezerwacji: `ReservationResource/**`, `ManageReservations`, `ManageAnglers`, warstwa „Rezerwacje" kalendarza (z `app/Support/CalendarBarShape.php`, wspólnym z kalendarzem portalu), `app/Services/Reservation*`, `AnglerLinking`, `AnglerLinkSession`, maile o rezerwacjach (rdzeń zapisu → `dostepnosc.md` §6) | `docs/conventions/rezerwacje.md` |
 
 **Dokumentacja projektu** - znajduje się w katalogu docs
 

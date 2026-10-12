@@ -112,6 +112,13 @@ class ReservationLinkController extends Controller
 
     public function accountSubmit(Request $request): Response|RedirectResponse
     {
+        // „Nie teraz": wędkarz rezygnuje z łączenia — znacznik znika, kolejne logowanie idzie do panelu (R2).
+        if ($request->input('action') === 'dismiss') {
+            AnglerLinkSession::forget();
+
+            return redirect()->to(PortalRoutes::homeUrl());
+        }
+
         $angler = $this->sessionAngler();
 
         if ($angler === null) {

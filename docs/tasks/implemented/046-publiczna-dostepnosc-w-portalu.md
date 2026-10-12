@@ -19,11 +19,11 @@ to włączy. Specyfikacja: README makiet, ekran I; replika układu portalu w `et
 - Pamięć podręczna fragmentów kalendarza (jeśli jest) unieważniana przy zmianie rezerwacji.
 
 ## Kryteria akceptacji
-- [ ] Przy włączonym ustawieniu zajęta doba pokazuje „Zajęte"; przy wyłączonym — jak dotąd (test).
-- [ ] Widok nie ujawnia danych rezerwującego (test na wyjściu HTML i fragmencie `X-Portal-Fragment`).
-- [ ] Legenda i widok mobilny obsługują nowy stan.
-- [ ] Testy 033 i portalu zielone; brak dodatkowych zapytań rosnących z liczbą dób (test).
-- [ ] Warunek uruchomienia opisany w dokumentacji: obsługa wpisuje każdą rezerwację telefoniczną.
+- [x] Przy włączonym ustawieniu zajęta doba pokazuje „Zajęte"; przy wyłączonym — jak dotąd (test).
+- [x] Widok nie ujawnia danych rezerwującego (test na wyjściu HTML i fragmencie `X-Portal-Fragment`).
+- [x] Legenda i widok mobilny obsługują nowy stan.
+- [x] Testy 033 i portalu zielone; brak dodatkowych zapytań rosnących z liczbą dób (test).
+- [x] Warunek uruchomienia opisany w dokumentacji: obsługa wpisuje każdą rezerwację telefoniczną.
 
 ## Zakres testów
 - **Tier:** T2
@@ -37,9 +37,9 @@ to włączy. Specyfikacja: README makiet, ekran I; replika układu portalu w `et
 - Klikalna mapa stanowisk.
 
 ## Zmiany dokumentacji
-- [ ] `docs/conventions/strona-publiczna.md` — stan „Zajęte" i zasada prywatności
-- [ ] `docs/project/mockups/portal-v3/README.md` — odsyłacz do stanu „Zajęte"
-- [ ] `CHANGELOG.md` — wpis w changelogu
+- [x] `docs/conventions/strona-publiczna.md` — stan „Zajęte" i zasada prywatności
+- [x] `docs/project/mockups/portal-v3/README.md` — odsyłacz do stanu „Zajęte"
+- [x] `CHANGELOG.md` — wpis w changelogu
 
 ## Ograniczenia techniczne
 - Zależność: 039 (`Occupied`), 045 (ustawienie).
@@ -55,5 +55,5 @@ to włączy. Specyfikacja: README makiet, ekran I; replika układu portalu w `et
 - Nowe teksty PL/EN w plikach `lang`; kolory wyłącznie z `portal.css`.
 
 ## Powiązane ADR-y
-- [ADR-012](../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md),
-  [ADR-025](../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md) — rozstrzygnięte.
+- [ADR-012](../../adr/ADR-012-jedno-zrodlo-prawdy-o-dostepnosci.md),
+  [ADR-025](../../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md) — rozstrzygnięte.

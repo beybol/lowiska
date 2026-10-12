@@ -23,11 +23,11 @@ komponentów, na których stoją maile z zadań 041 i 043.
 - Teksty w angielskim (kod/klucze) z tłumaczeniem PL w plikach `lang` — jak reszta aplikacji.
 
 ## Kryteria akceptacji
-- [ ] Layout i komponenty istnieją, a `verify-email` używa ich bez zmiany treści.
-- [ ] Każda wiadomość ma wariant tekstowy; test renderu sprawdza oba warianty.
-- [ ] Podgląd renderuje wszystkie istniejące maile; na produkcji trasa/komenda niedostępna (test).
+- [x] Layout i komponenty istnieją, a `verify-email` używa ich bez zmiany treści.
+- [x] Każda wiadomość ma wariant tekstowy; test renderu sprawdza oba warianty.
+- [x] Podgląd renderuje wszystkie istniejące maile; na produkcji trasa/komenda niedostępna (test).
 - [ ] Wygląd w Gmail (web) i Outlook — **ręcznie po serii** (notatka autora), nie blokuje implementacji.
-- [ ] Nowa wiadomość = klasa `Mailable` + widok na komponentach, bez kopiowania stylów (przykład w dokumentacji).
+- [x] Nowa wiadomość = klasa `Mailable` + widok na komponentach, bez kopiowania stylów (przykład w dokumentacji).
 
 ## Zakres testów
 - **Tier:** T1
@@ -42,9 +42,9 @@ komponentów, na których stoją maile z zadań 041 i 043.
 - Dostawca poczty i konfiguracja SMTP (poza zakresem; `MAIL_MAILER` bez zmian).
 
 ## Zmiany dokumentacji
-- [ ] `docs/conventions/integracje.md` — zasada „maile tylko przez layout i komponenty"
-- [ ] `docs/project/mockups/etap3/README.md` — wzór maili G zgodny z layoutem
-- [ ] `CHANGELOG.md` — wpis w changelogu
+- [x] `docs/conventions/integracje.md` — zasada „maile tylko przez layout i komponenty"
+- [x] `docs/project/mockups/etap3/README.md` — wzór maili G zgodny z layoutem
+- [x] `CHANGELOG.md` — wpis w changelogu
 
 ## Ograniczenia techniczne
 - Laravel 13 `Mailable`/Markdown lub własny Blade — decyzja w `/review-task`; komponenty muszą działać w

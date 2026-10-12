@@ -99,6 +99,9 @@
             </div>
         @endif
 
-        <a href="{{ \App\Services\PortalRoutes::homeUrl() }}" class="self-start font-semibold text-b600 hover:underline">{{ __('Not now') }}</a>
+        <form method="POST" action="{{ $action }}" class="self-start">
+            @csrf
+            <button type="submit" name="action" value="dismiss" class="font-semibold text-b600 hover:underline">{{ __('Not now') }}</button>
+        </form>
     </section>
 @endsection

@@ -22,12 +22,12 @@ wywołania. Specyfikacja: README makiet, ekran F, wnioski W1 i W7.
 - Plakietka „niepotwierdzone ≤ 24 h" w nawigacji liczy się z `confirm_by`.
 
 ## Kryteria akceptacji
-- [ ] Przełączniki i okno zapisują się, walidacja działa, domyślnie potwierdzanie wyłączone.
-- [ ] Rezerwacja ręczna dostaje `confirm_by` tylko przy włączonym ustawieniu.
-- [ ] Komenda wygasza rezerwacje po terminie i zwalnia sloty; ponowne uruchomienie nic nie zmienia (test).
-- [ ] Potwierdzona rezerwacja nie wygasa.
-- [ ] Harmonogram udokumentowany i działa na środowisku docelowym (lub opisany krok uruchomienia).
-- [ ] Pełny pakiet testów (T3 — migracja).
+- [x] Przełączniki i okno zapisują się, walidacja działa, domyślnie potwierdzanie wyłączone.
+- [x] Rezerwacja ręczna dostaje `confirm_by` tylko przy włączonym ustawieniu.
+- [x] Komenda wygasza rezerwacje po terminie i zwalnia sloty; ponowne uruchomienie nic nie zmienia (test).
+- [x] Potwierdzona rezerwacja nie wygasa.
+- [x] Harmonogram udokumentowany i działa na środowisku docelowym (lub opisany krok uruchomienia).
+- [x] Pełny pakiet testów (T3 — migracja).
 
 ## Zakres testów
 - **Tier:** T3
@@ -40,9 +40,9 @@ wywołania. Specyfikacja: README makiet, ekran F, wnioski W1 i W7.
 - Same przełączniki widoczności kalendarza w portalu — logika w 046.
 
 ## Zmiany dokumentacji
-- [ ] `docs/conventions/panel-wlasciciela.md` — sekcja ustawień rezerwacji
-- [ ] `docs/operations/` — sposób uruchamiania harmonogramu na Cloud Run
-- [ ] `CHANGELOG.md` — wpis w changelogu
+- [x] `docs/conventions/panel-wlasciciela.md` — sekcja ustawień rezerwacji
+- [x] `docs/operations/` — sposób uruchamiania harmonogramu na Cloud Run
+- [x] `CHANGELOG.md` — wpis w changelogu
 
 ## Ograniczenia techniczne
 - Brak workera (ADR-004); wygaszanie przez wywołanie harmonogramu, nie kolejkę.
@@ -64,5 +64,5 @@ wywołania. Specyfikacja: README makiet, ekran F, wnioski W1 i W7.
 - **Zmiana ustawień nie przepisuje `confirm_by` istniejących rezerwacji** (zasada „konfiguracja żyje, transakcja zamrożona").
 
 ## Powiązane ADR-y
-- [ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md),
+- [ADR-024](../../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md),
   ADR-004 — rozstrzygnięte.

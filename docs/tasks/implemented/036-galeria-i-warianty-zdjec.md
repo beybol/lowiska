@@ -40,14 +40,14 @@ strony głównej i na telefonie. Ten sam problem ma mapa łowiska (`map_image_pa
 
 ## Kryteria akceptacji
 
-- [ ] ADR-023 z wypełnioną Decyzją.
-- [ ] Portal nie serwuje oryginałów nigdzie; zdjęcie mniejsze niż 1920 px nie jest powiększane,
+- [x] ADR-023 z wypełnioną Decyzją.
+- [x] Portal nie serwuje oryginałów nigdzie; zdjęcie mniejsze niż 1920 px nie jest powiększane,
       a brakujący wariant powstaje przy pierwszym wyświetleniu.
-- [ ] Zdjęcie pionowe z telefonu wychodzi we właściwej orientacji, a warianty nie mają metadanych GPS.
-- [ ] Układ nagłówka dla 0, 1, 2 i ≥ 3 zdjęć; podgląd pełnoekranowy z klawiaturą i gestami.
-- [ ] Kolejność zdjęć zmieniona w panelu zmienia okładkę na karcie i w nagłówku.
+- [x] Zdjęcie pionowe z telefonu wychodzi we właściwej orientacji, a warianty nie mają metadanych GPS.
+- [x] Układ nagłówka dla 0, 1, 2 i ≥ 3 zdjęć; podgląd pełnoekranowy z klawiaturą i gestami.
+- [x] Kolejność zdjęć zmieniona w panelu zmienia okładkę na karcie i w nagłówku.
 - [ ] Ręczna weryfikacja (albo test przeglądarkowy z 035) na telefonie i desktopie.
-- [ ] Pełny pakiet testów zielony (T3).
+- [x] Pełny pakiet testów zielony (T3).
 
 ## Zakres testów
 
@@ -64,14 +64,14 @@ strony głównej i na telefonie. Ten sam problem ma mapa łowiska (`map_image_pa
 
 ## Zmiany dokumentacji
 
-- [ ] `docs/adr/ADR-023` — Decyzja (autor).
-- [ ] `docs/conventions/panel-admina.md` §1 — wgrywanie, kolejność, generowanie wariantów przy zapisie.
-- [ ] `docs/conventions/panel-wlasciciela.md` — jw., jeśli formularz łowiska właściciela go dotyczy.
-- [ ] `docs/conventions/strona-publiczna.md` — zasady galerii i obrazów w portalu (jedna funkcja adresu
+- [x] `docs/adr/ADR-023` — Decyzja (autor).
+- [x] `docs/conventions/panel-admina.md` §1 — wgrywanie, kolejność, generowanie wariantów przy zapisie.
+- [x] `docs/conventions/panel-wlasciciela.md` — jw., jeśli formularz łowiska właściciela go dotyczy.
+- [x] `docs/conventions/strona-publiczna.md` — zasady galerii i obrazów w portalu (jedna funkcja adresu
       wariantu, układ nagłówka, PhotoSwipe tylko w układzie portalu).
 - [ ] `docs/operations/` — komenda przetwarzająca istniejące zdjęcia przy wdrożeniu; `memory_limit`,
       jeśli trzeba go podnieść.
-- [ ] `CHANGELOG.md` — wpis.
+- [x] `CHANGELOG.md` — wpis.
 
 ## Ograniczenia techniczne
 

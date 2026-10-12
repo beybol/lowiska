@@ -2,7 +2,7 @@
 
 ## Opis problemu
 Operator zakłada rezerwację na dane wędkarza, który może nie mieć konta. Zgodnie z
-[ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md) tożsamość (konto) jest
+[ADR-024](../../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md) tożsamość (konto) jest
 globalna, a relacja z łowiskiem (`fishery_anglers`) lokalna; konto powstaje **dopiero po kliknięciu linku
 przez samego wędkarza**, a operator nigdy nie pisze do `users`. Zadanie dostarcza przepływ: mail, token,
 strony potwierdzenia/rezygnacji i obsługę konfliktu telefonu. Specyfikacja: README makiet etapu 3, ekrany G i H.
@@ -26,15 +26,15 @@ strony potwierdzenia/rezygnacji i obsługę konfliktu telefonu. Specyfikacja: RE
   (etap 4, wniosek W9; do potwierdzenia przy `/review-task`).
 
 ## Kryteria akceptacji
-- [ ] Mail z dwoma przyciskami trafia do wędkarza po zapisie rezerwacji; token ma hash i termin ważności.
-- [ ] Komunikat dla operatora jest identyczny dla istniejącego i nieistniejącego konta (test).
+- [x] Mail z dwoma przyciskami trafia do wędkarza po zapisie rezerwacji; token ma hash i termin ważności.
+- [x] Komunikat dla operatora jest identyczny dla istniejącego i nieistniejącego konta (test).
 - [ ] Potwierdzenie linkiem łączy relację z kontem i potwierdza rezerwację; ponowne użycie tokenu odrzucone.
-- [ ] „Zrezygnuj" anuluje rezerwację i zwalnia sloty; „To nie ja" unieważnia token i oznacza rezerwację do weryfikacji
+- [x] „Zrezygnuj" anuluje rezerwację i zwalnia sloty; „To nie ja" unieważnia token i oznacza rezerwację do weryfikacji
       przez operatora (bez anulacji).
-- [ ] Konflikt telefonu obsługuje trzy warianty; `phone_override` zapisany tylko dla tego łowiska.
-- [ ] Rate limiting działa na trasach tokenowych (test).
-- [ ] Wszystkie nowe teksty po polsku i angielsku; strony zgodne z `strona-publiczna.md`.
-- [ ] Pełny pakiet testów (T3 — zmiana tras i potencjalnie `User`/provider logowania).
+- [x] Konflikt telefonu obsługuje trzy warianty; `phone_override` zapisany tylko dla tego łowiska.
+- [x] Rate limiting działa na trasach tokenowych (test).
+- [x] Wszystkie nowe teksty po polsku i angielsku; strony zgodne z `strona-publiczna.md`.
+- [x] Pełny pakiet testów (T3 — zmiana tras i potencjalnie `User`/provider logowania).
 
 ## Zakres testów
 - **Tier:** T3
@@ -48,10 +48,10 @@ strony potwierdzenia/rezygnacji i obsługę konfliktu telefonu. Specyfikacja: RE
 - Pytania prawne o RODO (TODO-3 pkt 6) — rozstrzyga biznes; zadanie nie zakłada treści zgód.
 
 ## Zmiany dokumentacji
-- [ ] `docs/conventions/strona-publiczna.md` — trasy tokenowe
-- [ ] `docs/conventions/autoryzacja.md` — powiązanie konta wyłącznie przez wędkarza
-- [ ] `docs/project/DECYZJE-I-TODO-BIZNESOWE.md` — jeśli wyjdą nowe pytania prawne
-- [ ] `CHANGELOG.md` — wpis w changelogu
+- [x] `docs/conventions/strona-publiczna.md` — trasy tokenowe
+- [x] `docs/conventions/autoryzacja.md` — powiązanie konta wyłącznie przez wędkarza
+- [x] `docs/project/DECYZJE-I-TODO-BIZNESOWE.md` — jeśli wyjdą nowe pytania prawne
+- [x] `CHANGELOG.md` — wpis w changelogu
 
 ## Ograniczenia techniczne
 - Zależność: 039 (`fishery_anglers`), 040 (layout maili), 041 (miejsce wysyłki po zapisie).
@@ -74,4 +74,4 @@ strony potwierdzenia/rezygnacji i obsługę konfliktu telefonu. Specyfikacja: RE
   na łowisko; przekroczenie → rezerwacja powstaje, mail nie jest wysyłany, rezerwacja trafia do „Do kontaktu".
 
 ## Powiązane ADR-y
-- [ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md) — rozstrzygnięty.
+- [ADR-024](../../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md) — rozstrzygnięty.

@@ -15,10 +15,12 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
      ### Dodane / ### Zmienione / ### Poprawione / ### Usunięte / ### Wycofane / ### Bezpieczeństwo
      Przy wydaniu sekcja `[unreleased]` zamienia się w `## [X.Y.Z] - RRRR-MM-DD`. -->
 
+## [0.0.1] - 2026-10-12
+
 ### Dodane
 
 - Łowisko ma nową zakładkę **„Wędkarze"** zaraz za „Rezerwacjami": lista wędkarzy, dla których założono rezerwację,
-  z kontaktem, informacją czy to dane od łowiska czy potwierdzone konto, liczbą aktywnych rezerwacji i najbliższym
+  z kontaktem, informacją, czy dane są wpisane ręcznie, czy pochodzą z potwierdzonego konta, liczbą aktywnych rezerwacji i najbliższym
   pobytem. Listę można przeszukać (imię i nazwisko, e-mail, telefon) i przefiltrować (stan danych, nadchodząca
   rezerwacja, „Do kontaktu"), a podgląd wędkarza pokazuje jego rezerwacje w tym łowisku z przejściem do szczegółów.
 - Właściciel łowiska może teraz opisać, czym handluje: na nowym ekranie „Sprzedaż i sezony"
@@ -328,13 +330,15 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Zmienione
 
-- Panele mają teraz pełną szerokość, a tabele rezerwacji i wędkarzy łowiska są bardziej zwarte: telefon, stan danych i płatność
-  stoją pod nazwiskiem i statusem, a akcje wiersza we wszystkich tabelach obu paneli stoją po lewej stronie, więc widać je bez przewijania tabeli.
-  Stan danych wędkarza nazywa się „Wpisane ręcznie” zamiast „Dane od łowiska”.
+- Rezerwacja zostawiona przy blokadzie albo zapisana wbrew regułom sprzedaży ma na pasku w kalendarzu trójkąt
+  ostrzegawczy z opisem wyjątku.
+- Panele mają teraz pełną szerokość, a lista rezerwacji jest bardziej zwarta: telefon i stan danych wędkarza stoją pod
+  nazwiskiem, płatność pod statusem. Akcje wiersza we wszystkich tabelach obu paneli są w menu **⋮** na początku wiersza,
+  więc widać je bez przewijania tabeli.
 - Przycisk w mailu o rezerwacji brzmi **„Potwierdź rezerwację"** i potwierdza rezerwację jednym kliknięciem,
   bez zakładania konta. Połączenie z kontem jest osobnym, dobrowolnym krokiem.
-- Lista rezerwacji, szczegóły i okienko w kalendarzu pokazują w kolumnie „Dane wędkarza", czy łowisko ma
-  dane, które samo wpisało, czy potwierdzone konto wędkarza — niezależnie od statusu rezerwacji.
+- Lista rezerwacji (pod nazwiskiem), szczegóły i okienko w kalendarzu pokazują, czy dane wędkarza są „wpisane ręcznie",
+  czy pochodzą z potwierdzonego konta — niezależnie od statusu rezerwacji.
 - Przełącznik dokumentu łowiska „wymagany przy rejestracji na łowisku" nazywa się „wymagany przy połączeniu
   konta" i działa: wędkarz akceptuje taki dokument, łącząc konto z łowiskiem.
 

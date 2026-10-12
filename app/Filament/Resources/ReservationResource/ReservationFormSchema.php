@@ -456,11 +456,11 @@ final class ReservationFormSchema
             ->with('user')
             ->where('fishery_id', $fishery->getKey())
             ->when($id !== null, fn ($query) => $query->whereKey($id))
-            ->when(filled($search), fn ($query) => $query->where(fn ($inner) => $inner
-                ->where('given_name', 'like', "%{$search}%")
-                ->orWhere('given_phone', 'like', "%{$search}%")
-                ->orWhere('given_email', 'like', "%{$search}%")))
-            ->orderBy('given_name')
+            // Relacja z cofniętym dostępem nie ma danych, więc nie jest podpowiadana do nowej rezerwacji.
+            ->when($id === null, fn ($query) => $query->where('status', '!=', AnglerLinkStatus::Revoked->value))
+            // Ta sama reguła danych efektywnych co lista wędkarzy i wyszukiwarka rezerwacji (048).
+            ->when(filled($search), fn ($query) => $query->matchingContact((string) $search))
+            ->orderByRaw(FisheryAngler::effectiveSql('name'))
             ->limit(30)
             ->get()
             ->mapWithKeys(function (FisheryAngler $angler): array {

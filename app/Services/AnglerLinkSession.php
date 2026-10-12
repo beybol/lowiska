@@ -34,10 +34,20 @@ final class AnglerLinkSession
         session()->forget(self::KEY);
     }
 
-    /** Adres strony łączenia, gdy znacznik jest w sesji — inaczej `null`. */
+    /**
+     * Adres strony łączenia, gdy znacznik jest w sesji, a link wciąż jest ważny — inaczej `null`.
+     * Znacznik nieważnego linku (zużyty, wygasły, „To nie ja", zmieniony adres) jest czyszczony, żeby
+     * kolejne logowanie w tej sesji nie kończyło się stroną „link nieaktualny".
+     */
     public static function pendingUrl(): ?string
     {
         if (self::hash() === null) {
+            return null;
+        }
+
+        if (app(AnglerLinking::class)->findByLinkHash(self::hash())['angler'] === null) {
+            self::forget();
+
             return null;
         }
 

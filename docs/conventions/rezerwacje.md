@@ -73,7 +73,8 @@ Zadania źródłowe: 041, 042, 043, 044, 045, 047, 048, 049. Decyzje: ADR-024…
   zbiorcza takie pobyty pomija. Zwrot: z warunków albo wyjątek z powodem. Po anulacji mail do wędkarza
   (`ReservationMailer`); brak adresu albo błąd wysyłki → „Do kontaktu".
 - **Wyszukiwanie wędkarza wyłącznie w relacjach TEGO łowiska** (ADR-024): tabela po zawężonym zapytaniu,
-  podpowiedzi w formularzu z `fishery_anglers` łowiska — nigdy z `users`.
+  podpowiedzi w formularzu z `fishery_anglers` łowiska — nigdy z `users`. Wyszukiwarka listy szuka po danych efektywnych
+  tą samą regułą co strona „Wędkarze" (`FisheryAngler::matchingContact()`, §6) — cofnięty dostęp nie pasuje nigdy.
 
 ---
 
@@ -180,8 +181,11 @@ Decyzje: ADR-024 (z aktualizacją 2026-10-11), ADR-028 (zgody).
   albo przez Google. Zalogowany na konto o innym adresie dostaje odmowę z wylogowaniem. Połączenie (`link()`) →
   relacja `linked`, akceptacja wymaganych dokumentów łowiska (`required_at_registration` = „akceptowany przy
   połączeniu konta", `ConsentRegistry`), token zużyty, oczekujące rezerwacje potwierdzone.
-- **Panel pokazuje stan wędkarza osobno od statusu rezerwacji** („Dane wędkarza": „Wpisane ręcznie" albo
-  „Potwierdzone konto", `AnglerLinkStatus::accountLabel()`) — na liście, w szczegółach i w popoverze kalendarza.
+  ⚠️ **Znacznik łączenia nie przeżywa porzucenia:** „Nie teraz" to POST (`action=dismiss`), który go czyści, a
+  `AnglerLinkSession::pendingUrl()` czyści znacznik nieważnego linku — inaczej każde późniejsze logowanie w tej sesji
+  lądowałoby na stronie „link nieaktualny".
+- **Panel pokazuje stan wędkarza osobno od statusu rezerwacji** („Wpisane ręcznie" albo „Potwierdzone konto",
+  `AnglerLinkStatus::accountLabel()`) — na liście pod nazwiskiem (ikona i podpis), w szczegółach i w popoverze kalendarza.
   „Potwierdzona" nie znaczy „powiązana z kontem".
 - ⚠️ **Zmiana adresu relacji `Pending` unieważnia wysłaną prośbę** (token i ważność zerowane, status `Unlinked`)
   — inaczej link z maila wysłanego na pomyłkowy adres dowiązałby rezerwację do konta właściciela poprawionego
@@ -210,6 +214,9 @@ Decyzja: [ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md); zasad
   nie drugą logikę kolizji.
 - **Dotknięta = aktywna, jeszcze nierozpoczęta, nakładająca się na zmianę.** Pobytów w toku nie ma na liście
   nigdy. Rezerwacja zostawiona przy danej blokadzie (wyjątek z `block_id`) nie wraca przy edycji tej blokady.
+- **Rezerwacja zostawiona („zostaw") jest oznaczona na pasku kalendarza** — ikona ostrzeżenia z nazwą wyjątku w `title`
+  i `aria-label` (`ReservationCalendarBar::exceptionLabels()`). Oznaczenie obejmuje wyjątki od dzisiejszej konfiguracji:
+  `SaleBlocked` (blokada) i `SaleRule` (reguły sprzedaży, wycofane stanowisko); cena uzgodniona, zwrot i usługa — nie.
 - ⚠️ **Zmiana NIE zapisuje się przed decyzjami.** Strony zapisu pytają `CollisionGate` przed zapisem: przy
   kolizji szkic idzie do SESJI (`CollisionDrafts`) i operator trafia na ekran decyzji, gdzie zmiana i decyzje
   zapisują się w jednej transakcji, pod blokadą wierszy stanowisk. Lista liczy się od nowa przy zapisie —
@@ -266,11 +273,12 @@ Strona `FisheryResource\Pages\ManageAnglers` — pozycja sub-nawigacji **zaraz z
   test porównujący obie dla każdego stanu relacji. Wyszukiwarka (`matchingContact()`) szuka po danych efektywnych:
   `linked` po danych konta (z `phone_override`), `unlinked`/`pending` po `given_*`, `revoked` nigdy; nie szuka po notatkach.
 - **Stan danych na liście i w filtrze to trzy stany z `AnglerLinkStatus::accountLabel()`** (wpisane ręcznie, potwierdzone
-  konto, dostęp cofnięty) — to samo słownictwo co kolumna „Dane wędkarza" na liście rezerwacji (§3). Czterostanowy status
+  konto, dostęp cofnięty) — to samo słownictwo co podpis pod nazwiskiem na liście rezerwacji (§1, §3). Czterostanowy status
   (`label()`) i ważność linku są dopiero w podglądzie wędkarza.
 - **Liczba rezerwacji w kolumnie to rezerwacje aktywne, a podgląd pokazuje wszystkie statusy z TEGO łowiska, od najnowszej**
   (`FisheryAngler::reservationHistory()`); numer prowadzi do szczegółów tylko, gdy `ReservationPolicy` pozwala (`view`).
   Liczba i najbliższy pobyt to agregaty w zapytaniu (`withCount`, `withMin`), nie zapytania na wiersz.
-- Podgląd to `ViewAction` ze schematem: ⚠️ `ViewAction` wypełnia stan z `attributesToArray()`, więc lista rezerwacji
-  ma jawny `state()` z relacji. Treść modala nie trafia do `html()` komponentu w testach Livewire — testy renderują
+- Podgląd to `ViewAction` ze schematem: ⚠️ `ViewAction` domyślnie wypełnia stan z `attributesToArray()` — to wkładałoby
+  pola `given_*` do stanu Livewire w przeglądarce, także przy cofniętym dostępie. Dlatego `fillForm(fn () => [])`,
+  a każdy wpis schematu ma jawny `state()` z rekordu. Treść modala nie trafia do `html()` komponentu w testach Livewire — testy renderują
   schemat zamontowanej akcji (`previewHtml()` w `FisheryAnglersPageTest`).

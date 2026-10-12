@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\TermsExceptionKind;
 use App\Models\Reservation;
 
 /**
@@ -45,6 +46,27 @@ final readonly class ReservationCalendarBar
         $terms = $this->reservation->terms;
 
         return (int) ($terms->anglers ?? 1) + (int) ($terms->companions ?? 0);
+    }
+
+    /**
+     * Wyjątki od dzisiejszej konfiguracji, które pasek oznacza (044): rezerwacja zostawiona przy blokadzie albo wycofaniu
+     * stanowiska (decyzja „zostaw") i rezerwacja zapisana wbrew regułom sprzedaży. Pusta lista = bez oznaczenia.
+     *
+     * @return array<int, string>
+     */
+    public function exceptionLabels(): array
+    {
+        $terms = $this->reservation->terms;
+
+        if ($terms === null) {
+            return [];
+        }
+
+        return collect([TermsExceptionKind::SaleBlocked, TermsExceptionKind::SaleRule])
+            ->filter(fn (TermsExceptionKind $kind): bool => $terms->hasException($kind))
+            ->map(fn (TermsExceptionKind $kind): string => $kind->label())
+            ->values()
+            ->all();
     }
 
     /** Kwota z zamrożonych warunków — z usługami i ceną uzgodnioną (047, A3). */

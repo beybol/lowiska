@@ -145,17 +145,17 @@ trzeba przebudować (`docker compose exec app npm run build`), inaczej nowe klas
 - [ ] A1–A11: kalendarz zgodny z §3/§3a i makietą `etap3.html`. Popover jako warstwa, ponowne kliknięcie zamyka,
       oferta w pustych dobach i kwota na paskach, domyślny tydzień, wygląd pasków i blokad, liczniki-filtry,
       telefon z arkuszem.
-- [ ] B1–B6: pole powodu tylko przy odmowie, z listą reguł; cena z rozbiciem w obu formularzach z jednego miejsca
+- [x] B1–B6: pole powodu tylko przy odmowie, z listą reguł; cena z rozbiciem w obu formularzach z jednego miejsca
       (wspólnego z portalem); usługi przeliczają cenę; ostrzeżenie o niedostępnej usłudze przed zapisem; wyjątek
       usługi z powodem poza limitem egzemplarzy (test, także odmowa przy limicie i w kanale wędkarza).
-- [ ] C1–C6: szybka i pełna edycja zamiast modala; edycja zachowuje wyjątki, politykę zwrotu i dokumenty (test,
+- [x] C1–C6: szybka i pełna edycja zamiast modala; edycja zachowuje wyjątki, politykę zwrotu i dokumenty (test,
       w tym „zostaw" z `block_id`); zmiana samego kontaktu nie przelicza warunków (test).
-- [ ] D1–D3: testy podmiany `fishery_id` w polach reaktywnych i unieważnienia tokenu po zmianie adresu są zielone.
-- [ ] E1: rezerwacja na dziś nie wygasa w trakcie pobytu (test).
-- [ ] F1–F2, G1, H1–H4 zrealizowane. Test podwójnej anulacji w `apply()`. Test usunięcia stanowiska z przyszłymi
+- [x] D1–D3: testy podmiany `fishery_id` w polach reaktywnych i unieważnienia tokenu po zmianie adresu są zielone.
+- [x] E1: rezerwacja na dziś nie wygasa w trakcie pobytu (test).
+- [x] F1–F2, G1, H1–H4 zrealizowane. Test podwójnej anulacji w `apply()`. Test usunięcia stanowiska z przyszłymi
       rezerwacjami.
-- [ ] Motyw przebudowany po zmianach widoków (`npm run build`).
-- [ ] Pełny pakiet testów zielony (T3).
+- [x] Motyw przebudowany po zmianach widoków (`npm run build`).
+- [x] Pełny pakiet testów zielony (T3).
 
 ## Zakres testów
 - **Tier:** T3
@@ -174,20 +174,20 @@ trzeba przebudować (`docker compose exec app npm run build`), inaczej nowe klas
 - Limit maili przy masowej anulacji — decyzja autora Q6: bez limitu.
 
 ## Zmiany dokumentacji
-- [ ] `docs/conventions/rezerwacje.md` — popover jako warstwa, oferta w warstwie „Rezerwacje" (odwrócenie §3),
+- [x] `docs/conventions/rezerwacje.md` — popover jako warstwa, oferta w warstwie „Rezerwacje" (odwrócenie §3),
       szybka i pełna edycja, wyjątek usługi, wygasanie `min(okno, początek)`, usunięcie stanowiska a kolizje,
       zachowanie warunków przy edycji.
-- [ ] `docs/conventions/dostepnosc.md` — sloty z okna (G1), jedna reguła kolizji dla skrótu kalendarza (A9).
-- [ ] `docs/conventions/cennik.md` — jedno miejsce składające rozbicie ceny dla portalu i formularzy (B2), wyjątek
+- [x] `docs/conventions/dostepnosc.md` — sloty z okna (G1), jedna reguła kolizji dla skrótu kalendarza (A9).
+- [x] `docs/conventions/cennik.md` — jedno miejsce składające rozbicie ceny dla portalu i formularzy (B2), wyjątek
       usługi poza limitem (B6).
-- [ ] `docs/conventions/strona-publiczna.md` — dymek rozbicia portalu korzysta ze wspólnego miejsca (B2).
-- [ ] `docs/conventions/autoryzacja.md` — token powiązany z adresem z chwili wysyłki (D2).
-- [ ] `docs/reviews/2026-10-11-unpushed.md` — oznaczenie uwag zrealizowanych w tym zadaniu.
-- [ ] `docs/adr/ADR-026-zamrozenie-warunkow-rezerwacji.md` — „Aktualizacja (2026-10-11)": wyjątek usługi poza limitem (B6).
-- [ ] `docs/adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md` — „Aktualizacja (2026-10-11)":
+- [x] `docs/conventions/strona-publiczna.md` — dymek rozbicia portalu korzysta ze wspólnego miejsca (B2).
+- [x] `docs/conventions/autoryzacja.md` — token powiązany z adresem z chwili wysyłki (D2).
+- [x] `docs/reviews/2026-10-11-unpushed.md` — oznaczenie uwag zrealizowanych w tym zadaniu.
+- [x] `docs/adr/ADR-026-zamrozenie-warunkow-rezerwacji.md` — „Aktualizacja (2026-10-11)": wyjątek usługi poza limitem (B6).
+- [x] `docs/adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md` — „Aktualizacja (2026-10-11)":
       `confirm_by = min(teraz + okno, początek pobytu)` (E1).
-- [ ] Ten plik — wynik pomiaru renderu kalendarza (A3).
-- [ ] `CHANGELOG.md` — wpis w changelogu.
+- [x] Ten plik — wynik pomiaru renderu kalendarza (A3).
+- [x] `CHANGELOG.md` — wpis w changelogu.
 
 ## Ograniczenia techniczne
 - Laravel 13, Filament 5, Tailwind 4 (motyw panelu `resources/css/filament/theme.css` — klasy tylko we własnych
@@ -236,8 +236,8 @@ liczby stanowisk pochodzi z warstwy oferty sprzed zadania i nie została przez n
 tańsze od miesiąca warstwy „Oferta", więc oferta zostaje w obu oknach (rozstrzygnięcie A3).
 
 ## Powiązane ADR-y
-- [ADR-024](../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md),
-  [ADR-025](../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md),
-  [ADR-026](../adr/ADR-026-zamrozenie-warunkow-rezerwacji.md),
-  [ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md),
-  [ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md) — rozstrzygnięte. Nowych ADR-ów brak.
+- [ADR-024](../../adr/ADR-024-wedkarz-jako-tozsamosc-globalna-i-relacja-z-lowiskiem.md),
+  [ADR-025](../../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md),
+  [ADR-026](../../adr/ADR-026-zamrozenie-warunkow-rezerwacji.md),
+  [ADR-027](../../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md),
+  [ADR-015](../../adr/ADR-015-warstwa-oferty-pobytu.md) — rozstrzygnięte. Nowych ADR-ów brak.
