@@ -15,6 +15,7 @@ use App\Services\FisheryDocuments;
 use App\Services\PlatformDocuments;
 use App\Services\PortalRoutes;
 use App\Services\SharedFormComponents;
+use App\Support\RowActions;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
@@ -167,12 +168,12 @@ class PlatformDocumentResource extends Resource
             ->defaultGroup(Group::make('type')
                 ->label(__('Document'))
                 ->getTitleFromRecordUsing(fn (PlatformDocument $record): string => $record->type->label()))
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
                 DeleteAction::make()
                     // Usunąć wolno wyłącznie wersję zaplanowaną — nikt jej jeszcze nie zaakceptował.
                     ->visible(fn (PlatformDocument $record): bool => $documents->statusOf($record) === DocumentStatus::Scheduled),
-            ]);
+            ])]);
     }
 
     public static function getPages(): array

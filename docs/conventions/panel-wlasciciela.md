@@ -69,6 +69,13 @@ i [ADR-010](../adr/ADR-010-doba-wedkarska-jako-przedzial-czasu.md).
   Sub-nawigacja jest tam więc jedynym paskiem, nie drugim.
   Panel administratora ma własny pasek, dlatego dostał `sidebarCollapsibleOnDesktop()`:
   bez tego przy edycji łowiska dwa paski zjadały szerokość formularza.
+- **Oba panele mają pełną szerokość treści** (`maxContentWidth(Width::Full)`): obok tabeli stoi sub-nawigacja, więc domyślne
+  80 rem jej nie mieściło. ⚠️ Tabele łowiska i tak nie wolno rozbudowywać o kolejne kolumny — zwarty układ (stan i telefon
+  pod nazwiskiem, płatność pod statusem, akcje w menu po LEWEJ stronie kolumn, `RecordActionsPosition::BeforeCells`)
+  jest rozwiązaniem dla wąskich ekranów; pełna szerokość go nie zastępuje.
+  ⚠️ **Akcje wiersza stoją po LEWEJ stronie kolumn w KAŻDEJ tabeli obu paneli** — ustawia to jedno miejsce,
+  `Table::configureUsing()` w `AppServiceProvider`. Nie ustawiaj pozycji akcji per tabela i nie wracaj do prawej strony:
+  wyjątek od reguły byłby mylący dla operatora.
 - **`ManageFishery` celowo NIE zawiera formularza edycji łowiska.** Jest `ViewRecord`
   z podglądem (`infolist`) i akcją nagłówka „Edytuj" prowadzącą do osobnego formularza.
   ⚠️ **Nie zamieniaj tego na `EditRecord`** — to odwrócenie decyzji z

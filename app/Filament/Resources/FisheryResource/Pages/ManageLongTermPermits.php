@@ -6,6 +6,7 @@ use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\LongTermPermitResource;
 use App\Models\Fishery;
 use App\Models\LongTermPermit;
+use App\Support\RowActions;
 use Filament\Actions\Action;
 use Filament\Navigation\NavigationItem;
 use Filament\Resources\Pages\ManageRelatedRecords;
@@ -97,7 +98,7 @@ class ManageLongTermPermits extends ManageRelatedRecords
             // ⚠️ Zwykłe `Action` z adresem pełnej strony, nie akcje CRUD-owe z modalami.
             // Pełne strony niosą bramkę dostępu do łowiska, wymuszenie `fishery_id` przy
             // zapisie i własne przekierowania — modal omijałby te trzy warstwy.
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 Action::make('edit')
                     ->label(__('Edit'))
                     ->icon('heroicon-m-pencil-square')
@@ -105,6 +106,6 @@ class ManageLongTermPermits extends ManageRelatedRecords
                     ->url(fn (LongTermPermit $record): string => LongTermPermitResource::getUrl('edit', [
                         'record' => $record,
                     ])),
-            ]);
+            ])]);
     }
 }

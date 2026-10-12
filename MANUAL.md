@@ -520,6 +520,10 @@ w portalu.
 - **Warunki są zamrożone.** Rezerwacja pamięta cenę, politykę zwrotu, wersje dokumentów i dane
   kontaktowe z chwili zapisu. Późniejsza zmiana cennika czy regulaminu jej nie zmienia.
 
+**Lista rezerwacji** jest zwarta: pod nazwiskiem widzisz telefon i to, czy dane są wpisane ręcznie, czy pochodzą z potwierdzonego
+konta, pod statusem — płatność. Akcje (podgląd, edycja, potwierdzenie, płatność, anulacja) są w menu **⋮** na początku
+wiersza (we wszystkich tabelach panelu przyciski akcji stoją po lewej stronie), a kliknięcie wiersza otwiera szczegóły.
+
 **Szczegóły rezerwacji** pokazują zamrożone warunki i historię zmian. Edytujesz ją na dwa sposoby:
 **Szybka edycja** (okienko z krótkim formularzem) albo **Pełna edycja** (strona z pełnym formularzem).
 Zmiana samego kontaktu czy notatki niczego innego nie rusza; zmiana terminu, stanowiska, składu, usług
@@ -545,8 +549,8 @@ na ten adres, musi się na nie zalogować; jeśli nie ma, zakłada je (hasłem a
 z rezerwacji. Przy połączeniu akceptuje Twoje dokumenty oznaczone jako „wymagany przy połączeniu
 konta". Link z maila działa do połączenia przez 14 dni.
 
-W kolumnie **„Dane wędkarza"** (lista, szczegóły i okienko w kalendarzu) widzisz, czy masz **dane od
-łowiska** (to, co wpisałeś), czy **potwierdzone konto** — wtedy widzisz dane z konta wędkarza. To
+W kolumnie **„Dane wędkarza"** (lista, szczegóły i okienko w kalendarzu) widzisz, czy dane są **wpisane
+ręcznie** (to, co wpisałeś), czy **potwierdzone konto** — wtedy widzisz dane z konta wędkarza. To
 informacja niezależna od statusu rezerwacji: rezerwacja może być potwierdzona, a wędkarz bez konta.
 W tym samym mailu wędkarz może
 **zrezygnować** (anuluje rezerwację ze zwrotem według polityki zwrotu) albo kliknąć **„To nie ja"** —
@@ -555,7 +559,7 @@ wędkarza; zmieniasz tylko dane, które podałeś łowisku.
 
 **Wędkarze łowiska.** Zakładka **Wędkarze** w menu łowiska (zaraz za „Rezerwacjami") pokazuje wszystkich
 wędkarzy, dla których założono rezerwację w Twoim łowisku: imię i nazwisko, e-mail i telefon, informację, czy to
-**dane od łowiska**, czy **potwierdzone konto**, liczbę aktywnych rezerwacji i najbliższy pobyt. Lista jest
+**wpisane ręcznie** (to, co podałeś łowisku), czy **potwierdzone konto**, liczbę aktywnych rezerwacji i najbliższy pobyt. Lista jest
 domyślnie posortowana od tych, którzy przyjadą najwcześniej. Szukasz po imieniu i nazwisku, e-mailu albo telefonie
 (dla wędkarza z kontem szukasz po danych z konta, bo te widzisz) i filtrujesz po stanie danych, po tym, czy ma
 nadchodzącą rezerwację, oraz po „Do kontaktu". Akcja **Podgląd** otwiera panel z danymi wędkarza i pełną historią

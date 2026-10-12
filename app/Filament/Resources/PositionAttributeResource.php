@@ -7,6 +7,7 @@ use App\Filament\Resources\PositionAttributeResource\Pages\CreatePositionAttribu
 use App\Filament\Resources\PositionAttributeResource\Pages\EditPositionAttribute;
 use App\Filament\Resources\PositionAttributeResource\Pages\ListPositionAttributes;
 use App\Models\PositionAttribute;
+use App\Support\RowActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -98,10 +99,10 @@ class PositionAttributeResource extends Resource
                     ->label(__('Options'))
                     ->counts('options'),
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
                 DeleteAction::make(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

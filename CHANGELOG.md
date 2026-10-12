@@ -328,6 +328,9 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Zmienione
 
+- Panele mają teraz pełną szerokość, a tabele rezerwacji i wędkarzy łowiska są bardziej zwarte: telefon, stan danych i płatność
+  stoją pod nazwiskiem i statusem, a akcje wiersza we wszystkich tabelach obu paneli stoją po lewej stronie, więc widać je bez przewijania tabeli.
+  Stan danych wędkarza nazywa się „Wpisane ręcznie” zamiast „Dane od łowiska”.
 - Przycisk w mailu o rezerwacji brzmi **„Potwierdź rezerwację"** i potwierdza rezerwację jednym kliknięciem,
   bez zakładania konta. Połączenie z kontem jest osobnym, dobrowolnym krokiem.
 - Lista rezerwacji, szczegóły i okienko w kalendarzu pokazują w kolumnie „Dane wędkarza", czy łowisko ma

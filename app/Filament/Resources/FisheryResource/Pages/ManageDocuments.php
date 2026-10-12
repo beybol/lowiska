@@ -14,6 +14,7 @@ use App\Rules\DocumentEffectiveDateIsFree;
 use App\Services\FisheryDocuments;
 use App\Services\FisheryNavigation;
 use App\Services\SharedFormComponents;
+use App\Support\RowActions;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\RichEditor;
@@ -133,11 +134,11 @@ class ManageDocuments extends ManageRelatedRecords
                 $this->newVersionAction(),
                 $this->previewTemplateAction('previewTemplate'),
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 $this->editVersionAction(),
                 $this->copyVersionAction(),
                 $this->deleteVersionAction(),
-            ]);
+            ])]);
     }
 
     private function newVersionAction(): Action

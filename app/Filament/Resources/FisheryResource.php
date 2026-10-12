@@ -39,6 +39,7 @@ use App\Services\FisheryAccess;
 use App\Services\FisheryImages;
 use App\Services\PortalSlugs;
 use App\Services\SharedFormComponents;
+use App\Support\RowActions;
 use Collator;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -516,7 +517,7 @@ class FisheryResource extends Resource
             ->filters([
                 //
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
                 Action::make('manage')
                     ->label(__('Manage'))
@@ -526,7 +527,7 @@ class FisheryResource extends Resource
                             'record' => $record,
                         ]);
                     }),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

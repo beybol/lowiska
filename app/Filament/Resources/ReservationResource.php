@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Enums\AnglerLinkStatus;
-use App\Enums\PaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Filament\Resources\ReservationResource\Pages\CreateReservation;
 use App\Filament\Resources\ReservationResource\Pages\EditReservation;
@@ -13,6 +12,7 @@ use App\Filament\Resources\ReservationResource\ReservationActions;
 use App\Models\Reservation;
 use App\Services\AmountFormatter;
 use App\Services\FisheryAccess;
+use App\Support\RowActions;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Resources\Resource;
@@ -52,44 +52,41 @@ class ReservationResource extends Resource
         return __('Reservations');
     }
 
+    /**
+     * Tabela rezerwacji łowiska — zwarta, bo pasek boczny łowiska zabiera szerokość (zadanie 048, uwagi z testów):
+     * stan wędkarza i telefon siedzą pod nazwiskiem, płatność pod statusem, a akcje w jednym menu na LEWO od kolumn,
+     * więc są widoczne także wtedy, gdy tabela się przewija. Cały wiersz prowadzi do szczegółów.
+     */
     public static function table(Table $table): Table
     {
         return $table
             ->defaultSort('starts_at')
+            ->recordUrl(fn (Reservation $record): string => self::getUrl('view', ['record' => $record]))
             ->columns([
                 TextColumn::make('angler.given_name')
                     ->label(__('Angler'))
                     ->state(fn (Reservation $record): ?string => $record->angler?->effectiveContact()['name'])
-                    ->description(fn (Reservation $record): ?string => $record->angler?->effectiveContact()['phone'])
+                    // Stan wędkarza, niezależny od statusu rezerwacji (049): ikona, a słownie pod nazwiskiem.
+                    ->icon(fn (Reservation $record): string => $record->angler?->status === AnglerLinkStatus::Linked ? 'heroicon-m-check-badge' : 'heroicon-m-pencil-square')
+                    ->iconColor(fn (Reservation $record): string => $record->angler?->status->accountColor() ?? 'gray')
+                    ->description(fn (Reservation $record): ?string => collect([$record->angler?->effectiveContact()['phone'], $record->angler?->status->accountLabel()])->filter()->implode(' · ') ?: null)
+                    ->wrap()
                     // ⚠️ Wyszukiwanie wyłącznie w relacjach TEGO łowiska (ADR-024) — zapytanie tabeli jest
                     // już zawężone do łowiska, a wyszukiwarka nie sięga do `users`.
                     ->searchable(['given_name', 'given_phone', 'given_email']),
-                // Stan wędkarza, niezależny od statusu rezerwacji (049).
-                TextColumn::make('angler.status')
-                    ->label(__('Angler data'))
-                    ->badge()
-                    ->formatStateUsing(fn (?AnglerLinkStatus $state): ?string => $state?->accountLabel())
-                    ->color(fn (?AnglerLinkStatus $state): string => $state?->accountColor() ?? 'gray'),
                 TextColumn::make('position.name')
                     ->label(__('Position')),
                 TextColumn::make('starts_at')
                     ->label(__('Stay'))
                     ->state(fn (Reservation $record): string => $record->stayLabel())
+                    ->wrap()
                     ->sortable(),
                 TextColumn::make('status')
                     ->label(__('Status'))
                     ->badge()
                     ->formatStateUsing(fn (ReservationStatus $state, Reservation $record): string => self::statusLabel($record))
-                    ->color(fn (ReservationStatus $state): string => self::statusColor($state)),
-                TextColumn::make('payment_status')
-                    ->label(__('Payment'))
-                    ->badge()
-                    ->formatStateUsing(fn (PaymentStatus $state): string => $state->label())
-                    ->color(fn (PaymentStatus $state): string => match ($state) {
-                        PaymentStatus::Paid => 'success',
-                        PaymentStatus::Refund => 'warning',
-                        default => 'gray',
-                    }),
+                    ->color(fn (ReservationStatus $state): string => self::statusColor($state))
+                    ->description(fn (Reservation $record): string => __('Payment').': '.$record->payment_status->label()),
                 TextColumn::make('terms.total_cents')
                     ->label(__('Amount'))
                     ->formatStateUsing(fn (?int $state, Reservation $record): ?string => $state === null
@@ -98,20 +95,20 @@ class ReservationResource extends Resource
                 TextColumn::make('creator.name')
                     ->label(__('Created by'))
                     ->description(fn (Reservation $record): string => $record->source->label())
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->label(__('Status'))
                     ->options(collect(ReservationStatus::cases())->mapWithKeys(fn (ReservationStatus $s): array => [$s->value => $s->label()])->all()),
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 Action::make('view')
                     ->label(__('View'))
                     ->icon('heroicon-m-eye')
                     ->url(fn (Reservation $record): string => self::getUrl('view', ['record' => $record])),
                 ...ReservationActions::all(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make(ReservationActions::bulk()),
             ]);

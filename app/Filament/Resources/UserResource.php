@@ -7,6 +7,7 @@ use App\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Models\User;
+use App\Support\RowActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -107,9 +108,9 @@ class UserResource extends Resource
                         ? $query
                         : $method->scope($query)),
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

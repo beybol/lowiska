@@ -1272,7 +1272,7 @@
     "Change to be announced — no new acceptance": "Zmiana do wiadomości — bez ponownej akceptacji",
     "Change requiring a new acceptance": "Zmiana wymagająca ponownej akceptacji",
     "Confirmed account": "Potwierdzone konto",
-    "Fishery-provided data": "Dane od łowiska",
+    "Entered manually": "Wpisane ręcznie",
     "Angler data": "Dane wędkarza",
     "Confirm: :document.": "Potwierdź: :document.",
     "I have read: :document": "Zapoznałem się: :document",
@@ -1337,5 +1337,6 @@
     "No reservations": "Brak rezerwacji",
     "Account link": "Połączenie z kontem",
     "link valid until :date": "link ważny do :date",
-    "since :date": "od :date"
+    "since :date": "od :date",
+    "Actions": "Akcje"
 }

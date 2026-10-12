@@ -6,6 +6,7 @@ use App\Filament\Resources\CurrencyResource\Pages\CreateCurrency;
 use App\Filament\Resources\CurrencyResource\Pages\EditCurrency;
 use App\Filament\Resources\CurrencyResource\Pages\ListCurrencies;
 use App\Models\Currency;
+use App\Support\RowActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -43,9 +44,9 @@ class CurrencyResource extends Resource
             ->filters([
                 //
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

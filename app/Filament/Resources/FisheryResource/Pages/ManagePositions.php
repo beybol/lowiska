@@ -6,6 +6,7 @@ use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\PositionResource;
 use App\Models\Fishery;
 use App\Models\Position;
+use App\Support\RowActions;
 use Filament\Actions\Action;
 use Filament\Navigation\NavigationItem;
 use Filament\Resources\Pages\ManageRelatedRecords;
@@ -99,7 +100,7 @@ class ManagePositions extends ManageRelatedRecords
             // ⚠️ Zwykłe `Action` z adresem pełnej strony, nie akcje CRUD-owe z modalami.
             // Pełne strony niosą bramkę dostępu do łowiska, wymuszenie `fishery_id` przy
             // zapisie i własne przekierowania — modal omijałby te trzy warstwy.
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 Action::make('edit')
                     ->label(__('Edit'))
                     ->icon('heroicon-m-pencil-square')
@@ -107,6 +108,6 @@ class ManagePositions extends ManageRelatedRecords
                     ->url(fn (Position $record): string => PositionResource::getUrl('edit', [
                         'record' => $record,
                     ])),
-            ]);
+            ])]);
     }
 }

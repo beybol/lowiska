@@ -8,6 +8,7 @@ use App\Filament\Resources\LongTermPermitResource\Pages\ListLongTermPermits;
 use App\Models\LongTermPermit;
 use App\Services\FisheryAccess;
 use App\Services\SharedFormComponents;
+use App\Support\RowActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -88,9 +89,9 @@ class LongTermPermitResource extends Resource
             ->filters([
                 //
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

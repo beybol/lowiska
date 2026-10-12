@@ -7,6 +7,7 @@ use App\Filament\Resources\CountryResource\Pages\CreateCountry;
 use App\Filament\Resources\CountryResource\Pages\EditCountry;
 use App\Filament\Resources\CountryResource\Pages\ListCountries;
 use App\Models\Country;
+use App\Support\RowActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteBulkAction;
@@ -68,9 +69,9 @@ class CountryResource extends Resource
                 ImportAction::make()
                     ->importer(CountryImporter::class),
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

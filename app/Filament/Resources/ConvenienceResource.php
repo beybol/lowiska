@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ConvenienceResource\Pages\ManageConveniences;
 use App\Models\Convenience;
+use App\Support\RowActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -42,10 +43,10 @@ class ConvenienceResource extends Resource
             ->filters([
                 //
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
                 DeleteAction::make(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

@@ -8,6 +8,7 @@ use App\Filament\Resources\DocumentTemplateResource\Pages\EditDocumentTemplate;
 use App\Filament\Resources\DocumentTemplateResource\Pages\ListDocumentTemplates;
 use App\Models\DocumentTemplate;
 use App\Services\SharedFormComponents;
+use App\Support\RowActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -75,9 +76,9 @@ class DocumentTemplateResource extends Resource
             ->defaultGroup(Group::make('type')
                 ->label(__('Document type'))
                 ->getTitleFromRecordUsing(fn (DocumentTemplate $record): string => $record->type->label()))
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

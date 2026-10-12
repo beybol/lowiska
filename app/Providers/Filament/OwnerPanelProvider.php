@@ -21,6 +21,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -42,6 +43,8 @@ class OwnerPanelProvider extends PanelProvider
             ->emailVerification()
             ->brandName(__('Fisherya owner panel'))
             ->topNavigation()
+            // Pełna szerokość treści: tabele łowiska mają obok siebie boczną sub-nawigację (`panel-wlasciciela.md` §2).
+            ->maxContentWidth(Width::Full)
             // ADR-016 A: jeden wspólny motyw dla obu paneli (resources/css/filament/theme.css).
             ->viteTheme('resources/css/filament/theme.css')
             // Znak Fisherya na karcie przeglądarki — ten sam plik co w portalu (zadanie 031).

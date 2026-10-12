@@ -8,6 +8,7 @@ use App\Filament\Resources\StateResource\Pages\ListStates;
 use App\Models\Country;
 use App\Models\State;
 use App\Services\PortalSlugs;
+use App\Support\RowActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -106,9 +107,9 @@ class StateResource extends Resource
                         fn (Builder $query) => $query->active()
                     ),
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

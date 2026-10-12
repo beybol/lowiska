@@ -18,6 +18,9 @@ Zadania źródłowe: 041, 042, 043, 044, 045, 047, 048, 049. Decyzje: ADR-024…
 - **„Rezerwacje" (`ManageReservations`) stoją w sub-nawigacji ZARAZ ZA „Kalendarzem"** — z kalendarza
   się je zakłada (042). Strona to `ManageRelatedRecords` po relacji `reservations`, tabela deleguje do
   `ReservationResource::table()`, zakładki: „Bieżące i nadchodzące" (domyślna), „Do kontaktu", „Wszystkie".
+- **Tabela rezerwacji jest zwarta** (`ReservationResource::table()`): w kolumnie wędkarza ikona i podpis stanu danych oraz
+  telefon, status z płatnością pod spodem, „Utworzył" domyślnie ukryte. Wszystkie akcje wiersza to jedno menu (`ActionGroup`; pozycja
+  akcji po lewej to globalna reguła paneli, `panel-wlasciciela.md` §2), widoczne bez przewijania; kliknięcie wiersza otwiera szczegóły. Nie dokładaj kolumn — łącz w komórki.
 - **Plakietka** = niepotwierdzone, którym termin potwierdzenia mija w ciągu 24 h (`Reservation::expiringWithin()`),
   plus „Do kontaktu" (`Reservation::toContact()`); liczona w `badgeFor()` z rekordu sub-nawigacji.
 - **`ReservationResource` jest zasobem podrzędnym łowiska bez pozycji w głównej nawigacji** — istnieje,
@@ -177,7 +180,7 @@ Decyzje: ADR-024 (z aktualizacją 2026-10-11), ADR-028 (zgody).
   albo przez Google. Zalogowany na konto o innym adresie dostaje odmowę z wylogowaniem. Połączenie (`link()`) →
   relacja `linked`, akceptacja wymaganych dokumentów łowiska (`required_at_registration` = „akceptowany przy
   połączeniu konta", `ConsentRegistry`), token zużyty, oczekujące rezerwacje potwierdzone.
-- **Panel pokazuje stan wędkarza osobno od statusu rezerwacji** („Dane wędkarza": „Dane od łowiska" albo
+- **Panel pokazuje stan wędkarza osobno od statusu rezerwacji** („Dane wędkarza": „Wpisane ręcznie" albo
   „Potwierdzone konto", `AnglerLinkStatus::accountLabel()`) — na liście, w szczegółach i w popoverze kalendarza.
   „Potwierdzona" nie znaczy „powiązana z kontem".
 - ⚠️ **Zmiana adresu relacji `Pending` unieważnia wysłaną prośbę** (token i ważność zerowane, status `Unlinked`)
@@ -262,7 +265,7 @@ Strona `FisheryResource\Pages\ManageAnglers` — pozycja sub-nawigacji **zaraz z
   `FisheryAngler::effectiveSql()` (wyszukiwanie i sortowanie). ⚠️ Zmiana jednej wymaga zmiany drugiej — pilnuje tego
   test porównujący obie dla każdego stanu relacji. Wyszukiwarka (`matchingContact()`) szuka po danych efektywnych:
   `linked` po danych konta (z `phone_override`), `unlinked`/`pending` po `given_*`, `revoked` nigdy; nie szuka po notatkach.
-- **Stan danych na liście i w filtrze to trzy stany z `AnglerLinkStatus::accountLabel()`** (dane od łowiska, potwierdzone
+- **Stan danych na liście i w filtrze to trzy stany z `AnglerLinkStatus::accountLabel()`** (wpisane ręcznie, potwierdzone
   konto, dostęp cofnięty) — to samo słownictwo co kolumna „Dane wędkarza" na liście rezerwacji (§3). Czterostanowy status
   (`label()`) i ważność linku są dopiero w podglądzie wędkarza.
 - **Liczba rezerwacji w kolumnie to rezerwacje aktywne, a podgląd pokazuje wszystkie statusy z TEGO łowiska, od najnowszej**

@@ -17,7 +17,7 @@ Gdy obsługa łowiska zapisze rezerwację z adresem e-mail wędkarza, wędkarz d
   - **„Nie teraz"** — rezerwacja zostaje potwierdzona, a link z maila pozwala połączyć konto przez 14 dni.
 - **Łowisko** zawsze widzi ten sam komunikat „wysłano prośbę o potwierdzenie" — nie dowiaduje się, czy adres ma
   konto w portalu. W panelu widzi osobno **status rezerwacji** (np. potwierdzona) i **dane wędkarza**
-  („dane od łowiska" albo „potwierdzone konto").
+  („wpisane ręcznie" albo „potwierdzone konto").
 - **„To nie ja"** cofa prośbę, rezerwacja trafia do „Do kontaktu" (nie jest anulowana). **„Zrezygnuj"** anuluje
   rezerwację ze zwrotem według polityki zwrotu.
 
@@ -66,7 +66,7 @@ stateDiagram-v2
     PotwierdzoneKonto --> [*]
 ```
 
-W panelu „Prośba wysłana" i „Dane od łowiska" wyglądają tak samo — **„Dane od łowiska"**. Dopiero połączenie
+W panelu „Prośba wysłana" i „Wpisane ręcznie" wyglądają tak samo — **„Wpisane ręcznie"**. Dopiero połączenie
 konta zmienia to na **„Potwierdzone konto"**.
 
 ## Dla zespołu

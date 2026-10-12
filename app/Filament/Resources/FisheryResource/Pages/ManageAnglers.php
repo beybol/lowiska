@@ -9,6 +9,7 @@ use App\Models\Fishery;
 use App\Models\FisheryAngler;
 use App\Models\Reservation;
 use App\Services\FisheryNavigation;
+use App\Support\RowActions;
 use Carbon\CarbonImmutable;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\RepeatableEntry;
@@ -99,29 +100,29 @@ class ManageAnglers extends ManageRelatedRecords
                     ->label(__('Name'))
                     ->state(fn (FisheryAngler $record): ?string => $record->effectiveContact()['name'])
                     ->placeholder(fn (FisheryAngler $record): string => $record->status === AnglerLinkStatus::Revoked ? __('Access revoked') : __('Not provided'))
+                    // Stan danych: ikona, a słownie pod nazwiskiem — kolumna „Dane wędkarza" nie zajmuje osobnego miejsca.
+                    ->icon(fn (FisheryAngler $record): string => $record->status === AnglerLinkStatus::Linked ? 'heroicon-m-check-badge' : 'heroicon-m-pencil-square')
+                    ->iconColor(fn (FisheryAngler $record): string => $record->status->accountColor())
+                    ->description(fn (FisheryAngler $record): string => $record->status->accountLabel())
+                    ->wrap()
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         /** @var Builder<FisheryAngler> $query */
                         return $query->matchingContact($search);
                     })
                     ->sortable(query: fn (Builder $query, string $direction): Builder => $query->orderByRaw(FisheryAngler::effectiveSql('name').' '.$direction)),
                 TextColumn::make('given_email')
-                    ->label(__('Email'))
+                    ->label(__('Contact'))
                     ->state(fn (FisheryAngler $record): ?string => $record->effectiveContact()['email'])
                     ->description(fn (FisheryAngler $record): ?string => $record->effectiveContact()['phone'])
-                    ->placeholder('—'),
-                TextColumn::make('status')
-                    ->label(__('Angler data'))
-                    ->badge()
-                    ->formatStateUsing(fn (AnglerLinkStatus $state): string => $state->accountLabel())
-                    ->color(fn (AnglerLinkStatus $state): string => $state->accountColor()),
+                    ->placeholder('—')
+                    ->wrap(),
                 TextColumn::make('active_reservations_count')
                     ->label(__('Active reservations'))
                     ->numeric()
-                    ->sortable(),
-                TextColumn::make('next_stay_at')
-                    ->label(__('Next stay'))
-                    ->state(fn (FisheryAngler $record): ?string => $this->localMoment($record->getAttribute('next_stay_at'))?->format('d.m.Y H:i'))
-                    ->placeholder('—')
+                    // Najbliższy pobyt pod liczbą; po nim domyślnie sortuje cała lista (`defaultSort`).
+                    ->description(fn (FisheryAngler $record): ?string => ($next = $this->localMoment($record->getAttribute('next_stay_at'))) !== null
+                        ? __('Next stay').': '.$next->format('d.m.Y H:i')
+                        : null)
                     ->sortable(),
             ])
             ->filters([
@@ -155,14 +156,14 @@ class ManageAnglers extends ManageRelatedRecords
                         $reservations->toContact();
                     })),
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 ViewAction::make('preview')
                     ->label(__('View'))
                     ->modalHeading(fn (FisheryAngler $record): string => $record->effectiveContact()['name'] ?? __('Access revoked'))
                     ->slideOver()
                     ->modalWidth('3xl')
                     ->schema(fn (): array => $this->previewSchema()),
-            ])
+            ])])
             ->emptyStateHeading(__('No anglers yet'))
             ->emptyStateDescription(__('Anglers appear here after the first reservation made for them.'));
     }

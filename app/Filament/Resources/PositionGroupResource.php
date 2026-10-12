@@ -10,6 +10,7 @@ use App\Models\PositionGroup;
 use App\Rules\RecordsBelongToFishery;
 use App\Services\FisheryAccess;
 use App\Services\SharedFormComponents;
+use App\Support\RowActions;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -104,7 +105,7 @@ class PositionGroupResource extends Resource
                     ->label(__('Positions'))
                     ->counts('positions'),
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
                 // ⚠️ SKRÓT do akcji zbiorczej z tabeli stanowisk — ten sam schemat pól
                 // i ten sam kod zapisu, tylko z zaznaczeniem wypełnionym stanowiskami
@@ -126,7 +127,7 @@ class PositionGroupResource extends Resource
                         $data,
                     )),
                 ...static::serviceShortcutActions(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

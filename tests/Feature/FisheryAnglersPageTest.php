@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Enums\AnglerLinkStatus;
 use App\Enums\CancellationReason;
 use App\Filament\Resources\FisheryResource;
+use App\Filament\Resources\FisheryResource\Pages\ListFisheries;
 use App\Filament\Resources\FisheryResource\Pages\ManageAnglers;
 use App\Filament\Resources\FisheryResource\Pages\ManageCalendar;
+use App\Filament\Resources\FisheryResource\Pages\ManageReservations;
 use App\Filament\Resources\ReservationResource;
 use App\Models\FisheryAngler;
 use App\Models\Reservation;
@@ -313,4 +315,19 @@ test('the page is read-only and the table query stays flat as anglers are added'
         ->assertTableActionExists('preview', record: $angler)
         ->assertTableActionDoesNotExist('edit', record: $angler)
         ->assertTableActionDoesNotExist('delete', record: $angler);
+});
+
+test('row actions stand before the columns in every panel table, not per table', function () {
+    [$fishery, , $owner] = ReservationFixtures::bookableFishery();
+    $this->actingAs($owner);
+
+    $tables = [
+        Livewire::test(ManageAnglers::class, ['record' => $fishery->getKey()]),
+        Livewire::test(ManageReservations::class, ['record' => $fishery->getKey()]),
+        Livewire::test(ListFisheries::class),
+    ];
+
+    foreach ($tables as $page) {
+        expect($page->instance()->getTable()->getRecordActionsPosition())->toBe(RecordActionsPosition::BeforeCells);
+    }
 });

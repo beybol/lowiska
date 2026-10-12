@@ -19,6 +19,7 @@ use App\Services\AvailabilityBlockSelectionResolver;
 use App\Services\FisheryAccess;
 use App\Services\FishingDayCalendar;
 use App\Services\SharedFormComponents;
+use App\Support\RowActions;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -260,9 +261,9 @@ class AvailabilityBlockResource extends Resource
                     ->placeholder('—'),
             ])
             ->defaultSort('starts_on', 'desc')
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

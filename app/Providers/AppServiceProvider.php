@@ -8,6 +8,8 @@ use App\Support\SanitizingMediaFilesystem;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
 use Filament\Support\Assets\Css;
 use Filament\Support\Facades\FilamentAsset;
+use Filament\Tables\Enums\RecordActionsPosition;
+use Filament\Tables\Table;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -63,6 +65,9 @@ class AppServiceProvider extends ServiceProvider
         FilamentAsset::register([
             Css::make('custom-stylesheet', asset('css/filament-extend.css')),
         ]);
+        // Akcje wiersza po LEWEJ stronie kolumn w każdej tabeli obu paneli: przy wąskim ekranie tabela się przewija,
+        // a prawa strona z akcjami znikała poza kadrem (zadanie 048). Jedno miejsce, bez wyjątków per tabela.
+        Table::configureUsing(fn (Table $table) => $table->recordActionsPosition(RecordActionsPosition::BeforeCells));
         LanguageSwitch::configureUsing(function (LanguageSwitch $switch) {
             $switch->locales(['pl', 'en']);
         });

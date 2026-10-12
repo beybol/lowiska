@@ -39,7 +39,7 @@ enum AnglerLinkStatus: string
         return match ($this) {
             self::Linked => __('Confirmed account'),
             self::Revoked => __('Access revoked'),
-            default => __('Fishery-provided data'),
+            default => __('Entered manually'),
         };
     }
 

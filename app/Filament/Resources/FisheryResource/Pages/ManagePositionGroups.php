@@ -6,6 +6,7 @@ use App\Filament\Resources\FisheryResource;
 use App\Filament\Resources\PositionGroupResource;
 use App\Models\Fishery;
 use App\Models\PositionGroup;
+use App\Support\RowActions;
 use Filament\Actions\Action;
 use Filament\Navigation\NavigationItem;
 use Filament\Resources\Pages\ManageRelatedRecords;
@@ -97,7 +98,7 @@ class ManagePositionGroups extends ManageRelatedRecords
             // ⚠️ Zwykłe `Action` z adresem pełnej strony, nie akcje CRUD-owe z modalami.
             // Pełne strony niosą bramkę dostępu do łowiska, wymuszenie `fishery_id` przy
             // zapisie i własne przekierowania — modal omijałby te trzy warstwy.
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 Action::make('edit')
                     ->label(__('Edit'))
                     ->icon('heroicon-m-pencil-square')
@@ -108,6 +109,6 @@ class ManagePositionGroups extends ManageRelatedRecords
                 // Skróty akcji zbiorczych z tabeli stanowisk — modal niczego tu nie omija: zapis
                 // idzie przez tę samą bramkę co z tabeli stanowisk (zadanie 020).
                 ...PositionGroupResource::serviceShortcutActions(),
-            ]);
+            ])]);
     }
 }

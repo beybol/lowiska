@@ -14,6 +14,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -29,6 +30,8 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
+            // Pełna szerokość treści: tabele łowiska mają obok siebie boczną sub-nawigację (`panel-wlasciciela.md` §2).
+            ->maxContentWidth(Width::Full)
             ->id('admin')
             ->path('admin')
             ->login(Login::class)

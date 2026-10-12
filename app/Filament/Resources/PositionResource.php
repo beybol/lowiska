@@ -19,6 +19,7 @@ use App\Services\FisheryAccess;
 use App\Services\PositionAttributeWriter;
 use App\Services\PositionServices;
 use App\Services\SharedFormComponents;
+use App\Support\RowActions;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -309,9 +310,9 @@ class PositionResource extends Resource
             ->filters([
                 //
             ])
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 EditAction::make(),
-            ])
+            ])])
             ->toolbarActions([
                 BulkActionGroup::make([
                     static::setAttributeBulkAction(),

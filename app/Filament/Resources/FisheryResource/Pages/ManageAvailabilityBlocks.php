@@ -6,6 +6,7 @@ use App\Filament\Resources\AvailabilityBlockResource;
 use App\Filament\Resources\FisheryResource;
 use App\Models\AvailabilityBlock;
 use App\Models\Fishery;
+use App\Support\RowActions;
 use Filament\Actions\Action;
 use Filament\Navigation\NavigationItem;
 use Filament\Resources\Pages\ManageRelatedRecords;
@@ -98,7 +99,7 @@ class ManageAvailabilityBlocks extends ManageRelatedRecords
             // ⚠️ Zwykłe `Action` z adresem pełnej strony, nie akcje CRUD-owe z modalami.
             // Pełne strony niosą bramkę dostępu do łowiska, wymuszenie `fishery_id` przy
             // zapisie i własne przekierowania — modal omijałby te trzy warstwy.
-            ->recordActions([
+            ->recordActions([RowActions::menu([
                 Action::make('edit')
                     ->label(__('Edit'))
                     ->icon('heroicon-m-pencil-square')
@@ -106,6 +107,6 @@ class ManageAvailabilityBlocks extends ManageRelatedRecords
                     ->url(fn (AvailabilityBlock $record): string => AvailabilityBlockResource::getUrl('edit', [
                         'record' => $record,
                     ])),
-            ]);
+            ])]);
     }
 }
