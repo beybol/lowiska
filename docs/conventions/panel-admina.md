@@ -346,6 +346,22 @@ Uzasadnienie kształtu wartości: [ADR-011](../adr/ADR-011-ksztalt-wartosci-cech
   jako **do weryfikacji prawnej**. Szablonu polityki prywatności celowo nie ma, dopóki prawnik nie
   rozstrzygnie ról w RODO (TODO-3).
 
+### Dokumenty Fisherya (zadanie 049, ADR-028)
+
+- **`PlatformDocumentResource` żyje WYŁĄCZNIE w `/admin`** (grupa „Słowniki", po szablonach) — wersje regulaminu
+  i polityki prywatności portalu. Model `PlatformDocument` to ta sama tabela `documents` z zakresem
+  `fishery_id IS NULL` (powód osobnej klasy: własna polityka — [`autoryzacja.md`](autoryzacja.md) §7).
+- **Reguły wersji jak u łowiska** (ADR-017): jedna wersja obowiązująca na rodzaj, data najwcześniej jutro i wolna
+  dla rodzaju (`DocumentEffectiveDateIsAhead(null)`, `DocumentEffectiveDateIsFree(null, …)` — strefa domyślna
+  portalu), nienaruszalność od dnia wejścia w życie razem z wariantami językowymi (`DocumentTranslation`) —
+  pilnuje model. Usunąć wolno wyłącznie wersję zaplanowaną. Flaga „wymagany przy zakładaniu konta" jest
+  edytowalna zawsze.
+- Wersja ma **język wiążący** (`locale`), **rodzaj zmiany** i **datę ogłoszenia** (ADR-028 §2); warianty w innych
+  językach to tłumaczenia tej samej treści (repeater po relacji `translations`). Zakres rynkowy
+  (`market_country_id`) jest w schemacie, nie w formularzu.
+- Dokumenty łowiska (`ManageDocuments`) też mają rodzaj zmiany i datę ogłoszenia, a flaga
+  `required_at_registration` znaczy „wymagany przy połączeniu konta z łowiskiem".
+
 ---
 
 ## 9. Lista kont — sposób logowania (zadanie 028)

@@ -55,6 +55,19 @@ Route::middleware(SetPortalLocale::class)->group(function () {
         }
     }
 
+    // Strona łączenia konta z łowiskiem (zadanie 049) — bez tokenu w adresie, relacja ze znacznika w sesji.
+    // `two_factor`: sesja z nieprzepisanym jeszcze kodem 2FA nie może połączyć konta.
+    foreach (PortalRoutes::RESERVATION_ACCOUNT_PAGE as $locale => $slug) {
+        Route::get("{$locale}/{$slug}", [ReservationLinkController::class, 'account'])
+            ->middleware(['two_factor', 'throttle:'.ReservationLinkController::ATTEMPTS_PER_MINUTE.',1'])
+            ->name(PortalRoutes::reservationAccountRouteName($locale))
+            ->defaults('locale', $locale);
+        Route::post("{$locale}/{$slug}", [ReservationLinkController::class, 'accountSubmit'])
+            ->middleware(['two_factor', 'throttle:'.ReservationLinkController::ATTEMPTS_PER_MINUTE.',1'])
+            ->name(PortalRoutes::reservationAccountRouteName($locale).'.submit')
+            ->defaults('locale', $locale);
+    }
+
     Route::prefix('{locale}')
         ->whereIn('locale', PortalRoutes::LOCALES)
         ->name('portal.')
@@ -82,6 +95,13 @@ Route::middleware(['auth', 'two_factor'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+// Zgody przed założeniem konta przez dostawcę logowania (zadanie 049) — PRZED `auth/{provider}`,
+// które inaczej przechwyciłoby ten adres jako nazwę dostawcy.
+Route::middleware('guest')->group(function () {
+    Route::get('auth/consents', [SocialAuthController::class, 'consents'])->name('social.consents');
+    Route::post('auth/consents', [SocialAuthController::class, 'consentsSubmit'])->name('social.consents.submit');
 });
 
 Route::get('auth/{provider}', [SocialAuthController::class, 'redirect'])

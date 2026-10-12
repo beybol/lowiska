@@ -4,6 +4,7 @@ namespace App\Rules;
 
 use App\Models\Fishery;
 use App\Services\FisheryDocuments;
+use App\Services\PlatformDocuments;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -18,7 +19,10 @@ use Throwable;
  */
 final class DocumentEffectiveDateIsAhead implements ValidationRule
 {
-    public function __construct(private readonly Fishery $fishery) {}
+    /**
+     * @param  Fishery|null  $fishery  `null` = dokument Fisherya (zadanie 049) — strefa domyślna portalu
+     */
+    public function __construct(private readonly ?Fishery $fishery) {}
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
@@ -26,15 +30,19 @@ final class DocumentEffectiveDateIsAhead implements ValidationRule
             return;
         }
 
+        $timezone = $this->fishery?->timezoneName() ?? Fishery::DEFAULT_TIMEZONE;
+
         try {
-            $date = CarbonImmutable::parse(substr((string) $value, 0, 10), $this->fishery->timezoneName())->startOfDay();
+            $date = CarbonImmutable::parse(substr((string) $value, 0, 10), $timezone)->startOfDay();
         } catch (Throwable) {
             $fail(__('Enter a valid date.'));
 
             return;
         }
 
-        if ($date <= FisheryDocuments::today($this->fishery)) {
+        $today = $this->fishery instanceof Fishery ? FisheryDocuments::today($this->fishery) : PlatformDocuments::today();
+
+        if ($date <= $today) {
             $fail(__('A version can take effect tomorrow at the earliest.'));
         }
     }

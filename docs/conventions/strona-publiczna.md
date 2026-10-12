@@ -4,7 +4,7 @@ Obowiązuje przy zmianach w `routes/**`, widokach Breeze i `resources/views/**` 
 `resources/views/filament/**` — w szczególności w portalu wędkarza (`resources/views/portal/**`,
 `app/Http/Controllers/Portal/**`, `App\Services\Portal*`).
 
-Zadania źródłowe: 029, 031, 032, 033, 034, 036, 037, 038, 040, 043, 046. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
+Zadania źródłowe: 029, 031, 032, 033, 034, 036, 037, 038, 040, 043, 046, 049. Uzasadnienia: [ADR-020](../adr/ADR-020-tailwind-portalu-i-potok-zasobow.md)
 (potok stylów), [ADR-021](../adr/ADR-021-schemat-adresow-portalu.md) (schemat adresów).
 Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
@@ -251,7 +251,14 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
 
 - **Pulpitu Breeze (`/dashboard`) nie ma.** Po logowaniu, rejestracji, weryfikacji adresu i 2FA
   użytkownik trafia do panelu — jedna reguła `PanelHome::urlFor()` ([`autoryzacja.md`](autoryzacja.md) §6).
-  `redirect()->intended()` zostaje: cel „zamierzony" nadal wygrywa.
+  `redirect()->intended()` zostaje: cel „zamierzony" nadal wygrywa. **Wyjątek: trwa łączenie konta z łowiskiem**
+  (znacznik `AnglerLinkSession`, zadanie 049) — logowanie hasłem, Google, kod 2FA i rejestracja wracają na stronę
+  łączenia (`PanelHome::redirectAfterSignIn()`, §8).
+- **Rejestracja (`/register`) i ekran zgód przed kontem z Google (`auth/consents`)** pokazują pola wymaganych
+  dokumentów Fisherya (`auth.partials.consents`); trasa zgód stoi PRZED `auth/{provider}`.
+- **Regulamin i polityka prywatności portalu** pokazują wersję obowiązującą dokumentu Fisherya w języku
+  odwiedzającego (`PortalController::platformDocument()`, treść przez `Str::sanitizeHtml()`), bez niej —
+  „Treść w przygotowaniu".
 - `/` należy do portalu. Widoki logowania i profilu Breeze zostają do etapu 4 (konta wędkarzy).
 
 ## 8. Strony pod tokenem z maila o rezerwacji (zadanie 043)
@@ -266,7 +273,16 @@ Specyfikacja: [portal-v3](../project/mockups/portal-v3/README.md).
   na adres IP). Token nieznany albo zużyty → 404 z komunikatem, wygasły → 410.
 - **Widoki z `noCanonical`** — canonical i `hreflang` nie mogą nieść tokenu. Przełącznik języka zostaje na tej
   samej stronie (`PortalRoutes::counterpart()`).
-- Logika (tokeny, konto, telefon, rezygnacja) mieszka w `AnglerLinking`, nie w kontrolerze —
+- **Strona łączenia konta `/{język}/rezerwacja/konto` (en: `reservation/account`) NIE ma tokenu w adresie**
+  (zadanie 049): relację wskazuje hash tokenu w sesji (`AnglerLinkSession`), zapisany przez „Połącz konto" na
+  stronie potwierdzenia. Dzięki temu logowanie i rejestracja mogą na nią wrócić, a token nie trafia do adresu
+  powrotu. Trzy segmenty — trasa rejestrowana przed trasą łowiska; budowanie przez
+  `PortalRoutes::reservationAccountUrl()`; middleware `two_factor` i ten sam `throttle`. Brak znacznika albo
+  nieważny token → 404 i usunięcie znacznika.
+- **Adres konta zakładanego z linku nie jest polem formularza** — wyświetla się, a konto dostaje adres z prośby.
+- Pola zgód w portalu — `portal.reservation.partials.consents` (nazwa `consents[<id wersji>]`, etykieta i komunikat
+  z `ConsentRegistry`, link do dokumentu z `PortalRoutes::documentUrl()`).
+- Logika (tokeny, konto, telefon, zgody, rezygnacja) mieszka w `AnglerLinking`, nie w kontrolerze —
   [`rezerwacje.md`](rezerwacje.md) §3.
 
 ## 9. Publiczna dostępność — stan „Zajęte" (zadanie 046)

@@ -308,8 +308,28 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   pokazywanie zajętości — neutralnie, bez żadnych danych o rezerwującym, także w widoku na telefonie
   i w legendzie, gdy taka doba jest w tygodniu. Nad kalendarzem znika wtedy informacja o potwierdzaniu
   terminów telefonicznie. Przy wyłączonym ustawieniu portal wygląda jak dotąd.
+- Administrator prowadzi w panelu **dokumenty Fisherya** — wersje regulaminu i polityki prywatności portalu,
+  z językiem wiążącym, wersjami językowymi, rodzajem zmiany i datą ogłoszenia. Od dnia wejścia w życie wersji
+  nie da się zmienić ani usunąć. Obowiązująca wersja pokazuje się na stronach „Regulamin" i „Polityka
+  prywatności" portalu w języku odwiedzającego.
+- Zakładanie konta — formularzem, w panelu i przez Google — wymaga zaakceptowania regulaminu i zapoznania się
+  z polityką prywatności Fisherya. Przy Google zgody zaznacza się na osobnym ekranie, zanim konto powstanie.
+  System zapisuje, kto, kiedy, w jakim miejscu i którą wersję (w którym języku) zaakceptował.
+- Po potwierdzeniu rezerwacji wędkarz może połączyć konto Fisherya z łowiskiem: zalogować się na istniejące
+  konto albo założyć nowe (hasłem albo przez Google) na adres z rezerwacji. Przy połączeniu akceptuje
+  dokumenty łowiska oznaczone jako „wymagany przy połączeniu konta". Link z maila pozwala połączyć konto
+  przez 14 dni; po zalogowaniu wędkarz wraca na tę samą stronę.
+- Dokumenty łowiska mają rodzaj zmiany (redakcyjna, do wiadomości, wymagająca ponownej akceptacji) i datę
+  ogłoszenia.
 
 ### Zmienione
+
+- Przycisk w mailu o rezerwacji brzmi **„Potwierdź rezerwację"** i potwierdza rezerwację jednym kliknięciem,
+  bez zakładania konta. Połączenie z kontem jest osobnym, dobrowolnym krokiem.
+- Lista rezerwacji, szczegóły i okienko w kalendarzu pokazują w kolumnie „Dane wędkarza", czy łowisko ma
+  dane, które samo wpisało, czy potwierdzone konto wędkarza — niezależnie od statusu rezerwacji.
+- Przełącznik dokumentu łowiska „wymagany przy rejestracji na łowisku" nazywa się „wymagany przy połączeniu
+  konta" i działa: wędkarz akceptuje taki dokument, łącząc konto z łowiskiem.
 
 - Kalendarz rezerwacji w panelu i kalendarz w portalu wędkarza pokazują dni kalendarzowe podzielone na połowy:
   pasek rezerwacji zaczyna się w połowie dnia przyjazdu i kończy w połowie dnia wyjazdu, z ukośnymi końcami
@@ -476,6 +496,9 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   w linkach z wiadomości e-mail.
 - Ciasteczko sesji jest teraz oznaczane jako wysyłane wyłącznie po połączeniu szyfrowanym
   na środowisku docelowym.
+- Link z maila o rezerwacji nie daje już dostępu do konta wędkarza: przekazany albo podejrzany mail nie
+  pozwala powiązać istniejącego konta z łowiskiem ani zmienić telefonu w profilu — do tego trzeba się
+  zalogować na konto o adresie z rezerwacji. System nie zakłada już kont bez udziału wędkarza.
 
 ### Poprawione
 

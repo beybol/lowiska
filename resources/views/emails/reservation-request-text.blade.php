@@ -1,7 +1,7 @@
 @extends('emails.text.layout')
 
 @section('body')
-{!! __('The fishery has made a reservation for you. Please confirm it — you can also link it with your Fisherya account in the same step.') !!}
+{!! __('The fishery has made a reservation for you. Please confirm it with one click — no account is needed.') !!}
 
 @include('emails.text.details', ['details' => $details])
 @if ($refundLines !== [])
@@ -12,9 +12,9 @@
 @endforeach
 @endif
 
-{!! __('Confirm and link with my account') !!}: {!! $confirmUrl !!}
+{!! __('Confirm reservation') !!}: {!! $confirmUrl !!}
 
 {!! __('Cancel / this is not me') !!}: {!! $manageUrl !!}
 
-{!! __('After linking, the fishery sees your name, email address and phone number from your account. You can change them in your account at any time.') !!}
+{!! __('After confirming, you can sign in to your Fisherya account or create one to keep your reservation history.') !!}
 @endsection

@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\DocumentType;
+use App\Models\Document;
 use App\Models\Fishery;
 use Illuminate\Routing\Route;
 
@@ -177,6 +179,45 @@ final class PortalRoutes
         return route(self::reservationRouteName($page, $locale ?? app()->getLocale()), ['token' => $token]);
     }
 
+    /**
+     * Strona łączenia konta z łowiskiem (zadanie 049) — BEZ tokenu w adresie: relację wskazuje znacznik
+     * w sesji (`AnglerLinkSession`), więc logowanie i rejestracja mogą na nią wrócić. Trzy segmenty —
+     * trasa rejestrowana przed trasą łowiska, jak strony informacyjne.
+     *
+     * @var array<string, string>
+     */
+    public const RESERVATION_ACCOUNT_PAGE = ['pl' => 'rezerwacja/konto', 'en' => 'reservation/account'];
+
+    public static function reservationAccountRouteName(string $locale): string
+    {
+        return "portal.reservation.account.{$locale}";
+    }
+
+    public static function reservationAccountUrl(?string $locale = null): string
+    {
+        return route(self::reservationAccountRouteName($locale ?? app()->getLocale()));
+    }
+
+    /**
+     * Gdzie przeczytać dokument z pola zgody (049): dokument Fisherya — strona regulaminu albo polityki
+     * prywatności portalu; dokument łowiska — zakładka „Dokumenty" strony łowiska. `null` = brak strony.
+     */
+    public static function documentUrl(Document $document, ?string $locale = null): ?string
+    {
+        if ($document->fishery_id === null) {
+            return match ($document->type) {
+                DocumentType::Terms => self::pageUrl('terms', $locale),
+                DocumentType::PrivacyPolicy => self::pageUrl('privacy', $locale),
+                default => null,
+            };
+        }
+
+        $fishery = $document->fishery;
+        $url = $fishery instanceof Fishery ? self::fisheryUrl($fishery, $locale) : null;
+
+        return $url === null ? null : $url.'#'.self::fisheryTabAnchor('documents', $locale);
+    }
+
     public static function homeUrl(?string $locale = null): string
     {
         return route('portal.home', ['locale' => $locale ?? app()->getLocale()]);
@@ -233,6 +274,10 @@ final class PortalRoutes
             if (is_string($name) && str_starts_with($name, "portal.reservation.{$reservationPage}.") && ! str_ends_with($name, '.submit')) {
                 return self::reservationUrl($reservationPage, (string) $route->parameter('token'), $locale);
             }
+        }
+
+        if (is_string($name) && str_starts_with($name, 'portal.reservation.account.') && ! str_ends_with($name, '.submit')) {
+            return self::reservationAccountUrl($locale);
         }
 
         if ($name === 'portal.fishery') {

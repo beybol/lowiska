@@ -28,4 +28,23 @@ enum AnglerLinkStatus: string
             self::Revoked => __('Access revoked'),
         };
     }
+
+    /**
+     * Stan wędkarza widoczny dla łowiska (zadanie 049, ADR-024 aktualizacja 2026-10-11 pkt 4) — odrębny od
+     * statusu rezerwacji: „potwierdzona" nie oznacza już „powiązana z kontem". Oczekująca prośba to wciąż
+     * dane od łowiska, także gdy wędkarz potwierdził rezerwację bez konta (R1).
+     */
+    public function accountLabel(): string
+    {
+        return match ($this) {
+            self::Linked => __('Confirmed account'),
+            self::Revoked => __('Access revoked'),
+            default => __('Fishery-provided data'),
+        };
+    }
+
+    public function accountColor(): string
+    {
+        return $this === self::Linked ? 'success' : 'gray';
+    }
 }

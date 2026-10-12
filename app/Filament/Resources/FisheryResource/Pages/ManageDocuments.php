@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\FisheryResource\Pages;
 
+use App\Enums\DocumentChangeKind;
 use App\Enums\DocumentStatus;
 use App\Enums\DocumentType;
 use App\Filament\Resources\FisheryResource;
@@ -125,7 +126,7 @@ class ManageDocuments extends ManageRelatedRecords
                     ->label(__('Required at purchase'))
                     ->boolean(),
                 IconColumn::make('required_at_registration')
-                    ->label(__('Required at registration with the fishery'))
+                    ->label(__('Required when linking an account'))
                     ->boolean(),
             ])
             ->headerActions([
@@ -187,6 +188,8 @@ class ManageDocuments extends ManageRelatedRecords
                 'type' => $record->type->value,
                 'title' => $record->title,
                 'effective_from' => $record->effective_from->toDateString(),
+                'change_kind' => $record->change_kind->value,
+                'announced_on' => $record->announced_on?->toDateString(),
                 'content' => $record->content,
                 'required_at_purchase' => $record->required_at_purchase,
                 'required_at_registration' => $record->required_at_registration,
@@ -196,7 +199,7 @@ class ManageDocuments extends ManageRelatedRecords
                 // ⚠️ Od dnia wejścia w życie formularz przysyła wyłącznie flagi (reszta pól jest
                 // wyłączona), a gdyby przysłał więcej — odrzuci to model po dacie z bazy.
                 $record->update(array_intersect_key($data, array_flip([
-                    'title', 'content', 'effective_from', 'required_at_purchase', 'required_at_registration',
+                    'title', 'content', 'effective_from', 'change_kind', 'announced_on', 'required_at_purchase', 'required_at_registration',
                 ])));
 
                 Notification::make()->success()->title(__('Saved'))->send();
@@ -293,12 +296,24 @@ class ManageDocuments extends ManageRelatedRecords
                         $record?->getKey() === null ? null : (int) $record->getKey(),
                     ),
                 ]),
+            // Rodzaj zmiany i data ogłoszenia (ADR-028 §2) — zamrożone razem z treścią od dnia wejścia w życie.
+            Select::make('change_kind')
+                ->label(__('Kind of change'))
+                ->options(DocumentChangeKind::options())
+                ->required()
+                ->disabled($locked),
+            DatePicker::make('announced_on')
+                ->label(__('Announced on'))
+                ->native(false)
+                ->displayFormat('d.m.Y')
+                ->beforeOrEqual('effective_from')
+                ->disabled($locked),
             // ⚠️ Flagi wymagalności są edytowalne ZAWSZE, także w wersji obowiązującej.
             Toggle::make('required_at_purchase')
                 ->label(__('Required at purchase')),
             Toggle::make('required_at_registration')
-                ->label(__('Required at registration with the fishery'))
-                ->helperText(__('Working meaning: the angler\'s first contact with the fishery. It will be settled when the angler portal is built.')),
+                ->label(__('Required when linking an account'))
+                ->helperText(__('The angler accepts this document when linking their Fisherya account with the fishery.')),
             Actions::make([$this->previewTemplateAction('previewTemplateFromForm')])
                 ->key('document_version_actions'),
             RichEditor::make('content')
@@ -394,6 +409,8 @@ class ManageDocuments extends ManageRelatedRecords
             'content' => null,
             'required_at_purchase' => $type === DocumentType::Terms,
             'required_at_registration' => false,
+            'change_kind' => DocumentChangeKind::Notice->value,
+            'announced_on' => null,
             ...$this->sourceContent($source),
             // Domyślna data nowej i skopiowanej wersji: dziś + 14 dni w strefie łowiska.
             'effective_from' => FisheryDocuments::defaultEffectiveFrom($this->fishery())->toDateString(),
@@ -413,6 +430,8 @@ class ManageDocuments extends ManageRelatedRecords
             'type' => $type->value,
             'title' => $data['title'],
             'effective_from' => $data['effective_from'],
+            'change_kind' => DocumentChangeKind::tryFrom((string) ($data['change_kind'] ?? '')) ?? DocumentChangeKind::Notice,
+            'announced_on' => $data['announced_on'] ?? null,
             'content' => $data['content'],
             'required_at_purchase' => (bool) ($data['required_at_purchase'] ?? false),
             'required_at_registration' => (bool) ($data['required_at_registration'] ?? false),

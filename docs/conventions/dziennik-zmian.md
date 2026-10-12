@@ -64,7 +64,10 @@ Zadania źródłowe: 010, 020, 021, 039.
   zadanie 020.
 - **Nowe modele z danymi operatora dostają `LogsActivity`** z `getActivitylogOptions()` wg §1 —
   tak jest przy `Document` i `DocumentTemplate` (zadanie 021): dziennik pokazuje, kto zapisał wersję
-  dokumentu.
+  dokumentu. Wariant językowy wersji (`DocumentTranslation`, zadanie 049) — tak samo.
+- **Rejestr zgód (`consent_events`) NIE ma `LogsActivity`** — sam jest dziennikiem: tylko dopisywanie, edycja
+  i usunięcie rzucają wyjątek (ADR-028). Preferencje powiadomień (`notification_preferences`) to stan bieżący bez
+  historii — świadomie (to nie zgoda).
 
 ## 5. Zdjęcia łowiska (medialibrary)
 

@@ -64,11 +64,12 @@ class ReservationResource extends Resource
                     // ⚠️ Wyszukiwanie wyłącznie w relacjach TEGO łowiska (ADR-024) — zapytanie tabeli jest
                     // już zawężone do łowiska, a wyszukiwarka nie sięga do `users`.
                     ->searchable(['given_name', 'given_phone', 'given_email']),
+                // Stan wędkarza, niezależny od statusu rezerwacji (049).
                 TextColumn::make('angler.status')
-                    ->label(__('Account'))
+                    ->label(__('Angler data'))
                     ->badge()
-                    ->formatStateUsing(fn (?AnglerLinkStatus $state): ?string => $state?->label())
-                    ->color(fn (?AnglerLinkStatus $state): string => $state === AnglerLinkStatus::Linked ? 'success' : 'gray'),
+                    ->formatStateUsing(fn (?AnglerLinkStatus $state): ?string => $state?->accountLabel())
+                    ->color(fn (?AnglerLinkStatus $state): string => $state?->accountColor() ?? 'gray'),
                 TextColumn::make('position.name')
                     ->label(__('Position')),
                 TextColumn::make('starts_at')

@@ -1,4 +1,4 @@
-{{-- Potwierdzenie rezerwacji i powiązanie z kontem — strona pod tokenem z maila (zadanie 043, makieta H). --}}
+{{-- Potwierdzenie rezerwacji — strona pod tokenem z maila (zadania 043 i 049, makieta H). Potwierdzenie NIE wymaga konta. --}}
 @extends('portal.layout', ['noCanonical' => true])
 
 @section('title', __('Confirm your reservation'))
@@ -22,27 +22,17 @@
                 @endif
             </div>
         @empty
-            <p class="text-muted">{{ __('There is no active reservation to confirm, but you can still link this fishery with your account.') }}</p>
+            <p class="text-muted">{{ __('There is no reservation waiting for confirmation.') }}</p>
         @endforelse
 
-        <div>
-            <h2 class="font-display text-lg font-semibold text-ink">{{ __('What the fishery will see') }}</h2>
-            <p class="mt-1 text-muted">{{ __('After linking, the fishery sees your name, email address and phone number from your Fisherya account — and nothing else.') }}</p>
-        </div>
-
-        <form method="POST" action="{{ route(request()->route()->getName().'.submit', ['token' => $token]) }}" class="flex flex-col gap-4">
-            @csrf
-
-            @if ($phoneConflict)
-                <fieldset class="rounded-md border border-line bg-white px-5 py-4">
-                    <legend class="px-1 font-semibold text-ink">{{ __('Which phone number should the fishery use?') }}</legend>
-                    <label class="mt-2 flex gap-2"><input type="radio" name="phone" value="profile" checked> {{ __('The number from my account: :phone', ['phone' => $accountPhone]) }}</label>
-                    <label class="mt-2 flex gap-2"><input type="radio" name="phone" value="save"> {{ __('The new number :phone — and save it in my account', ['phone' => $angler->given_phone]) }}</label>
-                    <label class="mt-2 flex gap-2"><input type="radio" name="phone" value="fishery"> {{ __('The new number :phone — only for this fishery', ['phone' => $angler->given_phone]) }}</label>
-                </fieldset>
-            @endif
-
-            <button type="submit" class="self-start rounded-md bg-b600 px-5 py-2.5 font-semibold text-white hover:bg-b700">{{ __('Confirm') }}</button>
-        </form>
+        @if ($pending)
+            <form method="POST" action="{{ route(request()->route()->getName().'.submit', ['token' => $token]) }}">
+                @csrf
+                <button type="submit" name="action" value="confirm" class="rounded-md bg-b600 px-5 py-2.5 font-semibold text-white hover:bg-b700">{{ __('Confirm reservation') }}</button>
+                <p class="mt-2 text-sm text-muted">{{ __('No account is needed to confirm.') }}</p>
+            </form>
+        @else
+            @include('portal.reservation.partials.account-invite', ['hasAccount' => $hasAccount, 'token' => $token])
+        @endif
     </section>
 @endsection

@@ -2,18 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ConsentContext;
 use App\Enums\SignInMethod;
 use App\Models\User;
 use App\Notifications\SendTwoFactorCode;
+use App\Services\ConsentRegistry;
 use App\Services\OwnerRoleProvisioner;
 use App\Services\PanelHome;
 use Filament\Facades\Filament;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 use Laravel\Socialite\Facades\Socialite;
 
 class SocialAuthController extends Controller
 {
+    /** Dane od dostawcy czekające na zgody przed założeniem konta (049). */
+    private const PENDING_KEY = 'social_pending_account';
+
+    public function __construct(private readonly ConsentRegistry $consents = new ConsentRegistry) {}
+
     public function redirect($provider, Request $request)
     {
         $source = $request->get('source', 'breeze');
@@ -100,21 +110,92 @@ class SocialAuthController extends Controller
                     'email' => __('This address is linked to a different sign-in provider.'),
                 ]);
             } else {
-                // 4. Nowe konto. ⚠️ `provider`, `provider_id` i `has_password` NIE są w `$fillable`
-                // i mają tam nie trafić — to klucz tożsamości logowania i powierzchnia
-                // mass-assignment. Hasło jest LOSOWE, więc `has_password = false` (zadanie 028).
-                $user = new User([
-                    'email' => $email,
-                    'name' => $name,
-                    'surname' => $surname,
-                    'password' => bcrypt(str()->random(16)),
-                ]);
-                $user->forceFill(['provider' => $provider, 'provider_id' => $providerId, 'has_password' => false]);
-                $user->save();
-                $user->wasRecentlyCreated = true;
+                // 4. Nowe konto — ⚠️ NIE powstaje bez wymaganych zgód Fisherya (049, R3). Gdy są dokumenty
+                // do zaakceptowania, dane od dostawcy czekają w sesji, a konto zakłada `consentsSubmit()`.
+                $pending = compact('provider', 'providerId', 'email', 'name', 'surname');
+
+                if ($this->consents->requiredPlatformDocuments() !== []) {
+                    session()->put(self::PENDING_KEY, $pending);
+
+                    return redirect()->route('social.consents');
+                }
+
+                $user = $this->createAccount($pending);
             }
         }
 
+        return $this->finishSignIn($user, $status);
+    }
+
+    /** Ekran zgód przed założeniem konta przez dostawcę logowania (049). */
+    public function consents(): View|RedirectResponse
+    {
+        if (! is_array(session(self::PENDING_KEY))) {
+            return redirect()->route('login');
+        }
+
+        return view('auth.social-consents', [
+            'documents' => $this->consents->requiredPlatformDocuments(),
+            'email' => (string) session(self::PENDING_KEY.'.email'),
+        ]);
+    }
+
+    public function consentsSubmit(Request $request): RedirectResponse
+    {
+        $pending = session(self::PENDING_KEY);
+
+        if (! is_array($pending)) {
+            return redirect()->route('login');
+        }
+
+        $documents = $this->consents->requiredPlatformDocuments();
+        $request->validate(ConsentRegistry::rules($documents), ConsentRegistry::messages($documents));
+
+        // Adres mógł zostać zajęty w międzyczasie (np. rejestracją hasłem) — wtedy zwykłe logowanie od nowa.
+        if (User::query()->where('email', $pending['email'])->exists()) {
+            session()->forget(self::PENDING_KEY);
+
+            return redirect()->route('login')->withErrors([
+                'email' => __('An account with this address already exists. Sign in again.'),
+            ]);
+        }
+
+        $user = DB::transaction(function () use ($pending, $documents, $request): User {
+            $user = $this->createAccount($pending);
+            $this->consents->recordDocuments($user, $documents, ConsentContext::Registration, null, $request->ip());
+
+            return $user;
+        });
+
+        session()->forget(self::PENDING_KEY);
+
+        return $this->finishSignIn($user, null);
+    }
+
+    /**
+     * Nowe konto od dostawcy. ⚠️ `provider`, `provider_id` i `has_password` NIE są w `$fillable` i mają tam
+     * nie trafić — to klucz tożsamości logowania i powierzchnia mass-assignment. Hasło jest LOSOWE, więc
+     * `has_password = false` (zadanie 028).
+     *
+     * @param  array{provider: string, providerId: string, email: string, name: string, surname: string}  $pending
+     */
+    private function createAccount(array $pending): User
+    {
+        $user = new User([
+            'email' => $pending['email'],
+            'name' => $pending['name'],
+            'surname' => $pending['surname'],
+            'password' => bcrypt(str()->random(16)),
+        ]);
+        $user->forceFill(['provider' => $pending['provider'], 'provider_id' => $pending['providerId'], 'has_password' => false]);
+        $user->save();
+        $user->wasRecentlyCreated = true;
+
+        return $user;
+    }
+
+    private function finishSignIn(User $user, ?string $status): RedirectResponse
+    {
         if ($user->wasRecentlyCreated) {
             // ⚠️ Rola nadawana WYŁĄCZNIE przy zakładaniu konta. Wołanie tego przy każdym
             // logowaniu przywracało rolę odebraną wcześniej przez administratora
@@ -158,8 +239,9 @@ class SocialAuthController extends Controller
         }
 
         if ($source === 'breeze') {
-            // Pulpitu Breeze nie ma (zadanie 031) — konto trafia do swojego panelu.
-            return redirect()->to(PanelHome::urlFor($user));
+            // Pulpitu Breeze nie ma (zadanie 031) — konto trafia do swojego panelu, a przy łączeniu konta
+            // z łowiskiem na stronę łączenia (049, R2).
+            return PanelHome::redirectAfterSignIn($user, intended: false);
         } else {
             $panel = Filament::getPanel($source);
 

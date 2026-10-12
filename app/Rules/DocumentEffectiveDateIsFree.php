@@ -16,8 +16,11 @@ use Illuminate\Contracts\Validation\ValidationRule;
  */
 final class DocumentEffectiveDateIsFree implements ValidationRule
 {
+    /**
+     * @param  int|null  $fisheryId  `null` = dokument Fisherya (zadanie 049) — porównanie z wersjami bez łowiska
+     */
     public function __construct(
-        private readonly int $fisheryId,
+        private readonly ?int $fisheryId,
         private readonly DocumentType|string|null $type,
         private readonly ?int $ignoreDocumentId = null,
     ) {}
@@ -31,7 +34,11 @@ final class DocumentEffectiveDateIsFree implements ValidationRule
         }
 
         $taken = Document::query()
-            ->where('fishery_id', $this->fisheryId)
+            ->when(
+                $this->fisheryId === null,
+                fn ($query) => $query->whereNull('fishery_id')->whereNull('market_country_id'),
+                fn ($query) => $query->where('fishery_id', $this->fisheryId),
+            )
             ->where('type', $type->value)
             ->whereDate('effective_from', substr((string) $value, 0, 10))
             ->when($this->ignoreDocumentId !== null, fn ($query) => $query->whereKeyNot($this->ignoreDocumentId))

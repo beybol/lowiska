@@ -2,21 +2,44 @@
 
 namespace App\Filament\Pages\Auth;
 
+use App\Enums\ConsentContext;
+use App\Models\Document;
 use App\Models\User;
+use App\Services\ConsentRegistry;
 use App\Services\DictionaryOptions;
 use App\Services\OwnerRoleProvisioner;
+use App\Services\PortalRoutes;
 use App\Services\SharedFormComponents;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\HtmlString;
 
 class Register extends \Filament\Auth\Pages\Register
 {
+    /**
+     * Wymagane dokumenty Fisherya (049, R3) — każde konto ma od początku zapis akceptacji. Zgody nie trafiają
+     * do modelu `User`; zapisuje je `ConsentRegistry` w tej samej transakcji co konto.
+     */
     protected function handleRegistration(array $data): Model
     {
-        $user = parent::handleRegistration($data);
+        $documents = $this->requiredDocuments();
+        unset($data['consents']);
+
+        $user = DB::transaction(function () use ($data, $documents): Model {
+            $user = parent::handleRegistration($data);
+
+            if ($user instanceof User) {
+                (new ConsentRegistry)->recordDocuments($user, $documents, ConsentContext::Registration, null, request()->ip());
+            }
+
+            return $user;
+        });
+
         OwnerRoleProvisioner::addOwnerRole($user);
 
         return $user;
@@ -46,7 +69,39 @@ class Register extends \Filament\Auth\Pages\Register
                 $this->getPasswordConfirmationFormComponent(),
                 $this->getCountryPrefixesFormComponent(),
                 $this->getPhoneFormComponent(),
+                ...$this->getConsentFormComponents(),
             ]);
+    }
+
+    /**
+     * Jedno pole na wymaganą wersję dokumentu Fisherya (`consents.<id wersji>`). Brak wersji obowiązującej =
+     * brak pola. Etykieta i komunikat — `ConsentRegistry`.
+     *
+     * @return array<int, Component>
+     */
+    protected function getConsentFormComponents(): array
+    {
+        $components = [];
+
+        foreach ($this->requiredDocuments() as $document) {
+            $url = PortalRoutes::documentUrl($document);
+
+            $components[] = Checkbox::make('consents.'.$document->getKey())
+                ->label(ConsentRegistry::label($document))
+                ->helperText($url === null ? null : new HtmlString('<a href="'.e($url).'" target="_blank" rel="noopener" class="underline">'.e(__('read')).'</a>'))
+                ->accepted()
+                ->validationMessages(['accepted' => __('Confirm: :document.', ['document' => $document->variantFor(app()->getLocale())['title']])]);
+        }
+
+        return $components;
+    }
+
+    /**
+     * @return list<Document>
+     */
+    private function requiredDocuments(): array
+    {
+        return (new ConsentRegistry)->requiredPlatformDocuments();
     }
 
     protected function getNameFormComponent(): Component

@@ -32,6 +32,7 @@
 <!-- Które pliki docs wymagają aktualizacji?
      Nowy niezmiennik powierzchni idzie do docs/conventions/, nie do CLAUDE.md. -->
 - [ ] `docs/conventions/<powierzchnia>.md` — 
+- [ ] `docs/processes/<proces>.md` — gdy zadanie zmienia opisany proces
 - [ ] `README.md` — 
 - [ ] `CLAUDE.md` — 
 - [ ] `CHANGELOG.md` — wpis w changelogu

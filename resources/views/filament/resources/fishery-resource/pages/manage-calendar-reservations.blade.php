@@ -401,6 +401,9 @@
                             <dt class="text-gray-500">{{ __('Position') }}</dt><dd>{{ $selected->position?->name }}</dd>
                             <dt class="text-gray-500">{{ __('Term') }}</dt><dd>{{ $selected->stayLabel() }}</dd>
                             <dt class="text-gray-500">{{ __('People') }}</dt><dd>{{ (int) ($selected->terms->anglers ?? 1) + (int) ($selected->terms->companions ?? 0) }}</dd>
+                            @if ($selected->angler !== null)
+                                <dt class="text-gray-500">{{ __('Angler data') }}</dt><dd>{{ $selected->angler->status->accountLabel() }}</dd>
+                            @endif
                             <dt class="text-gray-500">{{ __('Amount') }}</dt><dd>{{ $selectedTotal !== null ? \App\Services\AmountFormatter::cents($selectedTotal, $currency) : '—' }} · {{ $selected->payment_status->label() }}</dd>
                             @if ($selected->confirm_by !== null && $selected->status === \App\Enums\ReservationStatus::Pending)
                                 <dt class="text-gray-500">{{ __('Expires') }}</dt><dd>{{ $selected->local($selected->confirm_by)?->format('d.m H:i') }}</dd>

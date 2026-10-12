@@ -67,8 +67,10 @@ class ViewReservation extends ViewRecord
                             ->state(fn (Reservation $record): ?string => $record->angler?->effectiveContact()['phone']),
                         TextEntry::make('angler_email')->label(__('Email'))->placeholder(__('Not provided'))
                             ->state(fn (Reservation $record): ?string => $record->angler?->effectiveContact()['email']),
-                        TextEntry::make('angler.status')->label(__('Account'))->badge()
-                            ->formatStateUsing(fn ($state): ?string => $state?->label()),
+                        // Stan wędkarza, niezależny od statusu rezerwacji (049).
+                        TextEntry::make('angler.status')->label(__('Angler data'))->badge()
+                            ->formatStateUsing(fn ($state): ?string => $state?->accountLabel())
+                            ->color(fn ($state): string => $state?->accountColor() ?? 'gray'),
                         TextEntry::make('angler.notes')->label(__('Note about the angler'))->placeholder('—'),
                     ])->columns(2),
                     Section::make(__('Reservation'))->schema([

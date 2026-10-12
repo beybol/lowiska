@@ -70,7 +70,7 @@ test('the request mail has both actions and the tokens are stored only as hashes
         ->and($reservation->getRawOriginal('manage_token_hash'))->toBe(hash('sha256', basename($manageUrl)));
 
     Mail::assertSent(ReservationRequestMail::class, fn (ReservationRequestMail $mail): bool => $mail->hasTo('jan@example.com')
-        && str_contains($mail->render(), __('Confirm and link with my account'))
+        && str_contains($mail->render(), __('Confirm reservation'))
         && str_contains($mail->render(), __('Cancel / this is not me')));
 });
 
@@ -109,48 +109,76 @@ test('the operator sees the same message whether the address has an account or n
     expect($messages[0])->toBe($messages[1])->not->toBeNull();
 });
 
-test('confirming by link creates a verified account without password, links the relation and confirms the reservation', function () {
+test('confirming by link confirms the reservation without an account and keeps the link for linking later', function () {
     [$reservation, $confirmUrl] = bookedWithRequest();
 
-    $this->get($confirmUrl)->assertOk()->assertSee(__('What the fishery will see'));
-    $this->post($confirmUrl)->assertOk()->assertSee(__('Reservation confirmed'));
+    $this->get($confirmUrl)->assertOk()->assertSee(__('Confirm reservation'));
+    $this->post($confirmUrl, ['action' => 'confirm'])->assertOk()
+        ->assertSee(__('Reservation confirmed'))
+        ->assertSee(__('Create an account to keep your reservation history'));
 
     $angler = $reservation->angler->fresh();
-    $user = User::query()->where('email', 'jan@example.com')->sole();
 
-    expect($angler->status)->toBe(AnglerLinkStatus::Linked)
-        ->and($angler->user_id)->toBe($user->id)
-        ->and($angler->link_token_hash)->toBeNull()
-        ->and($user->email_verified_at)->not->toBeNull()
-        ->and($user->has_password)->toBeFalse()
-        ->and($user->hasRole('owner'))->toBeFalse()
+    expect(User::query()->where('email', 'jan@example.com')->exists())->toBeFalse()
+        ->and($angler->status)->toBe(AnglerLinkStatus::Pending)
+        ->and($angler->user_id)->toBeNull()
+        // „Nie teraz" (R1): token zostaje ważny — link pozwala połączyć konto później.
+        ->and($angler->link_token_hash)->toBe(hash('sha256', basename($confirmUrl)))
         ->and($reservation->fresh()->status)->toBe(ReservationStatus::Confirmed)
         ->and($reservation->fresh()->confirmation_source)->toBe(ConfirmationSource::Link)
         ->and($reservation->fresh()->confirm_by)->toBeNull();
 
-    // Token jest jednorazowy.
-    $this->get($confirmUrl)->assertNotFound();
-    $this->post($confirmUrl)->assertNotFound();
+    // Po potwierdzeniu ta sama strona pokazuje już tylko zachętę do połączenia.
+    $this->get($confirmUrl)->assertOk()->assertDontSee(__('No account is needed to confirm.'));
 });
 
-test('an existing account is linked, not duplicated', function () {
-    $existing = User::factory()->create(['email' => 'jan@example.com', 'phone' => null]);
+test('an existing account is suggested for sign-in, never linked without signing in', function () {
+    $existing = User::factory()->create(['email' => 'jan@example.com', 'phone' => '+48111222333']);
     [$reservation, $confirmUrl] = bookedWithRequest();
 
-    $this->post($confirmUrl)->assertOk();
+    $this->post($confirmUrl, ['action' => 'confirm'])->assertSee(__('Sign in to see your reservation history'));
+    $this->post($confirmUrl, ['action' => 'account'])->assertRedirect(PortalRoutes::reservationAccountUrl('pl'));
 
-    expect(User::query()->where('email', 'jan@example.com')->count())->toBe(1)
-        ->and($reservation->angler->fresh()->user_id)->toBe($existing->id)
-        // Profil bez telefonu dostaje numer podany łowisku.
-        ->and($existing->fresh()->phone)->toBe('+48500100200');
+    $this->get(PortalRoutes::reservationAccountUrl('pl'))->assertOk()->assertSee(__('Sign in'));
+
+    // ⚠️ Bez sesji zalogowanego konta POST łączenia nic nie robi — ani relacji, ani telefonu w profilu.
+    $this->post(PortalRoutes::reservationAccountUrl('pl'), ['action' => 'link', 'phone' => 'save'])
+        ->assertRedirect(PortalRoutes::reservationAccountUrl('pl'));
+
+    expect($reservation->angler->fresh()->user_id)->toBeNull()
+        ->and($existing->fresh()->phone)->toBe('+48111222333')
+        ->and(User::query()->where('email', 'jan@example.com')->count())->toBe(1);
+});
+
+test('the signed-in owner of the address links the relation; the profile without a phone gets the fishery number', function () {
+    $existing = User::factory()->create(['email' => 'jan@example.com', 'phone' => null]);
+    [$reservation, $confirmUrl] = bookedWithRequest();
+    $this->post($confirmUrl, ['action' => 'account']);
+
+    $this->actingAs($existing)->get(PortalRoutes::reservationAccountUrl('pl'))->assertOk()->assertSee(__('Link my account'));
+    $this->actingAs($existing)->post(PortalRoutes::reservationAccountUrl('pl'), ['action' => 'link'])
+        ->assertOk()->assertSee(__('Your account is linked'));
+
+    $angler = $reservation->angler->fresh();
+
+    expect($angler->user_id)->toBe($existing->id)
+        ->and($angler->status)->toBe(AnglerLinkStatus::Linked)
+        ->and($angler->link_token_hash)->toBeNull()
+        ->and($existing->fresh()->phone)->toBe('+48500100200')
+        // Połączenie potwierdza też oczekującą rezerwację — kliknięcie dowiodło skrzynki.
+        ->and($reservation->fresh()->status)->toBe(ReservationStatus::Confirmed);
+
+    // Token zużyty — strona pod tokenem i strona łączenia już nie działają.
+    $this->get($confirmUrl)->assertNotFound();
 });
 
 test('a phone conflict offers three choices and the override applies only to this fishery', function (string $choice, ?string $override, string $profilePhone) {
     $existing = User::factory()->create(['email' => 'jan@example.com', 'phone' => '+48111222333']);
     [$reservation, $confirmUrl] = bookedWithRequest();
+    $this->post($confirmUrl, ['action' => 'account']);
 
-    $this->get($confirmUrl)->assertSee(__('Which phone number should the fishery use?'));
-    $this->post($confirmUrl, ['phone' => $choice])->assertOk();
+    $this->actingAs($existing)->get(PortalRoutes::reservationAccountUrl('pl'))->assertSee(__('Which phone number should the fishery use?'));
+    $this->actingAs($existing)->post(PortalRoutes::reservationAccountUrl('pl'), ['action' => 'link', 'phone' => $choice])->assertOk();
 
     $angler = $reservation->angler->fresh();
 
@@ -250,8 +278,11 @@ test('a fishery can not send more requests per day than the limit', function () 
 });
 
 test('link events are logged in the reservations channel', function () {
-    [$reservation, $confirmUrl] = bookedWithRequest();
-    $this->post($confirmUrl);
+    $user = User::factory()->create(['email' => 'jan@example.com']);
+    [, $confirmUrl] = bookedWithRequest();
+    $this->post($confirmUrl, ['action' => 'confirm']);
+    $this->post($confirmUrl, ['action' => 'account']);
+    $this->actingAs($user)->post(PortalRoutes::reservationAccountUrl('pl'), ['action' => 'link']);
 
     $events = Activity::query()
         ->where('log_name', 'reservations')
@@ -259,5 +290,5 @@ test('link events are logged in the reservations channel', function () {
         ->pluck('event')
         ->all();
 
-    expect($events)->toContain('link_requested', 'linked');
+    expect($events)->toContain('link_requested', 'reservations_confirmed', 'linked');
 });

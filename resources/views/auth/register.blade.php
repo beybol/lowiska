@@ -152,6 +152,8 @@
 
             <x-input-error :messages="$errors->get('phone')" class="mt-2" />
         </div>
+        <!-- Required consents (task 049) -->
+        @include('auth.partials.consents', ['documents' => $documents])
         <div class="flex flex-col items-center justify-center mt-4">
             <div class="flex items-center">
                 <a 

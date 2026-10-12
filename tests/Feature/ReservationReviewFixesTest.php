@@ -284,7 +284,7 @@ test('the link token is bound to the address it was sent to and re-checked under
     // „To nie ja" w międzyczasie — potwierdzenie ze starym tokenem nic nie robi.
     $linking->notMe($reservation->fresh());
 
-    expect($linking->confirm($angler, 'profile', $token))->toBeNull()
+    expect($linking->confirmReservations($angler, $token))->toBeNull()
         ->and($reservation->fresh()->status)->toBe(ReservationStatus::Pending)
         ->and($angler->fresh()->user_id)->toBeNull();
 

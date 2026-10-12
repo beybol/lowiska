@@ -40,7 +40,7 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('verify.index');
         }
 
-        return redirect()->intended(PanelHome::urlFor($request->user()));
+        return PanelHome::redirectAfterSignIn($request->user());
     }
 
     /**

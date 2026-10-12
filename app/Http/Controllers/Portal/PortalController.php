@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Portal;
 
+use App\Enums\DocumentType;
 use App\Http\Controllers\Controller;
 use App\Models\Fishery;
+use App\Services\PlatformDocuments;
 use App\Services\PortalCalendar;
 use App\Services\PortalFisheries;
 use App\Services\PortalFisheryPage;
@@ -14,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 /**
@@ -48,7 +51,35 @@ class PortalController extends Controller
             'fisheryNames' => $page === 'for-fisheries'
                 ? PortalFisheries::listed()->pluck('name')->all()
                 : [],
+            'document' => $this->platformDocument($page),
         ]);
+    }
+
+    /**
+     * Regulamin i polityka prywatności portalu — wersja obowiązująca dokumentu Fisherya w języku odwiedzającego
+     * (zadanie 049, ADR-028), treść przez `Str::sanitizeHtml()`. `null` = „Treść w przygotowaniu".
+     *
+     * @return array{title: string, body: string}|null
+     */
+    private function platformDocument(string $page): ?array
+    {
+        $type = match ($page) {
+            'terms' => DocumentType::Terms,
+            'privacy' => DocumentType::PrivacyPolicy,
+            default => null,
+        };
+        $document = $type === null ? null : (new PlatformDocuments)->current($type);
+
+        if ($document === null) {
+            return null;
+        }
+
+        $variant = $document->variantFor(app()->getLocale());
+
+        return [
+            'title' => $variant['title'],
+            'body' => '<div class="prose-portal">'.Str::sanitizeHtml($variant['content']).'</div>',
+        ];
     }
 
     /** `/{język}/{województwo}` — strona regionu „na później" (portal-v3 §5.2); do tego czasu 302. */

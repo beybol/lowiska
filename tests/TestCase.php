@@ -222,6 +222,14 @@ abstract class TestCase extends BaseTestCase
         'delete_any:document_template',
     ];
 
+    private array $platformDocumentPermissions = [
+        'view_any:platform_document',
+        'view:platform_document',
+        'create:platform_document',
+        'update:platform_document',
+        'delete:platform_document',
+    ];
+
     private array $userPermissions = [
         'view_any:user',
         'view:user',
@@ -249,6 +257,7 @@ abstract class TestCase extends BaseTestCase
             $this->statePermissions,
             $this->userPermissions,
             $this->documentTemplatePermissions,
+            $this->platformDocumentPermissions,
         );
 
         foreach ($requiredPermissions as $permission) {

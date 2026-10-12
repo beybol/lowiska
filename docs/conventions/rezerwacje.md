@@ -9,7 +9,7 @@ i w mailach o rezerwacjach.
 [`dostepnosc.md`](dostepnosc.md) §6** (oś „czy wolno sprzedać") i [`cennik.md`](cennik.md) (warunki
 i zwrot). Ten plik niesie reguły EKRANÓW i PRZEPŁYWÓW, które na tym rdzeniu stoją.
 
-Zadania źródłowe: 041, 042, 043, 044, 045, 047. Decyzje: ADR-024…027.
+Zadania źródłowe: 041, 042, 043, 044, 045, 047, 049. Decyzje: ADR-024…028.
 
 ---
 
@@ -150,33 +150,47 @@ popover nad albo pod wierszem, oferta w pustych dobach), obowiązuje ten plik.
 
 ---
 
-## 3. Wędkarz: powiązanie z kontem i potwierdzenie (zadanie 043)
+## 3. Wędkarz: potwierdzenie rezerwacji i połączenie z kontem (zadania 043, 049)
 
 Logika: [`AnglerLinking`](../../app/Services/AnglerLinking.php); strony: [`strona-publiczna.md`](strona-publiczna.md) §8.
+Decyzje: ADR-024 (z aktualizacją 2026-10-11), ADR-028 (zgody).
 
 - **Po zapisie rezerwacji z adresem e-mail idzie prośba o potwierdzenie** (`ReservationConfirmation::afterBooking()`
   z formularza C i z kalendarza; zapis bezpośrednio przez `ReservationBooking` maila nie wysyła). Bez adresu —
   nic: relacja zostaje niepowiązana, bez maili.
 - ⚠️ **Operator widzi ZAWSZE ten sam komunikat** (`CreateReservation::requestNotice()`) — panel nie zdradza, czy
   adres ma konto w portalu (ADR-024 pkt 3). Konto wyszukuje się dopiero na stronie po kliknięciu linku.
-- **Dwa tokeny, oba jednorazowe, w bazie tylko SHA-256**: `fishery_anglers.link_token_hash` (ważność
-  `link_expires_at`, `AnglerLinking::VALID_DAYS`; związany z adresem z chwili wysyłki — `autoryzacja.md` §6) — „Potwierdź i połącz": konto powstaje (adres zweryfikowany
-  kliknięciem, bez hasła, `has_password = false`, bez roli) albo dowiązuje się istniejące o tym adresie
-  (porównanie dokładne po `mb_strtolower`), relacja → `linked`, oczekujące rezerwacje tego wędkarza w łowisku →
-  potwierdzone (`confirmation_source = link`, W3); `reservations.manage_token_hash` — „Zrezygnuj" (anulacja
-  przez wędkarza, zwrot z warunków) albo „To nie ja" (token unieważniony, rezerwacja **nie anulowana**, tylko
-  „Do kontaktu" do weryfikacji przez operatora). **Token rezygnacji jest ważny do końca aktywności rezerwacji**
-  (rozstrzygnięcie 047, H1) — także po upływie okna powiązania; przestaje działać z anulacją albo wygaśnięciem.
-  Strona po rezygnacji mówi tylko to, co prawdziwe: anulację łowisko widzi na liście rezerwacji.
+- **Dwa tokeny, w bazie tylko SHA-256**: `fishery_anglers.link_token_hash` (ważność `link_expires_at`,
+  `AnglerLinking::VALID_DAYS`; związany z adresem z chwili wysyłki — `autoryzacja.md` §6) i
+  `reservations.manage_token_hash` — „Zrezygnuj" (anulacja przez wędkarza, zwrot z warunków) albo „To nie ja"
+  (token unieważniony, rezerwacja **nie anulowana**, tylko „Do kontaktu" do weryfikacji przez operatora).
+  **Token rezygnacji jest ważny do końca aktywności rezerwacji** (rozstrzygnięcie 047, H1) — także po upływie okna
+  powiązania; przestaje działać z anulacją albo wygaśnięciem. Strona po rezygnacji mówi tylko to, co prawdziwe:
+  anulację łowisko widzi na liście rezerwacji.
+- ⚠️ **„Potwierdź rezerwację" NIE wymaga konta** (`confirmReservations()`): oczekujące rezerwacje wędkarza w łowisku
+  → potwierdzone (`confirmation_source = link`), bez zapisu do `users` i **bez zużycia tokenu**. Relacja zostaje
+  `pending` z ważnym linkiem do `link_expires_at` (R1) — wędkarz może połączyć konto później tym samym linkiem.
+- **Połączenie z kontem to osobny, dobrowolny krok** po potwierdzeniu (zachęta „Zaloguj się, żeby widzieć historię
+  rezerwacji" / „Załóż konto, żeby mieć historię rezerwacji", „Nie teraz"). „Połącz konto" zapisuje znacznik w
+  sesji (`AnglerLinkSession`) i prowadzi na stronę łączenia: konto o adresie z prośby istnieje → logowanie (hasło
+  albo Google, z 2FA) i powrót; nie istnieje → założenie konta hasłem (adres z prośby, zgody Fisherya i łowiska)
+  albo przez Google. Zalogowany na konto o innym adresie dostaje odmowę z wylogowaniem. Połączenie (`link()`) →
+  relacja `linked`, akceptacja wymaganych dokumentów łowiska (`required_at_registration` = „akceptowany przy
+  połączeniu konta", `ConsentRegistry`), token zużyty, oczekujące rezerwacje potwierdzone.
+- **Panel pokazuje stan wędkarza osobno od statusu rezerwacji** („Dane wędkarza": „Dane od łowiska" albo
+  „Potwierdzone konto", `AnglerLinkStatus::accountLabel()`) — na liście, w szczegółach i w popoverze kalendarza.
+  „Potwierdzona" nie znaczy „powiązana z kontem".
 - ⚠️ **Zmiana adresu relacji `Pending` unieważnia wysłaną prośbę** (token i ważność zerowane, status `Unlinked`)
   — inaczej link z maila wysłanego na pomyłkowy adres dowiązałby rezerwację do konta właściciela poprawionego
   adresu. „Potwierdź" sprawdza token ponownie na zablokowanym wierszu relacji (047, D2/D3).
 - **Konflikt telefonu** (konto ma inny numer niż podany łowisku): wybór „z profilu" / „nowy i zapisz w profilu" /
-  „nowy tylko dla tego łowiska" (`phone_override`). Profil bez telefonu dostaje numer podany łowisku.
+  „nowy tylko dla tego łowiska" (`phone_override`) — wyłącznie w kroku połączenia, po zalogowaniu. Profil bez
+  telefonu dostaje numer podany łowisku.
 - **Limity** (ADR-024 pkt 8): `MAX_PENDING_PER_EMAIL` oczekujących próśb na adres w całym portalu i
   `MAX_SENDS_PER_FISHERY_PER_DAY` wysyłek z łowiska na dobę. Przekroczenie: rezerwacja powstaje, mail nie
   wychodzi, rezerwacja → „Do kontaktu".
-- Zdarzenia (`link_requested`, `link_request_limited`, `linked`, `not_me`) idą do kanału `reservations` na relacji.
+- Zdarzenia (`link_requested`, `link_request_limited`, `reservations_confirmed`, `linked`, `not_me`) idą do kanału
+  `reservations` na relacji.
 - Poza zakresem etapu 3 (W9): propozycje zmian kontaktu przez operatora i cofanie dostępu (`revoked`).
 
 ---

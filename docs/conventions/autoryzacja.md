@@ -210,9 +210,10 @@ Wzorzec: `tests/Feature/OwnerPanelTest.php`, przypadki „Owner can not…".
 ## 5. Polityka odpowiada zasobowi Filamenta; model bez zasobu autoryzuje się przez rodzica
 
 - **Niezmiennik:** plik w `app/Policies/` istnieje dla modelu, który ma **zarejestrowany zasób
-  Filamenta**. Dziś dziewiętnaście polityk odpowiada osiemnastu zasobom z `app/Filament/Resources/`
+  Filamenta**. Dziś dwadzieścia polityk odpowiada dziewiętnastu zasobom z `app/Filament/Resources/`
   **plus zasobowi ról dostarczanemu przez Shielda** (stąd `RolePolicy` bez pliku w katalogu
-  zasobów) — licznik zgadza się dopiero z tym dziewiętnastym. Osiemnasty zasób to `ReservationResource` (zadanie 041).
+  zasobów) — licznik zgadza się dopiero z tym dwudziestym. Ostatnie zasoby to `ReservationResource` (zadanie 041)
+  i `PlatformDocumentResource` (zadanie 049).
 - **Model bez własnego zasobu autoryzuje się przez rodzica.** `SalePeriod` istnieje wyłącznie
   przez łowisko: edytuje się go `Repeaterem` na stronie ustawień, a dostępu pilnuje
   `FisheryPolicy` — kto może edytować łowisko, ten edytuje jego sezony.
@@ -307,22 +308,36 @@ braku, bo pusty kod traktuje jako „brak oczekującego wyzwania".
   z paneli (`two_factor_source` = panel) wracają do swojego panelu jak dotąd. `redirect()->intended()`
   zostaje wszędzie, gdzie było. Nie wpisuj adresu panelu w kontrolerze — to drugi literał tej reguły.
 
-- ⚠️ **Konto wędkarza powstaje WYŁĄCZNIE z kliknięcia samego wędkarza** w link z maila (zadanie 043,
-  ADR-024) — operator nigdy nie zapisuje do `users`. Takie konto ma zweryfikowany adres, losowe hasło
-  (`has_password = false`) i **żadnej roli**. Dowiązanie do istniejącego konta po adresie jest bezpieczne
-  z tego samego powodu co w ADR-019: kliknięcie dowodzi posiadania skrzynki, a porównanie adresu jest dokładne.
-  ⚠️ Znane ograniczenie do etapu 4: panel właściciela wpuszcza każde konto (`User::canAccessPanel()`), a
-  logowanie nadaje rolę `owner` — wędkarz, który ustawi hasło resetem i zaloguje się do `/owner`, zostaje
-  właścicielem jak przy otwartej samorejestracji. Rozdzielenie kont wędkarza i właściciela to etap 4
-  (`docs/project/DECYZJE-I-TODO-BIZNESOWE.md`).
+- ⚠️ **Konto zakłada wyłącznie sam użytkownik — hasłem albo przez dostawcę logowania** (zadanie 049, ADR-024
+  aktualizacja 2026-10-11). Nie ma ścieżki zakładającej konto „po cichu" z linku: potwierdzenie rezerwacji linkiem
+  nie dotyka `users` (`AnglerLinking::confirmReservations()`), a połączenie relacji z istniejącym kontem wymaga
+  **zalogowania na konto o adresie równym adresowi z prośby** (`AnglerLinking::link()`, porównanie dokładne po
+  `mb_strtolower`). Link z maila nie jest kluczem do konta: zapis telefonu w profilu (ADR-024 pkt 5) jest możliwy
+  wyłącznie w kroku połączenia, po zalogowaniu. Konto założone z linku hasłem (`registerAndLink()`) dostaje adres
+  z prośby — nigdy z żądania — `email_verified_at` (kliknięcie zweryfikowało skrzynkę) i **żadnej roli**.
+  Losowe hasło (`has_password = false`) ustawia wyłącznie `SocialAuthController` (pilnuje tego test
+  w `AccountLinkingConsentsTest`).
+- ⚠️ **Konto nie powstaje bez wymaganych dokumentów Fisherya** (049, ADR-028): `/register`, rejestracja w obu
+  panelach (`App\Filament\Pages\Auth\Register`) i nowe konto przez Google pytają o obowiązujące wersje
+  z `ConsentRegistry::requiredPlatformDocuments()`. Przy Google dane od dostawcy czekają w sesji, a konto zakłada
+  ekran zgód (`social.consents`) — także gdy nowy użytkownik kliknął Google na stronie logowania. Brak wersji
+  obowiązującej = brak pola.
+- ⚠️ **Strona łączenia konta ma middleware `two_factor`** — sesja z nieprzepisanym kodem 2FA nie połączy konta.
+  Powrót po logowaniu na stronę łączenia: znacznik w sesji (`AnglerLinkSession`, hash tokenu), sprawdzany przez
+  `PanelHome::redirectAfterSignIn()` i `TwoFactorController` (R2).
+- ⚠️ Znane ograniczenie do etapu 4: panel właściciela wpuszcza każde konto (`User::canAccessPanel()`), a
+  logowanie nadaje rolę `owner` — wędkarz, który zaloguje się do `/owner`, zostaje właścicielem jak przy
+  otwartej samorejestracji. Rozdzielenie kont wędkarza i właściciela to etap 4
+  (`docs/project/DECYZJE-I-TODO-BIZNESOWE.md`, TODO-6).
 
 - ⚠️ **Token prośby o powiązanie jest związany z adresem z chwili wysyłki** (`fishery_anglers.link_email`,
   zadanie 047 D2): link działa tylko, gdy adres relacji (efektywny) jest wciąż tym, na który poszedł mail.
   Zmiana adresu przez operatora dodatkowo zeruje token i cofa relację do `Unlinked`. `AnglerLinking::confirm()`
   sprawdza token, ważność i adres PONOWNIE na zablokowanym wierszu (D3) — „To nie ja" wysłane równolegle albo
   poprawka adresu wygrywa z potwierdzeniem. Kolumna jest ukryta (`$hidden`) i nie trafia do dziennika.
+  Te same warunki pod blokadą sprawdza połączenie z kontem (`link()`, `registerAndLink()`).
 
-Zadania źródłowe: 012, 028, 043, 047; security-review 2026-09-20.
+Zadania źródłowe: 012, 028, 043, 047, 049; security-review 2026-09-20.
 
 ---
 
@@ -339,3 +354,8 @@ Zadania źródłowe: 012, 028, 043, 047; security-review 2026-09-20.
   autoryzuje `FisheryPolicy::update()`, podgląd szablonu — `FisheryPolicy::view()` plus
   `DocumentTemplatePolicy::viewAny()`. Nienaruszalność wersji to reguła **danych**, nie dostępu —
   pilnuje jej model, także wobec administratora.
+- **Dokumenty Fisherya to osobna klasa `PlatformDocument`** (ta sama tabela, zakres `fishery_id IS NULL`,
+  zadanie 049) — po to, żeby zasób `/admin` miał własną politykę (`PlatformDocumentPolicy`, uprawnienia
+  `*:platform_document`) bez nadawania polityki `Document`. ⚠️ Polityka na `Document` objęłaby też akcje strony
+  „Dokumenty" łowiska i odebrałaby je roli `owner` — nie dodawaj jej. Rola `owner` uprawnień dokumentów Fisherya
+  nie dostaje.

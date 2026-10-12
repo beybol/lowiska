@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Notifications\SendTwoFactorCode;
+use App\Services\AnglerLinkSession;
 use App\Services\PanelHome;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
@@ -70,6 +71,13 @@ class TwoFactorController extends Controller
         $user->resetTwoFactorCode();
         $source = session('two_factor_source', 'breeze');
         session()->forget('two_factor_source');
+
+        // Trwa łączenie konta z łowiskiem (049, R2) — powrót na stronę łączenia niezależnie od źródła.
+        $linkUrl = AnglerLinkSession::pendingUrl();
+
+        if ($linkUrl !== null) {
+            return redirect()->to($linkUrl);
+        }
 
         if ($source === 'filament') {
             $currentPanel = Filament::getCurrentOrDefaultPanel();

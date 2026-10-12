@@ -24,6 +24,11 @@ założone hasłem, możesz wejść na nie także przez Google — wystarczy, ż
 go potwierdza; hasło dalej działa. Po każdym logowaniu dostajesz na adres konta kod weryfikacyjny.
 Po wpisaniu kodu trafiasz prosto do panelu łowiska (administrator — do panelu administratora).
 
+**Rejestracja.** Zakładając konto — formularzem albo przez Google — zaznaczasz akceptację regulaminu
+i zapoznanie się z polityką prywatności Fisherya. Bez tego konto nie powstanie; przy Google ekran zgód
+pojawia się po powrocie od Google, zanim konto zostanie założone. Pola pojawiają się, gdy Fisherya ma
+obowiązującą wersję dokumentu.
+
 ## 2. Kolejność wprowadzania danych
 
 Najwygodniej iść po kolei; każdy krok korzysta z tego, co ustawiłeś wcześniej.
@@ -480,7 +485,13 @@ w życie tego samego dnia.
 ⚠️ **Od dnia wejścia w życie wersji nie da się już zmienić ani usunąć** — ani tytułu, ani treści,
 ani daty. Poprawiasz ją, tworząc nową wersję. Wersję zaplanowaną możesz swobodnie edytować i usunąć
 aż do dnia jej wejścia w życie. Przy każdej wersji — także obowiązującej — zmienisz natomiast zawsze
-dwa przełączniki: **„wymagany przy zakupie"** i **„wymagany przy rejestracji na łowisku"**.
+dwa przełączniki: **„wymagany przy zakupie"** i **„wymagany przy połączeniu konta"**. Ten drugi znaczy,
+że wędkarz akceptuje dokument, kiedy łączy swoje konto Fisherya z Twoim łowiskiem (patrz
+[Rezerwacje](#15-rezerwacje)).
+
+Wersja ma też **rodzaj zmiany** (redakcyjna, do wiadomości albo wymagająca ponownej akceptacji)
+i **datę ogłoszenia** — obie zamrażają się razem z treścią. Powiadomienia i ponowna akceptacja
+na ich podstawie powstaną w kolejnych etapach.
 
 **Podgląd szablonu** otwiera się w nowej karcie — możesz tam zaznaczyć fragment dowolnego szablonu
 i skopiować go do swojej wersji (Ctrl+C, Ctrl+V). Szablon regulaminu jest roboczy i czeka na
@@ -517,8 +528,8 @@ albo ceny wymaga podania powodu i przelicza cenę.
 **Potwierdzenie.** Jeśli łowisko wymaga potwierdzania (patrz [Sprzedaż i sezony](#4-sprzedaż-i-sezony)),
 nowa rezerwacja jest **niepotwierdzona** do czasu, aż:
 
-- wędkarz kliknie **„Potwierdź i połącz"** w mailu, który dostaje po zapisie rezerwacji z adresem
-  e-mail;
+- wędkarz kliknie **„Potwierdź rezerwację"** w mailu, który dostaje po zapisie rezerwacji z adresem
+  e-mail — do tego nie potrzebuje konta;
 - Ty klikniesz **Potwierdź** (na przykład po rozmowie telefonicznej);
 - oznaczysz ją jako opłaconą — **opłacona rezerwacja jest zawsze potwierdzona**, tak samo będzie przy
   płatności wędkarza online.
@@ -528,8 +539,16 @@ z adresem e-mail dostaje o tym maila.
 
 **Wędkarz i jego konto.** Po zapisie rezerwacji z adresem e-mail zawsze widzisz ten sam komunikat
 o wysłaniu prośby o potwierdzenie — panel nie zdradza, czy ten adres ma konto w portalu. Kliknięcie
-„Potwierdź i połącz" zakłada wędkarzowi konto (albo dowiązuje istniejące) i potwierdza jego oczekujące
-rezerwacje w Twoim łowisku. Od tej chwili widzisz dane z jego konta. W tym samym mailu wędkarz może
+„Potwierdź rezerwację" potwierdza oczekujące rezerwacje wędkarza w Twoim łowisku i niczego więcej nie
+zmienia. Potem wędkarz może — ale nie musi — **połączyć konto** z łowiskiem: jeśli ma konto Fisherya
+na ten adres, musi się na nie zalogować; jeśli nie ma, zakłada je (hasłem albo przez Google) na adres
+z rezerwacji. Przy połączeniu akceptuje Twoje dokumenty oznaczone jako „wymagany przy połączeniu
+konta". Link z maila działa do połączenia przez 14 dni.
+
+W kolumnie **„Dane wędkarza"** (lista, szczegóły i okienko w kalendarzu) widzisz, czy masz **dane od
+łowiska** (to, co wpisałeś), czy **potwierdzone konto** — wtedy widzisz dane z konta wędkarza. To
+informacja niezależna od statusu rezerwacji: rezerwacja może być potwierdzona, a wędkarz bez konta.
+W tym samym mailu wędkarz może
 **zrezygnować** (anuluje rezerwację ze zwrotem według polityki zwrotu) albo kliknąć **„To nie ja"** —
 rezerwacja zostaje, ale trafia do kontaktu, żebyś sprawdził adres. Ty nigdy nie zmieniasz danych konta
 wędkarza; zmieniasz tylko dane, które podałeś łowisku.
@@ -608,6 +627,14 @@ widzą je wyłącznie do odczytu: wybierają szablon jako punkt wyjścia nowej w
 w podglądzie. Typ porządkuje listę i podpowiada, ale nie ogranicza wyboru. Wersja dokumentu dostaje
 **kopię** treści, więc zmiana albo usunięcie szablonu nie rusza dokumentów łowisk. Roboczy szablon
 regulaminu jest oznaczony jako wymagający weryfikacji prawnej.
+
+**Dokumenty Fisherya.** Tu prowadzisz wersje **regulaminu** i **polityki prywatności portalu** — tych,
+które akceptuje każdy zakładający konto. Zasady wersji są takie jak u łowisk: data wejścia w życie
+najwcześniej jutro, od północy (czasu polskiego) wersja obowiązuje i nie da się jej zmienić ani usunąć.
+Każda wersja ma **język wiążący**, a obok niego możesz dodać **wersje językowe** (tłumaczenia tej samej
+treści) — odwiedzający widzi wersję w swoim języku, a system zapisuje, którą zaakceptował. Ustawiasz
+też **rodzaj zmiany** i **datę ogłoszenia**. Przełącznik **„wymagany przy zakładaniu konta"** zmienisz
+zawsze. Obowiązująca wersja pokazuje się na stronach „Regulamin" i „Polityka prywatności" portalu.
 
 ## 19. Cechy stanowisk
 

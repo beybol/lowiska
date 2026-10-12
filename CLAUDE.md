@@ -36,13 +36,13 @@ Aplikacja jest w fazie tworzenia i nie działa jeszcze produkcyjnie.
 Jedna aplikacja Laravel, **dwa panele Filament**:
 
 - **`/admin`** ([`AdminPanelProvider`](app/Providers/Filament/AdminPanelProvider.php)) — panel
-  administracyjny; osiemnaście zasobów w [`app/Filament/Resources/`](app/Filament/Resources/)
+  administracyjny; dziewiętnaście zasobów w [`app/Filament/Resources/`](app/Filament/Resources/)
   pokrywających cały model domenowy i słowniki.
 - **`/owner`** ([`OwnerPanelProvider`](app/Providers/Filament/OwnerPanelProvider.php)) — panel
   właściciela łowiska; strony w [`app/Filament/Owner/Pages/`](app/Filament/Owner/Pages/).
 
 **Autoryzacja** stoi na dwóch warstwach naraz i obie trzeba respektować: `bezhansalleh/filament-shield`
-(role i uprawnienia, stąd `RolePolicy`) oraz dziewiętnaście polityk w [`app/Policies/`](app/Policies/) —
+(role i uprawnienia, stąd `RolePolicy`) oraz dwadzieścia polityk w [`app/Policies/`](app/Policies/) —
 po jednej na **zasób Filamenta**, nie na model (model bez zasobu autoryzuje się przez rodzica). Pokrycie testowe granic paneli żyje w `tests/Feature/AdminPanelTest.php`
 i `tests/Feature/OwnerPanelTest.php`.
 
@@ -182,6 +182,9 @@ wyłącznie zasięgiem i miejscem zapisu, nie mocą.
   [`docker.md`](docs/operations/docker.md) (układ sześciu usług, porty, baza, izolacja testów)
   oraz [`obraz-produkcyjny.md`](docs/operations/obraz-produkcyjny.md) (cel `prod`, FrankenPHP).
 - **Decyzje architektoniczne** — [`docs/adr/`](docs/adr/).
+- **Opisy procesów** — [`docs/processes/`](docs/processes/): jeden przepływ od początku do końca (diagram Mermaid
+  + krótki opis dla osób biznesowych + wskazanie kodu). Tylko obszary kluczowe i złożone. **Zadanie, które
+  zmienia opisany proces, aktualizuje jego opis** — pozycja w „Zmianach dokumentacji" zadania.
 - **Zadania** — [`docs/tasks/`](docs/tasks/), zrealizowane w `docs/tasks/implemented/`.
 
 ## Komendy
