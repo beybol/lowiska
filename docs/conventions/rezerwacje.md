@@ -116,9 +116,13 @@ popover nad albo pod wierszem, oferta w pustych dobach), obowiązuje ten plik.
   ⚠️ **Strona liczy siatkę raz na żądanie** (`ManageCalendar::getReservationGrid()`, klucz: początek okna, liczba dni,
   grupa, filtr). Inaczej klik w dzień budowałby ją dwa razy: w `selectCell()` i w renderze. Każda akcja zapisująca
   rezerwację albo blokadę woła `forgetReservationLayer()`. Bez tego render po zapisie pokazałby siatkę sprzed zapisu.
-- **Klik w kalendarzu daje natychmiastowy ślad**: komórka i paski mają klasy `data-loading:` (Livewire ustawia
-  `data-loading` na klikniętym elemencie na czas żądania). Zaznaczenie i popover przychodzą z serwera, więc bez
-  tego śladu kliknięcie przez czas żądania wygląda na martwe.
+- **Klik w kalendarzu daje natychmiastowy ślad.** Livewire ustawia `data-loading` na klikniętym elemencie na czas
+  żądania. Komórka pokazuje wtedy `[data-pending-selection]` — **kształt, jaki zaznaczenie przyjmie po tym kliku**
+  (te same przypadki co `selectCell()`, kształt z `CalendarBarShape`). Dotychczasowe zaznaczenie znika, a paski
+  przyciemniają się. Zaznaczenie i popover przychodzą z serwera, więc bez śladu klik wygląda na martwy, a ślad
+  w innym kształcie (pełne pole) przeskakuje na skos. Zmiana reguł `selectCell()` zmienia też ten ślad w widoku.
+- **Siatka nie ma własnego przewijania** (bez `max-height`): przy wielu stanowiskach przewija się strona, nie
+  wewnętrzny kontener. Dlatego kontener ma `overflow-clip`, a nie `overflow-auto`.
 - **Warstwa „Rezerwacje" pokazuje ofertę** (odwrócenie decyzji §3 makiety etapu 3 „brak ceny w komórce", 047 A3): w pustej
   dobie drobnym szarym drukiem cena pobytu od tej doby albo „zacznij <dzień>" — z tej samej siatki
   `SaleCalendar` co warstwa „Oferta", przypiętej do komórki (`ReservationCalendarCell::$offer`). Pasek

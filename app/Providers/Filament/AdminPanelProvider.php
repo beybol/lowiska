@@ -52,8 +52,9 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             // ADR-016 A: jeden wspólny motyw dla obu paneli (resources/css/filament/theme.css).
             ->viteTheme('resources/css/filament/theme.css')
-            // Znak Fisherya na karcie przeglądarki — ten sam plik co w portalu (zadanie 031).
-            ->favicon(asset('favicon.svg'))
+            // Znak Fisherya na karcie przeglądarki — ten sam plik co w portalu (zadanie 031). Adres w domknięciu:
+            // provider działa przed `trustProxies`, więc `asset()` tutaj dałby `http://` za proxy Cloud Run (Mixed Content).
+            ->favicon(fn (): string => asset('favicon.svg'))
             ->colors([
                 'primary' => Color::Amber,
             ])

@@ -62,8 +62,12 @@ class AppServiceProvider extends ServiceProvider
         VerifyEmail::toMailUsing(function ($notifiable, $url) {
             return (new VerifyEmailMail($url))->to($notifiable->getEmailForVerification());
         });
+        // ⚠️ Adres arkusza liczony przy RENDERZE (`html()` w domknięciu): provider działa przed `trustProxies`, więc `asset()`
+        // tutaj dawał `http://` za proxy Cloud Run i przeglądarka blokowała arkusz (Mixed Content). Ścieżka zostaje adresem
+        // (`isRemote()`), żeby `filament:assets` nie próbował kopiować pliku, który już leży w `public/`.
         FilamentAsset::register([
-            Css::make('custom-stylesheet', asset('css/filament-extend.css')),
+            Css::make('custom-stylesheet', asset('css/filament-extend.css'))
+                ->html(fn (): string => asset('css/filament-extend.css')),
         ]);
         // Akcje wiersza po LEWEJ stronie kolumn w każdej tabeli obu paneli: przy wąskim ekranie tabela się przewija,
         // a prawa strona z akcjami znikała poza kadrem (zadanie 048). Jedno miejsce, bez wyjątków per tabela.

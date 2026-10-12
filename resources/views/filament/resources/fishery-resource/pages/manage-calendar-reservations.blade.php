@@ -144,7 +144,7 @@
     @if ($grid !== null)
         {{-- Komputer: siatka stanowisk × dób z paskami; popover jako warstwa w tym kontenerze. --}}
         <div
-            class="relative mt-3 hidden md:block"
+            class="group/cal relative mt-3 hidden md:block"
             data-calendar-container
             x-data="{
                 lastRow: null,
@@ -195,7 +195,7 @@
             x-on:click.outside="outside($event)"
             x-on:keydown="navigate($event)"
         >
-            <div class="max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white dark:border-white/10 dark:bg-gray-900">
+            <div class="overflow-clip rounded-xl border border-gray-200 bg-white dark:border-white/10 dark:bg-gray-900">
                 <table class="w-full table-fixed border-separate border-spacing-0 text-xs" data-reservation-grid>
                     <thead>
                         <tr>
@@ -224,21 +224,42 @@
                                         <span class="block text-[11px] font-normal text-gray-500">{{ __('withdrawn from sale') }}</span>
                                     @endif
                                 </th>
+                                @php
+                                    $lastIndex = count($row->cells) - 1;
+                                    $rowSelection = $selection !== null && $selection['position']->id === $row->position->id;
+                                    $selFromIndex = $rowSelection ? collect($row->cells)->search(fn ($c) => $c->day->toDateString() === $selection['from']) : false;
+                                    $selDepartureIndex = $selFromIndex === false ? null : $selFromIndex + $selection['nights'];
+                                @endphp
                                 @foreach ($row->cells as $index => $cell)
                                     @php
                                         $dayString = $cell->day->toDateString();
-                                        $inSelection = $selection !== null && $selection['position']->id === $row->position->id
-                                            && $dayString >= $selection['from'] && $dayString <= $selection['to'];
+                                        $inSelection = $rowSelection && $dayString >= $selection['from'] && $dayString <= $selection['to'];
                                         $offer = ($cell->past || $cell->occupied) ? null : $cell->offer;
                                         $clickable = $cell->isClickable();
+                                        // Kształt, jaki zaznaczenie przyjmie po tym kliku (te same przypadki co `selectCell()`), pokazany od razu
+                                        // na czas żądania — bez przeskoku z pełnego pola na skos. Serwer i tak rozstrzyga (np. zajęta doba po drodze).
+                                        $pending = null;
+                                        if ($clickable && $selFromIndex === false && $cell->isSelectable()) {
+                                            $pending = [$index, $index + 1];
+                                        } elseif ($clickable && $selFromIndex !== false && $index > $selFromIndex) {
+                                            $pending = [$selFromIndex, $index === $selDepartureIndex ? $index + 1 : $index];
+                                        } elseif ($clickable && $selFromIndex !== false && $index < $selFromIndex && $cell->isSelectable()) {
+                                            $pending = [$index, $selDepartureIndex];
+                                        }
+                                        if ($pending !== null) {
+                                            $pendingShape = $barShape(min($lastIndex, $pending[1]) - $pending[0] + 1, true, $pending[1] <= $lastIndex);
+                                            $shift = $index - $pending[0];
+                                            $pendingStyle = 'left:calc('.(-100 * $shift).'% - '.$shift.'px);'.$pendingShape['style'];
+                                        }
                                     @endphp
                                     <td @class([
                                         'relative border-r border-b border-gray-200 p-0 dark:border-white/10',
                                         'bg-amber-50/60 dark:bg-amber-500/5' => $grid->isWeekend($cell->day) && ! $cell->past,
                                         'bg-gray-50 dark:bg-white/5' => $cell->past,
                                     ])>
-                                        {{-- `data-loading:` — natychmiastowy ślad kliknięcia na czas żądania: Livewire ustawia `data-loading`
-                                             na klikniętym elemencie, zanim wróci odpowiedź (komórki, paski rezerwacji i blokad). --}}
+                                        {{-- Ślad kliknięcia na czas żądania: Livewire ustawia `data-loading` na klikniętym elemencie, zanim wróci
+                                             odpowiedź. Komórka pokazuje wtedy kształt przyszłego zaznaczenia ([data-pending-selection]), a dotychczasowe
+                                             zaznaczenie znika (`group-has-[[data-loading]]/cal`); paski rezerwacji i blokad przyciemniają się. --}}
                                         <button
                                             type="button"
                                             @if ($clickable) wire:click="selectCell({{ $row->position->id }}, '{{ $dayString }}')" @else aria-disabled="true" @endif
@@ -252,9 +273,12 @@
                                                 'items-end justify-end pe-1.5 pb-1' => $cell->morningOccupied,
                                                 'cursor-not-allowed' => ! $clickable,
                                                 'hover:bg-primary-50 dark:hover:bg-primary-500/10' => $clickable && ! $inSelection,
-                                                'data-loading:cursor-progress data-loading:bg-primary-500/30' => $clickable,
+                                                'data-loading:cursor-progress' => $clickable,
                                             ])
                                         >
+                                            @if ($pending !== null)
+                                                <span data-pending-selection style="{{ $pendingStyle }}" class="pointer-events-none absolute top-1 bottom-1 hidden bg-primary-500/30 group-data-loading:block" aria-hidden="true"></span>
+                                            @endif
                                             @if ($offer !== null && ! $inSelection)
                                                 <span class="text-[10.5px] text-gray-400 group-hover:opacity-0 dark:text-gray-500" data-cell-offer>
                                                     @if ($offer->sellable && $offer->totalInCents !== null)
@@ -354,7 +378,7 @@
                                                 data-popover-anchor
                                                 data-selection-overlay
                                                 style="{{ $selShape['style'] }}"
-                                                class="pointer-events-none absolute top-1 bottom-1 left-0 bg-primary-500/30"
+                                                class="pointer-events-none absolute top-1 bottom-1 left-0 bg-primary-500/30 group-has-[[data-loading]]/cal:hidden"
                                                 aria-hidden="true"
                                             ></span>
                                         @endif

@@ -16,8 +16,11 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
      Przy wydaniu sekcja `[unreleased]` zamienia się w `## [X.Y.Z] - RRRR-MM-DD`. -->
 
 ### Poprawione
-- kalendarz rezerwacji reagował na kliknięcie z opóźnieniem — kliknięty dzień, pasek rezerwacji albo blokady
-  podświetla się od razu, a zaznaczenie wraca z serwera szybciej
+- kalendarz rezerwacji reagował na kliknięcie z opóźnieniem — kliknięty dzień od razu pokazuje kształt
+  zaznaczenia, pasek rezerwacji albo blokady przyciemnia się od razu, a zaznaczenie wraca z serwera szybciej
+- kalendarz rezerwacji przy wielu stanowiskach miał własny pasek przewijania — teraz przewija się cała strona
+- w panelach na serwerze nie ładował się dodatkowy arkusz stylów i ikona karty (przeglądarka blokowała je
+  jako treść niezabezpieczoną)
 
 ## [0.0.1] - 2026-10-12
 

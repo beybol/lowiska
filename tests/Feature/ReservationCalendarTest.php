@@ -148,6 +148,23 @@ test('the second click picks the departure day and never runs across an occupied
         ->assertSet('selStart', '2026-05-16')
         ->assertSet('selEnd', '2026-05-16');
 
+    // Ślad kliknięcia (widoczny tylko na czas żądania): kształt przyszłego zaznaczenia, liczony tak jak `selectCell()`.
+    $pendingStyle = function (string $html, string $day) use ($position): ?string {
+        preg_match('/data-cell="'.$position->id.'-'.$day.'"[^>]*>(?:\s|<!--(?:(?!-->).)*-->)*<span data-pending-selection style="([^"]*)"/s', $html, $match);
+
+        return $match[1] ?? null;
+    };
+    $page = Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])->set('window', 'two_weeks');
+
+    expect($pendingStyle($page->html(), '2026-05-14'))->toStartWith('left:calc(0% - 0px);z-index:5;width:calc(200% + 1px)') // jedna doba
+        ->and($pendingStyle($page->html(), '2026-05-17'))->toBeNull(); // doba zajęta — klik nic nie zaznaczy
+
+    $page->call('selectCell', $position->id, '2026-05-14');
+
+    expect($pendingStyle($page->html(), '2026-05-14'))->toBeNull() // klik w przyjazd zamyka
+        ->and($pendingStyle($page->html(), '2026-05-16'))->toStartWith('left:calc(-200% - 2px);z-index:5;width:calc(300% + 2px)') // 14 → 16
+        ->and($pendingStyle($page->html(), '2026-05-15'))->toStartWith('left:calc(-100% - 1px);z-index:5;width:calc(300% + 2px)'); // bieżący wyjazd: +1 doba
+
     // Dzień wyjazdu rezerwacji (18.05, rano zajęty) jest dniem przyjazdu następnej.
     Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
         ->call('selectCell', $position->id, '2026-05-18')

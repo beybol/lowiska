@@ -30,6 +30,19 @@ test('X-Forwarded-Proto: https czyni żądanie bezpiecznym i przepisuje schemat 
     expect(asset('build/manifest.json'))->toStartWith('https://');
 });
 
+// Adresy zasobów paneli liczone przy starcie aplikacji (przed `trustProxies`) wychodziły jako `http://` i przeglądarka
+// blokowała je na stagingu (Mixed Content) — arkusz `filament-extend.css` i favicon. Liczy je dopiero render.
+test('arkusz i favicon paneli idą schematem z X-Forwarded-Proto', function (string $panel) {
+    $html = $this->withHeaders(['X-Forwarded-Proto' => 'https'])->get("/{$panel}/login")->assertOk()->getContent();
+    $origin = preg_replace('#^https?://#', '', rtrim((string) config('app.url'), '/'));
+
+    expect($html)
+        ->toContain("https://{$origin}/css/filament-extend.css")
+        ->toContain("https://{$origin}/favicon.svg")
+        ->not->toContain("http://{$origin}/css/filament-extend.css")
+        ->not->toContain("http://{$origin}/favicon.svg");
+})->with(['admin', 'owner']);
+
 test('X-Forwarded-For jest odczytywany jako adres klienta', function () {
     $this->withHeaders(['X-Forwarded-For' => '203.0.113.7'])->get('/');
 
