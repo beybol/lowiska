@@ -237,6 +237,8 @@
                                         'bg-amber-50/60 dark:bg-amber-500/5' => $grid->isWeekend($cell->day) && ! $cell->past,
                                         'bg-gray-50 dark:bg-white/5' => $cell->past,
                                     ])>
+                                        {{-- `data-loading:` — natychmiastowy ślad kliknięcia na czas żądania: Livewire ustawia `data-loading`
+                                             na klikniętym elemencie, zanim wróci odpowiedź (komórki, paski rezerwacji i blokad). --}}
                                         <button
                                             type="button"
                                             @if ($clickable) wire:click="selectCell({{ $row->position->id }}, '{{ $dayString }}')" @else aria-disabled="true" @endif
@@ -250,6 +252,7 @@
                                                 'items-end justify-end pe-1.5 pb-1' => $cell->morningOccupied,
                                                 'cursor-not-allowed' => ! $clickable,
                                                 'hover:bg-primary-50 dark:hover:bg-primary-500/10' => $clickable && ! $inSelection,
+                                                'data-loading:cursor-progress data-loading:bg-primary-500/30' => $clickable,
                                             ])
                                         >
                                             @if ($offer !== null && ! $inSelection)
@@ -288,6 +291,7 @@
                                                     $barClasses[$bar->kind],
                                                     'opacity-35' => $bar->dimmed,
                                                     'brightness-90' => $isSelected,
+                                                    'data-loading:cursor-progress data-loading:brightness-75',
                                                 ])
                                             >
                                                 <span class="flex min-w-0 items-center gap-1 overflow-hidden font-semibold" style="{{ $shape['name'] }}">
@@ -329,6 +333,7 @@
                                                     'absolute top-1 bottom-1 left-0 flex flex-col justify-center overflow-hidden text-left leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
                                                     $blockClasses,
                                                     'brightness-90' => $isSelected,
+                                                    'data-loading:cursor-progress data-loading:brightness-75',
                                                 ])
                                             >
                                                 @if ($blockBar->nights() > 0)

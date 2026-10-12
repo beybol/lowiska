@@ -113,6 +113,12 @@ popover nad albo pod wierszem, oferta w pustych dobach), obowiązuje ten plik.
   ⚠️ **Liczba zapytań nie rośnie z dobami:** stanowiska wczytują z góry `reservationSlots` (od północy
   pierwszego dnia okna — jego pierwsza połowa to doba sprzed okna) i `availabilityBlocks.attribute`.
   Pilnuje tego `ReservationCalendarTest`.
+  ⚠️ **Strona liczy siatkę raz na żądanie** (`ManageCalendar::getReservationGrid()`, klucz: początek okna, liczba dni,
+  grupa, filtr). Inaczej klik w dzień budowałby ją dwa razy: w `selectCell()` i w renderze. Każda akcja zapisująca
+  rezerwację albo blokadę woła `forgetReservationLayer()`. Bez tego render po zapisie pokazałby siatkę sprzed zapisu.
+- **Klik w kalendarzu daje natychmiastowy ślad**: komórka i paski mają klasy `data-loading:` (Livewire ustawia
+  `data-loading` na klikniętym elemencie na czas żądania). Zaznaczenie i popover przychodzą z serwera, więc bez
+  tego śladu kliknięcie przez czas żądania wygląda na martwe.
 - **Warstwa „Rezerwacje" pokazuje ofertę** (odwrócenie decyzji §3 makiety etapu 3 „brak ceny w komórce", 047 A3): w pustej
   dobie drobnym szarym drukiem cena pobytu od tej doby albo „zacznij <dzień>" — z tej samej siatki
   `SaleCalendar` co warstwa „Oferta", przypiętej do komórki (`ReservationCalendarCell::$offer`). Pasek

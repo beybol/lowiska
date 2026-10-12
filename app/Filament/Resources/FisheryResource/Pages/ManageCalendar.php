@@ -124,6 +124,15 @@ class ManageCalendar extends Page
 
     private ?ReservationCalendar $reservationCalendar = null;
 
+    /**
+     * Siatka warstwy „Rezerwacje" zapamiętana na czas JEDNEGO żądania, z kluczem ze stanu, z którego powstała —
+     * klik w dzień liczyłby ją inaczej dwa razy (`selectCell()` i render). Nie jest to bufor werdyktu
+     * (`dostepnosc.md` §2): ginie razem z żądaniem, a zapis zeruje ją przez `forgetReservationLayer()`.
+     *
+     * @var array{string, ?ReservationCalendarGrid}|null
+     */
+    private ?array $reservationGrid = null;
+
     /** Górne granice wejścia od klienta — patrz `clamp()`. */
     private const MAX_PARTY = 50;
 
@@ -627,10 +636,25 @@ class ManageCalendar extends Page
 
         $days = $this->unit() === CalendarWindow::Week ? 7 : 14;
         $filter = in_array($this->statusFilter, ReservationCalendar::FILTERS, true) ? $this->statusFilter : null;
+        $key = implode('|', [$this->currentStart()->toDateString(), $days, (int) $this->groupId, (string) $filter]);
+
+        if ($this->reservationGrid !== null && $this->reservationGrid[0] === $key) {
+            return $this->reservationGrid[1];
+        }
+
         // Oferta w pustych dobach (047, A3) — ta sama siatka `SaleCalendar` co warstwa „Oferta", to samo okno.
         $offer = $this->calendar()->grid(from: $this->currentStart(), unit: $this->unit());
+        $grid = $this->reservationCalendar()->grid($this->currentStart(), $days, $this->groupId ?: null, $filter, offer: $offer);
+        $this->reservationGrid = [$key, $grid];
 
-        return $this->reservationCalendar()->grid($this->currentStart(), $days, $this->groupId ?: null, $filter, offer: $offer);
+        return $grid;
+    }
+
+    /** Po zapisie (rezerwacja, blokada) warstwa liczy się od nowa — razem z zapamiętaną siatką. */
+    private function forgetReservationLayer(): void
+    {
+        $this->reservationCalendar = null;
+        $this->reservationGrid = null;
     }
 
     /** Licznik nad siatką jako filtr — drugi klik zdejmuje filtr (047, A8). */
@@ -896,7 +920,7 @@ class ManageCalendar extends Page
                 }
 
                 $this->clearSelection();
-                $this->reservationCalendar = null;
+                $this->forgetReservationLayer();
                 Notification::make()->success()->title(__('The reservation was saved'))->body(CreateReservation::requestNotice($outcome->reservation))->send();
 
                 if (! empty($arguments['full']) && $outcome->reservation !== null) {
@@ -949,7 +973,7 @@ class ManageCalendar extends Page
                 }
 
                 $this->clearSelection();
-                $this->reservationCalendar = null;
+                $this->forgetReservationLayer();
                 Notification::make()->success()->title(__('Saved'))->send();
             });
     }
@@ -971,7 +995,7 @@ class ManageCalendar extends Page
                 Gate::authorize('delete', $block);
                 $block->delete();
                 $this->clearSelection();
-                $this->reservationCalendar = null;
+                $this->forgetReservationLayer();
                 Notification::make()->success()->title(__('The block was deleted'))->send();
             });
     }

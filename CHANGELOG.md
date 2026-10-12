@@ -15,6 +15,10 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
      ### Dodane / ### Zmienione / ### Poprawione / ### Usunięte / ### Wycofane / ### Bezpieczeństwo
      Przy wydaniu sekcja `[unreleased]` zamienia się w `## [X.Y.Z] - RRRR-MM-DD`. -->
 
+### Poprawione
+- kalendarz rezerwacji reagował na kliknięcie z opóźnieniem — kliknięty dzień, pasek rezerwacji albo blokady
+  podświetla się od razu, a zaznaczenie wraca z serwera szybciej
+
 ## [0.0.1] - 2026-10-12
 
 ### Dodane
