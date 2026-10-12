@@ -196,7 +196,7 @@ class ReservationLinkController extends Controller
         return $this->linking->accountFor($angler) !== null ? 'sign-in' : 'register';
     }
 
-    private function link(Request $request, FisheryAngler $angler, User $user, string $tokenHash): Response|RedirectResponse
+    private function link(Request $request, FisheryAngler $angler, User $user, string $tokenHash): Response
     {
         $documents = $this->consents->requiredFisheryDocuments($angler->fishery);
         $data = $request->validate(
@@ -215,7 +215,7 @@ class ReservationLinkController extends Controller
         return $this->linked($angler);
     }
 
-    private function register(Request $request, FisheryAngler $angler, string $tokenHash): Response|RedirectResponse
+    private function register(Request $request, FisheryAngler $angler, string $tokenHash): Response
     {
         $platformDocuments = $this->consents->requiredPlatformDocuments();
         $fisheryDocuments = $this->consents->requiredFisheryDocuments($angler->fishery);

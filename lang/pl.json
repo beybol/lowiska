@@ -1327,5 +1327,15 @@
     "One more step": "Jeszcze jeden krok",
     "Before we create your account (:email), accept the Fisherya documents.": "Zanim założymy konto (:email), zaakceptuj dokumenty Fisherya.",
     "The fishery has made a reservation for you. Please confirm it with one click — no account is needed.": "Łowisko zarezerwowało dla Ciebie stanowisko. Potwierdź rezerwację jednym kliknięciem — konto nie jest potrzebne.",
-    "After confirming, you can sign in to your Fisherya account or create one to keep your reservation history.": "Po potwierdzeniu możesz zalogować się na konto Fisherya albo je założyć, żeby mieć historię rezerwacji."
+    "After confirming, you can sign in to your Fisherya account or create one to keep your reservation history.": "Po potwierdzeniu możesz zalogować się na konto Fisherya albo je założyć, żeby mieć historię rezerwacji.",
+    "Fishery anglers": "Wędkarze",
+    "Active reservations": "Aktywne rezerwacje",
+    "Next stay": "Najbliższy pobyt",
+    "Has an upcoming reservation": "Ma nadchodzącą rezerwację",
+    "No anglers yet": "Brak wędkarzy",
+    "Anglers appear here after the first reservation made for them.": "Wędkarze pojawiają się tu po pierwszej rezerwacji założonej dla nich.",
+    "No reservations": "Brak rezerwacji",
+    "Account link": "Połączenie z kontem",
+    "link valid until :date": "link ważny do :date",
+    "since :date": "od :date"
 }

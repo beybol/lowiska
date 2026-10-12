@@ -9,7 +9,7 @@ i w mailach o rezerwacjach.
 [`dostepnosc.md`](dostepnosc.md) §6** (oś „czy wolno sprzedać") i [`cennik.md`](cennik.md) (warunki
 i zwrot). Ten plik niesie reguły EKRANÓW i PRZEPŁYWÓW, które na tym rdzeniu stoją.
 
-Zadania źródłowe: 041, 042, 043, 044, 045, 047, 049. Decyzje: ADR-024…028.
+Zadania źródłowe: 041, 042, 043, 044, 045, 047, 048, 049. Decyzje: ADR-024…028.
 
 ---
 
@@ -248,3 +248,26 @@ Decyzja: [ADR-027](../adr/ADR-027-kolizje-konfiguracji-z-rezerwacjami.md); zasad
   Po wygaszeniu mail do wędkarza z adresem (decyzja autora); rezerwacja bez adresu nie trafia do „Do kontaktu".
 - Potwierdzenie (operator albo wędkarz linkiem) czyści `confirm_by`. Plakietka „≤ 24 h" liczy się z `confirm_by`
   (`Reservation::expiringWithin()`, §1).
+
+---
+
+## 6. Wędkarze łowiska — podgląd tylko do odczytu (zadanie 048)
+
+Strona `FisheryResource\Pages\ManageAnglers` — pozycja sub-nawigacji **zaraz za „Rezerwacjami"**, w obu panelach.
+
+- ⚠️ **Źródłem są wyłącznie relacje łowiska (`fishery_anglers`), nigdy `users`** (ADR-024 pkt 2). Strona **niczego nie
+  zapisuje**; `FisheryAngler` nie ma zasobu ani polityki, dostęp wynika z dostępu do łowiska jak przy „Rezerwacjach"
+  (`autoryzacja.md` §5). Cudze łowisko to 404.
+- **Dane efektywne ma jedna reguła — `FisheryAngler::effectiveContact()`**; jej odpowiednikiem w SQL jest
+  `FisheryAngler::effectiveSql()` (wyszukiwanie i sortowanie). ⚠️ Zmiana jednej wymaga zmiany drugiej — pilnuje tego
+  test porównujący obie dla każdego stanu relacji. Wyszukiwarka (`matchingContact()`) szuka po danych efektywnych:
+  `linked` po danych konta (z `phone_override`), `unlinked`/`pending` po `given_*`, `revoked` nigdy; nie szuka po notatkach.
+- **Stan danych na liście i w filtrze to trzy stany z `AnglerLinkStatus::accountLabel()`** (dane od łowiska, potwierdzone
+  konto, dostęp cofnięty) — to samo słownictwo co kolumna „Dane wędkarza" na liście rezerwacji (§3). Czterostanowy status
+  (`label()`) i ważność linku są dopiero w podglądzie wędkarza.
+- **Liczba rezerwacji w kolumnie to rezerwacje aktywne, a podgląd pokazuje wszystkie statusy z TEGO łowiska, od najnowszej**
+  (`FisheryAngler::reservationHistory()`); numer prowadzi do szczegółów tylko, gdy `ReservationPolicy` pozwala (`view`).
+  Liczba i najbliższy pobyt to agregaty w zapytaniu (`withCount`, `withMin`), nie zapytania na wiersz.
+- Podgląd to `ViewAction` ze schematem: ⚠️ `ViewAction` wypełnia stan z `attributesToArray()`, więc lista rezerwacji
+  ma jawny `state()` z relacji. Treść modala nie trafia do `html()` komponentu w testach Livewire — testy renderują
+  schemat zamontowanej akcji (`previewHtml()` w `FisheryAnglersPageTest`).

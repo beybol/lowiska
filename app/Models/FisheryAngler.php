@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Casts\UtcDateTime;
 use App\Enums\AnglerLinkStatus;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -129,5 +131,55 @@ class FisheryAngler extends Model
     public function effectiveEmail(): ?string
     {
         return $this->effectiveContact()['email'];
+    }
+
+    /**
+     * Wyrażenie SQL tej samej reguły co `effectiveContact()` — do wyszukiwania i sortowania listy wędkarzy
+     * łowiska (zadanie 048). ⚠️ Zmiana reguły w `effectiveContact()` wymaga zmiany tutaj; pilnuje tego
+     * `FisheryAnglersPageTest`, który porównuje oba wyniki dla każdego stanu relacji.
+     *
+     * @param  'name'|'email'|'phone'  $field
+     */
+    public static function effectiveSql(string $field): string
+    {
+        $linked = AnglerLinkStatus::Linked->value;
+        $revoked = AnglerLinkStatus::Revoked->value;
+        $account = fn (string $expression): string => "(select {$expression} from users where users.id = fishery_anglers.user_id)";
+
+        $whenLinked = match ($field) {
+            'name' => 'coalesce('.$account("trim(concat(users.name, ' ', coalesce(users.surname, '')))").', fishery_anglers.given_name)',
+            'email' => 'coalesce('.$account('users.email').', fishery_anglers.given_email)',
+            'phone' => 'coalesce(fishery_anglers.phone_override, '.$account('users.phone').', fishery_anglers.given_phone)',
+        };
+
+        return "case fishery_anglers.status when '{$linked}' then {$whenLinked} when '{$revoked}' then null else fishery_anglers.given_{$field} end";
+    }
+
+    /**
+     * Wędkarze, których DANE EFEKTYWNE (imię i nazwisko, e-mail albo telefon) zawierają frazę.
+     * Cofnięty dostęp nie ma danych, więc nigdy nie pasuje; notatki i dane konta niepowiązanego nie są przeszukiwane.
+     *
+     * @param  Builder<FisheryAngler>  $query
+     */
+    #[Scope]
+    protected function matchingContact(Builder $query, string $term): void
+    {
+        $like = '%'.addcslashes($term, '\\%_').'%';
+
+        $query->where(function (Builder $group) use ($like): void {
+            foreach (['name', 'email', 'phone'] as $field) {
+                $group->orWhereRaw(self::effectiveSql($field).' like ?', [$like]);
+            }
+        });
+    }
+
+    /**
+     * Rezerwacje wędkarza w tym łowisku, od najnowszej — podgląd wędkarza (zadanie 048).
+     *
+     * @return HasMany<Reservation, $this>
+     */
+    public function reservationHistory(): HasMany
+    {
+        return $this->hasMany(Reservation::class)->with(['position', 'fishery'])->orderByDesc('starts_at')->orderByDesc('id');
     }
 }

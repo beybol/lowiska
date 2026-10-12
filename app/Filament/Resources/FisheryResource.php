@@ -7,6 +7,7 @@ use App\Filament\Resources\FisheryResource\Pages\CreateFishery;
 use App\Filament\Resources\FisheryResource\Pages\EditFishery;
 use App\Filament\Resources\FisheryResource\Pages\ListFisheries;
 use App\Filament\Resources\FisheryResource\Pages\ManageAdditionalServices;
+use App\Filament\Resources\FisheryResource\Pages\ManageAnglers;
 use App\Filament\Resources\FisheryResource\Pages\ManageAvailabilityBlocks;
 use App\Filament\Resources\FisheryResource\Pages\ManageCalendar;
 use App\Filament\Resources\FisheryResource\Pages\ManageDocuments;
@@ -567,6 +568,8 @@ class FisheryResource extends Resource
             ManageCalendar::class,
             // Rezerwacje zaraz za kalendarzem — z kalendarza się je zakłada (zadania 041, 042).
             ManageReservations::class,
+            // Wędkarze łowiska — podgląd relacji, zaraz za rezerwacjami, z których powstają (zadanie 048).
+            ManageAnglers::class,
             // Polityka zwrotu za kalendarzem — niczego w nim nie zmienia (zadanie 021).
             ManageRefundPolicy::class,
             ManagePositions::class,
@@ -613,6 +616,7 @@ class FisheryResource extends Resource
             'pricing' => ManagePricing::route('/{record}/pricing'),
             'calendar' => ManageCalendar::route('/{record}/calendar'),
             'reservations' => ManageReservations::route('/{record}/reservations'),
+            'anglers' => ManageAnglers::route('/{record}/anglers'),
             // Ekran decyzji o rezerwacjach dotkniętych zmianą konfiguracji (zadanie 044) — poza sub-nawigacją.
             'collisions' => ResolveCollisions::route('/{record}/collisions/{token}'),
             'positions' => ManagePositions::route('/{record}/positions'),

@@ -553,6 +553,14 @@ W tym samym mailu wędkarz może
 rezerwacja zostaje, ale trafia do kontaktu, żebyś sprawdził adres. Ty nigdy nie zmieniasz danych konta
 wędkarza; zmieniasz tylko dane, które podałeś łowisku.
 
+**Wędkarze łowiska.** Zakładka **Wędkarze** w menu łowiska (zaraz za „Rezerwacjami") pokazuje wszystkich
+wędkarzy, dla których założono rezerwację w Twoim łowisku: imię i nazwisko, e-mail i telefon, informację, czy to
+**dane od łowiska**, czy **potwierdzone konto**, liczbę aktywnych rezerwacji i najbliższy pobyt. Lista jest
+domyślnie posortowana od tych, którzy przyjadą najwcześniej. Szukasz po imieniu i nazwisku, e-mailu albo telefonie
+(dla wędkarza z kontem szukasz po danych z konta, bo te widzisz) i filtrujesz po stanie danych, po tym, czy ma
+nadchodzącą rezerwację, oraz po „Do kontaktu". Akcja **Podgląd** otwiera panel z danymi wędkarza i pełną historią
+jego rezerwacji w tym łowisku, także anulowanych i wygasłych; numer rezerwacji prowadzi do jej szczegółów.
+Zakładka służy tylko do oglądania — danych wędkarza nie zmieniasz tutaj.
 **Płatność** ustawiasz akcją **Oznacz jako opłaconą** albo zmianą statusu płatności — także dla wielu
 rezerwacji naraz z listy.
 

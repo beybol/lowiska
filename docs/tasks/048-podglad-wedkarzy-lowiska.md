@@ -3,7 +3,7 @@
 ## Opis problemu
 
 Po zadaniach 039–047 łowisko ma relacje z wędkarzami (`fishery_anglers`, ADR-024): powstają przy
-rezerwacji ręcznej, wędkarz może je powiązać ze swoim kontem (zadanie 043). Operator i administrator nie
+rezerwacji ręcznej, wędkarz może je powiązać ze swoim kontem (zadania 043 i 049). Operator i administrator nie
 mają jednak żadnego miejsca, w którym zobaczą listę wędkarzy łowiska. Nie widać, kto potwierdził konto,
 a kto istnieje tylko z danymi wpisanymi przez łowisko. Nie da się też obejrzeć wszystkich rezerwacji
 jednego wędkarza. Dziś trzeba przeszukiwać listę rezerwacji po nazwisku albo adresie.
@@ -20,21 +20,26 @@ a przy każdym wędkarzu lista jego rezerwacji z przejściem do istniejących sz
   pkt 2), nigdy `users`. Kolumny:
   - imię i nazwisko, e-mail i telefon, czyli **dane efektywne** z `FisheryAngler::effectiveContact()`.
     Przy `revoked` są puste i strona mówi wprost „dostęp cofnięty”;
-  - **status** (`AnglerLinkStatus`) jako plakietka. Musi być czytelne, czy dane pochodzą od łowiska
-    (`unlinked`, `pending`), czy z potwierdzonego konta (`linked`);
-  - liczba rezerwacji i data najbliższego nadchodzącego pobytu.
+  - **stan danych** jako plakietka z `AnglerLinkStatus::accountLabel()` / `accountColor()`, czyli trzy
+    stany tak jak kolumna „Dane wędkarza” na liście rezerwacji: dane od łowiska (`unlinked`, `pending`),
+    potwierdzone konto (`linked`), dostęp cofnięty (`revoked`);
+  - liczba rezerwacji **aktywnych** (`Reservation::active()`, przeszłe i przyszłe) i data najbliższego
+    nadchodzącego pobytu.
+- **Domyślne sortowanie:** najpierw wędkarze z najbliższym nadchodzącym pobytem (rosnąco), potem bez
+  nadchodzącego pobytu, alfabetycznie po danych efektywnych.
 - **Filtry:**
-  - wyszukiwanie tekstowe po imieniu i nazwisku, e-mailu i telefonie. Przy `linked` szuka po danych
-    konta, przy `unlinked`/`pending` po `given_*`. Nie wolno przez wyszukiwarkę ujawnić danych spoza
-    relacji łowiska;
-  - status powiązania;
+  - wyszukiwanie tekstowe po imieniu i nazwisku, e-mailu i telefonie, czyli po danych efektywnych
+    (reguła w „Rozstrzygnięciach”). Nie wolno przez wyszukiwarkę ujawnić danych spoza relacji łowiska;
+  - stan danych: te same trzy stany co plakietka;
   - „Ma nadchodzącą rezerwację”: aktywna rezerwacja jeszcze nierozpoczęta;
   - „Do kontaktu”: wędkarz ma rezerwację w stanie „Do kontaktu” (`Reservation::toContact()`).
 - **Podgląd wędkarza** (akcja wiersza: modal albo slide-over) pokazuje:
-  - dane efektywne, status i datę powiązania (`linked_at`), notatki łowiska tylko do odczytu;
-  - **listę rezerwacji tego wędkarza w tym łowisku.** Relacja jest unikalna po znormalizowanym adresie
-    w łowisku, więc to są rezerwacje danego adresu e-mail. Kolumny: numer, termin, stanowisko, status,
-    płatność. Każda pozycja prowadzi do istniejących szczegółów rezerwacji (`ReservationResource`).
+  - dane efektywne, stan danych i **szczegółowy status relacji** (`AnglerLinkStatus::label()`): przy
+    `pending` „prośba o połączenie wysłana” z datą ważności linku (`link_expires_at`), przy `linked`
+    datę powiązania (`linked_at`). Do tego notatki łowiska tylko do odczytu;
+  - **listę rezerwacji tego wędkarza w tym łowisku**, wszystkich statusów (także anulowane i wygasłe),
+    od najnowszej. Relacja jest unikalna po znormalizowanym adresie w łowisku, więc to są rezerwacje
+    danego adresu e-mail. Kolumny: numer, termin, stanowisko, status, płatność. Każda pozycja prowadzi do istniejących szczegółów rezerwacji (`ReservationResource`).
 - **Tylko odczyt.** Strona niczego nie zapisuje.
 - **Autoryzacja przez rodzica** (`autoryzacja.md` §5). `FisheryAngler` nie dostaje zasobu ani polityki.
   Dostęp do strony wynika z dostępu do łowiska, tak samo jak przy „Rezerwacjach”. Podgląd rezerwacji
@@ -101,6 +106,21 @@ a przy każdym wędkarzu lista jego rezerwacji z przejściem do istniejących sz
   11.10.2026), zgodnie z ADR-024 pkt 2.
 - Filtry: wyszukiwanie tekstowe, status powiązania, „Ma nadchodzącą rezerwację”, „Do kontaktu”
   (decyzja autora, 11.10.2026).
+- Plakietka i filtr statusu mają trzy stany z `accountLabel()`, a szczegółowy status (cztery stany
+  z `label()`, ważność linku) jest w podglądzie (decyzja autora, 12.10.2026). Po zadaniu 049 `pending`
+  to nadal dane od łowiska, a słownictwo ma się zgadzać z kolumną „Dane wędkarza” na liście rezerwacji.
+- Kolumna liczy rezerwacje aktywne, a podgląd pokazuje wszystkie statusy od najnowszej (decyzja autora,
+  12.10.2026). Liczba odpowiada realnym pobytom, a historia w podglądzie jest pełna.
+- Domyślne sortowanie: najbliższy nadchodzący pobyt, potem alfabetycznie (decyzja autora, 12.10.2026).
+  Na górze są ci, którzy zaraz przyjadą.
+- Wyszukiwanie i sortowanie po danych efektywnych w SQL odwzorowuje `effectiveContact()` wyrażeniem
+  zależnym od statusu: `linked` → imię i nazwisko, e-mail i telefon konta (`phone_override`, potem
+  telefon konta, potem `given_*` jako zapas, tak jak w modelu); `unlinked`/`pending` → `given_*`;
+  `revoked` → nic. Wędkarza `revoked` wyszukiwarka nigdy nie znajduje, choć wiersz jest na liście.
+  Test porównuje wynik wyszukiwania z `effectiveContact()` dla każdego statusu, żeby obie wersje reguły
+  się nie rozjechały (rozstrzygnięte w przeglądzie, wynika z ADR-024 pkt 2).
+- Wyszukiwarka nie dopasowuje po `notes`, `link_email` ani po danych konta przy statusach innych niż
+  `linked` (rozstrzygnięte w przeglądzie). Dane konta niepowiązanego wędkarza nie należą do łowiska.
 
 ## Powiązane ADR-y
 

@@ -17,6 +17,10 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 
 ### Dodane
 
+- Łowisko ma nową zakładkę **„Wędkarze"** zaraz za „Rezerwacjami": lista wędkarzy, dla których założono rezerwację,
+  z kontaktem, informacją czy to dane od łowiska czy potwierdzone konto, liczbą aktywnych rezerwacji i najbliższym
+  pobytem. Listę można przeszukać (imię i nazwisko, e-mail, telefon) i przefiltrować (stan danych, nadchodząca
+  rezerwacja, „Do kontaktu"), a podgląd wędkarza pokazuje jego rezerwacje w tym łowisku z przejściem do szczegółów.
 - Właściciel łowiska może teraz opisać, czym handluje: na nowym ekranie „Sprzedaż i sezony"
   ustawia godzinę rozpoczęcia i zakończenia doby wędkarskiej oraz strefę czasową, w której ta
   doba jest liczona. Doba trwa od godziny do godziny dnia następnego, więc przechodzi przez

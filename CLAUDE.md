@@ -72,7 +72,7 @@ da się odtworzyć z samego kodu.
 | `app/Services/FishingDay*`, `PositionAvailability`, `StaySellability*`, `AvailabilityBlock*`, `PositionServices*`, każde miejsce pytające o sprzedawalność doby albo pobytu albo o usługi stanowiska | `docs/conventions/dostepnosc.md` |
 | `app/Services/StayPricing*`, `PriceRule*`, `StayOffer*`, `RefundPolicy*`, `app/Models/PriceRule.php`, jednostka usług dodatkowych, każde miejsce pytające o cenę albo zwrot | `docs/conventions/cennik.md` |
 | `routes/**`, widoki Breeze, `resources/views/**` (poza `filament/`), portal wędkarza | `docs/conventions/strona-publiczna.md` |
-| Ekrany i przepływy rezerwacji: `ReservationResource/**`, `ManageReservations`, warstwa „Rezerwacje" kalendarza, `app/Services/Reservation*`, maile o rezerwacjach (rdzeń zapisu → `dostepnosc.md` §6) | `docs/conventions/rezerwacje.md` |
+| Ekrany i przepływy rezerwacji: `ReservationResource/**`, `ManageReservations`, `ManageAnglers`, warstwa „Rezerwacje" kalendarza, `app/Services/Reservation*`, maile o rezerwacjach (rdzeń zapisu → `dostepnosc.md` §6) | `docs/conventions/rezerwacje.md` |
 
 **Dokumentacja projektu** - znajduje się w katalogu docs
 

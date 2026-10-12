@@ -91,8 +91,8 @@ test('the refund policy of another fishery is not found', function () {
     $this->get(FisheryResource::getUrl('refund-policy', ['record' => $theirs], panel: 'owner'))->assertNotFound();
 });
 
-// Od zadania 041 między kalendarzem a polityką zwrotu stoją „Rezerwacje" — zakłada się je z kalendarza.
-test('the sub-navigation puts the refund policy after the calendar and reservations, documents last', function () {
+// Od zadania 041 między kalendarzem a polityką zwrotu stoją „Rezerwacje", a od 048 „Wędkarze" zaraz za nimi.
+test('the sub-navigation puts the refund policy after the calendar, reservations and anglers, documents last', function () {
     [$fishery, , $owner] = StayFixtures::fisheryWithPosition();
     $this->actingAs($owner);
 
@@ -105,6 +105,7 @@ test('the sub-navigation puts the refund policy after the calendar and reservati
     $calendar = array_search(__('Calendar'), $labels, true);
 
     expect($labels[$calendar + 1])->toBe(__('Reservations'))
-        ->and($labels[$calendar + 2])->toBe(__('Refund policy'))
+        ->and($labels[$calendar + 2])->toBe(__('Fishery anglers'))
+        ->and($labels[$calendar + 3])->toBe(__('Refund policy'))
         ->and(end($labels))->toBe(__('Documents'));
 });
