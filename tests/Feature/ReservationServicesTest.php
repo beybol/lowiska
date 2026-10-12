@@ -103,11 +103,16 @@ test('cancellation gives the service units back', function () {
     expect((new StayOffer($position->fresh()))->services('2026-05-13', 1)->lines[0]->remaining)->toBe(1);
 });
 
-test('a service the position does not offer is refused', function () {
-    [$fishery, $position] = ReservationFixtures::bookableFishery();
-    $elsewhere = AdditionalService::factory()->create(['fishery_id' => $fishery->id, 'is_active' => true]);
+// Usługa tego łowiska nieoferowana na stanowisku jest wyjątkiem z powodem (047, B6) — ReservationReviewFixesTest.
+// Usługi spoza łowiska nie dodaje nikt, nawet obsługa z powodem.
+test('a service from outside the fishery is refused even with a reason', function () {
+    [, $position] = ReservationFixtures::bookableFishery();
+    $elsewhere = AdditionalService::factory()->create(['is_active' => true]);
 
-    $outcome = ReservationFixtures::attempt($position, '2026-05-13', 1, ['services' => [$elsewhere->id => 1]]);
+    $outcome = ReservationFixtures::attempt($position, '2026-05-13', 1, [
+        'services' => [$elsewhere->id => 1],
+        'serviceExceptionReason' => 'Stały klient',
+    ]);
 
     expect($outcome->problem)->toBe(BookingProblem::ServiceUnavailable)
         ->and($outcome->serviceId)->toBe($elsewhere->id);
