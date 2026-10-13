@@ -292,10 +292,12 @@ test('the reservations grid query count does not grow with nights or positions',
     DB::listen(function () use (&$queries): void {
         $queries++;
     });
+    // Ścieżka produkcyjna (oferta z `SaleCalendar`, 051) i zimny magazyn odczytów — jak w nowym żądaniu.
     $count = function (int $days) use ($fishery, &$queries): int {
+        app()->forgetScopedInstances();
         $model = $fishery->fresh();
         $queries = 0;
-        (new ReservationCalendar($model))->grid(CarbonImmutable::parse('2026-05-11'), $days);
+        (new ReservationCalendar($model))->grid(CarbonImmutable::parse('2026-05-11'), $days, offer: new SaleCalendar($model));
 
         return $queries;
     };
@@ -500,4 +502,54 @@ test('the phone view is an island loaded on demand and refreshed when the window
     expect(implode('', $effects['islandFragments'] ?? []))->toContain("selectPhoneDay('2026-05-18')")
         ->and($effects['html'] ?? '')->toContain('data-reservation-grid')
         ->and($effects['html'] ?? '')->not->toContain('data-free-until');
+});
+
+test('after a save from the calendar the page shows the fresh state', function () {
+    [$fishery, $position, $owner] = ReservationFixtures::bookableFishery();
+    $block = StayFixtures::blockSale($fishery, $position, '2026-05-20', '2026-05-20'); // w domyślnym oknie 11–24.05
+    $this->actingAs($owner);
+
+    $component = Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->assertDontSeeHtml('data-reservation-bar="')
+        ->call('selectCell', $position->id, '2026-05-14')
+        ->callAction(
+            TestAction::make('quickBook')->arguments(['position' => $position->id, 'date' => '2026-05-14', 'nights' => 1]),
+            data: ['angler_name' => 'Świeży', 'angler_phone' => '+48600', 'nights' => 1, 'anglers' => 1, 'companions' => 0],
+        )
+        ->assertHasNoActionErrors();
+    $reservation = Reservation::query()->sole();
+
+    // Zapamiętana siatka i rekordy popovera nie podają stanu sprzed zapisu.
+    $component->assertSeeHtml('data-reservation-bar="'.$reservation->id.'"')
+        ->assertSeeHtml('data-block-bar="'.$block->id.'"')
+        ->call('selectBlock', $block->id)
+        ->callAction(TestAction::make('deleteBlock')->arguments(['block' => $block->id]))
+        ->assertDontSeeHtml('data-block-bar="'.$block->id.'"');
+});
+
+test('cancelling from the phone sheet closes the sheet in the phone island', function () {
+    [$fishery, $position, $owner] = ReservationFixtures::bookableFishery();
+    $reservation = ReservationFixtures::book($position, '2026-05-20', 1);
+    $this->actingAs($owner);
+    $effectsOf = fn ($component): array => \Livewire\invade($component)->lastState->getEffects();
+
+    // Kliknięcia z wnętrza wyspy telefonu niosą jej metadane (przeglądarka dokłada je sama, `closestIsland`).
+    $inPhone = fn (string $method, mixed $param): array => [['method' => $method, 'params' => [$param], 'path' => '', 'metadata' => ['island' => ['name' => 'phone', 'mode' => 'morph']]]];
+
+    $component = Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->call('loadPhoneView')
+        ->update(calls: $inPhone('selectPhoneDay', '2026-05-20'))
+        ->update(calls: $inPhone('selectReservation', $reservation->id));
+
+    expect(implode('', $effectsOf($component)['islandFragments'] ?? []))->toContain('data-phone-reservation-sheet');
+
+    $component->callAction(TestAction::make('cancelReservation')->arguments(['reservation' => $reservation->id]), data: ['refund' => 'terms'])
+        ->assertHasNoActionErrors()
+        ->assertSet('selReservation', null);
+    $phone = implode('', $effectsOf($component)['islandFragments'] ?? []);
+
+    // Wyspa telefonu odświeżona na końcu żądania — już bez arkusza anulowanej rezerwacji.
+    expect($reservation->fresh()->status->value)->toBe('cancelled')
+        ->and($phone)->toContain('data-phone-view')
+        ->and($phone)->not->toContain('data-phone-reservation-sheet');
 });

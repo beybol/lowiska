@@ -149,7 +149,9 @@ popover nad albo pod wierszem, oferta w pustych dobach), obowiązuje ten plik.
   - **`phone` (`skip`)**: strona renderuje szkielet z `wire:intersect.once="loadPhoneView"`; na komputerze szkielet
     jest ukryty (`md:hidden`), więc wyspa nigdy się nie wczytuje ani nie liczy. Po wczytaniu (`phoneLoaded`) zmiany
     spoza wyspy — okno, grupa, zapis (`forgetReservationLayer()`) — odświeżają ją jawnie przez `refreshPhoneView()`;
-    kliknięcia wewnątrz wyspy odświeżają ją same.
+    kliknięcia wewnątrz wyspy odświeżają ją same. ⚠️ `refreshPhoneView()` **odkłada** render na koniec żądania
+    (kolejka `implicitIslandMorphs`, renderowana przed `dehydrate`) — `renderIsland()` renderuje w chwili wywołania,
+    więc wyspa widziałaby stan sprzed dalszych zmian w tej samej akcji (anulacja z arkusza zostawiała arkusz otwarty).
   - Wyspy montują się tylko przy pierwszym renderze komponentu: powrót z warstwy „Oferta" resetuje je
     (`updatedLayer()`), inaczej siatka wróciłaby pusta.
   - **Rekord popovera czyta się RAZ na żądanie** (`scopedReservation()`/`scopedBlock()` z pamięcią po id): popover

@@ -86,9 +86,21 @@ test('saving a sale period, a block or the positions of a block invalidates the 
     AvailabilityBlockWriter::blockPosition($fishery, $position, '2026-05-20', '2026-05-20', 'Zawody', true);
     expect($store->blocksFor($position, BlockEffect::SaleBlocked))->toHaveCount(1);
 
+    // Zmiana samych dat blokady (bez zmiany stanowisk) — zdarzenie modelu blokady, nie tabeli łączącej.
+    $block = $store->blocksFor($position, BlockEffect::SaleBlocked)->first();
+    $block->update(['ends_on' => '2026-05-25']);
+    expect($store->blocksFor($position, BlockEffect::SaleBlocked)->first()->ends_on->toDateString())->toBe('2026-05-25');
+
     $block = $store->blocksFor($position, BlockEffect::SaleBlocked)->first();
     $block->positions()->detach($position->id);
     expect($store->blocksFor($position, BlockEffect::SaleBlocked))->toBeEmpty();
+
+    // Okresy sprzedawane tylko w całości: utworzenie i usunięcie.
+    expect($store->wholeTermPeriods($fishery))->toBeEmpty();
+    $wholeTerm = StayFixtures::wholeTerm($fishery, '2026-06-01', 2);
+    expect($store->wholeTermPeriods($fishery))->toHaveCount(1);
+    $wholeTerm->delete();
+    expect($store->wholeTermPeriods($fishery))->toBeEmpty();
 });
 
 test('the offer grid query count does not grow with positions', function () {

@@ -450,9 +450,7 @@ test('empty nights carry the offer and bars carry the frozen total', function ()
     [$fishery, $position] = ReservationFixtures::bookableFishery();
     $reservation = ReservationFixtures::book($position, '2026-05-14', 2);
     $model = $fishery->fresh();
-    $offer = (new SaleCalendar($model))->grid(CarbonImmutable::parse('2026-05-11'), CalendarWindow::Week);
-
-    $grid = (new ReservationCalendar($model))->grid(CarbonImmutable::parse('2026-05-11'), 7, offer: $offer);
+    $grid = (new ReservationCalendar($model))->grid(CarbonImmutable::parse('2026-05-11'), 7, offer: new SaleCalendar($model));
     $cells = collect($grid->rows[0]->cells)->keyBy(fn ($cell) => $cell->day->toDateString());
 
     expect($cells['2026-05-17']->offer?->sellable)->toBeTrue()

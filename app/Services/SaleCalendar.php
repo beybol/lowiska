@@ -266,8 +266,11 @@ final class SaleCalendar
      * komórka pokazuje cenę (wolne, nieminione); liczenie pozostałych to był największy koszt kliknięcia w kalendarzu.
      * Wybór dób należy do wołającego — ta metoda liczy to samo, co `grid()` dla tych komórek (ten sam `cellFor()`).
      *
-     * ⚠️ Stanowisko przychodzi z relacją `fishery` i wczytanymi slotami od początku okna (jak w `grid()`), żeby
-     * warstwa oferty nie pytała o nie bazy. Stanowisko wycofane nie ma oferty — jak wiersz `withdrawn()` siatki.
+     * ⚠️ Stanowisko przychodzi z wczytanymi slotami (relacja `reservationSlots`), żeby warstwa oferty nie pytała
+     * o nie bazy. Wystarczą sloty kończące się po północy pierwszego dnia okna (tak wczytuje `ReservationCalendar`):
+     * oferta patrzy wyłącznie od pytanej doby w przód, a pytane doby leżą w oknie. `grid()` wczytuje dobę wcześniej,
+     * bo liczy też pierwszą komórkę dla doby zaczętej przed oknem. Stanowisko wycofane nie ma oferty — jak wiersz
+     * `withdrawn()` siatki.
      *
      * @param  array<int, CarbonImmutable>  $days
      * @return array<string, SaleCalendarCell> data ISO → komórka

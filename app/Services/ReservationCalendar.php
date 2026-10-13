@@ -52,11 +52,10 @@ final class ReservationCalendar
     /**
      * @param  int|null  $groupId  tylko stanowiska z grupy
      * @param  string|null  $filter  jeden z `FILTERS` — przygasza niepasujące paski; `null` = bez filtra
-     * @param  SaleCalendar|SaleCalendarGrid|null  $offer  cena w pustych dobach: warstwa oferty (pytana WYŁĄCZNIE o doby
-     *                                                     wolne i nieminione — te, w których komórka pokazuje cenę, 051)
-     *                                                     albo gotowa siatka „Oferta" tego samego okna
+     * @param  SaleCalendar|null  $offer  cena w pustych dobach: warstwa oferty, pytana WYŁĄCZNIE o doby wolne i nieminione —
+     *                                    te, w których komórka pokazuje cenę (051); `null` = bez ceny
      */
-    public function grid(CarbonImmutable $from, int $dayCount, ?int $groupId = null, ?string $filter = null, ?CarbonImmutable $now = null, SaleCalendar|SaleCalendarGrid|null $offer = null): ?ReservationCalendarGrid
+    public function grid(CarbonImmutable $from, int $dayCount, ?int $groupId = null, ?string $filter = null, ?CarbonImmutable $now = null, ?SaleCalendar $offer = null): ?ReservationCalendarGrid
     {
         $timezone = $this->fishery->timezoneName();
         $first = CarbonImmutable::parse($from->toDateString(), $timezone)->startOfDay();
@@ -78,7 +77,6 @@ final class ReservationCalendar
         // Od północy pierwszego dnia: jego pierwsza połowa należy do doby zaczętej dzień wcześniej.
         $positions = $this->positions($groupId, $first);
         $reservations = $this->reservations($first, $lastNight->endsAt)->groupBy('position_id');
-        $offerCells = $offer instanceof SaleCalendarGrid ? $this->offerCells($offer) : [];
         $filter = in_array($filter, self::FILTERS, true) ? $filter : null;
         $rows = [];
 
@@ -109,9 +107,7 @@ final class ReservationCalendar
             }
 
             // Oferta tylko tam, gdzie komórka ją pokazuje: doby wolne i nieminione (051). Zajęte i minione dostają `null`.
-            $positionOffer = $offer instanceof SaleCalendar
-                ? $offer->offerCellsFor($position, $freeDays)
-                : ($offerCells[(int) $position->getKey()] ?? []);
+            $positionOffer = $offer?->offerCellsFor($position, $freeDays) ?? [];
 
             foreach ($days as $index => $day) {
                 [$occupied, $past, $blocked, $morningOccupied] = $nights[$index];
@@ -240,24 +236,6 @@ final class ReservationCalendar
             'attention' => $pending || $reservation->needsContact(),
             default => true,
         };
-    }
-
-    /**
-     * Komórki oferty po stanowisku i dobie.
-     *
-     * @return array<int, array<string, SaleCalendarCell>>
-     */
-    private function offerCells(SaleCalendarGrid $offer): array
-    {
-        $cells = [];
-
-        foreach ($offer->rows as $row) {
-            foreach ($row->cells as $cell) {
-                $cells[(int) $row->position->getKey()][$cell->night->toDateString()] = $cell;
-            }
-        }
-
-        return $cells;
     }
 
     /**

@@ -123,8 +123,21 @@ sześciu akcji, które Filament rozwiązuje wielokrotnie) — stąd 392 zapytani
 popovera czyta się raz na żądanie (`scopedReservation()`/`scopedBlock()` z pamięcią po id), a akcje zapisujące czyszczą
 pamięć w `after()`.
 
-**Do uzupełnienia po wdrożeniu:** ślady Flare (projekt 112055) — klik w dzień, klik w pasek (`livewire-…/update`
-z wyspą), zapis z kalendarza (`callMountedAction`).
+**Staging po wdrożeniu 051** (Flare, projekt 112055, 13.10.2026 ok. 10:06 UTC):
+
+| | Po 050 (08:27) | Po 051 (10:06) |
+|---|---|---|
+| klik w dzień (`selectCell`) | 629–807 ms, 49 zapytań | **459 ms**, 43 zapytania (ślad `fd3ae47d`) |
+| — wywołanie / render | ~300 ms / 204–331 ms | **193 ms / 160 ms** |
+| zapis z kalendarza (`callMountedAction`) | 939–1325 ms, 114–115 zapytań, `price_rules` 6× | **1057 ms, 85 zapytań, `price_rules` 3×** (`73b814be`) |
+| zamknięcie zaznaczenia (`clearSelection`, pełny render) | — | 530 ms, 37 zapytań (`16a69f7d`) |
+
+Ślad `7b8bb90e` (3518 ms, start aplikacji 619 ms) to pierwsze żądanie po starcie instancji — zimny start, nie koszt
+kliknięcia. Klik w pasek (wyspa popovera) nie trafił do próbki Flare (próbkowanie śladów); lokalnie 13 zapytań i 17 KB.
+
+Zostaje do ewentualnego dalszego zadania: zapis z kalendarza (wycena w akcji i w renderze po zapisie, `price_rules` 3×,
+sloty 4×) oraz render pełnej strony przy kliknięciu w dzień (~160 ms, odpowiedź ~620 KB przed kompresją przy łowisku
+ze stagingu).
 
 ## Rozstrzygnięcia
 

@@ -421,11 +421,16 @@ class ManageCalendar extends Page
     /**
      * Wyspa telefonu nie przerysowuje się z resztą strony (tak działają wyspy), więc każda zmiana jej treści
      * spoza niej — okno, grupa, zapis — odświeża ją jawnie. Tylko gdy została wczytana: na komputerze nigdy.
+     *
+     * ⚠️ Render jest ODŁOŻONY na koniec żądania (kolejka Livewire `implicitIslandMorphs`, renderowana przed
+     * `dehydrate`), a nie natychmiastowy (`renderIsland()` renderuje w chwili wywołania). Inaczej wyspa widziałaby
+     * stan sprzed dalszych zmian w tej samej akcji — np. anulacja z arkusza telefonu zostawiała arkusz otwarty,
+     * bo odświeżenie padło przed `clearSelection()`. Kolejka trzyma jedną pozycję na wyspę.
      */
     private function refreshPhoneView(): void
     {
         if ($this->phoneLoaded && $this->layer() === CalendarLayer::Reservations) {
-            $this->renderIsland('phone');
+            $this->implicitIslandMorphs['phone'] = ['name' => 'phone', 'mode' => 'morph', 'mount' => false];
         }
     }
 
@@ -732,6 +737,7 @@ class ManageCalendar extends Page
         $this->reservationGrid = null;
         $this->scopedReservations = [];
         $this->scopedBlocks = [];
+        $this->selectionMemo = null;
         $this->refreshPhoneView();
     }
 

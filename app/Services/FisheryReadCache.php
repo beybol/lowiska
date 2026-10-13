@@ -22,9 +22,10 @@ use Illuminate\Database\Eloquent\Collection;
  *   wyłącznie dla pytanego łowiska; nic nie rozgrzewa magazynu z góry;
  * - usługi dostępności czytają te dane WYŁĄCZNIE tędy;
  * - zajętość (sloty rezerwacji) tu NIE trafia — ochrona przed podwójną rezerwacją nie zależy od pamięci;
- * - unieważnianie: zdarzenia modeli (`SalePeriod`, `WholeTermPeriod`, `AvailabilityBlock`) i jawne
- *   `forget()` przy zmianach tabeli łączącej blokady ze stanowiskami; zapis rezerwacji czyści wpisy
- *   łowiska po blokadzie wiersza (`ReservationBooking`).
+ * - unieważnianie: zdarzenia modeli (`SalePeriod`, `WholeTermPeriod`, `AvailabilityBlock`) i modelu tabeli łączącej
+ *   `AvailabilityBlockPosition` (`attach`/`detach`/`sync` z każdego miejsca); jawne `forget()` wyłącznie przy
+ *   masowych zapisach tych tabel (`query()->update()`, `DB::table()`); zapis rezerwacji czyści wpisy łowiska po
+ *   blokadzie wiersza (`ReservationBooking`).
  *
  * ⚠️ Zapamiętywanie MIĘDZY żądaniami wymaga osobnej decyzji z uzasadnieniem pomiarowym — ta klasa jest
  * jej docelowym miejscem, nie zgodą na nią.
