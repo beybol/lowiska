@@ -153,5 +153,5 @@ ze stagingu).
 
 ## Powiązane ADR-y
 
-- [ADR-015](../adr/ADR-015-warstwa-oferty-pobytu.md) — warstwa oferty (wybór dób po stronie wołającego)
-- [ADR-029](../adr/ADR-029-pamiec-odczytow-dostepnosci-na-zadanie.md) — magazyn odczytów na żądanie (bez zmian)
+- [ADR-015](../../adr/ADR-015-warstwa-oferty-pobytu.md) — warstwa oferty (wybór dób po stronie wołającego)
+- [ADR-029](../../adr/ADR-029-pamiec-odczytow-dostepnosci-na-zadanie.md) — magazyn odczytów na żądanie (bez zmian)

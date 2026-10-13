@@ -15,6 +15,11 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
      ### Dodane / ### Zmienione / ### Poprawione / ### Usunięte / ### Wycofane / ### Bezpieczeństwo
      Przy wydaniu sekcja `[unreleased]` zamienia się w `## [X.Y.Z] - RRRR-MM-DD`. -->
 
+### Dodane
+- podpowiedź istniejącego wędkarza przy zakładaniu rezerwacji — gdy wpisane imię i nazwisko albo telefon pasują do
+  wędkarza łowiska, formularz (także krótki formularz w kalendarzu) pokazuje go z przyciskiem „Użyj tego wędkarza",
+  dzięki czemu jego rezerwacje nie rozpraszają się na kilka rekordów
+
 ### Poprawione
 - kalendarz rezerwacji reagował na kliknięcie z opóźnieniem — kliknięty dzień od razu pokazuje kształt
   zaznaczenia, pasek rezerwacji albo blokady przyciemnia się od razu, a zaznaczenie wraca z serwera szybciej

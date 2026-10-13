@@ -78,6 +78,14 @@ Zadania źródłowe: 041, 042, 043, 044, 045, 047, 048, 049. Decyzje: ADR-024…
 - **Wyszukiwanie wędkarza wyłącznie w relacjach TEGO łowiska** (ADR-024): tabela po zawężonym zapytaniu,
   podpowiedzi w formularzu z `fishery_anglers` łowiska — nigdy z `users`. Wyszukiwarka listy szuka po danych efektywnych
   tą samą regułą co strona „Wędkarze" (`FisheryAngler::matchingContact()`, §6) — cofnięty dostęp nie pasuje nigdy.
+- **Podpowiedź istniejącego wędkarza przy zakładaniu (052)** — w formularzu C i w krótkim formularzu kalendarza, nigdy
+  w edycji. Gdy wpisywane dane nowego wędkarza pasują do relacji łowiska, pod polami kontaktu stoi ramka z kandydatami
+  i „Use this angler" (ustawia `fishery_angler_id`, wypełnia i blokuje pola; w krótkim formularzu ukryte pole
+  i „Change" odpina wybór). Regułę ma jeden dom — `FisheryAngler::similarTo()`: efektywna nazwa zawiera frazę
+  (od 3 znaków) albo ostatnie 9 cyfr efektywnego telefonu jest równe, najwyżej 5 kandydatów, cofnięty dostęp nigdy.
+  E-mail nie jest kryterium — łączy po nim sam zapis (`ReservationBooking::angler()`). ⚠️ **Nic nie dowiązuje się bez
+  kliknięcia** (ADR-024 pkt 4): nazwa i telefon nie identyfikują osoby, więc nie wracaj do automatycznego łączenia
+  po danych opisowych. Wskazany kandydat przechodzi ponownie przez `ReservationFormSubmission::findAngler()`.
 
 ---
 

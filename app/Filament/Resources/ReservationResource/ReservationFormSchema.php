@@ -13,6 +13,7 @@ use App\Services\FisheryAccess;
 use App\Services\FishingDayCalendar;
 use Carbon\CarbonImmutable;
 use Closure;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -20,6 +21,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Callout;
+use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
@@ -72,15 +75,21 @@ final class ReservationFormSchema
     public static function quick(Closure $fishery, ?Reservation $record = null, int $maxNights = 365): array
     {
         $editable = $record === null || self::contactEditable($record);
+        // Zakładanie: relacja wskazana z podpowiedzi blokuje pola kontaktu, aż operator wybierze „Change" (052, R4).
+        $locked = fn (Get $get): bool => ! $editable || ($record === null && filled($get('fishery_angler_id')));
 
         return [
             Hidden::make('position_id'),
             Hidden::make('starts_on'),
-            TextInput::make('angler_name')->label(__('Name'))->required()->maxLength(255)->disabled(! $editable),
+            ...($record === null ? [Hidden::make('fishery_angler_id')] : []),
+            TextInput::make('angler_name')->label(__('Name'))->required()->maxLength(255)->disabled($locked)
+                ->live(onBlur: true, condition: $record === null),
             Grid::make(2)->schema([
-                TextInput::make('angler_phone')->label(__('Phone'))->tel()->maxLength(32)->disabled(! $editable),
-                TextInput::make('angler_email')->label(__('Email'))->email()->maxLength(255)->disabled(! $editable),
+                TextInput::make('angler_phone')->label(__('Phone'))->tel()->maxLength(32)->disabled($locked)
+                    ->live(onBlur: true, condition: $record === null),
+                TextInput::make('angler_email')->label(__('Email'))->email()->maxLength(255)->disabled($locked),
             ]),
+            ...($record === null ? [self::similarAnglers($fishery), self::chosenAngler()] : []),
             Grid::make(3)->schema([
                 TextInput::make('nights')->label(__('Nights'))->integer()->required()->minValue(1)->maxValue(max(1, $maxNights))->live(debounce: 500),
                 self::stayPeriod($fishery)->columnSpan(2),
@@ -199,20 +208,118 @@ final class ReservationFormSchema
         }
 
         $fields[] = TextInput::make('angler_name')->label(__('Name'))->required()->maxLength(255)
-            ->disabled(fn (Get $get): bool => ! $editable || $fromList($get));
+            ->disabled(fn (Get $get): bool => ! $editable || $fromList($get))
+            ->live(onBlur: true, condition: $record === null);
         $fields[] = TextInput::make('angler_phone')->label(__('Phone'))->tel()->maxLength(32)
-            ->disabled(fn (Get $get): bool => ! $editable || $fromList($get));
+            ->disabled(fn (Get $get): bool => ! $editable || $fromList($get))
+            ->live(onBlur: true, condition: $record === null);
         $fields[] = TextInput::make('angler_email')->label(__('Email'))->email()->maxLength(255)
             ->helperText(__('With an email address the angler gets the reservation and can confirm it.'))
             ->disabled(fn (Get $get): bool => ! $editable || $fromList($get));
 
         if ($record === null) {
+            $fields[] = self::similarAnglers($fishery);
             $fields[] = Textarea::make('angler_notes')->label(__('Note about the angler'))->rows(2);
         }
 
         return Section::make(__('Angler'))
             ->description($editable ? null : __('The angler manages their own contact details in their account.'))
             ->schema($fields);
+    }
+
+    /**
+     * Podpowiedź istniejącego wędkarza łowiska przy wpisywaniu nowego (zadanie 052): ramka pod polami kontaktu
+     * z kandydatami `FisheryAngler::similarTo()` i przyciskiem „Use this angler" przy każdym. Nic nie dowiązuje się
+     * bez kliknięcia (ADR-024 pkt 4). Stała liczba wierszy (`SIMILAR_LIMIT`) — schemat nie zmienia kształtu
+     * między żądaniami, ukrywa tylko puste wiersze.
+     *
+     * @param  Closure  $fishery  `fn (Get $get, string $prefix = ''): ?Fishery`
+     */
+    private static function similarAnglers(Closure $fishery): Callout
+    {
+        // Kandydaci RAZ na stan pól (ramka i każdy wiersz pytają o nich w jednym żądaniu).
+        $memo = [];
+        $candidates = function (Get $get) use ($fishery, &$memo): array {
+            if (filled($get('fishery_angler_id')) || ($resolved = $fishery($get)) === null) {
+                return [];
+            }
+
+            $name = is_string($get('angler_name')) ? $get('angler_name') : null;
+            $phone = is_string($get('angler_phone')) ? $get('angler_phone') : null;
+            $key = $resolved->getKey().'|'.$name.'|'.$phone;
+
+            return $memo[$key] ??= FisheryAngler::similarTo($resolved, $name, $phone)->all();
+        };
+
+        $rows = [];
+
+        for ($slot = 0; $slot < FisheryAngler::SIMILAR_LIMIT; $slot++) {
+            $candidate = fn (Get $get): ?FisheryAngler => $candidates($get)[$slot] ?? null;
+
+            $rows[] = Flex::make([
+                Text::make(fn (Get $get): HtmlString => self::candidateHtml($candidate($get))),
+                Action::make('useSimilarAngler'.$slot)
+                    ->label(__('Use this angler'))
+                    ->link()
+                    ->action(function (Get $get, Set $set) use ($fishery, $candidate): void {
+                        // ⚠️ Wskazany kandydat ponownie z zawężenia do łowiska — stan formularza to dane od klienta.
+                        $angler = ReservationFormSubmission::findAngler($fishery($get), $candidate($get)?->getKey());
+
+                        if ($angler === null || $angler->status === AnglerLinkStatus::Revoked) {
+                            return;
+                        }
+
+                        $contact = $angler->effectiveContact();
+                        $set('fishery_angler_id', (string) $angler->getKey());
+                        $set('angler_name', $contact['name']);
+                        $set('angler_phone', $contact['phone']);
+                        $set('angler_email', $contact['email']);
+                    }),
+            ])
+                ->key('similarAngler'.$slot)
+                ->verticallyAlignCenter()
+                ->visible(fn (Get $get): bool => $candidate($get) !== null);
+        }
+
+        return Callout::make(__('This fishery already has an angler with these details'))
+            ->warning()
+            ->description(__('Use the existing angler to keep their reservation history in one place, or save to add a new one.'))
+            ->footer($rows)
+            ->visible(fn (Get $get): bool => $candidates($get) !== []);
+    }
+
+    /** Wiersz kandydata: nazwa, telefon, e-mail z danych efektywnych i liczba rezerwacji w łowisku. */
+    private static function candidateHtml(?FisheryAngler $angler): HtmlString
+    {
+        if ($angler === null) {
+            return new HtmlString('');
+        }
+
+        $contact = $angler->effectiveContact();
+        $details = collect([$contact['phone'], $contact['email'], __('Reservations: :count', ['count' => (int) $angler->reservations_count])])
+            ->filter()
+            ->map(fn (string $value): string => e($value))
+            ->implode(' · ');
+
+        return new HtmlString('<div class="text-sm" data-similar-angler="'.(int) $angler->getKey().'"><strong>'.e((string) $contact['name']).'</strong><br><span class="text-gray-500">'.$details.'</span></div>');
+    }
+
+    /**
+     * Krótki formularz: relacja wybrana z podpowiedzi i „Change", które ją odpina i odblokowuje pola (052, R4).
+     * Pełny formularz cofa wybór wyczyszczeniem pola „Angler of this fishery".
+     */
+    private static function chosenAngler(): Flex
+    {
+        return Flex::make([
+            Text::make(__('Existing angler of this fishery')),
+            Action::make('changeAngler')
+                ->label(__('Change'))
+                ->link()
+                ->action(fn (Set $set) => $set('fishery_angler_id', null)),
+        ])
+            ->key('chosenAngler')
+            ->verticallyAlignCenter()
+            ->visible(fn (Get $get): bool => filled($get('fishery_angler_id')));
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Casts\UtcDateTime;
 use App\Enums\AnglerLinkStatus;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -171,6 +172,72 @@ class FisheryAngler extends Model
                 $group->orWhereRaw(self::effectiveSql($field).' like ?', [$like]);
             }
         });
+    }
+
+    /** Minimalna długość frazy imienia i nazwiska, od której formularz podpowiada istniejących wędkarzy (052, R1). */
+    public const SIMILAR_NAME_MIN_LENGTH = 3;
+
+    /** Liczba końcowych cyfr telefonu porównywanych przy podpowiedzi (052, R2). */
+    public const SIMILAR_PHONE_DIGITS = 9;
+
+    /** Najwięcej kandydatów w podpowiedzi formularza rezerwacji (052, R1). */
+    public const SIMILAR_LIMIT = 5;
+
+    /**
+     * Istniejący wędkarze TEGO łowiska, do których mogą należeć dane wpisywane przy nowej rezerwacji (zadanie 052).
+     * Wyłącznie PODPOWIEDŹ dla operatora — nic nie dowiązuje się samo (ADR-024 pkt 4).
+     *
+     * Reguła: efektywna nazwa zawiera frazę (od `SIMILAR_NAME_MIN_LENGTH` znaków) albo ostatnie `SIMILAR_PHONE_DIGITS`
+     * cyfr efektywnego telefonu równa się tylu ostatnim cyfrom wpisanego numeru (krótszy numer nie jest kryterium).
+     * Cofnięty dostęp nie ma danych, więc nie pasuje nigdy. Najpierw nazwa równa frazie i trafienia po telefonie.
+     *
+     * @return Collection<int, self>
+     */
+    public static function similarTo(Fishery $fishery, ?string $name, ?string $phone): Collection
+    {
+        $name = trim((string) preg_replace('/\s+/u', ' ', (string) $name));
+        $name = mb_strlen($name) >= self::SIMILAR_NAME_MIN_LENGTH ? $name : null;
+        $digits = (string) preg_replace('/\D/', '', (string) $phone);
+        $digits = strlen($digits) >= self::SIMILAR_PHONE_DIGITS ? substr($digits, -self::SIMILAR_PHONE_DIGITS) : null;
+
+        if ($name === null && $digits === null) {
+            return new Collection;
+        }
+
+        $nameSql = self::effectiveSql('name');
+        $phoneSql = 'right(regexp_replace('.self::effectiveSql('phone').", '[^0-9]', ''), ".self::SIMILAR_PHONE_DIGITS.')';
+        // Warunki z wiązaniami — ten sam tekst w filtrze i w kolejności.
+        $strong = [];
+        $strongBindings = [];
+
+        if ($name !== null) {
+            $strong[] = "{$nameSql} = ?";
+            $strongBindings[] = $name;
+        }
+
+        if ($digits !== null) {
+            $strong[] = "{$phoneSql} = ?";
+            $strongBindings[] = $digits;
+        }
+
+        return self::query()
+            ->with('user')
+            ->withCount('reservations')
+            ->where('fishery_id', $fishery->getKey())
+            ->where('status', '!=', AnglerLinkStatus::Revoked->value)
+            ->where(function (Builder $group) use ($name, $digits, $nameSql, $phoneSql): void {
+                if ($name !== null) {
+                    $group->orWhereRaw("{$nameSql} like ?", ['%'.addcslashes($name, '\\%_').'%']);
+                }
+
+                if ($digits !== null) {
+                    $group->orWhereRaw("{$phoneSql} = ?", [$digits]);
+                }
+            })
+            ->orderByRaw('case when '.implode(' or ', $strong).' then 0 else 1 end', $strongBindings)
+            ->orderByRaw($nameSql)
+            ->limit(self::SIMILAR_LIMIT)
+            ->get();
     }
 
     /**

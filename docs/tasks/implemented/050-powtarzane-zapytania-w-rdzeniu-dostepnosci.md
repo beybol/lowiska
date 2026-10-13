@@ -55,7 +55,7 @@ i zapis rezerwacji.
 - Pomiar przed i po w zadaniu (zapytania i czas `selectCell()` w kontenerze; po wdrożeniu — Flare staging).
 - Pomiar kosztu PHP po zmianach: czas budowy siatki z podziałem na zapytania i obliczenia PHP oraz czas renderu,
   lokalnie i we Flare (staging). Wynik trafia do treści zadania jako stan wyjściowy dla
-  [051](../051-koszt-obliczen-siatki-kalendarza.md).
+  [051](051-koszt-obliczen-siatki-kalendarza.md).
 
 ## Kryteria akceptacji
 
@@ -86,7 +86,7 @@ i zapis rezerwacji.
 - Ograniczenie renderu po kliknięciu do popovera i zaznaczenia (Livewire `@island` itp.) — osobna decyzja
   po pomiarze tego zadania.
 - Koszt obliczeń PHP warstwy oferty poza zapytaniami (~350 ms na stagingu) i render — zadanie
-  [051](../051-koszt-obliczen-siatki-kalendarza.md), po pomiarze z tego zadania.
+  [051](051-koszt-obliczen-siatki-kalendarza.md), po pomiarze z tego zadania.
 - Zmiana kolejności warunków dostępności i komunikatów odmowy.
 
 ## Zmiany dokumentacji
