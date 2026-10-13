@@ -133,6 +133,9 @@ class ManageCalendar extends Page
      */
     private ?array $reservationGrid = null;
 
+    /** @var array<int, string>|null */
+    private ?array $groupOptions = null;
+
     /** Górne granice wejścia od klienta — patrz `clamp()`. */
     private const MAX_PARTY = 50;
 
@@ -667,7 +670,8 @@ class ManageCalendar extends Page
     /** Grupy stanowisk do filtra — tylko tego łowiska. @return array<int, string> */
     public function groupOptions(): array
     {
-        return $this->fishery()->positionGroups()->orderBy('name')->pluck('name', 'id')->all();
+        // Widok pyta dwa razy (warunek i lista) — jedno zapytanie na żądanie.
+        return $this->groupOptions ??= $this->fishery()->positionGroups()->orderBy('name')->pluck('name', 'id')->all();
     }
 
     /**
@@ -783,7 +787,9 @@ class ManageCalendar extends Page
     {
         $start = $this->parseDay($this->selStart);
         $end = $this->parseDay($this->selEnd);
-        $position = $this->selPosition === null ? null : $this->fishery()->positions()->whereKey($this->selPosition)->first();
+        // Stanowisko z siatki (ta sama instancja i wczytane sloty co w wierszu); poza siatką — z tego łowiska.
+        $position = $this->selPosition === null ? null
+            : ($this->getReservationGrid()?->row($this->selPosition)->position ?? $this->fishery()->positions()->whereKey($this->selPosition)->first());
 
         if ($start === null || $end === null || $position === null || $end < $start) {
             return null;
@@ -845,7 +851,7 @@ class ManageCalendar extends Page
             'nights' => $nights,
             'anglers' => 1,
             'companions' => 0,
-        ]);
+        ], loaded: $position);
 
         return [
             'arrival' => $calendar->dayStartingOn($start)?->startsAt,

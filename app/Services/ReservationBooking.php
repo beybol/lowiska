@@ -326,6 +326,9 @@ final class ReservationBooking
         }
 
         $fishery = $position->fishery;
+        // Kontrola w transakcji czyta ŚWIEŻO: odczyty łowiska sprzed blokady wiersza (np. z siatki kalendarza
+        // w tym samym żądaniu) nie mogą trafić do nowego pytania o dostępność (ADR-029, reguła 5).
+        FisheryReadCache::instance()->forget($fishery);
 
         // Zmiana warunków: własne sloty i egzemplarze nie kolidują z nowym terminem. Odmowa niżej
         // wycofa ich usunięcie razem z całą transakcją.

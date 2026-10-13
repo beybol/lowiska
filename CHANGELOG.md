@@ -21,6 +21,8 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
 - kalendarz rezerwacji przy wielu stanowiskach miał własny pasek przewijania — teraz przewija się cała strona
 - w panelach na serwerze nie ładował się dodatkowy arkusz stylów i ikona karty (przeglądarka blokowała je
   jako treść niezabezpieczoną)
+- kalendarze (rezerwacje, oferta, kalendarz portalu) zwalniały wraz z liczbą stanowisk — odpowiadają szybciej,
+  a czas reakcji nie rośnie już z każdym kolejnym stanowiskiem
 
 ## [0.0.1] - 2026-10-12
 

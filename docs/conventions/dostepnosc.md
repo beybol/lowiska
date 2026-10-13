@@ -99,13 +99,29 @@ i [ADR-025](../adr/ADR-025-zajetosc-stanowiska-jako-sloty-przedzialowe.md).
 - **Dostępność wylicza się z rekordów przy każdym pytaniu — nie ma kolumny, która by ją
   buforowała.** Bufor, gdyby był kiedyś potrzebny, jest nową decyzją z własnym uzasadnieniem
   **pomiarowym**, nie rozwinięciem tej.
-  ⚠️ **To nie zakazuje pamiętania ODCZYTU w obrębie jednej instancji usługi.** `PositionAvailability`
-  wczytuje wpisy o dostępności raz na skutek, a `FishingDayCalendar` — okresy sprzedaży raz na
-  instancję; bez tego `sellableDaysBetween()` zadawało jedno zapytanie **na dobę** (zakres
-  trzydziestodniowy = ~61 zapytań zamiast 3). Zakaz dotyczy trwałego bufora werdyktu między
-  żądaniami, nie powtórzeń w jednym. Skutkiem ubocznym jest to, że **`FishingDayCalendar` i
-  `PositionAvailability` nie są klasami `readonly`** — instancja żyje tyle, co jedno pytanie,
-  więc nie trzymaj jej dłużej w polu innego obiektu.
+  ⚠️ **To nie zakazuje pamiętania ODCZYTU w obrębie jednego żądania.** Okresy sprzedaży, okresy
+  całego terminu i blokady łowiska czyta się **wyłącznie przez
+  [`FisheryReadCache`](../../app/Services/FisheryReadCache.php)** ([ADR-029](../adr/ADR-029-pamiec-odczytow-dostepnosci-na-zadanie.md)):
+  raz na żądanie i łowisko, blokady od razu dla wszystkich stanowisk (bez N+1). Siatki tworzą usługi
+  per stanowisko i per pytanie, więc pamięć w instancji powtarzała te same zapytania dziesiątki razy.
+  Reguły magazynu:
+  - **rejestracja `scoped`, nigdy `singleton`**, nigdy pole komponentu Livewire ani pole statyczne;
+    komenda albo zadanie przetwarzające wiele łowisk czyści go między łowiskami;
+  - **leniwie** — konstruktor niczego nie wczytuje, każda kolekcja osobno, przy pierwszym pytaniu; nic
+    nie rozgrzewa magazynu z góry, więc strona bez pytań o dostępność nie wykonuje zapytań;
+  - **zapytanie o te tabele napisane bezpośrednio w usłudze dostępności albo w siatce jest defektem**
+    (wyjątek: odczyt relacji wczytanej przez wołającego dla wielu łowisk naraz, np. lista kart portalu);
+  - **zajętość (sloty) nie trafia do magazynu** — ochrona przed podwójną rezerwacją nie zależy od pamięci;
+  - **unieważnianie**: zdarzenia `SalePeriod`, `WholeTermPeriod`, `AvailabilityBlock` i modelu tabeli
+    łączącej `AvailabilityBlockPosition` (`using()` po obu stronach relacji — `attach`/`detach`/`sync`
+    z każdego miejsca, także z formularza Filamenta). ⚠️ Masowe `query()->update()`/`delete()`
+    i `DB::table()` na tych tabelach omijają zdarzenia — wołaj wtedy `FisheryReadCache::forget()` jawnie;
+  - zapamiętywanie **między** żądaniami nadal wymaga osobnej decyzji pomiarowej — magazyn jest jej
+    docelowym miejscem, nie zgodą na nią.
+
+  Odczyty żyjące tylko w instancji zostały tam, gdzie dotyczą jednego stanowiska (sloty w
+  `PositionAvailability`). **`FishingDayCalendar` i `PositionAvailability` nie są klasami `readonly`**
+  — instancja żyje tyle, co jedno pytanie, więc nie trzymaj jej dłużej w polu innego obiektu.
 
 ---
 
@@ -385,7 +401,8 @@ Zadanie źródłowe: 039. Uzasadnienia: [ADR-025](../adr/ADR-025-zajetosc-stanow
 - ⚠️ **Wszystkie zapisy slotów, egzemplarzy usług i warunków idą przez
   [`ReservationBooking`](../../app/Services/ReservationBooking.php)** (`book()`, `rebook()`, `confirm()`,
   `cancel()`, `expire()`): transakcja → `lockForUpdate` na wierszu stanowiska (przy zmianie stanowiska
-  na obu, rosnąco po id) → NOWA instancja dostępności → zapis. Zapis gdzie indziej jest defektem;
+  na obu, rosnąco po id) → **wyczyszczenie odczytów łowiska w `FisheryReadCache`** (siatka w tym samym
+  żądaniu mogła je wczytać przed blokadą wiersza; ADR-029) → NOWA instancja dostępności → zapis. Zapis gdzie indziej jest defektem;
   pilnuje tego `tests/Unit/ReservationWritePathTest.php`. `unique(position_id, starts_at)` w bazie to
   siatka bezpieczeństwa, nie gwarancja — MySQL nie ma ograniczenia wykluczającego przedziały.
 - **Konflikt jest odmową z powodem (`BookingOutcome`), nie błędem.** Odmowa wewnątrz transakcji wycofuje
@@ -406,7 +423,8 @@ Zadanie źródłowe: 039. Uzasadnienia: [ADR-025](../adr/ADR-025-zajetosc-stanow
 - **Kalendarze pokazują zajętość z tego samego źródła:** warstwa „Oferta" (019) — powód `Occupied`
   jako krótka etykieta „zajęte"; warstwa „Rezerwacje" (042) — `isOccupied()`/`isBlocked()` na komórkach,
   paski blokad z `saleBlocksOn()` ([`rezerwacje.md`](rezerwacje.md) §2). Wołający pytający o wiele stanowisk
-  wczytuje sloty i blokady z góry; `PositionAvailability` używa wczytanych relacji zamiast zapytań per stanowisko.
+  wczytuje z góry sloty (relacja `reservationSlots`, którą `PositionAvailability` wtedy czyta); blokady
+  `PositionAvailability` bierze z `FisheryReadCache` (§2) — bez zapytań per stanowisko.
 - ⚠️ **Sloty wczytane z góry wyłącznie od okna widoku w przód** (zadanie 047, G1): `SaleCalendar` od dnia
   przed pierwszą dobą okna (doba zaczęta dzień wcześniej przecina okno), `ReservationCalendar` od północy
   pierwszego dnia okna (jego pierwsza połowa należy do doby sprzed okna) — wiersz nie rośnie z historią rezerwacji. Przy `includeOccupancy: false` sloty nie są

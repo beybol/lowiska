@@ -48,12 +48,16 @@ final readonly class ReservationFormQuote
 
     /**
      * @param  array<string, mixed>  $state  `position_id`, `starts_on`, `nights`, `anglers`, `companions`, `services`
+     * @param  Position|null  $loaded  stanowisko już wczytane przez wołającego (siatka kalendarza, ze slotami od początku okna) —
+     *                                 użyte tylko, gdy to TO stanowisko i TO łowisko; inaczej odczyt z bazy jak zawsze
      */
-    public static function for(Fishery $fishery, array $state, ?Reservation $existing = null): ?self
+    public static function for(Fishery $fishery, array $state, ?Reservation $existing = null, ?Position $loaded = null): ?self
     {
-        $position = is_numeric($state['position_id'] ?? null)
-            ? Position::query()->where('fishery_id', $fishery->getKey())->whereKey((int) $state['position_id'])->first()
-            : null;
+        $position = match (true) {
+            ! is_numeric($state['position_id'] ?? null) => null,
+            $loaded !== null && (int) $loaded->getKey() === (int) $state['position_id'] && (int) $loaded->fishery_id === (int) $fishery->getKey() => $loaded,
+            default => Position::query()->where('fishery_id', $fishery->getKey())->whereKey((int) $state['position_id'])->first(),
+        };
         $startsOn = self::date($state['starts_on'] ?? null);
         $nights = (int) ($state['nights'] ?? 0);
         $anglers = (int) ($state['anglers'] ?? 0);

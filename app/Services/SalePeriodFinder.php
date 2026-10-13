@@ -20,14 +20,6 @@ use Carbon\CarbonImmutable;
  */
 final class SalePeriodFinder
 {
-    /**
-     * Okresy wczytane RAZ na instancję — pytanie o zakres dób zadawałoby je inaczej
-     * raz na dobę.
-     *
-     * @var array<int, SalePeriod>|null
-     */
-    private ?array $periods = null;
-
     public function __construct(private readonly Fishery $fishery) {}
 
     /**
@@ -75,10 +67,12 @@ final class SalePeriodFinder
     }
 
     /**
+     * Okresy sprzedaży — z magazynu odczytów na żądanie (ADR-029), wspólnie z `FishingDayCalendar`.
+     *
      * @return array<int, SalePeriod>
      */
     private function periods(): array
     {
-        return $this->periods ??= $this->fishery->salePeriods()->orderBy('starts_on')->get()->all();
+        return FisheryReadCache::instance()->salePeriods($this->fishery);
     }
 }

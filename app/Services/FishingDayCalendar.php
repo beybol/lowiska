@@ -22,18 +22,6 @@ use Carbon\CarbonInterface;
  */
 final class FishingDayCalendar
 {
-    /**
-     * Okresy sprzedaży wczytane RAZ na instancję.
-     *
-     * ⚠️ Klasa nie jest `readonly` WYŁĄCZNIE z tego powodu. `availability()` odpytuje
-     * okresy przy każdym pytaniu, a pytanie o zakres dat zadaje je raz na dobę —
-     * trzydziestodniowy zakres to było trzydzieści identycznych zapytań. Łowisko
-     * pozostaje niezmienne (`readonly` na właściwości).
-     *
-     * @var array<int, SalePeriod>|null
-     */
-    private ?array $salePeriods = null;
-
     public function __construct(private readonly Fishery $fishery) {}
 
     /**
@@ -188,11 +176,14 @@ final class FishingDayCalendar
     }
 
     /**
+     * Okresy sprzedaży — z magazynu odczytów na żądanie (ADR-029): `availability()` pyta o nie przy każdej
+     * dobie, a siatka tworzy kalendarz na stanowisko, więc odczyt w instancji powtarzał zapytanie dziesiątki razy.
+     *
      * @return array<int, SalePeriod>
      */
     private function salePeriods(): array
     {
-        return $this->salePeriods ??= $this->fishery->salePeriods()->orderBy('starts_on')->get()->all();
+        return FisheryReadCache::instance()->salePeriods($this->fishery);
     }
 
     private function hasFishingDayConfigured(): bool

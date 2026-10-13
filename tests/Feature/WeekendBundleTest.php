@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\SaleUnavailabilityReason;
 use App\Rules\WeekendDaysAreContiguous;
+use App\Services\FisheryReadCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Tests\Support\StayFixtures;
@@ -102,6 +103,8 @@ test('a term sold whole bypasses the presale minimum only while the flag is on',
     expect(StayFixtures::stay($position)->isSellable('2026-04-30', 3))->toBeTrue();
 
     $fishery->salePeriods()->update(['presale_whole_terms_bypass_min_nights' => false]);
+    // Masowy zapis omija zdarzenia modeli — magazyn odczytów czyści się jawnie (ADR-029, reguła 4).
+    FisheryReadCache::instance()->forget($fishery);
 
     expect(StayFixtures::stay($position)->verdict('2026-04-30', 3)->reason)
         ->toBe(SaleUnavailabilityReason::BelowPresaleMinimum);

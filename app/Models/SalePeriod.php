@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ForgetsFisheryReadCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,7 +20,7 @@ use Spatie\Activitylog\Support\LogOptions;
  */
 class SalePeriod extends Model
 {
-    use HasFactory, LogsActivity, SoftDeletes;
+    use ForgetsFisheryReadCache, HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
         'fishery_id',

@@ -110,9 +110,12 @@ popover nad albo pod wierszem, oferta w pustych dobach), obowiązuje ten plik.
   rezerwacja — szary, kreskowany, z powodem (pełny w `title`) i liczbą dób (doby blokady = doby od „od" do „do",
   `dostepnosc.md` §3), z pominięciem dób pobytu rezerwacji
   zostawionej przy blokadzie.
-  ⚠️ **Liczba zapytań nie rośnie z dobami:** stanowiska wczytują z góry `reservationSlots` (od północy
-  pierwszego dnia okna — jego pierwsza połowa to doba sprzed okna) i `availabilityBlocks.attribute`.
-  Pilnuje tego `ReservationCalendarTest`.
+  ⚠️ **Liczba zapytań nie rośnie ani z dobami, ani ze stanowiskami:** stanowiska wczytują z góry
+  `reservationSlots` (od północy pierwszego dnia okna — jego pierwsza połowa to doba sprzed okna), a okresy
+  i blokady łowiska idą przez `FisheryReadCache` raz na żądanie (`dostepnosc.md` §2, ADR-029). Pilnują tego
+  `ReservationCalendarTest` (siatka rezerwacji) i `FisheryReadCacheTest` (siatka oferty).
+  Stanowisko zaznaczenia i jego wycena biorą stanowisko z siatki (`ReservationFormQuote::for(..., loaded:)`),
+  bez ponownego odczytu.
   ⚠️ **Strona liczy siatkę raz na żądanie** (`ManageCalendar::getReservationGrid()`, klucz: początek okna, liczba dni,
   grupa, filtr). Inaczej klik w dzień budowałby ją dwa razy: w `selectCell()` i w renderze. Każda akcja zapisująca
   rezerwację albo blokadę woła `forgetReservationLayer()`. Bez tego render po zapisie pokazałby siatkę sprzed zapisu.

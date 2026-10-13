@@ -65,9 +65,6 @@ final class StaySellability
 
     private ?PositionAvailability $availability = null;
 
-    /** @var array<int, WholeTermPeriod>|null */
-    private ?array $wholeTermPeriods = null;
-
     private ?SalePeriodFinder $periods = null;
 
     /**
@@ -496,10 +493,8 @@ final class StaySellability
      */
     private function wholeTermPeriods(): array
     {
-        return $this->wholeTermPeriods ??= $this->fishery->wholeTermPeriods()
-            ->orderBy('first_day_on')
-            ->get()
-            ->all();
+        // Z magazynu odczytów na żądanie (ADR-029) — instancja powstaje na stanowisko, okresy są łowiska.
+        return FisheryReadCache::instance()->wholeTermPeriods($this->fishery);
     }
 
     private function calendar(): FishingDayCalendar

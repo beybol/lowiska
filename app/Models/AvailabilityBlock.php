@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BlockEffect;
 use App\Enums\SelectionKind;
+use App\Models\Concerns\ForgetsFisheryReadCache;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,7 +29,7 @@ use Spatie\Activitylog\Support\LogOptions;
  */
 class AvailabilityBlock extends Model
 {
-    use HasFactory, LogsActivity, SoftDeletes;
+    use ForgetsFisheryReadCache, HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
         'fishery_id',
@@ -72,11 +73,12 @@ class AvailabilityBlock extends Model
     }
 
     /**
-     * @return BelongsToMany<Position, $this>
+     * @return BelongsToMany<Position, $this, AvailabilityBlockPosition>
      */
     public function positions(): BelongsToMany
     {
-        return $this->belongsToMany(Position::class, 'availability_block_position');
+        // Model tabeli łączącej — zmiany zbioru stanowisk unieważniają magazyn odczytów (ADR-029).
+        return $this->belongsToMany(Position::class, 'availability_block_position')->using(AvailabilityBlockPosition::class);
     }
 
     /**

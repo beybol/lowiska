@@ -81,12 +81,11 @@ final class SaleCalendar
             return $this->seasons = $periods;
         }
 
-        /** @var array<int, SalePeriod> $periods */
-        $periods = $this->fishery->salePeriods()
-            ->whereDate('ends_on', '>=', $today)
-            ->orderBy('starts_on')
-            ->get()
-            ->all();
+        // Okresy łowiska z magazynu odczytów na żądanie (ADR-029) — ten sam odczyt, z którego korzysta dostępność.
+        $periods = array_values(array_filter(
+            FisheryReadCache::instance()->salePeriods($this->fishery),
+            fn (SalePeriod $period): bool => $period->ends_on->toDateString() >= $today,
+        ));
 
         return $this->seasons = $periods;
     }
@@ -155,7 +154,7 @@ final class SaleCalendar
             return 'fishing_day';
         }
 
-        if ($this->fishery->salePeriods()->count() === 0) {
+        if (FisheryReadCache::instance()->salePeriods($this->fishery) === []) {
             return 'sale_period';
         }
 
@@ -456,26 +455,14 @@ final class SaleCalendar
     /**
      * Wpisy o dostępności danego skutku wczytane RAZ na render, pogrupowane po stanowisku —
      * blokady sprzedaży (podpowiedź zasięgu) i ograniczenia zawieszające cechę (znacznik wiersza
-     * w portalu, 033). Liczba zapytań nie rośnie z liczbą stanowisk.
+     * w portalu, 033). Liczba zapytań nie rośnie z liczbą stanowisk — z magazynu odczytów na żądanie
+     * (ADR-029), wspólnego z `PositionAvailability`.
      *
      * @return array<int, array<int, AvailabilityBlock>>
      */
     private function blocksByPosition(BlockEffect $effect = BlockEffect::SaleBlocked): array
     {
-        $blocks = $this->fishery->availabilityBlocks()
-            ->where('effect', $effect->value)
-            ->with(['positions:id', 'attribute'])
-            ->get();
-
-        $byPosition = [];
-
-        foreach ($blocks as $block) {
-            foreach ($block->positions as $position) {
-                $byPosition[(int) $position->id][] = $block;
-            }
-        }
-
-        return $byPosition;
+        return FisheryReadCache::instance()->blocksByPosition($this->fishery, $effect);
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Models\Fishery;
 use App\Models\Position;
 use App\Models\PositionAttribute;
 use App\Models\SalePeriod;
+use App\Services\FisheryReadCache;
 use App\Services\PositionAvailability;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -232,6 +233,8 @@ test('the service relies on the calendar so a changed sale period changes its ve
     // Skrócenie sezonu bez dotykania kodu tego zadania musi zmienić wynik — dowód,
     // że usługa WOŁA kalendarz zamiast powtarzać jego reguły.
     SalePeriod::query()->where('fishery_id', $fishery->id)->update(['ends_on' => '2026-08-31']);
+    // Masowy zapis omija zdarzenia modeli — magazyn odczytów czyści się jawnie (ADR-029, reguła 4).
+    FisheryReadCache::instance()->forget($fishery);
 
     expect((new PositionAvailability($position->fresh()))->availability('2026-09-15')->reason)
         ->toBe(SaleUnavailabilityReason::OutsideSalePeriod);

@@ -12,7 +12,6 @@ use App\Models\Position;
 use App\Models\PositionAttributeValue;
 use App\Models\PositionGroup;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -45,9 +44,6 @@ final class PortalCalendar
     private array $features = [];
 
     private ?SaleCalendarGrid $grid = null;
-
-    /** @var array<int, list<AvailabilityBlock>>|null */
-    private ?array $blocksByPosition = null;
 
     /** Domyślny tydzień — liczony RAZ: woła go każdy link siatki przez `url()` (038, N+1). */
     private ?CarbonImmutable $defaultWeek = null;
@@ -304,9 +300,8 @@ final class PortalCalendar
             default => null,
         };
 
-        // Kolejność jak w łańcuchu dostępności: blokada przed zajętością. Wpisy łowiska wczytane RAZ na
-        // render i podane w relację — `PositionAvailability` nie pyta wtedy bazy per stanowisko.
-        $row->position->setRelation('availabilityBlocks', new EloquentCollection($this->blocksByPosition()[(int) $row->position->id] ?? []));
+        // Kolejność jak w łańcuchu dostępności: blokada przed zajętością. Blokady łowiska `PositionAvailability`
+        // czyta z magazynu odczytów na żądanie (ADR-029) — jedno zapytanie na łowisko, nie na stanowisko.
         $availability = new PositionAvailability($row->position);
         $previousDay = $this->week->subDay();
         $previousKind = match (true) {
@@ -351,26 +346,6 @@ final class PortalCalendar
         }
 
         return [$cells, $bars];
-    }
-
-    /**
-     * Wpisy o dostępności łowiska po stanowisku — jedno zapytanie na render (doba sprzed tygodnia w `stayBars()`).
-     *
-     * @return array<int, list<AvailabilityBlock>>
-     */
-    private function blocksByPosition(): array
-    {
-        if ($this->blocksByPosition === null) {
-            $this->blocksByPosition = [];
-
-            foreach ($this->fishery->availabilityBlocks()->with(['positions:id', 'attribute'])->get() as $block) {
-                foreach ($block->positions as $position) {
-                    $this->blocksByPosition[(int) $position->id][] = $block;
-                }
-            }
-        }
-
-        return $this->blocksByPosition;
     }
 
     /**

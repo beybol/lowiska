@@ -238,29 +238,15 @@ final class PositionAvailability
     }
 
     /**
-     * Wpisy o danym skutku — jedno zapytanie na instancję i skutek.
-     *
-     * ⚠️ To NIE jest bufor dostępności zakazany przez `dostepnosc.md` §2. Tamten zakaz
-     * dotyczy kolumny przechowującej werdykt między żądaniami; tutaj odczyt żyje tyle,
-     * co instancja usługi, a pytanie o zakres dat (`sellableDaysBetween()`) wykonywało
-     * bez tego jedno zapytanie NA DOBĘ.
+     * Wpisy o danym skutku — z magazynu odczytów na żądanie (ADR-029): jedno zapytanie o blokady całego
+     * łowiska, bez zapytania na stanowisko. To nie jest bufor werdyktu (`dostepnosc.md` §2) — żyje jedno
+     * żądanie, a zapis rezerwacji czyści go po blokadzie wiersza.
      *
      * @return Collection<int, AvailabilityBlock>
      */
     private function blocksWithEffect(BlockEffect $effect): Collection
     {
-        // Wpisy wczytane z góry przez wołającego (`with('availabilityBlocks.attribute')`) — bez
-        // zapytania na stanowisko (kalendarz rezerwacji, zadanie 042).
-        if (! isset($this->blocksByEffect[$effect->value]) && $this->position->relationLoaded('availabilityBlocks')) {
-            return $this->blocksByEffect[$effect->value] = $this->position->availabilityBlocks
-                ->filter(fn (AvailabilityBlock $block): bool => $block->effect === $effect)
-                ->values();
-        }
-
-        return $this->blocksByEffect[$effect->value] ??= $this->position->availabilityBlocks()
-            ->withEffect($effect)
-            ->with('attribute')
-            ->get();
+        return $this->blocksByEffect[$effect->value] ??= FisheryReadCache::instance()->blocksFor($this->position, $effect);
     }
 
     /**

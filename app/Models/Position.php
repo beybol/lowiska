@@ -89,11 +89,12 @@ class Position extends Model
     }
 
     /**
-     * @return BelongsToMany<AvailabilityBlock, $this>
+     * @return BelongsToMany<AvailabilityBlock, $this, AvailabilityBlockPosition>
      */
     public function availabilityBlocks(): BelongsToMany
     {
-        return $this->belongsToMany(AvailabilityBlock::class, 'availability_block_position');
+        // Model tabeli łączącej — zmiany zbioru stanowisk unieważniają magazyn odczytów (ADR-029).
+        return $this->belongsToMany(AvailabilityBlock::class, 'availability_block_position')->using(AvailabilityBlockPosition::class);
     }
 
     /**

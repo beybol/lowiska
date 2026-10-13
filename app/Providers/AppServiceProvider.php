@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Mail\VerifyEmailMail;
+use App\Services\FisheryReadCache;
 use App\Support\FisheryMediaActivity;
 use App\Support\SanitizingMediaFilesystem;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
@@ -35,6 +36,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // Każde zdjęcie dodane do medialibrary jest oczyszczane, zanim trafi do bucketu (ADR-023).
         $this->app->bind(MediaFilesystem::class, SanitizingMediaFilesystem::class);
+        // Odczyty dostępności raz na żądanie (ADR-029) — `scoped`, nigdy `singleton`: instancja ginie z żądaniem
+        // i z zadaniem kolejki; w trybie worker singleton stałby się po cichu trwałym buforem.
+        $this->app->scoped(FisheryReadCache::class);
     }
 
     /**

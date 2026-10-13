@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\PositionStatus;
 use App\Enums\SaleUnavailabilityReason;
 use App\Models\Position;
+use App\Services\FisheryReadCache;
 use App\Services\StaySellability;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -233,6 +234,8 @@ test('the service calls position availability instead of repeating its condition
 
     $position->update(['status' => PositionStatus::Available]);
     $fishery->salePeriods()->delete();
+    // Masowy zapis omija zdarzenia modeli — magazyn odczytów czyści się jawnie (ADR-029, reguła 4).
+    FisheryReadCache::instance()->forget($fishery);
 
     expect(StayFixtures::stay($position)->verdict('2026-06-10', 2)->reason)
         ->toBe(SaleUnavailabilityReason::NoSalePeriodDefined);

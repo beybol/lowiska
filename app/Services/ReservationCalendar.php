@@ -182,7 +182,7 @@ final class ReservationCalendar
             // nie jest potrzebna, a bez dolnej granicy wiersz rósłby z każdą rezerwacją w przeszłości.
             ->with([
                 'reservationSlots' => fn ($query) => $query->where('ends_at', '>', $windowStart->utc()->format('Y-m-d H:i:s')),
-                'availabilityBlocks.attribute',
+                // Blokady — nie relacją: `PositionAvailability` czyta je z magazynu odczytów na żądanie (ADR-029).
             ])
             ->orderBy('name')
             ->get()
