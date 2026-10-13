@@ -169,6 +169,10 @@ StaySellability           ciąg dób: spoiwo, długość, horyzont     (ADR-013)
   i `PricingConfigurationAudit` przyjmują opcjonalną tablicę reguł. Kalendarz (019) wczytuje cennik
   raz i podaje go wszystkim stanowiskom; pozostali wołający nie podają nic i wycena wczytuje go
   sama. To jedno wczytanie na żądanie, nie bufor werdyktu.
+- **Wołający wybiera doby, o które pyta** — `SaleCalendar::offerCellsFor()` liczy komórki wyłącznie dla wskazanych
+  dób, tym samym `cellFor()` co pełna siatka (warstwa „Rezerwacje" kalendarza pyta tylko o doby wolne i nieminione,
+  `rezerwacje.md` §2, zadanie 051). Warstwa oferty nie rozstrzyga, które komórki liczyć — to decyzja widoku;
+  ADR-015 bez zmian.
 - **Warstwa oferty konstruuje się PER STANOWISKO**, jak `PositionAvailability` i `StaySellability`.
   Gdyby budowała zależności przy każdym wywołaniu, memoizacja z [`dostepnosc.md`](dostepnosc.md) §2
   przestałaby działać — a pomiar kosztu w 019 wyszedłby zły **z powodu kształtu konstruktora, nie

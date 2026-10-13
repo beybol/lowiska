@@ -122,6 +122,13 @@ class ManageCalendar extends Page
     /** Dzień listy stanowisk w widoku telefonu. */
     public ?string $phoneDay = null;
 
+    /**
+     * Czy wyspa widoku telefonu została wczytana (051). Widok telefonu jest wyspą Livewire z samym szkieletem
+     * (`skip`), którą ładuje `wire:intersect` — na komputerze jest ukryta (`md:hidden`), więc nigdy się nie
+     * wczytuje ani nie liczy. Po wczytaniu odświeża ją `refreshPhoneView()` tam, gdzie zmienia się jej treść.
+     */
+    public bool $phoneLoaded = false;
+
     private ?ReservationCalendar $reservationCalendar = null;
 
     /**
@@ -135,6 +142,26 @@ class ManageCalendar extends Page
 
     /** @var array<int, string>|null */
     private ?array $groupOptions = null;
+
+    /**
+     * Rekordy popovera RAZ na żądanie i id (051): popover woła o rezerwację z `selectedReservation()` i z `record()`
+     * sześciu akcji, które Filament rozwiązuje wielokrotnie — bez pamięci jeden klik w pasek czytał ją 31 razy po
+     * 7 zapytań. Zapis przez akcję czyści pamięć (`forgetReservationLayer()`), więc render po zapisie widzi świeży rekord.
+     *
+     * @var array<int, Reservation|null>
+     */
+    private array $scopedReservations = [];
+
+    /** @var array<int, AvailabilityBlock|null> */
+    private array $scopedBlocks = [];
+
+    /**
+     * Zaznaczenie z wyceną RAZ na żądanie i stan (051): pyta o nie strona (nakładka w siatce) i wyspa popovera,
+     * a każde pytanie to pełna wycena warstwy oferty.
+     *
+     * @var array{string, array<string, mixed>|null}|null
+     */
+    private ?array $selectionMemo = null;
 
     /** Górne granice wejścia od klienta — patrz `clamp()`. */
     private const MAX_PARTY = 50;
@@ -301,6 +328,11 @@ class ManageCalendar extends Page
         $this->clearSelection();
 
         if ($this->layer() === CalendarLayer::Reservations) {
+            // Wyspy Livewire montują się tylko przy pierwszym renderze komponentu; po powrocie z warstwy „Oferta"
+            // ich DOM nie istnieje, a pominięta wyspa dałaby pustą siatkę. Montujemy je od nowa (051).
+            $this->islandsHaveMounted = false;
+            $this->setIslands([]);
+            $this->phoneLoaded = false;
             $this->startReservationsLayer();
             $this->restoreWindow();
 
@@ -332,6 +364,15 @@ class ManageCalendar extends Page
         if ($this->windowStart !== null) {
             $this->windowStart = $this->unit()->startFor($this->currentStart())->toDateString();
         }
+
+        $this->refreshPhoneView();
+    }
+
+    /** Filtr grupy zmienia listę stanowisk także w widoku telefonu. */
+    public function updatedGroupId(): void
+    {
+        $this->clearSelection();
+        $this->refreshPhoneView();
     }
 
     public function previousWindow(): void
@@ -341,6 +382,8 @@ class ManageCalendar extends Page
         if ($this->canGoBack()) {
             $this->windowStart = $this->unit()->previous($this->currentStart())->toDateString();
         }
+
+        $this->refreshPhoneView();
     }
 
     /** „Dziś" — okno zawierające bieżący dzień (warstwa „Rezerwacje"). */
@@ -350,6 +393,7 @@ class ManageCalendar extends Page
         $today = CarbonImmutable::now($this->fishery()->timezoneName())->startOfDay();
         $this->windowStart = $this->unit()->startFor($today)->toDateString();
         $this->phoneDay = $today->toDateString();
+        $this->refreshPhoneView();
     }
 
     public function nextWindow(): void
@@ -359,7 +403,35 @@ class ManageCalendar extends Page
         if ($this->canGoForward()) {
             $this->windowStart = $this->unit()->next($this->currentStart())->toDateString();
         }
+
+        $this->refreshPhoneView();
     }
+
+    /**
+     * Wczytanie wyspy widoku telefonu (`wire:intersect` na szkielecie, 051): bez pełnego renderu — odpowiedź
+     * niesie wyłącznie treść wyspy. Komputer nigdy tu nie trafia: szkielet jest tam ukryty, więc nie przecina ekranu.
+     */
+    #[Renderless]
+    public function loadPhoneView(): void
+    {
+        $this->phoneLoaded = true;
+        $this->renderIsland('phone');
+    }
+
+    /**
+     * Wyspa telefonu nie przerysowuje się z resztą strony (tak działają wyspy), więc każda zmiana jej treści
+     * spoza niej — okno, grupa, zapis — odświeża ją jawnie. Tylko gdy została wczytana: na komputerze nigdy.
+     */
+    private function refreshPhoneView(): void
+    {
+        if ($this->phoneLoaded && $this->layer() === CalendarLayer::Reservations) {
+            $this->renderIsland('phone');
+        }
+    }
+
+    // ⚠️ Przyciski akcji w popoverze i w arkuszu telefonu siedzą w wyspach, ale NIE wymagają pełnego renderu: Filament 5
+    // otwiera modal własnym renderem częściowym (`PartialsComponentHook`, efekt `partials`), niezależnym od wysp.
+    // Wymuszenie pełnego renderu (`forceRender()`) w `mountAction()` wyłącza ten mechanizm — nie wracaj do tego.
 
     /**
      * ⚠️ **Przesuwanie nie wychodzi poza wybrany sezon** — na jego krańcach kierunek jest
@@ -645,9 +717,9 @@ class ManageCalendar extends Page
             return $this->reservationGrid[1];
         }
 
-        // Oferta w pustych dobach (047, A3) — ta sama siatka `SaleCalendar` co warstwa „Oferta", to samo okno.
-        $offer = $this->calendar()->grid(from: $this->currentStart(), unit: $this->unit());
-        $grid = $this->reservationCalendar()->grid($this->currentStart(), $days, $this->groupId ?: null, $filter, offer: $offer);
+        // Oferta w pustych dobach (047, A3) — ta sama warstwa oferty co siatka „Oferta", pytana tylko o doby wolne
+        // i nieminione (051): siatka rezerwacji sama wybiera, o które komórki pyta.
+        $grid = $this->reservationCalendar()->grid($this->currentStart(), $days, $this->groupId ?: null, $filter, offer: $this->calendar());
         $this->reservationGrid = [$key, $grid];
 
         return $grid;
@@ -658,6 +730,9 @@ class ManageCalendar extends Page
     {
         $this->reservationCalendar = null;
         $this->reservationGrid = null;
+        $this->scopedReservations = [];
+        $this->scopedBlocks = [];
+        $this->refreshPhoneView();
     }
 
     /** Licznik nad siatką jako filtr — drugi klik zdejmuje filtr (047, A8). */
@@ -750,7 +825,10 @@ class ManageCalendar extends Page
         $this->selStart = $this->selEnd = $day->toDateString();
     }
 
-    /** Klik w pasek rezerwacji; ponowny klik w ten sam pasek zamyka popover. */
+    /**
+     * Klik w pasek rezerwacji; ponowny klik w ten sam pasek zamyka popover. Pasek woła tę metodę z `wire:island="popover"`
+     * (051): odpowiedź niesie tylko wyspę popovera, a podświetlenie paska bierze Alpine ze stanu. Siatka nie przerysowuje się.
+     */
     public function selectReservation(int $reservationId): void
     {
         $toggle = $this->selReservation === $reservationId;
@@ -758,7 +836,7 @@ class ManageCalendar extends Page
         $this->selReservation = $toggle ? null : $this->scopedReservation($reservationId)?->getKey();
     }
 
-    /** Klik w pasek blokady (047, A6) — wyłącznie blokada TEGO łowiska. */
+    /** Klik w pasek blokady (047, A6) — wyłącznie blokada TEGO łowiska. Tak samo tylko wyspa popovera (051). */
     public function selectBlock(int $blockId): void
     {
         $toggle = $this->selBlock === $blockId;
@@ -768,6 +846,12 @@ class ManageCalendar extends Page
 
     public function clearSelection(): void
     {
+        // Zaznaczenie dób to nakładka w siatce renderowana przez serwer — jej zdjęcie wymaga pełnego renderu także
+        // wtedy, gdy wywołanie przyszło z wyspy (✕ w popoverze, klik w pasek). Zaznaczenie paska zdejmuje Alpine.
+        if ($this->selPosition !== null) {
+            $this->forceRender();
+        }
+
         $this->selPosition = $this->selStart = $this->selEnd = $this->selReservation = $this->selBlock = null;
     }
 
@@ -784,6 +868,22 @@ class ManageCalendar extends Page
      * @return array{position: Position, from: string, to: string, nights: int, arrival: ?CarbonImmutable, departure: ?CarbonImmutable, price: ?string, refusal: ?string, max_nights: int}|null
      */
     public function selection(): ?array
+    {
+        $key = $this->selPosition.'|'.$this->selStart.'|'.$this->selEnd;
+
+        if ($this->selectionMemo !== null && $this->selectionMemo[0] === $key) {
+            return $this->selectionMemo[1];
+        }
+
+        $this->selectionMemo = [$key, $this->resolveSelection()];
+
+        return $this->selectionMemo[1];
+    }
+
+    /**
+     * @return array{position: Position, from: string, to: string, nights: int, arrival: ?CarbonImmutable, departure: ?CarbonImmutable, price: ?string, refusal: ?string, max_nights: int}|null
+     */
+    private function resolveSelection(): ?array
     {
         $start = $this->parseDay($this->selStart);
         $end = $this->parseDay($this->selEnd);
@@ -1008,7 +1108,9 @@ class ManageCalendar extends Page
 
     public function quickEditReservationAction(): Action
     {
-        return ReservationActions::quickEdit()->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments));
+        return ReservationActions::quickEdit()
+            ->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments))
+            ->after(fn () => $this->forgetReservationLayer());
     }
 
     public function fullEditReservationAction(): Action
@@ -1018,24 +1120,33 @@ class ManageCalendar extends Page
 
     public function confirmReservationAction(): Action
     {
-        return ReservationActions::confirm()->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments));
+        return ReservationActions::confirm()
+            ->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments))
+            ->after(fn () => $this->forgetReservationLayer());
     }
 
     public function markPaidAction(): Action
     {
-        return ReservationActions::markPaid()->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments));
+        return ReservationActions::markPaid()
+            ->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments))
+            ->after(fn () => $this->forgetReservationLayer());
     }
 
     public function markContactedAction(): Action
     {
-        return ReservationActions::markContacted()->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments));
+        return ReservationActions::markContacted()
+            ->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments))
+            ->after(fn () => $this->forgetReservationLayer());
     }
 
     public function cancelReservationAction(): Action
     {
         return ReservationActions::cancel()
             ->record(fn (array $arguments): ?Reservation => $this->reservationFor($arguments))
-            ->after(fn () => $this->clearSelection());
+            ->after(function (): void {
+                $this->forgetReservationLayer();
+                $this->clearSelection();
+            });
     }
 
     /**
@@ -1053,15 +1164,25 @@ class ManageCalendar extends Page
      */
     private function scopedReservation(int $id): ?Reservation
     {
-        return $this->fishery()->reservations()->with(ReservationResource::eagerLoads())->whereKey($id)->first();
+        if (! array_key_exists($id, $this->scopedReservations)) {
+            $this->scopedReservations[$id] = $this->fishery()->reservations()->with(ReservationResource::eagerLoads())->whereKey($id)->first();
+        }
+
+        return $this->scopedReservations[$id];
     }
 
     /** ⚠️ Id przychodzi od klienta — wyłącznie blokada sprzedaży TEGO łowiska. */
     private function scopedBlock(mixed $id): ?AvailabilityBlock
     {
-        return is_numeric($id)
-            ? $this->fishery()->availabilityBlocks()->with('positions')->whereKey((int) $id)->first()
-            : null;
+        if (! is_numeric($id)) {
+            return null;
+        }
+
+        if (! array_key_exists((int) $id, $this->scopedBlocks)) {
+            $this->scopedBlocks[(int) $id] = $this->fishery()->availabilityBlocks()->with('positions')->whereKey((int) $id)->first();
+        }
+
+        return $this->scopedBlocks[(int) $id];
     }
 
     /**

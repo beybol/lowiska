@@ -43,6 +43,9 @@ Zadania źródłowe: 041, 042, 043, 044, 045, 047, 048, 049. Decyzje: ADR-024…
   **Pole powodu wyjątku od reguł pojawia się wyłącznie przy odmowie oferty, którą wolno przekroczyć**
   (reguła sprzedaży, blokada, wycofanie), razem z listą naruszonych reguł — wtedy jest wymagane. Zajętość to
   twarda odmowa bez pola; brak ceny zastępuje cena uzgodniona. Przy edycji podgląd pomija własne sloty rezerwacji.
+  **Wycena liczy się RAZ na stan formularza** (pamięć w `ReservationFormSchema::offerFields()`, żyje jedno żądanie):
+  podgląd ceny oraz widoczność i wymagalność pól powodów pytają o nią kilka razy, a każda wycena to cennik, usługi,
+  sloty i cechy — bez pamięci formularz wyceniał pobyt kilkakrotnie na każde odświeżenie (051).
 - **Usługa niedostępna dla stanowiska albo terminu jest widoczna z ostrzeżeniem przed zapisem** (przyczyny
   z `StayServiceLine::warnings()`). Nieoferowana na stanowisku albo bez wymaganej (lub z zawieszoną) cechy —
   operator i admin zapisują ją jako wyjątek z powodem (pole pojawia się tylko wtedy). **Brak wolnych
@@ -131,6 +134,33 @@ popover nad albo pod wierszem, oferta w pustych dobach), obowiązuje ten plik.
   `SaleCalendar` co warstwa „Oferta", przypiętej do komórki (`ReservationCalendarCell::$offer`). Pasek
   rezerwacji niesie nazwisko, liczbę osób, status i **kwotę z zamrożonych warunków** (`total_cents`, z usługami
   i ceną uzgodnioną); niepotwierdzona — kreskowany pasek, zegar, „wygasa dd.mm gg:mm".
+  ⚠️ **Oferta liczy się WYŁĄCZNIE dla dób wolnych i nieminionych** — tych, w których komórka ją pokazuje (051):
+  `ReservationCalendar::grid()` dostaje `SaleCalendar` jako źródło i pyta `SaleCalendar::offerCellsFor()` o wybrane
+  doby, tym samym kodem co pełna siatka. Wybór dób należy do siatki rezerwacji, nie do warstwy oferty (`cennik.md`
+  §5, ADR-015). Komórki zajęte i minione mają `offer = null`; warstwa „Oferta" i kalendarz portalu liczą całe okno.
+- **Popover i widok telefonu to wyspy Livewire (051)** — osobne widoki, które nie przerysowują się z resztą strony
+  i liczą swoje dane same przez `$this` (zmienne z bloku PHP strony nie są w nich widoczne):
+  - **`popover` (`always`)**: pasek rezerwacji i blokady woła `selectReservation()`/`selectBlock()` z
+    `wire:island="popover"`, więc odpowiedź niesie tylko popover; podświetlenie paska (`brightness-90`) i kotwicę
+    popovera bierze Alpine ze stanu (`$wire.selReservation`/`$wire.selBlock`), nie z atrybutu z serwera. **Klik
+    w dzień zostaje pełnym renderem**: nakładka zaznaczenia i podgląd kształtu zależą od reguł `selectCell()`
+    i `CalendarBarShape`, których nie kopiujemy do JS. Zdjęcie nakładki z wyspy (✕, klik w pasek przy zaznaczonych
+    dobach) wymusza pełny render (`clearSelection()` → `forceRender()` tylko przy zaznaczeniu dób).
+  - **`phone` (`skip`)**: strona renderuje szkielet z `wire:intersect.once="loadPhoneView"`; na komputerze szkielet
+    jest ukryty (`md:hidden`), więc wyspa nigdy się nie wczytuje ani nie liczy. Po wczytaniu (`phoneLoaded`) zmiany
+    spoza wyspy — okno, grupa, zapis (`forgetReservationLayer()`) — odświeżają ją jawnie przez `refreshPhoneView()`;
+    kliknięcia wewnątrz wyspy odświeżają ją same.
+  - Wyspy montują się tylko przy pierwszym renderze komponentu: powrót z warstwy „Oferta" resetuje je
+    (`updatedLayer()`), inaczej siatka wróciłaby pusta.
+  - **Rekord popovera czyta się RAZ na żądanie** (`scopedReservation()`/`scopedBlock()` z pamięcią po id): popover
+    pyta o niego z `selectedReservation()` i z `record()` sześciu akcji, które Filament rozwiązuje wielokrotnie — bez
+    pamięci jeden klik w pasek czytał rezerwację 31 razy. Każda akcja zapisująca woła `forgetReservationLayer()`
+    w `after()`, żeby render po zapisie widział świeży rekord; nowa akcja na rezerwacji z kalendarza robi to samo.
+  - ⚠️ **Akcje Filamenta z wnętrza wyspy działają bez pełnego renderu** — Filament 5 otwiera modal własnym renderem
+    częściowym (`PartialsComponentHook`, efekt `partials`). Nie wymuszaj pełnego renderu w `mountAction()`: wyłącza
+    to ten mechanizm i testy modali (`assertMountedActionModalSee`).
+  - ⚠️ W komentarzu Blade tego widoku nie pisz dosłownie dyrektywy bloku PHP — Blade dopasowuje ją do pierwszego
+    jej zamknięcia i połyka nagłówek widoku.
 - **Popover jest WARSTWĄ nad siatką** (`position: absolute` w kontenerze kalendarza), zakotwiczoną przy
   klikniętym elemencie (`data-popover-anchor`): **nad wierszem elementu, gdy mieści się na ekranie, inaczej
   pod nim** (z przewinięciem do widoku), wyśrodkowany w poziomie w granicach kontenera. ⚠️ Nigdy obok
@@ -163,7 +193,8 @@ popover nad albo pod wierszem, oferta w pustych dobach), obowiązuje ten plik.
 - **Telefon:** pasek dni i lista dnia (przyjazdy, wyjazdy, aktualnie na łowisku, wolne stanowiska z „wolne do
   dd.mm · maks. N dób"). Wolne stanowisko → arkusz od dołu: krok 1 — liczba dób, przyjazd i wyjazd, cena
   (`ManageCalendar::quote()`, bez przerysowania strony); „Dalej" → krok 2 — krótki formularz „Zarezerwuj…"
-  (dane wędkarza i zapis). Zajęte stanowisko → arkusz z akcjami rezerwacji.
+  (dane wędkarza i zapis). Zajęte stanowisko → arkusz z akcjami rezerwacji. Całość to wyspa `phone` (wyżej):
+  testy czytają jej treść z efektu `islandFragments`, nie z `html()` strony.
 
 ---
 

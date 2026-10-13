@@ -262,6 +262,35 @@ final class SaleCalendar
     }
 
     /**
+     * Komórki oferty dla WSKAZANYCH dób jednego stanowiska — warstwa „Rezerwacje" (051) pyta tylko o doby, w których
+     * komórka pokazuje cenę (wolne, nieminione); liczenie pozostałych to był największy koszt kliknięcia w kalendarzu.
+     * Wybór dób należy do wołającego — ta metoda liczy to samo, co `grid()` dla tych komórek (ten sam `cellFor()`).
+     *
+     * ⚠️ Stanowisko przychodzi z relacją `fishery` i wczytanymi slotami od początku okna (jak w `grid()`), żeby
+     * warstwa oferty nie pytała o nie bazy. Stanowisko wycofane nie ma oferty — jak wiersz `withdrawn()` siatki.
+     *
+     * @param  array<int, CarbonImmutable>  $days
+     * @return array<string, SaleCalendarCell> data ISO → komórka
+     */
+    public function offerCellsFor(Position $position, array $days, int $anglers = 1, int $companions = 0, ?int $nights = null): array
+    {
+        if ($days === [] || $position->status === PositionStatus::Withdrawn) {
+            return [];
+        }
+
+        $position->setRelation('fishery', $this->fishery);
+        $offer = new StayOffer($position, $this->rules());
+        $blocks = $this->blocksByPosition();
+        $cells = [];
+
+        foreach ($days as $day) {
+            $cells[$day->toDateString()] = $this->cellFor($offer, $position, $day, $anglers, $companions, $nights, $blocks);
+        }
+
+        return $cells;
+    }
+
+    /**
      * @return array<int, CarbonImmutable>
      */
     private function daysOf(CarbonImmutable $from, CalendarWindow $unit): array

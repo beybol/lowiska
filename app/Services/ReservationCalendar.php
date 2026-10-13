@@ -52,9 +52,11 @@ final class ReservationCalendar
     /**
      * @param  int|null  $groupId  tylko stanowiska z grupy
      * @param  string|null  $filter  jeden z `FILTERS` — przygasza niepasujące paski; `null` = bez filtra
-     * @param  SaleCalendarGrid|null  $offer  siatka warstwy „Oferta" dla tego samego okna (cena w pustych dobach)
+     * @param  SaleCalendar|SaleCalendarGrid|null  $offer  cena w pustych dobach: warstwa oferty (pytana WYŁĄCZNIE o doby
+     *                                                     wolne i nieminione — te, w których komórka pokazuje cenę, 051)
+     *                                                     albo gotowa siatka „Oferta" tego samego okna
      */
-    public function grid(CarbonImmutable $from, int $dayCount, ?int $groupId = null, ?string $filter = null, ?CarbonImmutable $now = null, ?SaleCalendarGrid $offer = null): ?ReservationCalendarGrid
+    public function grid(CarbonImmutable $from, int $dayCount, ?int $groupId = null, ?string $filter = null, ?CarbonImmutable $now = null, SaleCalendar|SaleCalendarGrid|null $offer = null): ?ReservationCalendarGrid
     {
         $timezone = $this->fishery->timezoneName();
         $first = CarbonImmutable::parse($from->toDateString(), $timezone)->startOfDay();
@@ -76,7 +78,7 @@ final class ReservationCalendar
         // Od północy pierwszego dnia: jego pierwsza połowa należy do doby zaczętej dzień wcześniej.
         $positions = $this->positions($groupId, $first);
         $reservations = $this->reservations($first, $lastNight->endsAt)->groupBy('position_id');
-        $offerCells = $this->offerCells($offer);
+        $offerCells = $offer instanceof SaleCalendarGrid ? $this->offerCells($offer) : [];
         $filter = in_array($filter, self::FILTERS, true) ? $filter : null;
         $rows = [];
 
@@ -84,6 +86,8 @@ final class ReservationCalendar
             $availability = $this->availabilityOf($position);
             $cells = [];
             $nightBlocks = [];
+            $nights = [];
+            $freeDays = [];
 
             $previous = $this->calendar()->dayStartingOn($first->subDay());
             $previousOccupied = $previous !== null && $availability->isOccupied($previous);
@@ -92,18 +96,33 @@ final class ReservationCalendar
             foreach ($days as $index => $day) {
                 $night = $this->calendar()->dayStartingOn($day);
                 $occupied = $night !== null && $availability->isOccupied($night);
+                $past = $day < $today;
                 // Blokada obejmuje doby od „od" do „do" (przełom dnia jak w rezerwacji, `dostepnosc.md` §3).
                 $blocks = $night === null ? collect() : $availability->saleBlocksOn($night);
                 $nightBlocks[$index] = $blocks->first();
+                $nights[$index] = [$occupied, $past, $blocks->isNotEmpty(), $previousOccupied];
+                $previousOccupied = $occupied;
+
+                if (! $occupied && ! $past) {
+                    $freeDays[] = $day;
+                }
+            }
+
+            // Oferta tylko tam, gdzie komórka ją pokazuje: doby wolne i nieminione (051). Zajęte i minione dostają `null`.
+            $positionOffer = $offer instanceof SaleCalendar
+                ? $offer->offerCellsFor($position, $freeDays)
+                : ($offerCells[(int) $position->getKey()] ?? []);
+
+            foreach ($days as $index => $day) {
+                [$occupied, $past, $blocked, $morningOccupied] = $nights[$index];
                 $cells[$index] = new ReservationCalendarCell(
                     day: $day,
-                    past: $day < $today,
+                    past: $past,
                     occupied: $occupied,
-                    blocked: $blocks->isNotEmpty(),
-                    offer: $offerCells[(int) $position->getKey()][$day->toDateString()] ?? null,
-                    morningOccupied: $previousOccupied,
+                    blocked: $blocked,
+                    offer: $positionOffer[$day->toDateString()] ?? null,
+                    morningOccupied: $morningOccupied,
                 );
-                $previousOccupied = $occupied;
             }
 
             $bars = [];
@@ -228,11 +247,11 @@ final class ReservationCalendar
      *
      * @return array<int, array<string, SaleCalendarCell>>
      */
-    private function offerCells(?SaleCalendarGrid $offer): array
+    private function offerCells(SaleCalendarGrid $offer): array
     {
         $cells = [];
 
-        foreach ($offer->rows ?? [] as $row) {
+        foreach ($offer->rows as $row) {
             foreach ($row->cells as $cell) {
                 $cells[(int) $row->position->getKey()][$cell->night->toDateString()] = $cell;
             }

@@ -23,6 +23,10 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
   jako treść niezabezpieczoną)
 - kalendarze (rezerwacje, oferta, kalendarz portalu) zwalniały wraz z liczbą stanowisk — odpowiadają szybciej,
   a czas reakcji nie rośnie już z każdym kolejnym stanowiskiem
+- kalendarz rezerwacji liczy cenę tylko dla wolnych, nadchodzących dób, kliknięcie w pasek rezerwacji albo blokady
+  odświeża tylko okienko z akcjami, a widok telefonu ładuje się wyłącznie na telefonie — kliknięcia są szybsze
+- formularz rezerwacji wyceniał pobyt kilka razy przy każdym odświeżeniu — teraz raz, więc podgląd ceny i zapis
+  z kalendarza są szybsze
 
 ## [0.0.1] - 2026-10-12
 

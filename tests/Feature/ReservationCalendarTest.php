@@ -12,6 +12,7 @@ use App\Models\Position;
 use App\Models\Reservation;
 use App\Services\AnglerDetails;
 use App\Services\ReservationCalendar;
+use App\Services\SaleCalendar;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
@@ -395,4 +396,108 @@ test('the quick form shows the stay period and "save and open full form" saves a
 
     expect($reservation->terms->anglers)->toBe(2)
         ->and($reservation->terms->companions)->toBe(1);
+});
+
+// ─── 051: koszt obliczeń i renderu ─────────────────────────────────────────────────
+
+test('the reservations layer asks the offer layer only about free, upcoming nights', function () {
+    [$fishery, $position] = ReservationFixtures::bookableFishery();
+    ReservationFixtures::book($position, '2026-05-14', 2); // doby 14 i 15; dziś 13.05
+    $model = $fishery->fresh();
+
+    $grid = (new ReservationCalendar($model))->grid(CarbonImmutable::parse('2026-05-11'), 7, offer: new SaleCalendar($model));
+    $cells = collect($grid->rows[0]->cells)->keyBy(fn ($cell) => $cell->day->toDateString());
+    $full = collect((new SaleCalendar($model))->grid(CarbonImmutable::parse('2026-05-11'), CalendarWindow::Week)->rows[0]->cells)
+        ->keyBy(fn ($cell) => $cell->night->toDateString());
+
+    expect($cells['2026-05-11']->offer)->toBeNull() // miniona
+        ->and($cells['2026-05-12']->offer)->toBeNull()
+        ->and($cells['2026-05-14']->offer)->toBeNull() // zajęta
+        ->and($cells['2026-05-15']->offer)->toBeNull()
+        ->and($cells['2026-05-13']->offer?->sellable)->toBeTrue()
+        ->and($cells['2026-05-16']->offer?->sellable)->toBeTrue() // dzień wyjazdu: doba od 16.05 wolna
+        ->and($cells['2026-05-17']->offer?->totalInCents)->toBe(7000)
+        // Te same komórki co pełna siatka „Oferta" — liczone tym samym kodem.
+        ->and($cells['2026-05-17']->offer?->totalInCents)->toBe($full['2026-05-17']->totalInCents)
+        ->and($cells['2026-05-16']->offer?->nights)->toBe($full['2026-05-16']->nights);
+});
+
+test('the reservation form prices the state once per request', function () {
+    [$fishery, $position, $owner] = ReservationFixtures::bookableFishery();
+    $this->actingAs($owner);
+    $priceRuleQueries = 0;
+    DB::listen(function ($query) use (&$priceRuleQueries): void {
+        if (str_contains($query->sql, 'price_rules')) {
+            $priceRuleQueries++;
+        }
+    });
+
+    Livewire::withQueryParams(['fishery' => $fishery->id, 'position' => $position->id, 'from' => '2026-05-14', 'nights' => 2])
+        ->test(CreateReservation::class)
+        ->assertSee('140');
+
+    // Podgląd ceny, widoczność i wymagalność pól powodów pytają o wycenę kilka razy — cennik czyta się raz.
+    expect($priceRuleQueries)->toBe(1);
+});
+
+test('clicking a bar re-renders only the popover island', function () {
+    [$fishery, $position, $owner] = ReservationFixtures::bookableFishery();
+    $reservation = ReservationFixtures::book($position, '2026-05-14', 2);
+    $this->actingAs($owner);
+    $islandCall = fn (int $id): array => [['method' => 'selectReservation', 'params' => [$id], 'path' => '', 'metadata' => ['island' => ['name' => 'popover', 'mode' => 'morph']]]];
+    $effectsOf = fn ($component): array => \Livewire\invade($component)->lastState->getEffects();
+
+    $component = Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->assertSeeHtml('wire:island="popover"')
+        ->update(calls: $islandCall($reservation->id))
+        ->assertSet('selReservation', $reservation->id);
+    $effects = $effectsOf($component);
+    $fragments = implode('', $effects['islandFragments'] ?? []);
+
+    expect($effects)->not->toHaveKey('html')
+        ->and($fragments)->toContain('data-reservation-popover')
+        ->and($fragments)->toContain('#'.$reservation->id)
+        ->and($fragments)->not->toContain('data-reservation-grid');
+
+    // Klik w pasek przy zaznaczonych dobach zdejmuje nakładkę z siatki — wtedy pełny render.
+    $component = Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->call('selectCell', $position->id, '2026-05-17')
+        ->assertSeeHtml('data-popover-anchor') // nakładka zaznaczenia (sam `data-selection-overlay` stoi też w kodzie Alpine)
+        ->update(calls: $islandCall($reservation->id))
+        ->assertSet('selPosition', null);
+    $effects = $effectsOf($component);
+
+    expect($effects['html'] ?? '')->toContain('data-reservation-grid')
+        ->and($effects['html'] ?? '')->not->toContain('data-popover-anchor')
+        ->and($effects['html'] ?? '')->toContain('data-reservation-popover');
+});
+
+test('the phone view is an island loaded on demand and refreshed when the window moves', function () {
+    [$fishery, $position, $owner] = ReservationFixtures::bookableFishery();
+    $this->actingAs($owner);
+    $effectsOf = fn ($component): array => \Livewire\invade($component)->lastState->getEffects();
+
+    $component = Livewire::test(ManageCalendar::class, ['record' => $fishery->getKey()])
+        ->assertSeeHtml('wire:intersect.once="loadPhoneView"')
+        ->assertDontSeeHtml('data-free-until')
+        ->call('selectCell', $position->id, '2026-05-14') // klik w dzień: pełny render bez widoku telefonu
+        ->assertDontSeeHtml('data-free-until')
+        ->assertSet('phoneLoaded', false)
+        ->call('loadPhoneView')
+        ->assertSet('phoneLoaded', true);
+    $effects = $effectsOf($component);
+    $fragments = implode('', $effects['islandFragments'] ?? []);
+
+    expect($effects)->not->toHaveKey('html')
+        ->and($fragments)->toContain('data-phone-view')
+        ->and($fragments)->toContain('data-free-until')
+        ->and($fragments)->toContain("selectPhoneDay('2026-05-11')");
+
+    // Przesunięcie okna spoza wyspy odświeża ją jawnie; sama strona nie niesie treści telefonu.
+    $component->call('nextWindow')->assertSet('windowStart', '2026-05-18');
+    $effects = $effectsOf($component);
+
+    expect(implode('', $effects['islandFragments'] ?? []))->toContain("selectPhoneDay('2026-05-18')")
+        ->and($effects['html'] ?? '')->toContain('data-reservation-grid')
+        ->and($effects['html'] ?? '')->not->toContain('data-free-until');
 });

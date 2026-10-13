@@ -313,14 +313,30 @@ final class ReservationFormSchema
      */
     private static function offerFields(Closure $fishery, ?Reservation $record): array
     {
-        $quote = fn (Get $get): ?ReservationFormQuote => ($resolved = $fishery($get)) === null ? null : ReservationFormQuote::for($resolved, [
-            'position_id' => $get('position_id'),
-            'starts_on' => $get('starts_on'),
-            'nights' => $get('nights'),
-            'anglers' => $get('anglers'),
-            'companions' => $get('companions'),
-            'services' => $get('services') ?? self::servicesOf($record),
-        ], $record);
+        // Wycena RAZ na stan formularza (051): podgląd ceny, widoczność i wymagalność pól powodów pytają o nią w jednym
+        // żądaniu kilka razy, a każda wycena to cennik, usługi, sloty i cechy. Pamięć żyje tyle, co schemat — jedno żądanie.
+        $memo = [];
+        $quote = function (Get $get) use ($fishery, $record, &$memo): ?ReservationFormQuote {
+            if (($resolved = $fishery($get)) === null) {
+                return null;
+            }
+
+            $state = [
+                'position_id' => $get('position_id'),
+                'starts_on' => $get('starts_on'),
+                'nights' => $get('nights'),
+                'anglers' => $get('anglers'),
+                'companions' => $get('companions'),
+                'services' => $get('services') ?? self::servicesOf($record),
+            ];
+            $key = $resolved->getKey().'|'.json_encode($state);
+
+            if (! array_key_exists($key, $memo)) {
+                $memo[$key] = ReservationFormQuote::for($resolved, $state, $record);
+            }
+
+            return $memo[$key];
+        };
 
         $fields = [
             Text::make(fn (Get $get): HtmlString => $quote($get)?->html()

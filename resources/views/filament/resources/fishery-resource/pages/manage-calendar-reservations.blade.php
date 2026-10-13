@@ -1,5 +1,5 @@
 {{--
-    Warstwa „Rezerwacje" kalendarza (zadania 042, 047) — warstwa operacyjna wg §3/§3a makiety etapu 3.
+    Warstwa „Rezerwacje" kalendarza (zadania 042, 047, 051) — warstwa operacyjna wg §3/§3a makiety etapu 3.
 
     Własny widok z klasami Tailwinda (wyjątek z panel-wlasciciela.md §1): siatka z colspanem pasków.
     Klasy w całości, nigdy sklejane. Widok NICZEGO NIE LICZY — siatkę składa ReservationCalendar
@@ -7,9 +7,17 @@
     podaje warstwa oferty, a zapis idzie przez akcje strony (ReservationBooking).
 
     Popover jest WARSTWĄ nad siatką (position: absolute w kontenerze kalendarza), zakotwiczoną przy
-    klikniętym elemencie [data-popover-anchor]: NAD jego wierszem, gdy mieści się na ekranie, inaczej POD nim
-    (z przewinięciem do widoku), wyśrodkowany w poziomie w granicach kontenera. Nigdy w wierszu zaznaczenia. Stan zaznaczenia żyje w Livewire; Alpine tylko pozycjonuje,
-    zamyka (Esc, ✕, klik poza kalendarzem) i przesuwa fokus strzałkami (Enter = klik przycisku).
+    klikniętym elemencie: NAD jego wierszem, gdy mieści się na ekranie, inaczej POD nim (z przewinięciem do widoku),
+    wyśrodkowany w poziomie w granicach kontenera. Nigdy w wierszu zaznaczenia. Stan zaznaczenia żyje w Livewire;
+    Alpine tylko pozycjonuje, zamyka (Esc, ✕, klik poza kalendarzem) i przesuwa fokus strzałkami (Enter = klik przycisku).
+
+    Wyspy Livewire (051): popover to wyspa `popover` (always) — klik w pasek rezerwacji albo blokady woła akcję
+    z `wire:island="popover"`, więc odpowiedź niesie tylko popover, a podświetlenie paska bierze Alpine ze stanu.
+    Widok telefonu to wyspa `phone` ze szkieletem (`skip`) wczytywana przez `wire:intersect` — na komputerze jest
+    ukryta, więc nie wczytuje się ani nie liczy. Klik w dzień zostaje pełnym renderem (reguły zaznaczenia i kształtu
+    mają jeden dom po stronie serwera). Wyspa to osobny widok: zmienne z bloku PHP tej strony nie są w niej
+    widoczne, każda wyspa liczy swoje przez $this. (Nie pisz tu „at-php" dosłownie — Blade dopasuje to do pierwszego
+    „at-endphp" i połknie nagłówek widoku.)
 --}}
 @php
     $calendar = $this->calendar();
@@ -17,11 +25,8 @@
     $grid = $this->getReservationGrid();
     $counters = $this->reservationCalendar()->counters();
     $selection = $this->selection();
-    $selected = $this->selectedReservation();
-    $selectedBlock = $this->selectedBlock();
     $locale = app()->getLocale();
     $fishery = $this->fishery();
-    $timezone = $fishery->timezoneName();
     $currency = $fishery->currency?->name;
     $filter = $this->statusFilter;
     $barClasses = [
@@ -31,9 +36,6 @@
         'in_progress' => 'bg-slate-700 text-white shadow-sm',
     ];
     $blockClasses = 'border border-gray-400/60 bg-[repeating-linear-gradient(-45deg,rgba(156,163,175,.15)_0_5px,rgba(156,163,175,.4)_5px_10px)] text-gray-700 dark:text-gray-200';
-    $popoverKey = $selection !== null
-        ? 'sel-'.$selection['position']->id.'-'.$selection['from'].'-'.$selection['to']
-        : ($selected !== null ? 'res-'.$selected->id : ($selectedBlock !== null ? 'blk-'.$selectedBlock->id : null));
     $chips = [
         'arrivals' => [__('Arrivals today'), $counters['arrivals'], 'gray'],
         'departures' => [__('Departures today'), $counters['departures'], 'gray'],
@@ -167,9 +169,16 @@
                         .find((el) => column >= Number(el.dataset.navCol) && column < Number(el.dataset.navCol) + Number(el.dataset.navSpan));
                     next?.focus();
                 },
+                // Kotwica popovera ze STANU (nie z atrybutu renderowanego przez serwer): klik w pasek przerysowuje
+                // tylko popover, więc siatka nie dostaje nowego znacznika.
+                anchor(root) {
+                    if ($wire.selReservation !== null) return root.querySelector('[data-reservation-bar=\'' + $wire.selReservation + '\']');
+                    if ($wire.selBlock !== null) return root.querySelector('[data-block-bar=\'' + $wire.selBlock + '\']');
+                    return root.querySelector('[data-selection-overlay]');
+                },
                 place(popover) {
                     const root = popover.closest('[data-calendar-container]');
-                    const anchor = root?.querySelector('[data-popover-anchor]');
+                    const anchor = root ? this.anchor(root) : null;
                     if (! anchor) return 'display:none';
                     const box = root.getBoundingClientRect();
                     const at = anchor.getBoundingClientRect();
@@ -294,27 +303,27 @@
                                             @endif
                                         </button>
 
-                                        {{-- Paski rezerwacji: od połowy dnia przyjazdu do połowy dnia wyjazdu, ukośne końce „/". --}}
+                                        {{-- Paski rezerwacji: od połowy dnia przyjazdu do połowy dnia wyjazdu, ukośne końce „/".
+                                             `wire:island="popover"` — odpowiedź na klik niesie tylko popover; podświetlenie z Alpine ze stanu. --}}
                                         @foreach ($row->barsStartingAt($index) as $bar)
                                             @php
                                                 $reservation = $bar->reservation;
-                                                $isSelected = $selected?->id === $reservation->id;
                                                 $total = $bar->totalInCents();
                                                 $shape = $barShape($bar->span, ! $bar->startsBefore, ! $bar->endsAfter);
                                             @endphp
                                             <button
                                                 type="button"
                                                 wire:click="selectReservation({{ $reservation->id }})"
+                                                wire:island="popover"
                                                 wire:key="bar-{{ $reservation->id }}"
                                                 data-reservation-bar="{{ $reservation->id }}"
-                                                @if ($isSelected) data-popover-anchor @endif
+                                                x-bind:class="{ 'brightness-90': $wire.selReservation === {{ $reservation->id }} }"
                                                 title="{{ $bar->label() }} · {{ $reservation->stayLabel() }}"
                                                 style="{{ $shape['style'] }}"
                                                 @class([
                                                     'absolute top-1 bottom-1 left-0 flex flex-col justify-center overflow-hidden text-left leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
                                                     $barClasses[$bar->kind],
                                                     'opacity-35' => $bar->dimmed,
-                                                    'brightness-90' => $isSelected,
                                                     'data-loading:cursor-progress data-loading:brightness-75',
                                                 ])
                                             >
@@ -342,21 +351,20 @@
                                         {{-- Blokada: doby od „od" do „do" — ten sam kształt co rezerwacja (przełom dnia). --}}
                                         @foreach ($row->blocksStartingAt($index) as $blockBar)
                                             @php
-                                                $isSelected = $selectedBlock?->id === $blockBar->block->id;
                                                 $shape = $barShape($blockBar->span, ! $blockBar->startsBefore, ! $blockBar->endsAfter);
                                             @endphp
                                             <button
                                                 type="button"
                                                 wire:click="selectBlock({{ $blockBar->block->id }})"
+                                                wire:island="popover"
                                                 wire:key="block-{{ $blockBar->block->id }}-{{ $row->position->id }}-{{ $index }}"
                                                 data-block-bar="{{ $blockBar->block->id }}"
-                                                @if ($isSelected) data-popover-anchor @endif
+                                                x-bind:class="{ 'brightness-90': $wire.selBlock === {{ $blockBar->block->id }} }"
                                                 title="{{ $blockBar->label() }}"
                                                 style="{{ $shape['style'] }}"
                                                 @class([
                                                     'absolute top-1 bottom-1 left-0 flex flex-col justify-center overflow-hidden text-left leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
                                                     $blockClasses,
-                                                    'brightness-90' => $isSelected,
                                                     'data-loading:cursor-progress data-loading:brightness-75',
                                                 ])
                                             >
@@ -370,7 +378,6 @@
                                         {{-- Zaznaczenie: od połowy dnia przyjazdu do połowy dnia wyjazdu (kotwica popovera). --}}
                                         @if ($selection !== null && $selection['position']->id === $row->position->id && $dayString === $selection['from'])
                                             @php
-                                                $lastIndex = count($row->cells) - 1;
                                                 $departureIndex = $index + $selection['nights'];
                                                 $selShape = $barShape(min($lastIndex, $departureIndex) - $index + 1, true, $departureIndex <= $lastIndex);
                                             @endphp
@@ -390,88 +397,105 @@
                 </table>
             </div>
 
-            @if ($popoverKey !== null)
-                <div
-                    wire:key="popover-{{ $popoverKey }}"
-                    x-data="{ style: 'visibility:hidden' }"
-                    x-init="$nextTick(() => { style = place($el) })"
-                    x-on:resize.window="style = place($el)"
-                    x-bind:style="style"
-                    class="absolute z-40 w-80 rounded-xl border border-gray-200 bg-white p-4 text-sm shadow-xl dark:border-white/10 dark:bg-gray-900"
-                    role="dialog"
-                    @if ($selection !== null) data-selection-popover @elseif ($selected !== null) data-reservation-popover @else data-block-popover @endif
-                >
-                    <button type="button" wire:click="clearSelection" class="absolute top-2.5 right-3 text-gray-400 hover:text-gray-700" aria-label="{{ __('Close') }}">✕</button>
+            {{-- Popover — wyspa: klik w pasek (`wire:island="popover"`) przerysowuje tylko ją; `always` — pełny render (klik
+                 w dzień, zapis) też ją odświeża. Osobny widok: dane bierze sam ze strony przez $this. --}}
+            @island('popover', always: true)
+                @php
+                    $selection = $this->selection();
+                    $selected = $this->selectedReservation();
+                    $selectedBlock = $this->selectedBlock();
+                    $popoverKey = $selection !== null
+                        ? 'sel-'.$selection['position']->id.'-'.$selection['from'].'-'.$selection['to']
+                        : ($selected !== null ? 'res-'.$selected->id : ($selectedBlock !== null ? 'blk-'.$selectedBlock->id : null));
+                    $locale = app()->getLocale();
+                    $fishery = $this->fishery();
+                    $timezone = $fishery->timezoneName();
+                    $currency = $fishery->currency?->name;
+                    $nightsLabel = fn (int $count): string => trans_choice(':count night|:count nights', $count, ['count' => $count]);
+                @endphp
+                @if ($popoverKey !== null)
+                    <div
+                        wire:key="popover-{{ $popoverKey }}"
+                        x-data="{ style: 'visibility:hidden' }"
+                        x-init="$nextTick(() => { style = place($el) })"
+                        x-on:resize.window="style = place($el)"
+                        x-bind:style="style"
+                        class="absolute z-40 w-80 rounded-xl border border-gray-200 bg-white p-4 text-sm shadow-xl dark:border-white/10 dark:bg-gray-900"
+                        role="dialog"
+                        @if ($selection !== null) data-selection-popover @elseif ($selected !== null) data-reservation-popover @else data-block-popover @endif
+                    >
+                        <button type="button" wire:click="clearSelection" class="absolute top-2.5 right-3 text-gray-400 hover:text-gray-700" aria-label="{{ __('Close') }}">✕</button>
 
-                    @if ($selection !== null)
-                        <h5 class="me-6 font-semibold">{{ $selection['position']->name }} · {{ \Carbon\CarbonImmutable::parse($selection['from'])->locale($locale)->isoFormat('dd DD.MM') }} → {{ $selection['departure']?->setTimezone($timezone)->locale($locale)->isoFormat('dd DD.MM') }}</h5>
-                        <p class="mt-1 text-gray-600 dark:text-gray-300">
-                            {{ $nightsLabel($selection['nights']) }}
-                            · {{ __('arrival from :time, departure until :time2', ['time' => $selection['arrival']?->setTimezone($timezone)->format('H:i'), 'time2' => $selection['departure']?->setTimezone($timezone)->format('H:i')]) }}
-                        </p>
-                        @if ($selection['price'] !== null)
-                            <p class="mt-1">{{ __('from the offer about') }} <strong data-selection-price>{{ $selection['price'] }}</strong></p>
+                        @if ($selection !== null)
+                            <h5 class="me-6 font-semibold">{{ $selection['position']->name }} · {{ \Carbon\CarbonImmutable::parse($selection['from'])->locale($locale)->isoFormat('dd DD.MM') }} → {{ $selection['departure']?->setTimezone($timezone)->locale($locale)->isoFormat('dd DD.MM') }}</h5>
+                            <p class="mt-1 text-gray-600 dark:text-gray-300">
+                                {{ $nightsLabel($selection['nights']) }}
+                                · {{ __('arrival from :time, departure until :time2', ['time' => $selection['arrival']?->setTimezone($timezone)->format('H:i'), 'time2' => $selection['departure']?->setTimezone($timezone)->format('H:i')]) }}
+                            </p>
+                            @if ($selection['price'] !== null)
+                                <p class="mt-1">{{ __('from the offer about') }} <strong data-selection-price>{{ $selection['price'] }}</strong></p>
+                            @endif
+                            @if ($selection['refusal'] !== null)
+                                <p class="mt-2 rounded-md border border-amber-400/60 bg-amber-50 p-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"><strong>{{ __('Outside the sale rules') }}:</strong> {{ $selection['refusal'] }}</p>
+                            @endif
+                            @if ($selection['nights'] === 1)
+                                <p class="mt-2 rounded-md bg-gray-50 px-2 py-1.5 text-xs text-gray-500 dark:bg-white/5">{{ __('Click the departure day in this row to extend the stay (max. :nights).', ['nights' => $nightsLabel(max(1, $selection['max_nights']))]) }}</p>
+                            @endif
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                {{ ($this->quickBookAction)(['position' => $selection['position']->id, 'date' => $selection['from'], 'nights' => $selection['nights']]) }}
+                                {{ ($this->quickBlockAction)(['position' => $selection['position']->id, 'from' => $selection['from'], 'to' => $selection['to']]) }}
+                                <x-filament::button size="sm" color="gray" tag="a" :href="$this->fullFormUrl($selection['position']->id, $selection['from'], $selection['nights'])">{{ __('Full form →') }}</x-filament::button>
+                            </div>
+                        @elseif ($selected !== null)
+                            @php
+                                $contact = $selected->angler?->effectiveContact() ?? [];
+                                $selectedTotal = $selected->terms?->total_cents;
+                            @endphp
+                            <h5 class="me-6 font-semibold">{{ $contact['name'] ?? $selected->terms?->contact_snapshot['name'] ?? '' }} <span class="ms-1 rounded-full border border-gray-200 px-2 text-[10.5px] font-semibold text-gray-500">#{{ $selected->id }}</span></h5>
+                            <x-filament::badge class="mt-1 inline-flex" :color="\App\Filament\Resources\ReservationResource::statusColor($selected->status)">{{ \App\Filament\Resources\ReservationResource::statusLabel($selected) }}</x-filament::badge>
+                            <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+                                <dt class="text-gray-500">{{ __('Position') }}</dt><dd>{{ $selected->position?->name }}</dd>
+                                <dt class="text-gray-500">{{ __('Term') }}</dt><dd>{{ $selected->stayLabel() }}</dd>
+                                <dt class="text-gray-500">{{ __('People') }}</dt><dd>{{ (int) ($selected->terms->anglers ?? 1) + (int) ($selected->terms->companions ?? 0) }}</dd>
+                                @if ($selected->angler !== null)
+                                    <dt class="text-gray-500">{{ __('Angler data') }}</dt><dd>{{ $selected->angler->status->accountLabel() }}</dd>
+                                @endif
+                                <dt class="text-gray-500">{{ __('Amount') }}</dt><dd>{{ $selectedTotal !== null ? \App\Services\AmountFormatter::cents($selectedTotal, $currency) : '—' }} · {{ $selected->payment_status->label() }}</dd>
+                                @if ($selected->confirm_by !== null && $selected->status === \App\Enums\ReservationStatus::Pending)
+                                    <dt class="text-gray-500">{{ __('Expires') }}</dt><dd>{{ $selected->local($selected->confirm_by)?->format('d.m H:i') }}</dd>
+                                @endif
+                                @if (filled($contact['phone'] ?? null))
+                                    <dt class="text-gray-500">{{ __('Phone') }}</dt><dd>{{ $contact['phone'] }}</dd>
+                                @endif
+                                @if (blank($contact['email'] ?? null))
+                                    <dt class="text-gray-500">{{ __('Contact') }}</dt><dd>{{ __('phone only') }}</dd>
+                                @endif
+                            </dl>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <x-filament::button size="sm" color="gray" tag="a" :href="\App\Filament\Resources\ReservationResource::getUrl('view', ['record' => $selected])">{{ __('View') }}</x-filament::button>
+                                {{ ($this->quickEditReservationAction)(['reservation' => $selected->id]) }}
+                                {{ ($this->fullEditReservationAction)(['reservation' => $selected->id]) }}
+                                {{ ($this->confirmReservationAction)(['reservation' => $selected->id]) }}
+                                {{ ($this->markPaidAction)(['reservation' => $selected->id]) }}
+                                {{ ($this->markContactedAction)(['reservation' => $selected->id]) }}
+                                {{ ($this->cancelReservationAction)(['reservation' => $selected->id]) }}
+                            </div>
+                        @elseif ($selectedBlock !== null)
+                            <h5 class="me-6 font-semibold">{{ __('Block') }} · {{ $selectedBlock->positions->pluck('name')->join(', ') }}</h5>
+                            <p class="mt-1 text-gray-600 dark:text-gray-300">{{ filled($selectedBlock->reason) ? $selectedBlock->reason : __('No reason given') }}</p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                {{ $selectedBlock->starts_on->format('d.m.Y') }} → {{ $selectedBlock->ends_on?->format('d.m.Y') ?? __('until revoked') }}
+                            </p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                @can('update', $selectedBlock)
+                                    <x-filament::button size="sm" tag="a" :href="$this->blockEditUrl($selectedBlock)">{{ __('Edit block') }}</x-filament::button>
+                                @endcan
+                                {{ ($this->deleteBlockAction)(['block' => $selectedBlock->id]) }}
+                            </div>
                         @endif
-                        @if ($selection['refusal'] !== null)
-                            <p class="mt-2 rounded-md border border-amber-400/60 bg-amber-50 p-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"><strong>{{ __('Outside the sale rules') }}:</strong> {{ $selection['refusal'] }}</p>
-                        @endif
-                        @if ($selection['nights'] === 1)
-                            <p class="mt-2 rounded-md bg-gray-50 px-2 py-1.5 text-xs text-gray-500 dark:bg-white/5">{{ __('Click the departure day in this row to extend the stay (max. :nights).', ['nights' => $nightsLabel(max(1, $selection['max_nights']))]) }}</p>
-                        @endif
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            {{ ($this->quickBookAction)(['position' => $selection['position']->id, 'date' => $selection['from'], 'nights' => $selection['nights']]) }}
-                            {{ ($this->quickBlockAction)(['position' => $selection['position']->id, 'from' => $selection['from'], 'to' => $selection['to']]) }}
-                            <x-filament::button size="sm" color="gray" tag="a" :href="$this->fullFormUrl($selection['position']->id, $selection['from'], $selection['nights'])">{{ __('Full form →') }}</x-filament::button>
-                        </div>
-                    @elseif ($selected !== null)
-                        @php
-                            $contact = $selected->angler?->effectiveContact() ?? [];
-                            $selectedTotal = $selected->terms?->total_cents;
-                        @endphp
-                        <h5 class="me-6 font-semibold">{{ $contact['name'] ?? $selected->terms?->contact_snapshot['name'] ?? '' }} <span class="ms-1 rounded-full border border-gray-200 px-2 text-[10.5px] font-semibold text-gray-500">#{{ $selected->id }}</span></h5>
-                        <x-filament::badge class="mt-1 inline-flex" :color="\App\Filament\Resources\ReservationResource::statusColor($selected->status)">{{ \App\Filament\Resources\ReservationResource::statusLabel($selected) }}</x-filament::badge>
-                        <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-                            <dt class="text-gray-500">{{ __('Position') }}</dt><dd>{{ $selected->position?->name }}</dd>
-                            <dt class="text-gray-500">{{ __('Term') }}</dt><dd>{{ $selected->stayLabel() }}</dd>
-                            <dt class="text-gray-500">{{ __('People') }}</dt><dd>{{ (int) ($selected->terms->anglers ?? 1) + (int) ($selected->terms->companions ?? 0) }}</dd>
-                            @if ($selected->angler !== null)
-                                <dt class="text-gray-500">{{ __('Angler data') }}</dt><dd>{{ $selected->angler->status->accountLabel() }}</dd>
-                            @endif
-                            <dt class="text-gray-500">{{ __('Amount') }}</dt><dd>{{ $selectedTotal !== null ? \App\Services\AmountFormatter::cents($selectedTotal, $currency) : '—' }} · {{ $selected->payment_status->label() }}</dd>
-                            @if ($selected->confirm_by !== null && $selected->status === \App\Enums\ReservationStatus::Pending)
-                                <dt class="text-gray-500">{{ __('Expires') }}</dt><dd>{{ $selected->local($selected->confirm_by)?->format('d.m H:i') }}</dd>
-                            @endif
-                            @if (filled($contact['phone'] ?? null))
-                                <dt class="text-gray-500">{{ __('Phone') }}</dt><dd>{{ $contact['phone'] }}</dd>
-                            @endif
-                            @if (blank($contact['email'] ?? null))
-                                <dt class="text-gray-500">{{ __('Contact') }}</dt><dd>{{ __('phone only') }}</dd>
-                            @endif
-                        </dl>
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            <x-filament::button size="sm" color="gray" tag="a" :href="\App\Filament\Resources\ReservationResource::getUrl('view', ['record' => $selected])">{{ __('View') }}</x-filament::button>
-                            {{ ($this->quickEditReservationAction)(['reservation' => $selected->id]) }}
-                            {{ ($this->fullEditReservationAction)(['reservation' => $selected->id]) }}
-                            {{ ($this->confirmReservationAction)(['reservation' => $selected->id]) }}
-                            {{ ($this->markPaidAction)(['reservation' => $selected->id]) }}
-                            {{ ($this->markContactedAction)(['reservation' => $selected->id]) }}
-                            {{ ($this->cancelReservationAction)(['reservation' => $selected->id]) }}
-                        </div>
-                    @elseif ($selectedBlock !== null)
-                        <h5 class="me-6 font-semibold">{{ __('Block') }} · {{ $selectedBlock->positions->pluck('name')->join(', ') }}</h5>
-                        <p class="mt-1 text-gray-600 dark:text-gray-300">{{ filled($selectedBlock->reason) ? $selectedBlock->reason : __('No reason given') }}</p>
-                        <p class="mt-1 text-xs text-gray-500">
-                            {{ $selectedBlock->starts_on->format('d.m.Y') }} → {{ $selectedBlock->ends_on?->format('d.m.Y') ?? __('until revoked') }}
-                        </p>
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            @can('update', $selectedBlock)
-                                <x-filament::button size="sm" tag="a" :href="$this->blockEditUrl($selectedBlock)">{{ __('Edit block') }}</x-filament::button>
-                            @endcan
-                            {{ ($this->deleteBlockAction)(['block' => $selectedBlock->id]) }}
-                        </div>
-                    @endif
-                </div>
-            @endif
+                    </div>
+                @endif
+            @endisland
 
             <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
                 <span class="flex items-center gap-1"><span class="inline-block h-3 w-5 rounded border border-emerald-600 bg-emerald-100 dark:bg-emerald-500/20"></span>{{ __('Confirmed') }}</span>
@@ -486,154 +510,167 @@
             </div>
         </div>
 
-        {{-- Telefon (§3a, A10): pasek dni + lista dnia; arkusz od dołu w dwóch krokach. --}}
-        @php
-            $phoneDay = collect($grid->days)->first(fn ($day) => $day->toDateString() === $this->phoneDay) ?? $grid->days[0];
-            $phoneDayString = $phoneDay->toDateString();
-            $arrivals = $departures = $onSite = $free = $other = [];
+        {{-- Telefon (§3a, A10): pasek dni + lista dnia; arkusz od dołu w dwóch krokach. Wyspa ze szkieletem: treść
+             wczytuje `wire:intersect` (`loadPhoneView`), a na komputerze szkielet jest ukryty, więc wyspa nie wczytuje się
+             ani nie liczy. Zmiany spoza wyspy (okno, grupa, zapis) odświeża `refreshPhoneView()`. --}}
+        @island('phone', skip: true)
+            @placeholder
+                <div class="relative mt-3 md:hidden" data-phone-view wire:intersect.once="loadPhoneView">
+                    <p class="py-6 text-center text-sm text-gray-500">…</p>
+                </div>
+            @endplaceholder
+            @php
+                $grid = $this->getReservationGrid();
+                $selected = $this->selectedReservation();
+                $locale = app()->getLocale();
+                $timezone = $this->fishery()->timezoneName();
+                $phoneDay = collect($grid->days)->first(fn ($day) => $day->toDateString() === $this->phoneDay) ?? $grid->days[0];
+                $phoneDayString = $phoneDay->toDateString();
+                $arrivals = $departures = $onSite = $free = $other = [];
 
-            foreach ($grid->rows as $row) {
-                foreach ($row->bars as $bar) {
-                    if ($bar->reservation->ends_at->setTimezone($timezone)->toDateString() === $phoneDayString) {
-                        $departures[] = [$row, $bar];
+                foreach ($grid->rows as $row) {
+                    foreach ($row->bars as $bar) {
+                        if ($bar->reservation->ends_at->setTimezone($timezone)->toDateString() === $phoneDayString) {
+                            $departures[] = [$row, $bar];
+                        }
+                    }
+
+                    $phoneBar = $row->barOn($phoneDay);
+                    $phoneCell = $row->cellOn($phoneDay);
+
+                    if ($phoneBar !== null) {
+                        $phoneBar->reservation->first_night_on->toDateString() === $phoneDayString
+                            ? $arrivals[] = [$row, $phoneBar]
+                            : $onSite[] = [$row, $phoneBar];
+                    } elseif ($phoneCell !== null && $phoneCell->isSelectable() && $row->blockOn($phoneDay) === null && ($nights = $this->reservationCalendar()->freeNightsFrom($row->position, $phoneDay)) > 0) {
+                        $free[] = [$row, $nights];
+                    } else {
+                        $other[] = [$row, $row->blockOn($phoneDay)];
                     }
                 }
-
-                $phoneBar = $row->barOn($phoneDay);
-                $phoneCell = $row->cellOn($phoneDay);
-
-                if ($phoneBar !== null) {
-                    $phoneBar->reservation->first_night_on->toDateString() === $phoneDayString
-                        ? $arrivals[] = [$row, $phoneBar]
-                        : $onSite[] = [$row, $phoneBar];
-                } elseif ($phoneCell !== null && $phoneCell->isSelectable() && $row->blockOn($phoneDay) === null && ($nights = $this->reservationCalendar()->freeNightsFrom($row->position, $phoneDay)) > 0) {
-                    $free[] = [$row, $nights];
-                } else {
-                    $other[] = [$row, $row->blockOn($phoneDay)];
-                }
-            }
-        @endphp
-        <div
-            class="relative mt-3 md:hidden"
-            data-phone-view
-            x-data="{
-                sheet: null,
-                async open(position, name, date, max) {
-                    this.sheet = { position, name, date, max, nights: 1, quote: null };
-                    await this.refresh();
-                },
-                async step(delta) {
-                    if (! this.sheet) return;
-                    this.sheet.nights = Math.max(1, Math.min(this.sheet.max, this.sheet.nights + delta));
-                    await this.refresh();
-                },
-                async refresh() {
-                    this.sheet.quote = await $wire.quote(this.sheet.position, this.sheet.date, this.sheet.nights);
-                },
-                next() {
-                    const s = this.sheet;
-                    this.sheet = null;
-                    $wire.mountAction('quickBook', { position: s.position, date: s.date, nights: s.nights });
-                },
-            }"
-            x-on:keydown.escape.window="sheet = null"
-        >
-            <div class="grid grid-cols-7 gap-1 pb-2">
-                @foreach (array_slice($grid->days, 0, 7) as $day)
-                    <button
-                        type="button"
-                        wire:click="selectPhoneDay('{{ $day->toDateString() }}')"
-                        @class([
-                            'rounded-lg border py-1 text-center text-xs font-bold',
-                            'border-primary-600 bg-primary-600 text-white' => $day->isSameDay($phoneDay),
-                            'border-amber-300 bg-amber-50 dark:bg-amber-500/10' => ! $day->isSameDay($phoneDay) && $grid->isWeekend($day),
-                            'border-gray-300 dark:border-white/15' => ! $day->isSameDay($phoneDay) && ! $grid->isWeekend($day),
-                        ])
-                    >
-                        <span class="block text-[9.5px] font-semibold uppercase opacity-80">{{ $day->locale($locale)->isoFormat('dd') }}</span>
-                        {{ $day->format('d') }}
-                    </button>
-                @endforeach
-            </div>
-
-            @php $phonePast = $phoneDay < $grid->today; @endphp
-            @foreach ([[__('Arrivals'), $arrivals], [__('Departures'), $departures], [__('On the fishery now'), $onSite]] as [$heading, $items])
-                @if ($items !== [])
-                    <div class="mt-2 rounded-md bg-gray-50 px-2 py-1 text-[11.5px] font-semibold text-gray-500 dark:bg-white/5">{{ $heading }}</div>
-                    @foreach ($items as [$row, $bar])
-                        <button type="button" wire:click="selectReservation({{ $bar->reservation->id }})" class="flex w-full items-center justify-between gap-3 border-t border-gray-200 px-1 py-2.5 text-left text-sm dark:border-white/10" wire:key="phone-{{ $heading }}-{{ $bar->reservation->id }}">
-                            <span><strong>{{ $row->position->name }}</strong> · {{ $bar->label() }}</span>
-                            <span class="text-xs text-gray-500">{{ \App\Filament\Resources\ReservationResource::statusLabel($bar->reservation) }}</span>
+            @endphp
+            <div
+                class="relative mt-3 md:hidden"
+                data-phone-view
+                x-data="{
+                    sheet: null,
+                    async open(position, name, date, max) {
+                        this.sheet = { position, name, date, max, nights: 1, quote: null };
+                        await this.refresh();
+                    },
+                    async step(delta) {
+                        if (! this.sheet) return;
+                        this.sheet.nights = Math.max(1, Math.min(this.sheet.max, this.sheet.nights + delta));
+                        await this.refresh();
+                    },
+                    async refresh() {
+                        this.sheet.quote = await $wire.quote(this.sheet.position, this.sheet.date, this.sheet.nights);
+                    },
+                    next() {
+                        const s = this.sheet;
+                        this.sheet = null;
+                        $wire.mountAction('quickBook', { position: s.position, date: s.date, nights: s.nights });
+                    },
+                }"
+                x-on:keydown.escape.window="sheet = null"
+            >
+                <div class="grid grid-cols-7 gap-1 pb-2">
+                    @foreach (array_slice($grid->days, 0, 7) as $day)
+                        <button
+                            type="button"
+                            wire:click="selectPhoneDay('{{ $day->toDateString() }}')"
+                            @class([
+                                'rounded-lg border py-1 text-center text-xs font-bold',
+                                'border-primary-600 bg-primary-600 text-white' => $day->isSameDay($phoneDay),
+                                'border-amber-300 bg-amber-50 dark:bg-amber-500/10' => ! $day->isSameDay($phoneDay) && $grid->isWeekend($day),
+                                'border-gray-300 dark:border-white/15' => ! $day->isSameDay($phoneDay) && ! $grid->isWeekend($day),
+                            ])
+                        >
+                            <span class="block text-[9.5px] font-semibold uppercase opacity-80">{{ $day->locale($locale)->isoFormat('dd') }}</span>
+                            {{ $day->format('d') }}
                         </button>
                     @endforeach
-                @endif
-            @endforeach
-
-            <div class="mt-2 rounded-md bg-gray-50 px-2 py-1 text-[11.5px] font-semibold text-gray-500 dark:bg-white/5">{{ __('Free positions') }}</div>
-            @forelse ($free as [$row, $nights])
-                <button
-                    type="button"
-                    @if (! $phonePast) x-on:click="open({{ $row->position->id }}, @js($row->position->name), '{{ $phoneDayString }}', {{ $nights }})" @endif
-                    class="flex w-full items-center justify-between gap-3 border-t border-gray-200 px-1 py-2.5 text-left text-sm dark:border-white/10"
-                    wire:key="phone-free-{{ $row->position->id }}"
-                    data-free-until
-                >
-                    <strong>{{ $row->position->name }}</strong>
-                    <span class="text-xs text-gray-500">{{ __('free until :date', ['date' => $phoneDay->addDays($nights)->format('d.m')]) }} · {{ trans_choice('max. :count night|max. :count nights', $nights, ['count' => $nights]) }}</span>
-                </button>
-            @empty
-                <p class="border-t border-gray-200 px-1 py-2.5 text-sm text-gray-500 dark:border-white/10">{{ __('No free positions on this day.') }}</p>
-            @endforelse
-
-            @foreach ($other as [$row, $blockBar])
-                <div class="flex items-center justify-between gap-3 border-t border-gray-200 px-1 py-2.5 text-sm text-gray-500 dark:border-white/10" wire:key="phone-other-{{ $row->position->id }}">
-                    <strong>{{ $row->position->name }}</strong>
-                    <span class="text-xs">{{ $blockBar !== null ? $blockBar->label() : ($phonePast ? __('past') : __('booked')) }}</span>
                 </div>
-            @endforeach
 
-            {{-- Arkusz — krok 1: liczba dób, przyjazd i wyjazd, cena; „Dalej" otwiera krok 2 (dane wędkarza i zapis). --}}
-            <div x-show="sheet" x-cloak x-transition.opacity class="fixed inset-0 z-40 bg-gray-950/50" x-on:click="sheet = null"></div>
-            <div x-show="sheet" x-cloak x-transition class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-gray-200 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-gray-900" role="dialog" data-phone-sheet>
-                <template x-if="sheet">
-                    <div>
-                        <button type="button" class="absolute top-3 right-4 text-gray-400" x-on:click="sheet = null" aria-label="{{ __('Close') }}">✕</button>
-                        <h5 class="me-6 text-base font-semibold" x-text="sheet.name"></h5>
-                        <div class="my-3 flex items-center justify-center gap-6">
-                            <button type="button" class="h-10 w-10 rounded-full border border-gray-300 text-xl" x-on:click="step(-1)" aria-label="{{ __('Fewer nights') }}">−</button>
-                            <strong class="min-w-24 text-center text-xl" x-text="sheet.nights + ' / ' + sheet.max"></strong>
-                            <button type="button" class="h-10 w-10 rounded-full border border-gray-300 text-xl" x-on:click="step(1)" aria-label="{{ __('More nights') }}">+</button>
-                        </div>
-                        <p class="text-center text-xs text-gray-500">{{ __('Nights') }}</p>
-                        <template x-if="sheet.quote">
-                            <div class="mt-3 text-sm">
-                                <p><span class="text-gray-500">{{ __('Arrival') }}:</span> <span x-text="sheet.quote.arrival"></span> · <span class="text-gray-500">{{ __('Departure') }}:</span> <span x-text="sheet.quote.departure"></span></p>
-                                <p x-show="sheet.quote.price"><span class="text-gray-500">{{ __('Price') }}:</span> <strong x-text="sheet.quote.price"></strong></p>
-                                <p x-show="sheet.quote.refusal" class="mt-2 rounded-md border border-amber-400/60 bg-amber-50 p-2 text-xs text-amber-800"><strong>{{ __('Outside the sale rules') }}:</strong> <span x-text="sheet.quote.refusal"></span></p>
+                @php $phonePast = $phoneDay < $grid->today; @endphp
+                @foreach ([[__('Arrivals'), $arrivals], [__('Departures'), $departures], [__('On the fishery now'), $onSite]] as [$heading, $items])
+                    @if ($items !== [])
+                        <div class="mt-2 rounded-md bg-gray-50 px-2 py-1 text-[11.5px] font-semibold text-gray-500 dark:bg-white/5">{{ $heading }}</div>
+                        @foreach ($items as [$row, $bar])
+                            <button type="button" wire:click="selectReservation({{ $bar->reservation->id }})" class="flex w-full items-center justify-between gap-3 border-t border-gray-200 px-1 py-2.5 text-left text-sm dark:border-white/10" wire:key="phone-{{ $heading }}-{{ $bar->reservation->id }}">
+                                <span><strong>{{ $row->position->name }}</strong> · {{ $bar->label() }}</span>
+                                <span class="text-xs text-gray-500">{{ \App\Filament\Resources\ReservationResource::statusLabel($bar->reservation) }}</span>
+                            </button>
+                        @endforeach
+                    @endif
+                @endforeach
+
+                <div class="mt-2 rounded-md bg-gray-50 px-2 py-1 text-[11.5px] font-semibold text-gray-500 dark:bg-white/5">{{ __('Free positions') }}</div>
+                @forelse ($free as [$row, $nights])
+                    <button
+                        type="button"
+                        @if (! $phonePast) x-on:click="open({{ $row->position->id }}, @js($row->position->name), '{{ $phoneDayString }}', {{ $nights }})" @endif
+                        class="flex w-full items-center justify-between gap-3 border-t border-gray-200 px-1 py-2.5 text-left text-sm dark:border-white/10"
+                        wire:key="phone-free-{{ $row->position->id }}"
+                        data-free-until
+                    >
+                        <strong>{{ $row->position->name }}</strong>
+                        <span class="text-xs text-gray-500">{{ __('free until :date', ['date' => $phoneDay->addDays($nights)->format('d.m')]) }} · {{ trans_choice('max. :count night|max. :count nights', $nights, ['count' => $nights]) }}</span>
+                    </button>
+                @empty
+                    <p class="border-t border-gray-200 px-1 py-2.5 text-sm text-gray-500 dark:border-white/10">{{ __('No free positions on this day.') }}</p>
+                @endforelse
+
+                @foreach ($other as [$row, $blockBar])
+                    <div class="flex items-center justify-between gap-3 border-t border-gray-200 px-1 py-2.5 text-sm text-gray-500 dark:border-white/10" wire:key="phone-other-{{ $row->position->id }}">
+                        <strong>{{ $row->position->name }}</strong>
+                        <span class="text-xs">{{ $blockBar !== null ? $blockBar->label() : ($phonePast ? __('past') : __('booked')) }}</span>
+                    </div>
+                @endforeach
+
+                {{-- Arkusz — krok 1: liczba dób, przyjazd i wyjazd, cena; „Dalej" otwiera krok 2 (dane wędkarza i zapis). --}}
+                <div x-show="sheet" x-cloak x-transition.opacity class="fixed inset-0 z-40 bg-gray-950/50" x-on:click="sheet = null"></div>
+                <div x-show="sheet" x-cloak x-transition class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-gray-200 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-gray-900" role="dialog" data-phone-sheet>
+                    <template x-if="sheet">
+                        <div>
+                            <button type="button" class="absolute top-3 right-4 text-gray-400" x-on:click="sheet = null" aria-label="{{ __('Close') }}">✕</button>
+                            <h5 class="me-6 text-base font-semibold" x-text="sheet.name"></h5>
+                            <div class="my-3 flex items-center justify-center gap-6">
+                                <button type="button" class="h-10 w-10 rounded-full border border-gray-300 text-xl" x-on:click="step(-1)" aria-label="{{ __('Fewer nights') }}">−</button>
+                                <strong class="min-w-24 text-center text-xl" x-text="sheet.nights + ' / ' + sheet.max"></strong>
+                                <button type="button" class="h-10 w-10 rounded-full border border-gray-300 text-xl" x-on:click="step(1)" aria-label="{{ __('More nights') }}">+</button>
                             </div>
-                        </template>
-                        <div class="mt-4 flex justify-end">
-                            <x-filament::button x-on:click="next()">{{ __('Next →') }}</x-filament::button>
+                            <p class="text-center text-xs text-gray-500">{{ __('Nights') }}</p>
+                            <template x-if="sheet.quote">
+                                <div class="mt-3 text-sm">
+                                    <p><span class="text-gray-500">{{ __('Arrival') }}:</span> <span x-text="sheet.quote.arrival"></span> · <span class="text-gray-500">{{ __('Departure') }}:</span> <span x-text="sheet.quote.departure"></span></p>
+                                    <p x-show="sheet.quote.price"><span class="text-gray-500">{{ __('Price') }}:</span> <strong x-text="sheet.quote.price"></strong></p>
+                                    <p x-show="sheet.quote.refusal" class="mt-2 rounded-md border border-amber-400/60 bg-amber-50 p-2 text-xs text-amber-800"><strong>{{ __('Outside the sale rules') }}:</strong> <span x-text="sheet.quote.refusal"></span></p>
+                                </div>
+                            </template>
+                            <div class="mt-4 flex justify-end">
+                                <x-filament::button x-on:click="next()">{{ __('Next →') }}</x-filament::button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- Zajęte stanowisko → arkusz z akcjami rezerwacji. --}}
+                @if ($selected !== null)
+                    <div class="fixed inset-x-0 bottom-0 z-30 rounded-t-2xl border-t border-gray-200 bg-white p-4 text-sm shadow-2xl dark:border-white/10 dark:bg-gray-900" data-phone-reservation-sheet>
+                        <button type="button" wire:click="clearSelection" class="absolute top-3 right-4 text-gray-400" aria-label="{{ __('Close') }}">✕</button>
+                        <h5 class="me-6 font-semibold">{{ $selected->angler?->effectiveContact()['name'] }} · #{{ $selected->id }}</h5>
+                        <p class="mt-1 text-xs text-gray-500">{{ $selected->position?->name }} · {{ $selected->stayLabel() }}</p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <x-filament::button size="sm" color="gray" tag="a" :href="\App\Filament\Resources\ReservationResource::getUrl('view', ['record' => $selected])">{{ __('View') }}</x-filament::button>
+                            {{ ($this->quickEditReservationAction)(['reservation' => $selected->id]) }}
+                            {{ ($this->confirmReservationAction)(['reservation' => $selected->id]) }}
+                            {{ ($this->markPaidAction)(['reservation' => $selected->id]) }}
+                            {{ ($this->cancelReservationAction)(['reservation' => $selected->id]) }}
                         </div>
                     </div>
-                </template>
+                @endif
             </div>
-
-            {{-- Zajęte stanowisko → arkusz z akcjami rezerwacji. --}}
-            @if ($selected !== null)
-                <div class="fixed inset-x-0 bottom-0 z-30 rounded-t-2xl border-t border-gray-200 bg-white p-4 text-sm shadow-2xl dark:border-white/10 dark:bg-gray-900" data-phone-reservation-sheet>
-                    <button type="button" wire:click="clearSelection" class="absolute top-3 right-4 text-gray-400" aria-label="{{ __('Close') }}">✕</button>
-                    <h5 class="me-6 font-semibold">{{ $selected->angler?->effectiveContact()['name'] }} · #{{ $selected->id }}</h5>
-                    <p class="mt-1 text-xs text-gray-500">{{ $selected->position?->name }} · {{ $selected->stayLabel() }}</p>
-                    <div class="mt-3 flex flex-wrap gap-2">
-                        <x-filament::button size="sm" color="gray" tag="a" :href="\App\Filament\Resources\ReservationResource::getUrl('view', ['record' => $selected])">{{ __('View') }}</x-filament::button>
-                        {{ ($this->quickEditReservationAction)(['reservation' => $selected->id]) }}
-                        {{ ($this->confirmReservationAction)(['reservation' => $selected->id]) }}
-                        {{ ($this->markPaidAction)(['reservation' => $selected->id]) }}
-                        {{ ($this->cancelReservationAction)(['reservation' => $selected->id]) }}
-                    </div>
-                </div>
-            @endif
-        </div>
+        @endisland
     @endif
 @endif
