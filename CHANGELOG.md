@@ -15,6 +15,10 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
      ### Dodane / ### Zmienione / ### Poprawione / ### Usunięte / ### Wycofane / ### Bezpieczeństwo
      Przy wydaniu sekcja `[unreleased]` zamienia się w `## [X.Y.Z] - RRRR-MM-DD`. -->
 
+### Bezpieczeństwo
+- PHP zaktualizowane do 8.4.27 z poprawkami krytycznych podatności php2shell (CVE-2026-109618,
+  CVE-2026-109619); obraz produkcyjny nie zbuduje się już na wersji PHP bez tej łatki
+
 ### Dodane
 - podpowiedź istniejącego wędkarza przy zakładaniu rezerwacji — gdy wpisane imię i nazwisko albo telefon pasują do
   wędkarza łowiska, formularz (także krótki formularz w kalendarzu) pokazuje go z przyciskiem „Użyj tego wędkarza",

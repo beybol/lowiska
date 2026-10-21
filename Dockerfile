@@ -107,6 +107,12 @@ CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
 # ---------------------------------------------------------------------------
 FROM dunglas/frankenphp:1-php8.4 AS prod
 
+# Minimalna wersja PHP z łatkami bezpieczeństwa (php2shell, CVE-2026-109618/109619 —
+# 8.4.27, 2026-10-21). Bez tej bramki przebudowa mogłaby po cichu zostać na starym PHP
+# (obraz bazowy z poprzednią łatką). Przy kolejnej krytycznej łatce PHP podnieś numer tutaj.
+RUN php -r 'exit(version_compare(PHP_VERSION, "8.4.27", ">=") ? 0 : 1);' \
+    || { echo "PHP $(php -r 'echo PHP_VERSION;') < 8.4.27 — obraz bazowy bez łatki bezpieczeństwa" >&2; exit 1; }
+
 COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
