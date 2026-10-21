@@ -24,11 +24,17 @@ jobs:
   # Job świadomie NIE dostaje `id-token: write` ani żadnych sekretów chmurowych —
   # nie rozmawia z GCP i nie ma powodu mieć do niego dostępu.
   security:
-    runs-on: ubuntu-latest
+    # Przypięte do konkretnego obrazu, nie `ubuntu-latest`: etykieta `latest`
+    # przeskakuje na Ubuntu 26 od 19.10.2026, a ten job pobiera binarkę gitleaksa
+    # (`linux_x64`) i uruchamia ją wprost na runnerze — zmiana obrazu ma tu realne
+    # pole rażenia, więc przechodzimy na nowy świadomie, nie kalendarzem.
+    # Akcje przypięte do SHA commita (tag da się przesunąć), wersja w komentarzu;
+    # majory z `runs.using: node24` — zdejmują ostrzeżenie o deprecjacji Node 20.
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     env:
-      # Analiza statyczna nie zbiera pokrycia, a ubuntu-latest ma Xdebug załadowany
+      # Analiza statyczna nie zbiera pokrycia, a obraz runnera ma Xdebug załadowany
       # domyślnie — bez tego PHPStan jest kilkukrotnie wolniejszy bez pożytku.
       XDEBUG_MODE: off
       # Bez .env i bez tej zmiennej APP_ENV domyślnie rozwiązuje się na 'production'
@@ -40,13 +46,13 @@ jobs:
       # środowiskiem: job analizuje kod, nie wdraża niczego.
       APP_ENV: local
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Pełna historia: gitleaks skanuje wszystkie commity, nie tylko HEAD.
           fetch-depth: 0
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           # ⚠️ PHP 8.4 jest przypięte w CZTERECH miejscach i zmienia się WYŁĄCZNIE razem:
           # Dockerfile · composer.json (config.platform.php) · phpstan.neon (phpVersion)
@@ -95,9 +101,9 @@ jobs:
 
   deploy:
     needs: [security]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # przypięte razem z jobem `security` — patrz komentarz tam
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -142,12 +148,12 @@ jobs:
           echo "image=${ARTIFACT_REGISTRY}/lowiska:${GITHUB_SHA}"                 >> "$GITHUB_OUTPUT"
 
       - id: auth
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           workload_identity_provider: ${{ env.WIF_PROVIDER }}
           service_account: ${{ steps.env.outputs.deploy_sa }}
 
-      - uses: google-github-actions/setup-gcloud@v2
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
       - name: Build & push image (skip if already in registry)
         run: |
