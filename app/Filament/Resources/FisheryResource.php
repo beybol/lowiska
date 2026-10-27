@@ -300,7 +300,6 @@ class FisheryResource extends Resource
                             ->columnSpan(['default' => 1, 'md' => 3]),
                         TextInput::make('building_number')
                             ->label(__('Building number'))
-                            ->required()
                             ->maxLength(255)
                             ->live(onBlur: true),
                     ]),
@@ -464,7 +463,6 @@ class FisheryResource extends Resource
         return [
             'address' => $address,
             'hasCompleteAddress' => filled(trim($street))
-                && filled(trim($buildingNumber))
                 && filled(trim($zipCode))
                 && filled(trim($town))
                 && filled(trim($stateName)),

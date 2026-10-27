@@ -27,7 +27,11 @@ pomijało 2FA w całości, a `MakeAdmin` ustawiało hasło równe adresowi e-mai
 
 ## Przed pierwszym wdrożeniem produkcyjnym
 
-### Hasło konta administratora i wymuszone 2FA dla `is_admin`
+### ~~Hasło konta administratora i wymuszone 2FA dla `is_admin`~~ — NIEAKTUALNE
+
+**Nieaktualne (2026-10-16):** opis niżej opiera się na błędnych założeniach. Kod 2FA jest generowany przy samym logowaniu (`Login`, `AuthenticatedSessionController`, `SocialAuthController`), więc świeże konto *ma* drugi składnik już przy pierwszym logowaniu. `deploy.yml` nie uruchamia `MakeAdmin` ani nie podaje jego e-maila (`ADMIN_EMAIL` to tylko kontakt w konfiguracji) — admina zakłada się ręcznie, na produkcji z `--password`. Nie ma tu nic do zrobienia.
+
+Treść historyczna poniżej — nie obowiązuje.
 
 **Stan dziś:** `MakeAdminCommand` zakłada konto z hasłem **równym adresowi e-mail**, a adres
 jest jawny — `deploy.yml` podaje go w `ADMIN_EMAIL`. Konto ma auto-zweryfikowany e-mail

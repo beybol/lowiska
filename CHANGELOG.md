@@ -15,6 +15,9 @@ zadań i szczegółów implementacji. Utrzymuje ten plik skill `changelog`, woł
      ### Dodane / ### Zmienione / ### Poprawione / ### Usunięte / ### Wycofane / ### Bezpieczeństwo
      Przy wydaniu sekcja `[unreleased]` zamienia się w `## [X.Y.Z] - RRRR-MM-DD`. -->
 
+### Zmienione
+- numer budynku w adresie łowiska jest opcjonalny — łowisko bez numeru można zapisać, a adres i mapa pokazują się bez niego
+
 ## [0.0.2] - 2026-10-21
 
 ### Bezpieczeństwo

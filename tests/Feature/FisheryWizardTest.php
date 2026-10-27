@@ -185,6 +185,24 @@ test('creating a fishery through the wizard assigns the chosen existing company'
     expect($fishery->user_id)->toBe($owner->id);
 });
 
+test('a fishery can be created without a building number', function () {
+    $owner = wizardOwner();
+    $company = Company::factory()->forUser($owner)->create(['is_verified' => true]);
+    $state = State::factory()->create();
+
+    Livewire::test(CreateFishery::class)
+        ->fillForm([
+            'company_mode' => 'existing',
+            'company_id' => $company->id,
+            ...wizardFisheryData($state),
+            'building_number' => null,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(Fishery::latest('id')->first()->building_number)->toBeNull();
+});
+
 /**
  * Kreator kończy proces zakładania łowiska, więc właściciel ląduje od razu na
  * jego stronie zarządzania (stanowiska, pozwolenia, usługi) — a nie na liście,

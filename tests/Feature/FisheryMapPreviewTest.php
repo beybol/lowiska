@@ -73,3 +73,24 @@ test('map preview embeds the address assembled from live form fields', function 
     expect($html)->toContain(urlencode('00-001 Warszawa'));
     expect($html)->toContain(urlencode('Mazowieckie'));
 });
+
+test('map preview embeds the address when the building number is empty', function () {
+    $owner = User::factory()->create();
+    OwnerRoleProvisioner::addOwnerRole($owner);
+    $this->actingAs($owner);
+
+    $state = State::factory()->create(['name' => 'Mazowieckie']);
+
+    $html = Livewire::test(CreateFishery::class)
+        ->fillForm([
+            'street' => 'Kwiatowa',
+            'building_number' => null,
+            'zip_code' => '00-001',
+            'town' => 'Warszawa',
+            'state_id' => $state->id,
+        ])
+        ->html();
+
+    expect($html)->toContain('maps/embed');
+    expect($html)->toContain(urlencode('Kwiatowa,'));
+});
